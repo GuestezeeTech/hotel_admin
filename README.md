@@ -27,3 +27,7 @@ This README would normally document whatever steps are necessary to get your app
 
 * Repo owner or admin
 * Other community or team contact
+
+<!-- Deployment command -->
+[Deploy:environment:UAT]
+[Deploy:environment:PRODUCTION]
