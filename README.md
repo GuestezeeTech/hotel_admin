@@ -29,5 +29,7 @@ This README would normally document whatever steps are necessary to get your app
 * Other community or team contact
 
 <!-- Deployment command -->
-[Deploy:environment:UAT]
+<!-- UAT command -->
+[Deploy:environment:UAT] 
+<!-- PRODUCTION command -->
 [Deploy:environment:PRODUCTION]
