@@ -1,0 +1,105 @@
+<div class="main">
+    <app-alerts></app-alerts>
+    <div class="centered-container">
+        <div class="container">
+
+            <!-- Header -->
+            <div class="d-flex align-items-center mb-3 w-100">
+                <div class="w-100">
+                    <h5 class="mb-1 fw-bold">Room no : {{ guestData.roomNo }}</h5>
+                    <div class="d-flex justify-content-between guest-info">
+                        <p class="mb-0">Guest name : {{ guestData.name }}</p>
+                        <p class="mb-0">Check in : {{ guestData.checkIn }} {{ guestData.checkInTime }}
+                        </p>
+                        <p class="mb-0">Check out : {{ guestData.checkOut }} {{ guestData.checkOutTime
+                            }}
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Room Summary Card -->
+            <div class="card mb-4 shadow-sm bg-white">
+                <div class="row">
+                    <div class="col-md-4">
+                        <img [src]="guestData.image" class="img-fluid rounded-start" alt="Room Image"
+                            style="height: 100%; object-fit: cover;">
+                    </div>
+                    <div class="col-md-8 p-3">
+                        <div class="row guest-info-details">
+                            <div class="mb-3">Guest name :<span class="ps-4">{{ guestData.name }}</span></div>
+                            <div class="mb-3">Room number :<span class="ps-2">{{ guestData.roomNo }}</span></div>
+                            <div class="mb-3">Room name :<span class="ps-4">{{ guestData.imageType }}</span></div>
+                            <div class="mb-3">Check in :<span style="padding-left: 7.5%;">{{ guestData.checkIn }} {{
+                                    guestData.checkInTime }}</span>
+                            </div>
+                            <div class="">Check out :<span style="padding-left: 6%;">{{ guestData.checkOut }} {{
+                                    guestData.checkOutTime }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Checkout table -->
+            <div class="checkout-table mb-4" style="border: 1px solid #dee2e6; border-radius: 12px; overflow: hidden;">
+                <table class="table text-center align-middle w-100" style="table-layout: fixed;">
+                    <thead class="table">
+                        <tr >
+                            <th style="background-color: #FFE9E9">Request</th>
+                            <th style="background-color: #FFE9E9">Date</th>
+                            <th style="background-color: #FFE9E9">Time</th>
+                            <th style="background-color: #FFE9E9">Room Availability</th>
+                            <th style="background-color: #FFE9E9">Check out fee</th>
+                            <th style="background-color: #FFE9E9">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Late check-out</td>
+                            <td>05/03/2025</td>
+                            <td>16:00 hrs</td>
+                            <td><a href="#" class="text-primary fw-semibold" style="color: #145CE6">Check availability</a>
+                            </td>
+                            <td>
+                                <input type="text" class="form-control text-center bg-white" value="₹00.00" style="font-size: 13px; color: #868686; border-color: #5E6366;" readonly />
+                            </td>
+                            <td>
+                                <div class="d-flex justify-content-center gap-2">
+                                    <button class="btn px-2 fw-medium" style="background-color: #C9FED0; color: #0A700E; font-size: 13px;">Accept</button>
+                                    <button class="btn px-2 fw-medium"  style="background-color: #FEDFDF; color: #FE0000; font-size: 13px;" (click)="navigateToManagement()">Declined</button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+
+            <!-- Table -->
+            <div class="table-responsive">
+                <div style="border: 1px solid #dee2e6; border-radius: 12px; overflow: hidden;">
+                    <table class="table text-center align-middle mb-0">
+                        <thead class="table-light">
+                            <tr class="text-nowrap">
+                                <th class="text-start">Guest / User name</th>
+                                <th>Date & Time</th>
+                                <th>Reason</th>
+                                <th>Room status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let log of guestLogs">
+                                <td class="text-start">{{ log.name }}</td>
+                                <td>{{ log.dateTime }}</td>
+                                <td>{{ log.reason }}</td>
+                                <td>{{ log.status }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

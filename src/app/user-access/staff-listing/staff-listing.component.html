@@ -1,0 +1,103 @@
+<div class="main">
+    <app-alerts></app-alerts>
+    <div class="centered-container">
+        <div class="container staff">
+            <!-- Staff listing page -->
+            <!-- Tabs Navigation -->
+            <div style="display: flex; justify-content: space-between;">
+                <button class="fw-semibold" (click)="openDeleteModal()"
+                    style="background-color: #800020;font-weight: 500;color: white; padding: 10px 20px; border-radius: 5px; font-size: 14px; border: none;">
+                    Delete Selected
+                </button>
+                <!-- For adding new staff -->
+                <button class="fw-semibold"
+                    style="background-color: #800020; color: white; padding: 10px 20px; border-radius: 5px; font-size: 14px; border: none;"
+                    (click)="toggleAddStaff()">
+                    Add Staff
+                </button>
+            </div>
+            <!-- Tab Content -->
+            <table class="table" style="margin-top: 3%;">
+                <thead>
+                    <tr>
+                        <th><input type="checkbox"></th>
+                        <th>Employee Id</th>
+                        <th>Staff Name</th>
+                        <th>Phone Number</th>
+                        <th>Room No</th>
+                        <th>Hierarchy Level</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let staff of allStaves" style="background-color: white;">
+                        <td style="text-align: center;">
+                            <input type="checkbox" [id]="staff.full_name" [name]="staff.full_name"
+                                [value]="staff.full_name" (change)="toggleSelection($event, staff.id)"
+                                style="cursor: pointer">
+                        </td>
+                        <td style="text-align: center;">{{ staff.staff_employee_number }}</td>
+                        <td style="text-align: center;">{{ staff.full_name }}</td>
+                        <td style="text-align: center;">{{ staff.phone_number }}</td>
+                        <td style="text-align: center;">{{ staff.room_no?.join(', ') }}</td>
+                        <td style="text-align: center;">{{ staff.hierarchy.designation + '-' +
+                            staff.hierarchy.department }}</td>
+                        <td style="text-align: center;">
+                            <i class="fa fa-pen-to-square" style="color: #800020; cursor: pointer;"
+                                (click)="setInitialValues(staff.id)"></i>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="pagination-container">
+                <button (click)="previousPage()" [disabled]="currentPage === 1" class="pagination-btn">
+                    Previous
+                </button>
+                <input type="text" class="pagination-input" [(ngModel)]="currentPage" readonly>
+                <button (click)="nextPage()" [disabled]="currentPage === totalPages" class="pagination-btn">
+                    Next
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Modal for Deleting -->
+<div *ngIf="isDeleteModalOpen"
+    style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center;">
+    <div
+        style="background: white; padding: 30px; border-radius: 15px; width: 450px; text-align: center; box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);">
+        <!-- Confirmation Text -->
+        <h2 style="margin-bottom: 10px; font-size: 20px; font-weight: bold;">Are you sure you want to delete?</h2>
+        <!-- Warning Text (optional) -->
+        <p style="font-size: 16px; margin-bottom: 20px;">This action cannot be undone.</p>
+        <!-- Buttons: Cancel and Confirm -->
+        <div style="display: flex; justify-content: space-around;">
+            <button
+                style="padding: 12px; background: #E1E2EB; color: black; border: none; cursor: pointer; width: 45%; border-radius: 8px;"
+                (click)="closeDeleteModal()">
+                Cancel
+            </button>
+            <button
+                style="padding: 12px; background: #800020; color: white; border: none; cursor: pointer; width: 45%; border-radius: 8px;"
+                (click)="deleteSelectedStaves()">
+                Delete
+            </button>
+        </div>
+    </div>
+</div>
+<!--Modal-->
+<div *ngIf="isApiModal"
+    style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center; z-index: 1050">
+    <div
+        style="background: white; padding: 20px; border-radius: 15px; width: 25%; text-align: center; box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);">
+        <p style="font-size: 18px; margin-bottom: 10px;" class="fw-bold">New task from the guest</p>
+        <div style="display: flex; justify-content: space-around;">
+            <button
+                style="padding: 5px; background: #800020; color: white; border: none; cursor: pointer; width: 30%; border-radius: 8px;"
+                (click)="navigateToTaskManagement()">
+                Ok
+            </button>
+        </div>
+    </div>
+</div>

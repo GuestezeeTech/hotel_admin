@@ -1,0 +1,255 @@
+body {
+    font-family: urbanist;
+    
+}
+
+
+.sidenav {
+    height: 100%;
+    width: 246px;
+    position: fixed;
+    z-index: 1;
+    top: 0;
+    left: 0;
+    background-color: #6D575C;
+    overflow-x: hidden;
+    padding-top: 20px;
+}
+
+.sidenav a {
+    text-decoration: none;
+    font-size: 16px;
+    color: #FFFFFF;
+    display: block;
+    margin-left: 5%;
+}
+
+.sidenav a:hover {
+    color: #f1f1f1;
+    background-color: #800020;
+}
+
+
+@media screen and (max-height: 450px) {
+    .sidenav { padding-top: 15px; }
+    .sidenav a { font-size: 18px; }
+}
+
+hr {
+    border: 0;
+    height: 1px;
+    background-color: #fff;
+    margin: 10px 0;
+}
+
+.center-hr {
+    width: 80%;
+    margin: 20px auto;  /* This centers the hr element */
+    border: 1px solid #fff;  /* Style the horizontal line */
+}
+
+ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+.list_container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 14px;
+    transition: background-color 0.3s ease, color 0.3s ease; /* Add transition for smoother hover effect */
+}
+
+.list_container:hover {
+    color: #f1f1f1;
+    background: #800020; /* Change background on hover */
+    border-radius: 5px;
+}
+
+.list_container img {
+    height: 20px; /* Set image size for consistency */
+}
+
+.list_container a {
+    color: #fff; /* Default color for links */
+    text-decoration: none;
+    font-size: 16px; /* Font size for links */
+}
+
+
+.centered-container {
+    background-color: white;
+    min-height: 100vh;
+    width: 96%; /* 90% width of the parent */
+    margin: 0 auto; /* This centers the container horizontally */
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Optional, to add shadow */
+    border-radius: 10px; /* Optional, for rounded corners */
+    margin-top: 1%;
+}
+.table tbody tr td{
+    background-color: white;
+    font-size: 14px; 
+    font-weight: 500;
+   font-family: urbanist;/* Set background color for the table body */
+}
+.table{
+    border-left: 2px solid #dee2e6;  /* Red color for left border */
+    border-right: 2px solid #dee2e6;
+    width: 100%; border-collapse: collapse; 
+      margin-top: 2%;
+}
+.table thead th{
+    color:#800020;
+    font-size: 
+    14px;
+}
+.gold{
+    color: Gold;
+    font-weight: 700;
+}
+
+.bronze{
+    color: #800020;
+    font-weight: 700;
+
+}
+.platinum{
+    color: #FF641A;
+    font-weight: 700;
+}
+.silver{
+    color: #1A1A1A;
+    font-weight: 700;
+}
+.active{
+    color: #30A75F;
+    background-color:#d5efdb;
+    border-radius: 10px;
+    border: none;
+    font-weight: 500;
+    padding-left: 15px;
+    padding-right: 15px;
+}
+// serach bar
+.search-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 250px;
+}
+.search-bar {
+    padding: 10px 15px;
+    width: 100%;
+    padding-left: 35px; /* Space for the search icon */
+    padding-right: 35px; /* Space for the filter icon */
+    border-radius: 10px;
+    border: 1px solid #ccc;
+}
+.search-icon, .filter-icon {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    color: black;
+    font-size: 16px;
+}
+.search-icon {
+    left: 10px;
+}
+.filter-icon {
+    right: 1px;
+    cursor: pointer;
+    border-radius: 0px 10px 10px 0;
+    background: #D8D8D8;
+    padding: 15px 15px;
+}
+.results {
+    margin-top: 20px;
+}
+.result-item {
+    padding: 10px;
+    border: 1px solid #ccc;
+    margin-bottom: 5px;
+    border-radius: 5px;
+}
+.filter-options {
+    display: none;
+    position: absolute;
+    top: 50px;
+    right: 0;
+    background-color: white;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    border-radius: 5px;
+    width: 150px;
+    padding: 10px;
+    border: 1px solid #ccc;
+}
+.filter-options a {
+    display: block;
+    padding: 8px;
+    text-decoration: none;
+    color: #333;
+}
+.filter-options a:hover {
+    background-color: #f1f1f1;
+}
+
+
+
+
+
+// pagination
+
+.pagination-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    float: right;
+  }
+  
+  .pagination-btn {
+    background-color: #f8f9fa; /* Light gray */
+    border: 1px solid #ddd;
+    color: #6c757d; /* Dark gray */
+    padding: 5px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  
+  .pagination-btn:disabled {
+    background-color: #eee;
+    cursor: not-allowed;
+    color: #a0a0a0;
+  }
+  
+  .pagination-input {
+    width: 30px;
+    height: 30px;
+    text-align: center;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 14px;
+    outline: none;
+  }
+  .pending {
+    color: #FF641A;
+    background-color: #f4d4c6 !important;
+    padding-left: 10px;
+    padding-right: 10px;
+    border: none;
+    border-radius: 10px;
+    font-weight: 500;
+}
+ 
+.in-active {
+    color: #F9AF1A;
+    background-color: #f5e4c0 !important;
+    padding-left: 10px;
+    padding-right: 10px;
+    border: none;
+    border-radius: 10px;
+    font-weight: 500;
+  
+}

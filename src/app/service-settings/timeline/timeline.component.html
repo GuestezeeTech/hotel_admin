@@ -1,0 +1,166 @@
+<div class="main">
+    <div class="centered-container">
+        <div class="container">
+            <div class="order-data">
+                <!-- order-timeline.component.html -->
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <button class="btn btn-light rounded-circle px-2 py-1" (click)="navigateToCart()"
+                            style="cursor: pointer;">
+                            <i class="bi bi-arrow-left"></i>
+                        </button>
+                        <div>
+                            <div class="fw-medium" style="color: #800020; font-size: 13px;">Timeline</div>
+                            <h5 class="mb-0" style="color: #1A1A1A; font-size: 18px;">Order Id #34567</h5>
+                        </div>
+                    </div>
+                    <button class="escalated-btn border-0 fw-medium"
+                        style="color: #E70909; font-size: 14px; background-color: #ffe8e8;  border-radius: 20px; padding: 6px 16px;">Escalated</button>
+                </div>
+
+                <!-- Order Card -->
+                <div class="order-card d-flex flex-column flex-md-row gap-4">
+                    <!-- Left - Product -->
+                    <div class="d-flex align-items-start gap-3 flex-grow-1 dot-divider-right">
+                        <div class="img-container">
+                            <img [src]="orderDetails.productImage" [alt]="orderDetails.productName"
+                                style="object-fit: contain">
+                        </div>
+                        <div>
+                            <h5 class="mb-1 fw-bold" style="color: #1A1A1A; font-size: 16px;">{{
+                                orderDetails.productName }}</h5>
+                            <div style="color: #BBBBBB; font-size: 14px;">
+                                Qty: <span class="fw-medium" style="color: #1A1A1A">{{ orderDetails.quantity }}</span>
+                            </div>
+                            <div style="color: #BBBBBB; font-size: 14px;">
+                                Room No: <span class="fw-medium" style="color: #1A1A1A">{{ orderDetails.roomNo }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Middle - Customer Info -->
+                    <div class="d-flex flex-column gap-1 flex-grow-1">
+                        <div style="color: #BBBBBB; font-size: 14px;">
+                            Customer Name: <span class="fw-medium" style="color: #1A1A1A">{{ orderDetails.customerName
+                                }}</span>
+                        </div>
+                        <div style="color: #BBBBBB; font-size: 14px;">
+                            Room type: <span class="fw-medium" style="color: #1A1A1A">{{ orderDetails.roomType }}</span>
+                        </div>
+                        <div style="color: #BBBBBB; font-size: 14px;">
+                            Dept: <span class="fw-medium" style="color: #1A1A1A">{{ orderDetails.department }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Right - Timeline Tags -->
+                    <div class="d-flex flex-column flex-grow-1 gap-2 dot-divider-left">
+                        <!-- First Row: Order Placed & Expected Delivery -->
+                        <div class="d-flex flex-wrap gap-2 justify-content-md-end">
+                            <div class="tag tag-green">Order Placed on: {{ orderDetails.orderPlacedTime }}</div>
+                            <div class="tag tag-gold">Expected Delivery: {{ orderDetails.expectedDeliveryTime }}</div>
+                        </div>
+
+                        <!-- Second Row: Delivered -->
+                        <div class="d-flex justify-content-center">
+                            <div class="tag tag-blue">Delivered on: {{ orderDetails.deliveredTime }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Timeline -->
+            <h5 class="mt-2 mb-3">Timeline View</h5>
+
+            <div class="container position-relative rounded"
+                style="padding: 2rem 0; background: linear-gradient(90deg, rgba(1, 116, 250, 0.1) 0%, rgba(1, 146, 250, 0.1) 50%, rgba(139, 0, 224, 0.1) 100%);">
+
+                <!-- Center Vertical Dotted Line -->
+                <div class="position-absolute top-0 start-50 translate-middle-x"
+                    style="width: 2px; bottom: 0;
+        background-image: repeating-linear-gradient(to bottom, #28a745, #28a745 2px, transparent 2px, transparent 6px);">
+                </div>
+
+                <div *ngFor="let item of timelineData; let i = index" class="row align-items-center py-2">
+
+                    <!-- Left content -->
+                    <div class="col-5 text-end" *ngIf="i % 2 === 0">
+                        <div class="pe-3">
+                            <h6 class="fw-bold mb-1" style="font-size: 15px;">{{ item.title }}</h6>
+                            <p class="mb-0" style="color: #444; font-size: 13px;">({{ item.details }})</p>
+                        </div>
+                    </div>
+
+                    <!-- Spacer for right-aligned items -->
+                    <div class="col-5" *ngIf="i % 2 !== 0"></div>
+
+                    <!-- Status Icon -->
+                    <div class="col-2 d-flex justify-content-center">
+                        <img [src]="getStatusIcon(item)" [alt]="item.status + ' icon'"
+                            style="width: 15px; height: 15px;" />
+                    </div>
+
+                    <!-- Right content -->
+                    <div class="col-5 text-start" *ngIf="i % 2 !== 0">
+                        <div class="ps-3">
+                            <h6 class="fw-bold mb-1" style="font-size: 15px;">{{ item.title }}</h6>
+                            <p class="mb-0" style="color: #444; font-size: 13px;">({{ item.details }})</p>
+                        </div>
+                    </div>
+
+                    <!-- Spacer for left-aligned items -->
+                    <div class="col-5" *ngIf="i % 2 === 0"></div>
+                </div>
+            </div>
+
+
+            <!-- Reviews -->
+            <h5 class="mt-2 mb-3">Reviews</h5>
+            <div *ngFor="let review of reviews" class="border rounded p-3 mb-3">
+                <div class="d-flex w-100 justify-content-between">
+                    <div class="w-100">
+                        <div class="d-flex align-items-center">
+                            <!-- Service/User Icon -->
+                            <img [src]="review.profileImage" alt="Service Icon" class="me-2 rounded-circle border"
+                                style="width: 30px; height: 30px; object-fit: contain;" />
+                            <!-- Header -->
+                            <div class="d-flex justify-content-between w-100">
+                                <div class="d-flex align-items-center mt-1">
+                                    <h6 class="mb-0 fw-semibold" style="color: #0B0B12DE; font-size: 15px">
+                                        {{ review.name }}
+                                    </h6>
+                                    <span class="ms-2 mt-1 fw-semibold" style="font-size: 11px; color: #909090;">
+                                        {{ review.timeAgo }}
+                                    </span>
+                                </div>
+                            </div>
+                            <!-- Star Rating & Title -->
+                            <div class="d-flex align-items-center mt-2">
+                                <ng-container *ngFor="let filled of getStarArray(review.rating)">
+                                    <svg width="18" height="18" viewBox="0 0 24 24"
+                                        [attr.fill]="filled ? '#FFB52D' : 'none'"
+                                        [attr.stroke]="filled ? 'none' : '#D7E7FF'" stroke-width="2"
+                                        stroke-linecap="round" stroke-linejoin="round">
+                                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02
+                                      12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                                    </svg>
+                                </ng-container>
+                            </div>
+                        </div>
+                        <div class="w-100">
+                            <!-- Comment -->
+                            <div class="d-flex justify-content-between w-100">
+                                <p class="mb-0 mt-2 w-100" style="color: #0C0E10; font-size: 13px; max-width: 90%;">
+                                    {{ review.comment }}
+                                </p>
+                                <div class="d-flex align-items-center mt-1">
+                                    <i class="far fa-thumbs-up me-1" style="color: #979797;"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>

@@ -1,0 +1,81 @@
+<app-alerts></app-alerts>
+<div class="section">
+  <h3 style="font-size: 20px;font-weight: 600;">Hotel Services <a style="font-size: 14px;color: #A0A0A0;">(Select the services that your hotel does not provide)</a></h3>
+  <div class="container mt-3 ps-0">
+    <div class="d-flex justify-content-between align-items-center">
+      <!-- Tabs Navigation -->
+      <ul class="nav nav-tabs flex-wrap custom_tablist_color" id="myTabs" role="tablist">
+        <li class="nav-item Custom-tab-spacing" role="presentation">
+          <a class="nav-link active" id="general-tab" data-toggle="tab" href="#generalservices" role="tab"
+            aria-controls="generalservices" aria-selected="true" (click)="firstTabCount()">General Services</a>
+        </li>
+        <li class="nav-item" role="presentation">
+          <a class="nav-link Custom-tab-spacing" id="inroom-tab" data-toggle="tab" href="#amenities" role="tab"
+            aria-controls="amenities" aria-selected="false" (click)="tabCount()">In Room Amenities</a>
+        </li>
+        <li class="nav-item" role="presentation">
+          <a class="nav-link Custom-tab-spacing" id="other-tab" data-toggle="tab" href="#otherservices" role="tab"
+            aria-controls="otherservices" aria-selected="false" (click)="thirdTabCount()">Other Services</a>
+        </li>
+      </ul>
+      <!-- <p class="fw-bold" style="color: #800020; background-color: #FBF9FA; border-radius: 10px; padding: 1%; width: 25%; font-size: 18px; margin-bottom: 0;">{{this.hotelName }}</p> -->
+    </div>
+    <!-- Tab Content -->
+     <!-- Newly added class name for disable(paymentDone)-->
+    <div class="tab-content" id="myTabContent" [class.disabled-section]="paymentDone">
+      <div class="tab-pane fade show active" id="generalservices" role="tabpanel" aria-labelledby="generalservices-tab">
+        <div class="services-container">
+          <div class="service-item " *ngFor="let service of getServicesByType('FO')"
+            [class.selected]="isSelected(service.id)" (click)="GetSelectedService(service.name)">
+            {{ service.name}}</div>
+        </div>
+        <h3 style="font-size: 20px;font-weight: 600;">Exempted Services <a
+            style="font-size: 14px;color: #A0A0A0;"></a></h3>
+        <div class="services-container">
+          <div class="service-item " *ngFor="let service of apiSelectedServices"
+            [class.selected]="isServiceActive(service)" style="cursor: default;"> 
+             {{ service.name }}</div>
+        </div>
+      </div>
+      <div class="tab-pane fade" id="amenities" role="tabpanel" aria-labelledby="profile-tab">
+        <div class="services-container">
+
+          <div class="service-item" *ngFor="let service of getServicesByType('EHK')"
+            [class.selected]="isSelected(service.id)" (click)="GetSelectedService(service.name)">{{ service.name }}
+          </div>
+        </div>
+        <h3 style="font-size: 20px;font-weight: 600;">Exempted Services <a
+            style="font-size: 14px;color: #A0A0A0;"></a></h3>
+        <div class="services-container">
+          <div class="service-item " *ngFor="let service of apiSelectedServices"
+            [class.selected]="isServiceTypeIIActive(service)" style="cursor: default"> 
+            {{ service.name }}</div>
+        </div>
+      </div>
+      <div class="tab-pane fade" id="otherservices" role="tabpanel" aria-labelledby="contact-tab">
+        <div class="services-container">
+          <div class="service-item " *ngFor="let service of getServicesByType('Engineering')"
+            [class.selected]="isSelected(service.id)" (click)="GetSelectedService(service.name)"> 
+            {{ service.name }}</div>
+        </div>
+        <h3 style="font-size: 20px;font-weight: 600;">Exempted Services <a
+            style="font-size: 14px;color: #A0A0A0;"></a></h3>
+        <div class="services-container">
+          <div class="service-item " *ngFor="let service of apiSelectedServices"
+            [class.selected]="isServiceTypeIIIActive(service)" style="cursor: default"> 
+            {{ service.name }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div style="display: flex;justify-content: flex-end;">
+  <button type="submit" class="cancel_bt" (click)="back()">Back</button>&nbsp;&nbsp;
+  <button  type="submit" class="next_bt" *ngIf="((this.activeTab == 1 || this.activeTab == 2) && !paymentDone)"
+    (click)="nextTabService()">Next Service</button>
+  <button type="submit" class="save_bt" *ngIf="this.activeTab == 3 && !paymentDone" (click)="handleSubmit()">Save &
+    Continue</button>
+</div>
+
+
+<!-- <img src="../../../assets/images/guestezee/hotel-image.png" style="width: 30px;height: 20px; margin-right: 5px; object-fit: cover;" alt=""> &nbsp; -->

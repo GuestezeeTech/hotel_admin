@@ -1,0 +1,266 @@
+<div class="main">
+    <app-alerts></app-alerts>
+    <div class="centered-container">
+        <div class="container">
+            <h5 class="fw-bolder" style="margin-bottom: 0">{{ enableEdit ? 'Edit Staff' : 'Create New Staff' }}</h5>
+            <p style="color: #9E9E9E; font-size: 14px; margin-bottom: 1%">{{ enableEdit ? 'Update Staff' : 'Create
+                Staff'}}</p>
+            <form [formGroup]="staffForm">
+                <div class="row">
+                    <div class="col-md-4 form-group">
+                        <label class="fw-semibold" style="font-size: 15px">Email<span class="required">*</span></label>
+                        <input type="email" class="form-control shadow-none" formControlName="email"
+                            [class.is-invalid]="validateForm && f['email'].errors"
+                            style="background-color: white !important;">
+                        <div class="invalid-feedback" *ngIf="f['email'].errors">
+                            <div *ngIf="f['email'].errors['required']">please enter email</div>
+                            <div *ngIf="f['email'].errors['email']">invalid email</div>
+                        </div>
+                    </div>
+                    <!-- <div class="col-md-4 form-group">
+                        <label class="fw-semibold" style="font-size: 14px">Password<span
+                                class="required">*</span></label>
+                        <div class="input-group">
+                            <input type="text" placeholder="********" class="form-control shadow-none "
+                                formControlName="password" style="background-color: white !important;">
+                            <div class="invalid-feedback" *ngIf="f['password'].errors">
+                                <div *ngIf="f['password'].errors['required']">please enter password</div>
+                                <div *ngIf="f['password'].errors['minlength']">password is too short</div>
+                            </div>
+                        </div>
+                    </div> -->
+                    <div class="col-md-4 form-group">
+                        <label class="fw-semibold" style="font-size: 14px" placeholder="Elakkiya">Full
+                            Name</label>
+                        <input type="text" class="form-control shadow-none" formControlName="full_name"
+                            [class.is-invalid]="validateForm && f['full_name'].errors"
+                            style="background-color: white !important;">
+                        <div class="invalid-feedback" *ngIf="f['full_name'].errors">
+                            <div *ngIf="f['full_name'].errors['required']">please enter full name</div>
+                            // <div *ngIf="f['full_name'].errors['minlength']">Full name is too short</div>
+                            <div *ngIf="f['full_name'].errors['maxlength']">Maximum length exceeded.</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 form-group">
+                        <label class="fw-semibold" style="font-size: 14px">Phone Number</label>
+                        <input type="tel" class="form-control shadow-none" placeholder="+91"
+                            [class.is-invalid]="validateForm && f['phone_number'].errors" formControlName="phone_number"
+                            style="background-color: white !important;">
+                        <div class="invalid-feedback" *ngIf="f['phone_number'].errors">
+                            <div *ngIf="f['phone_number'].errors['required']">please enter phone number</div>
+                            <div *ngIf="f['phone_number'].errors['pattern']">Please enter valid number</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-4 form-group">
+                        <label class="fw-semibold" style="font-size: 14px" placeholder="EMP-1923">Employee ID
+                            Number</label>
+                        <input type="text" class="form-control shadow-none" readonly value={{this.staff_member_id}}
+                            style="background-color: white !important;">
+                        <div class="invalid-feedback" *ngIf="!this.matchedStaff">
+                            <div>No officer found under this hierarchy</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4 form-group pb-3">
+                        <label class="fw-semibold" style="font-size: 14px">Higher Level Hierarchy</label>
+                        <select class="form-control shadow-none" formControlName="higher_level_hierarchy"
+                            [class.is-invalid]="validateForm && f['higher_level_hierarchy'].errors"
+                            (click)="getChildHierarchy(staffForm.get('higher_level_hierarchy')?.value?.id)"
+                            style="appearance: auto; background-color: white !important;">
+                            <option value="" style="font-size: 14px; ">Please select</option>
+                            <option *ngFor="let supervisor of supervisorList" [ngValue]="supervisor"
+                                style="font-size: 14px;">
+                                {{ supervisor.designation + "-" + supervisor.department }}
+                            </option>
+                        </select>
+                        <div class="invalid-feedback" *ngIf="f['higher_level_hierarchy'].errors">
+                            <div *ngIf="f['higher_level_hierarchy'].errors['required']">please select your higher
+                                authority
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4 form-group pb-3">
+                        <label class="fw-semibold" style="font-size: 14px">Desk</label>
+                        <select class="form-control shadow-none" formControlName="at_desk" (change)="onDeskChange()"
+                            [class.is-invalid]="validateForm && f['at_desk'].errors"
+                            style="appearance: auto; background-color: white !important;">
+                            <option value="" style="font-size: 14px;">Please select</option>
+                            <option>true</option>
+                            <option>false</option>
+                        </select>
+                        <div class="invalid-feedback" *ngIf="f['at_desk'].errors">
+                            <div *ngIf="f['at_desk'].errors['at_desk']">please select</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-4 form-group pb-3">
+                        <label class="fw-semibold" style="font-size: 14px">Hierarchy</label>
+                        <select class="form-control shadow-none" formControlName="hierarchy"
+                            [class.is-invalid]="validateForm && f['hierarchy'].errors"
+                            style="appearance: auto; background-color: white !important;">
+                            <option value="" style="font-size: 14px; ">Please select</option>
+                            <option *ngFor="let supervisor of supervisorChildList" [ngValue]="supervisor" [value]=""
+                                style="font-size: 14px;">
+                                {{ supervisor.designation + "-" + supervisor.department }}
+                            </option>
+                        </select>
+                        <div class="invalid-feedback" *ngIf="f['hierarchy'].errors">
+                            <div *ngIf="f['hierarchy'].errors['required']">please select your hierarchy</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4 form-group pb-3">
+                        <label class="fw-semibold" style="font-size: 14px">Higher Level Officer</label>
+                        <select class="form-control shadow-none" formControlName="higher_level_officer"
+                            [class.is-invalid]="validateForm && f['higher_level_officer'].errors"
+                            style="appearance: auto; background-color: white !important;">
+                            <option value="" style="font-size: 14px; ">Please select</option>
+                            <option *ngFor="let officer of officersData" [ngValue]="officer" [value]=""
+                                style="font-size: 14px;">
+                                {{ officer.full_name + "-" + officer.phone_number }}
+                            </option>
+                        </select>
+                        <div class="invalid-feedback" *ngIf="f['higher_level_officer'].errors">
+                            <div *ngIf="f['higher_level_officer'].errors['required']">please select your hierarchy</div>
+                        </div>
+                    </div>
+                    <div style="position: relative;" class="col-md-4 mb-4 form-group pb-3">
+                        <label class="fw-semibold" style="font-size: 14px">Room No<span
+                                class="text-danger">*</span></label>
+                        <div (click)="roomDropdownOpen = !roomDropdownOpen"
+                            style="border: 1px solid #ccc; padding: 6px; border-radius: 5px; background: white; cursor: pointer;">
+                            <p class="mb-0" style="font-size: 15px;">
+                                <ng-container *ngIf="selectedRooms.length === 0">Select Room No</ng-container>
+                                <ng-container *ngIf="selectedRooms.length > 0">
+                                    {{ selectedRooms.slice(0, 3).join(', ') }}
+                                    <ng-container *ngIf="selectedRooms.length > 3">...</ng-container>
+                                </ng-container>
+                                <i class="fa fa-chevron-down mt-2 float-end" style="font-size: 10px"></i>
+                            </p>
+                        </div>
+                        <div *ngIf="roomDropdownOpen"
+                            style="position: absolute; top: 74%; left: 4%; width: 92%; border: 1px solid #ccc; background: white; z-index: 1000; max-height: 200px; overflow-y: auto; margin-top: 5px;">
+                            <div *ngFor="let room of roomRanges" style="padding: 5px;">
+                                <input type="checkbox" [value]="room" [checked]="selectedRooms.includes(room)"
+                                    (change)="onRoomSelect(room, $event)" />
+                                <label style="margin-left: 5px;">{{ room }}</label>
+                            </div>
+                        </div>
+                        <div class="invalid-feedback d-block"
+                            *ngIf="validateForm && f['room_no'].errors && this.selectedRooms.length==0 && !roomDropdownOpen">
+                            <div *ngIf="f['room_no'].errors['required']">Please select at least one room</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row border-bottom">
+                    <div style="position: relative;" class="col-md-4 mb-4 form-group pb-3">
+                        <label class="fw-semibold" style="font-size: 14px">Shift Time<span
+                                class="text-danger">*</span></label>
+                        <div (click)="shiftDropdownOpen = !shiftDropdownOpen"
+                            style="border: 1px solid #ccc; padding: 6px; border-radius: 5px; background: white; cursor: pointer;">
+                            <p class="mb-0" style="font-size: 15px;">
+                                <ng-container *ngIf="selectedShiftTimes.length === 0">Select Shift Time</ng-container>
+                                <ng-container *ngIf="selectedShiftTimes.length > 0">
+                                    {{ selectedShiftTimes.slice(0, 2).join(', ') }}
+                                    <ng-container *ngIf="selectedShiftTimes.length > 2">...</ng-container>
+                                </ng-container>
+                                <i class="fa fa-chevron-down mt-2 float-end" style="font-size: 10px"></i>
+                            </p>
+                        </div>
+                        <div *ngIf="shiftDropdownOpen"
+                            style="position: absolute; top: 74%; left: 4%; width: 92%; border: 1px solid #ccc; background: white; z-index: 1000; max-height: 200px; overflow-y: auto; margin-top: 5px;">
+                            <div *ngFor="let slot of selectedSlots" style="padding: 5px;">
+                                <input type="checkbox" [checked]="selectedShiftTimes.includes(slot.start)"
+                                    (change)="onShiftSelect(slot, $event)" />
+                                <label style="margin-left: 5px;">{{ slot.start }} - {{ slot.end }}</label>
+                            </div>
+                        </div>
+                        <div class="invalid-feedback d-block"
+                            *ngIf="validateForm && f['shift_time'].errors && this.selectedShiftTimes.length==0 && !shiftDropdownOpen">
+                            <div *ngIf="f['shift_time'].errors['required']">Please select at least one shift</div>
+                        </div>
+                    </div>
+                    <!-- <div style="position: relative;" class="col-md-4  mb-4 form-group pb-3">
+                        <label class="fw-semibold" style="font-size: 14px">Shift Time</label>
+                        <select class="form-control shadow-none" formControlName="shift_time"
+                            style="appearance: auto; background-color: white !important;">
+                            <option value="" style="font-size: 14px; ">Please select</option>
+                            <option *ngFor="let slot of selectedSlots" [value]="slot" style="font-size: 14px;">
+                                {{ slot.start }} - {{ slot.end }}
+                            </option>
+                        </select>
+                    </div> -->
+                </div>
+                <h5 class="fw-bolder mt-3" style="margin-bottom: 0">Created Details</h5>
+                <div class="row border-bottom">
+                    <div class="col-md-4">
+                        <label class="fw-semibold mt-3" style="font-size: 14px;">Created By</label>
+                        <input type="text" class="form-control mb-4 shadow-none" value={{this.createdByName}} readonly
+                            style='color: #8F9899; font-size: 14px;'>
+
+                    </div>
+                </div>
+                <div class="row mt-4 form-group">
+                    <!-- Active Toggle -->
+                    <div>
+                        <div
+                            style="display: flex; align-items: center; border: 1px solid #ddd; padding: 5px 10px; border-radius: 10px; width: 16%">
+                            <span style="font-weight: 600; font-size: 14px;">Activate Staff</span>
+                            <!-- Hidden checkbox that controls the form value -->
+                            <input type="checkbox" formControlName="is_staff_active" hidden #isActivatedCheckbox>
+                            <!-- Icon that updates the hidden checkbox -->
+                            <i [ngClass]="isActivatedCheckbox.checked ? 'bi bi-toggle-on' : 'bi bi-toggle-off'"
+                                (click)="isActivatedCheckbox.click()" [ngStyle]="{ 
+                                    'cursor': 'pointer', 
+                                    'font-size': '25px', 
+                                    'margin-left': '10%', 
+                                    'color': isActivatedCheckbox.checked ? '#1AA080' : 'rgb(212, 14, 14)'}">
+                            </i>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="row my-4  me-1">
+        <div class="col-md-12 d-flex justify-content-end">
+            <div class="col-md-2">
+                <button class="btn w-100 fw-semibold" style="color: #4E4E4E; background-color: #C6C6C6"
+                    (click)="openExitModal()">Cancel</button>
+            </div>
+            <div class="col-md-2" *ngIf="!enableEdit">
+
+                <button class="btn w-100 ms-2 fw-semibold save_bt" style="color: white; background-color: #800020;"
+                    (click)="saveForm()">Save</button>
+            </div>
+            <div class="col-md-2" *ngIf="enableEdit">
+                <button class="btn ms-2 fw-semibold save_bt" style="color: white; background-color: #800020;"
+                    [disabled]="!this.matchedStaff || this.staffForm.valid" (click)="saveFormChanges()">Save
+                    Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Confirmation Modal for Exiting -->
+<div *ngIf="isExitModalOpen"
+    style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center;">
+    <div
+        style="background: white; padding: 30px; border-radius: 15px; width: 450px; text-align: center; box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);">
+        <!-- Confirmation Text -->
+        <h2 style="margin-bottom: 10px; font-size: 20px; font-weight: bold;">Are you sure you want to exit?</h2>
+        <!-- Buttons: Cancel and Confirm -->
+        <div style="display: flex; justify-content: space-around;">
+            <button
+                style="padding: 12px; background: #E1E2EB; color: black; border: none; cursor: pointer; width: 45%; border-radius: 8px;"
+                (click)="closeExitModal()">
+                Cancel
+            </button>
+            <button
+                style="padding: 12px; background: #800020; color: white; border: none; cursor: pointer; width: 45%; border-radius: 8px;"
+                (click)="navigateToStaff()">
+                Exit
+            </button>
+        </div>
+    </div>
+</div>

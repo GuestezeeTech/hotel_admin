@@ -1,0 +1,68 @@
+
+
+<table class="asap-cart-table table">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Room No</th>
+            <th>Service</th>
+            <th>Department</th>
+            <th>Order Time</th>
+            <th>Escalate Time</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr *ngFor="let task of allTasks">
+            <td (click)="navigateToTimeline(task.id)" style="cursor: pointer;" >{{ task.guest_name }}</td>
+            <td>{{ task.room_no }}</td>
+            <td>{{ task.service.service_name }}</td>
+            <td>{{ task.service.category }}</td>
+            <td>{{ task.order_time }}</td>
+            <!-- <td [ngClass]="getEscalateStyles(task)">
+                {{ formatSeconds(escalateSecondsMap.get(task.name) || 0) }}
+            </td> -->
+             <!-- <td [ngClass]=" isBlinking(task) ? 'blink-orange' : ''">{{(escalateSecondsMap.get(task.guest_name) || 0)}}</td> -->
+            <td [ngClass]=" isBlinking(task) ? 'blink-orange' : ''">{{ task.remainingSeconds }}</td>
+            <td >
+                <button  *ngIf="task.assigned_staff_name==undefined"
+                    style="color: #545460; border: none !important; cursor: pointer; text-decoration: underline;"
+                    (click)="onAddAssignee(task)">
+                    Add Assignee
+                </button>
+                <button *ngIf="task.assigned_staff_name!=undefined" 
+                    style="color: #545460; border: none !important; cursor: pointer;"
+                    >
+                    {{task.assigned_staff_name}}
+                </button>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<div class="pagination-container">
+    <button (click)="previousPage()" [disabled]="currentPage === 1" class="pagination-btn">
+        Previous
+    </button>
+    <input type="text" class="pagination-input" [(ngModel)]="currentPage" readonly>
+    <button (click)="nextPage()" [disabled]="currentPage === totalPages" class="pagination-btn">
+        Next
+    </button>
+</div>
+
+<!--Modal--> 
+<!-- <div *ngIf="isApiModal"
+    style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center; z-index: 1050">
+    <div
+        style="background: white; padding: 20px; border-radius: 15px; width: 400px; text-align: center; box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);">
+        <p style="font-size: 18px; margin-bottom: 10px;">HitService has been updated to true for task</p>
+        <div style="display: flex; justify-content: space-around;">
+            <button
+                style="padding: 8px; background: #800020; color: white; border: none; cursor: pointer; width: 45%; border-radius: 8px;"
+                (click)="closeExitModal()">
+                Ok
+            </button>
+        </div>
+    </div>
+</div> -->
+ 
+ 

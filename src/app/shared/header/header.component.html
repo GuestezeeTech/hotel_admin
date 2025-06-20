@@ -1,0 +1,30 @@
+<header class="header">
+  <div class="menu-name">
+    <h1 style="color:black; font-size: 20px;">
+      <img src="../../../assets/images/guestezee/menu.png" alt="Menu Icon">&nbsp;&nbsp;{{selectedMenu }}
+    </h1>
+  </div>
+  <!-- User Info Section -->
+  <div class="user-info d-flex align-items-center" >
+    <img class="notification-icon" src="../../../assets/images/guestezee/notify.png" alt="Notification"
+      (click)="toggleNotification()" *ngIf="((this.customerdata?.status=='approved') || this.customerType=='Staff')">
+    <div (click)="toggleLogout()" style="cursor: pointer;">
+      <img class="profile-icon" [src]="profile_image" alt="Profile" class="rounded-circle border mr-2"
+        style="width: 35px; height: 35px; object-fit: cover;">
+      <span class="username d-none d-md-inline">{{profile_name}}</span>
+      <!-- Display username only on medium screens and larger -->
+    </div>
+  </div>
+  <div *ngIf="showAccount" class="position-absolute profile-settings border rounded-3 shadow-sm  mt-2"
+    style="top: 70%; right: 1.5%; width: 10%; background-color: #fff;    z-index: 1000;">
+    <button class="btn d-flex align-items-center shadow-none border-0 pt-2 ps-2 pe-3" (click)="navigateToProfile()">
+      <i class="fas fa-user-circle me-2" style="color: #800020; font-size: 15px;"></i>
+      <span style="font-size: 15px; font-weight: 600;">Profile</span>
+    </button>
+    <button class="btn d-flex align-items-center shadow-none border-0  ps-2 pe-3" (click)="logout()">
+      <i class="fas fa-power-off me-2" style="color: #800020; font-size: 14px;"></i>
+      <span style="font-size: 15px; font-weight: 600;">Logout</span>
+    </button>
+  </div>
+</header>
+<app-notification *ngIf="showNotification" (close)="toggleNotification()"></app-notification>

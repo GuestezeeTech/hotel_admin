@@ -1,0 +1,72 @@
+
+<div class="main">
+    <div class="centered-container" >
+        <div class="container mt-5">
+            <!-- Tabs Navigation -->
+             <div style="display: flex;justify-content: space-between;">
+                <ul class="nav nav-tabs flex-wrap" id="myTabs" role="tablist" style="    width: 45%;">
+                    <li class="nav-item Custom-tab-spacing" role="presentation">
+                      <a class="nav-link active" id="home-tab" data-toggle="tab" href="#general" role="tab" aria-controls="general" aria-selected="true">General Services</a>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                      <a class="nav-link Custom-tab-spacing" id="profile-tab" data-toggle="tab" href="#amenities" role="tab" aria-controls="amenities" aria-selected="false">In Room Amenities</a>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                      <a class="nav-link Custom-tab-spacing" id="contact-tab" data-toggle="tab" href="#other" role="tab" aria-controls="other" aria-selected="false">Other Services</a>
+                    </li>
+                 
+                  </ul>
+                  <div style="display: flex;gap: 30px;" >
+                    <button style="background-color: #eaebed;font-weight: 500;     color: rgba(26, 26, 26, 0.6); padding: 10px 18px; border-radius: 5px;   border: none;">Delete</button>
+                    <button style="background-color: #800020; color: white; padding: 10px 18px; border-radius: 5px;   border: none;"   (click)="navigateTNewService()">Create</button>
+
+                    
+                  </div>
+             </div>
+          
+          
+            <!-- Tab Content -->
+            <div class="tab-content" id="myTabContent">
+              <div class="tab-pane fade show active" id="general" role="tabpanel" aria-labelledby="home-tab">
+                <table class="table" >
+                    <thead>
+                        <tr>
+                            <th> <input type="checkbox" id="vehicle1" name="vehicle1" value="Bike"></th>
+                            <th>Service Name</th>
+                            <th>Created On</th>
+                            <th>System Label</th>
+                            <th>Custom Label</th>
+                           
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td> <input type="checkbox" id="vehicle1" name="vehicle1" value="Bike"></td>
+                            <td>VIP Service</td>
+                            <td>12/Feb/2024</td>
+                            <td>VIP Service</td>
+                            <td class="gold">Special Service</td>
+                          
+                            <td><button  class="bt_active">Active</button></td>
+                            <td><i class="fa fa-pen-to-square" style="color: #800020;"></i></td>
+                        </tr>
+                    </tbody>
+                </table>
+              </div>
+              <div class="tab-pane fade" id="amenities" role="tabpanel" aria-labelledby="profile-tab">
+                
+              </div>
+              <div class="tab-pane fade" id="contact" role="tabpanel" aria-labelledby="contact-tab">
+              
+              </div>
+            
+             
+            </div>
+        </div>
+
+       
+    </div>
+</div>
+

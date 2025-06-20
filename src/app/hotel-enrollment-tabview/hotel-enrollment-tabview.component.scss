@@ -1,0 +1,210 @@
+body {
+  font-family: urbanist;
+
+}
+
+.nav-tabs {
+  background-color: #3537511A;
+  padding: 8px 8px;
+  /* Set background color for the tab container */
+  border-radius: 10px;
+  gap: 2rem;
+
+}
+
+.nav-link {
+  color: #1A1A1A99;
+  font-size: 16px;
+  /* Set color for inactive tabs */
+  font-weight: 600;
+  font-family: urbanist;
+  // background-color: #800020; /* Set background color for inactive tabs */
+  // border: 1px solid #800020;
+}
+
+.nav-link:hover {
+  background-color: #800020;
+  border-radius: 10px;
+  // padding: 10px 10px;
+  font-size: 16px;
+  color: white;
+  /* Hover color for inactive tabs */
+}
+
+.nav-link.active {
+  color: white;
+  /* Text color for active tab */
+  background-color: #800020;
+  /* Highlight active tab background */
+  border-color: #800020;
+  border-radius: 10px;
+  // padding: 10px 10px
+    /* Border color for active tab */
+}
+
+/* Optional: Style the tab content area */
+
+.centered-container {
+  // background-color: white;
+  min-height: 100vh;
+  width: 98%;
+  /* 90% width of the parent */
+  margin: 0 auto;
+  /* This centers the container horizontally */
+  padding: 20px 0px;
+  // box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Optional, to add shadow */
+  border-radius: 10px;
+  /* Optional, for rounded corners */
+  margin-top: 1%;
+}
+
+.Custom-tab-spacing {
+  // margin-right: 15px;
+}
+
+.pointer {
+  cursor: pointer;
+}
+
+.section {
+  background: #fff;
+  padding: 20px;
+  border-radius: 5px;
+}
+
+.tab-content {
+  padding-bottom: 15px;
+  padding-left: 0;
+  padding-right: 0;
+  padding-top: 5px;
+}
+
+.settings-container, .status-container {
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.enrollment-container {
+  // max-width: 600px;
+  // margin: 40px auto;
+  // padding: 30px;
+  // border-radius: 12px;
+  // box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  // background-color: #ffffff;
+  // font-family: 'Segoe UI', sans-serif;
+  // color: #333;
+}
+
+.enrollment-container h2 {
+  color: #2c3e50;
+  margin-bottom: 20px;
+}
+
+.enrollment-container .brand {
+  color: #800020;
+}
+
+.credentials-box {
+  background-color: #f8f9fa;
+  border-left: 4px solid #800020;
+  padding: 15px 20px;
+  margin: 20px 0;
+  border-radius: 8px;
+}
+
+.credentials-box h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: #800020;
+}
+
+.note {
+  font-size: 0.9em;
+  color: #555;
+  margin-top: 10px;
+}
+
+.status-box {
+  margin-top: 20px;
+  padding: 10px 15px;
+  background-color: #fff3cd;
+  border: 1px solid #ffeeba;
+  border-radius: 6px;
+  color: #856404;
+  font-weight: bold;
+}
+
+.status-label {
+  margin-right: 5px;
+}
+
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.7); /* Semi-transparent black background */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 10px;
+  padding: 20px;
+}
+
+.icon {
+  width: 50px;
+  height: 50px;
+}
+
+.membership-id {
+  color: #8b0000;
+  font-weight: bold;
+}
+
+.modal-content {
+  background-image: url('../../assets/images/guestezee/Frame.png'); /* Change path as needed */
+ 
+  background-size: cover;
+  background-position: center;
+}
+
+.form-check {
+  display: flex;
+  align-items: center;
+}
+
+
+#loader-overlay {
+  transition: opacity 0.3s ease;
+}
+
+#loader-overlay.hide {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.float{
+  float: inline-end;
+  cursor: default;
+}
+.text-burgundy {
+  color: #800020;
+  font-weight: bold;
+}
+
+
+
+
+
+
+
+
+

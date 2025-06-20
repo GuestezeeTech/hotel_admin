@@ -1,0 +1,59 @@
+<div class="main">
+  <div class="centered-container">
+    <div class="container">
+      <div *ngIf="!showForm" class="button-container">
+        <button (click)="showOneLevelForm()" class="btn primary">ADD ONE LEVEL</button>
+        <button (click)="showTreeForm()" class="btn primary">ADD TREE</button>
+      </div>
+      <form *ngIf="showForm" [formGroup]="hierarchyForm" (ngSubmit)="onSubmit()" class="form-container">
+        <!-- Newly added - back button -->
+        <button class="back-btn btn primary mb-4" (click)="back()">Back</button>
+        <div formArrayName="items">
+          <div *ngFor="let item of items.controls; let i=index" [formGroupName]="i" class="form-group">
+            <div class="form-field">
+              <label>Designation:</label>
+              <input type="text" formControlName="designation" placeholder="Enter designation">
+            </div>
+            <div class="form-field">
+              <label>Department:</label>
+              <!-- <select formControlName="department" placeholder="select department"
+                style="width: 100%;padding: 0.75rem; border: 2px solid #e9ecef;border-radius: 6px;    font-size: 1rem;    transition: border-color 0.2s;"
+                [disabled]="parentDepartment!=''">
+                <option>Select</option>
+                <option>FO</option>
+                <option>EHK</option>
+                <option>Engineering</option>
+                <option>F&B</option>
+                <option>IT</option>
+              </select> -->
+
+              <!-- Newly added for department disable -->
+              <select formControlName="department" placeholder="select department"
+                style="width: 100%;padding: 0.75rem; border: 2px solid #e9ecef;border-radius: 6px;    font-size: 1rem;    transition: border-color 0.2s;">
+                <option value="">Select</option>
+                <option value="FO">FO</option>
+                <option value="EHK">EHK</option>
+                <option value="Engineering">Engineering</option>
+                <option value="F&B">F&B</option>
+                <option value="IT">IT</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label>Escalation Time:</label>
+              <input type="number" formControlName="escalationTime" placeholder="Enter time in minutes" min="0">
+            </div>
+            <div *ngIf="showTopLevelOption" class="form-field" style="margin-top: 0.5rem;">
+              <label>
+                <input type="checkbox" formControlName="isTopLevel" /> Top Level
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="button-group">
+          <button *ngIf="isTreeForm" type="button" (click)="addItem()" class="btn secondary">Add More</button>
+          <button type="submit" class="btn primary" [disabled]="!hierarchyForm.valid">Submit</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

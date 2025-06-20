@@ -1,0 +1,179 @@
+<div class="main">
+    <app-alerts></app-alerts>
+    <div class="centered-container">
+        <div class="container">
+ 
+            <h5 class="fw-bolder" style="margin-bottom: 0">{{ enableEdit ? 'Edit User' : 'Add User' }}</h5>
+            <p style="color: #9E9E9E; font-size: 14px; margin-bottom: 1%">{{ enableEdit ? 'Update User' : 'Create User'}}</p>
+            <form [formGroup]="usersForm">
+                <div class="row">
+                    <div class="col-md-4 form-group">
+                        <label class="fw-semibold" style="font-size: 15px">Email<span class="required">*</span></label>
+                        <input type="email" class="form-control"
+                            formControlName="email" [class.is-invalid]="validateForm && f['email'].errors">
+                        <div class="invalid-feedback" *ngIf="f['email'].errors">
+                            <div *ngIf="f['email'].errors['required']">please enter email</div>
+                            <div *ngIf="f['email'].errors['email']">invalid email</div>
+                            <div *ngIf="f['email'].errors['maxlength']">email length exceeded.</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 form-group" *ngIf="!enableEdit">
+                        <label class="fw-semibold" style="font-size: 14px">Password<span
+                                class="required">*</span></label>
+                        <div class="input-group">
+                            <input type="text" placeholder="********" class="form-control" formControlName="password">
+                            <!-- <span class="input-group-text">
+                                <i class="fa fa-eye"></i>
+                            </span> -->
+                        </div>
+                    </div>
+                    <div class="col-md-4 form-group">
+                        <label class="fw-semibold" style="font-size: 14px" placeholder="Elakkiya">First
+                            Name</label>
+                        <input type="text" class="form-control" formControlName="first_name"
+                            [class.is-invalid]="f['first_name'].errors">
+                        <div class="invalid-feedback" *ngIf="f['first_name'].errors">
+                            <div *ngIf="f['first_name'].errors['minlength']">first name is too short</div>
+                            <div *ngIf="f['first_name'].errors['maxlength']">Maximum length exceeded.</div>
+                        </div>
+                    </div>
+                </div>
+ 
+                <div class="row mt-3 border-bottom">
+                    <div class="col-md-4 form-group">
+                        <label class="fw-semibold" style="font-size: 14px" placeholder="Asokan">Last
+                            Name</label>
+                        <input type="text" class="form-control" formControlName="last_name"
+                            [class.is-invalid]="f['last_name'].errors">
+                        <div class="invalid-feedback" *ngIf="f['last_name'].errors">
+                            <div *ngIf="f['last_name'].errors['minlength']">last name is too short</div>
+                            <div *ngIf="f['last_name'].errors['maxlength']">Maximum length exceeded.</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 form-group">
+                        <label class="fw-semibold" style="font-size: 14px">Phone Number</label>
+                        <input type="tel" class="form-control" placeholder="+91" formControlName="phone_number">
+                    </div>
+                    <div class="col-md-4 mb-4 form-group">
+                        <label class="fw-semibold" style="font-size: 14px">Role</label>
+                        <select class="form-control" formControlName="role_name" style="appearance: auto;">
+                            <option value="">Please select</option>
+                            <option *ngFor="let list of roleList" [value]="list.name">
+                                {{ list.name }}
+                            </option>
+                        </select>
+                    </div>
+                </div>
+ 
+                <h5 class="fw-bolder mt-2 " style="margin-bottom: 0">Created Details</h5>
+                <div class="row border-bottom">
+                    <div class="col-md-4">
+                        <label class="fw-semibold mt-3" style="font-size: 14px;">Created By</label>
+                        <input type="text" class="form-control mb-4" *ngIf="enableEdit"
+                            formControlName="created_by_name" readonly style='color: #8F9899; font-size: 14px;'>
+                        <input type="text" class="form-control mb-4"  *ngIf="!enableEdit"
+                            formControlName="created_by_name" style='color: #8F9899; font-size: 14px;'>
+                    </div>
+                </div>
+ 
+                <div class="row mt-4 form-group">
+                    <!-- Locked Toggle -->
+                    <div class="col-md-2">
+                        <div
+                            style="display: flex; align-items: center; border: 1px solid #ddd; padding: 5px 10px; border-radius: 10px;">
+                            <span style="font-weight: 600; font-size: 15px;">Locked</span>
+                            <!-- Hidden checkbox that controls the form value -->
+                            <input type="checkbox" formControlName="is_locked" hidden #isLockedCheckbox>
+ 
+                            <!-- Icon that updates the hidden checkbox -->
+                            <i [ngClass]="isLockedCheckbox.checked ? 'bi bi-toggle-on' : 'bi bi-toggle-off'"
+                                (click)="isLockedCheckbox.click()"
+                                [ngStyle]="{
+                                    'cursor': 'pointer',
+                                    'font-size': '25px',
+                                    'margin-left': '8px',
+                                    'color': isLockedCheckbox.checked ? '#1AA080' : 'rgb(212, 14, 14)'
+                                }">
+                            </i>
+                        </div>
+                    </div>
+                    <!-- Active Toggle -->
+                    <div class="col-md-2 ">
+                        <div
+                            style="display: flex; align-items: center; border: 1px solid #ddd; padding: 5px 10px; border-radius: 10px;">
+                            <span style="font-weight: 600; font-size: 15px;">Active</span>
+                            <!-- Hidden checkbox that controls the form value -->
+                            <input type="checkbox" formControlName="is_active" hidden #isActiveCheckbox>
+ 
+                            <!-- Icon that updates the hidden checkbox -->
+                            <i [ngClass]="isActiveCheckbox.checked ? 'bi bi-toggle-on' : 'bi bi-toggle-off'"
+                                (click)="isActiveCheckbox.click()"
+                                [ngStyle]="{
+                                    'cursor': 'pointer',
+                                    'font-size': '25px',
+                                    'margin-left': '8px',
+                                    'color': isActiveCheckbox.checked ? '#1AA080' : 'rgb(212, 14, 14)'
+                                }">
+                            </i>
+                        </div>
+                    </div>
+                </div>
+            </form>
+ 
+ 
+ 
+        </div> <!-- End of container -->
+ 
+ 
+    </div>
+    <!-- Buttons placed outside of the container but still inside the *ngIf block -->
+    <div class="row my-4  me-1">
+        <div class="col-md-12 d-flex justify-content-end">
+            <div class="col-md-2">
+                <button class="btn w-100 fw-semibold" style="color: #4E4E4E; background-color: #C6C6C6"
+                    (click)="openExitModal()">Cancel</button>
+            </div>
+            <div class="col-md-2" *ngIf="!enableEdit">
+                <button class="btn w-100 ms-2 fw-semibold" style="color: white; background-color: #800020;"
+                    (click)="sendData()">Save</button>
+            </div>
+            <div class="col-md-2" *ngIf="enableEdit">
+                <button class="btn w-100 ms-2 fw-semibold" style="color: white; background-color: #800020;"
+                    (click)="sendData()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+ 
+ 
+</div>
+ 
+<!-- Confirmation Modal for Exiting -->
+<div *ngIf="isExitModalOpen"
+    style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center;">
+ 
+    <div
+        style="background: white; padding: 30px; border-radius: 15px; width: 450px; text-align: center; box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);">
+ 
+        <!-- Confirmation Text -->
+        <h2 style="margin-bottom: 10px; font-size: 20px; font-weight: bold;">Are you sure you want to exit?</h2>
+ 
+        <!-- Warning Text (optional) -->
+        <p style="font-size: 16px; margin-bottom: 20px;">{{ enableEdit ? 'Any unsaved changes will be lost.' : 'Entered details will be lost.'}}</p>
+ 
+        <!-- Buttons: Cancel and Confirm -->
+        <div style="display: flex; justify-content: space-around;">
+            <button
+                style="padding: 12px; background: #E1E2EB; color: black; border: none; cursor: pointer; width: 45%; border-radius: 8px;"
+                (click)="closeExitModal()">
+                Cancel
+            </button>
+            <button
+                style="padding: 12px; background: #800020; color: white; border: none; cursor: pointer; width: 45%; border-radius: 8px;"
+                (click)="togglCloseAddUser()">
+                Exit
+            </button>
+        </div>
+    </div>
+</div>
+ 
+ 

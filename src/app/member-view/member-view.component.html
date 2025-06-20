@@ -1,0 +1,265 @@
+<div class="main">
+    <app-alerts></app-alerts>
+    <div class="centered-container">
+        <div class="container">
+            <div class="d-flex pb-3" style="border-bottom: 1px solid #E9E9E9; align-items: center;">
+                <img src="../../assets/images/guestezee/hotel1.png" style="width: 6%; height: 6%; object-fit: cover">
+                <div class="d-flex ms-2" style="flex-direction: column;">
+                    <h3 style="color: #F9AF1A; font-size: 18px; margin-bottom: 2%;">#345678910</h3>
+                    <h3 style="color: #800020; font-size: 18px; margin-bottom: 0;">{{hotelName}}</h3>
+                </div>
+            </div>
+            <div class="office-details mt-3">
+                <div class="d-flex justify-content-between">
+                    <p class="title">Office Details</p>
+                    <button class="edit_btn" (click)="goToOfficeDetailsTab()">Edit</button>
+                </div>
+                <form [formGroup]="officeViewForm">
+                    <div class="section">
+                        <h3 style="font-size: 17px; font-weight: 600;">Contact Details <a
+                                style="font-size: 14px; color: #A0A0A0;">(Primary)</a></h3>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); row-gap: 3%;">
+                            <div class="form-group form1_div">
+                                <label>First Name</label>
+                                <input class="input_box" type="text" formControlName="first_name" />
+                            </div>
+                            <div class="form-group form1_div">
+                                <label>Second Name</label>
+                                <input class="input_box" type="text" formControlName="last_name" />
+                            </div>
+                            <div class="form-group form1_div">
+                                <label>Designation</label>
+                                <input class="input_box" type="text" formControlName="designation" />
+                            </div>
+                            <div class="form-group form1_div">
+                                <label>Phone Number</label>
+                                <input class="input_box" type="number" formControlName="phone_number" />
+                            </div>
+                            <div class="form-group form1_div">
+                                <label>Email Id</label>
+                                <input class="input_box" type="text" formControlName="email" />
+                            </div>
+                            <div class="form-group form1_div">
+                                <label>Gender</label>
+                                <input class="input_box" type="text" formControlName="gender" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="section">
+                        <h3 style="font-size: 17px; font-weight: 600;">Contact Details <a
+                                style="font-size: 14px; color: #A0A0A0;">(Secondary)</a></h3>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); row-gap: 3%;">
+                            <div class="form-group form1_div">
+                                <label>First Name</label>
+                                <input class="input_box" type="text" formControlName="sec_first_name" />
+                            </div>
+                            <div class="form-group form1_div">
+                                <label>Second Name</label>
+                                <input class="input_box" type="text" formControlName="sec_last_name" />
+                            </div>
+                            <div class="form-group form1_div">
+                                <label>Designation</label>
+                                <input class="input_box" type="text" formControlName="sec_designation" />
+                            </div>
+                            <div class="form-group form1_div">
+                                <label>Phone Number</label>
+                                <input class="input_box" type="number" formControlName="sec_phone_number" />
+                            </div>
+                            <div class="form-group form1_div">
+                                <label>Email Id</label>
+                                <input class="input_box" type="text" formControlName="sec_email" />
+                            </div>
+                            <div class="form-group form1_div">
+                                <label>Gender</label>
+                                <input class="input_box" type="text" formControlName="sec_gender" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="section">
+                        <h3 style="font-size: 17px; font-weight: 600;">Registered Address</h3>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); row-gap: 3%;">
+                            <div class="form-group form1_div">
+                                <label>Company Name</label>
+                                <input class="input_box" type="text" formControlName="company_name" />
+                            </div>
+                            <div class="form-group form1_div">
+                                <label>Door No</label>
+                                <input class="input_box" type="text" formControlName="door_no" />
+                            </div>
+                            <div class="form-group form1_div">
+                                <label>Address</label>
+                                <input class="input_box" type="text" formControlName="address" />
+                            </div>
+                            <div class="form-group form1_div">
+                                <label>Country</label>
+                                <input class="input_box" type="text" formControlName="country" />
+                            </div>
+                            <div class="form-group form1_div">
+                                <label>State</label>
+                                <input class="input_box" type="text" formControlName="state" />
+                            </div>
+                            <div class="form-group form1_div">
+                                <label>City</label>
+                                <input class="input_box" type="text" formControlName="city" />
+                            </div>
+                            <div class="form-group form1_div">
+                                <label>Pincode</label>
+                                <input class="input_box" type="number" formControlName="pincode" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="section mb-0 pb-3">
+                        <h3 style="font-size: 17px; font-weight: 600;">PAN & GST Details</h3>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); row-gap: 3%;">
+                            <div class="form-group form1_div">
+                                <label>PAN Number</label>
+                                <input class="input_box" type="text" formControlName="pan_no" />
+                            </div>
+                            <div class="form-group form1_div">
+                                <label>GST</label>
+                                <input class="input_box" type="text" formControlName="gst_no" />
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="property-details mt-3">
+                <div class="d-flex justify-content-between">
+                    <p class="title">Property Details</p>
+                    <button class="edit_btn" (click)="goToPropertyDetailsTab()">Edit</button>
+                </div>
+                <form [formGroup]="propertyViewForm">
+                    <div class="section">
+                        <h3 style="font-size: 17px;font-weight: 600;">Contact Details</h3>
+                        <div style="display: grid;grid-template-columns: repeat(3, 1fr);row-gap: 3%;">
+                            <div class="form-group form1_div">
+                                <label>Hotel Name</label>
+                                <input class="input_box" type="text" formControlName="hotel_name" />
+                            </div>
+                            <div class="form-group form1_div">
+                                <label>Contact Person</label>
+                                <input class="input_box" type="text" formControlName="contact_person" />
+                            </div>
+                            <div class="form-group form1_div">
+                                <label>Designation</label>
+                                <input class="input_box" type="text" formControlName="contact_designation" />
+                            </div>
+                            <div class="form-group form1_div">
+                                <label>Phone Number</label>
+                                <input class="input_box" type="number" formControlName="primary_phone_number" />
+                            </div>
+                            <div class="form-group form1_div">
+                                <label>Phone Number <a style="font-size: 14px;color: #A0A0A0;">(secondary)</a></label>
+                                <input class="input_box" type="number" formControlName="secondary_phone_number" />
+                            </div>
+                            <div class="form-group form1_div">
+                                <label>Email Id</label>
+                                <input class="input_box" type="text" formControlName="contact_email" />
+                            </div>
+                            <div class="form-group form1_div">
+                                <label>Brand / Franchise</label>
+                                <input class="input_box" type="text" formControlName="brand" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="section">
+                        <h3 style="font-size: 17px;font-weight: 600;">Property Address</h3>
+                        <div style="display: grid;grid-template-columns: repeat(3, 1fr);row-gap: 3%;">
+                            <div class="form-group form1_div">
+                                <label>Door No</label>
+                                <input class="input_box" type="text" formControlName="property_doorno" />
+                            </div>
+                            <div class="form-group form1_div">
+                                <label>Address</label>
+                                <input class="input_box" type="text" formControlName="property_address" />
+                            </div>
+                            <div class="form-group form1_div">
+                                <label>Country</label>
+                                <input class="input_box" type="text" formControlName="property_country" />
+                            </div>
+                            <div class="form-group form1_div">
+                                <label>State</label>
+                                <input class="input_box" type="text" formControlName="property_state" />
+                            </div>
+                            <div class="form-group form1_div">
+                                <label>City</label>
+                                <input class="input_box" type="text" formControlName="property_city" />
+                            </div>
+                            <div class="form-group form1_div">
+                                <label>Location</label>
+                                <input class="input_box" type="text" formControlName="property_location" />
+                            </div>
+                            <div class="form-group form1_div">
+                                <label>Pincode</label>
+                                <input class="input_box" type="text" formControlName="property_pincode" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="section">
+                        <h3 style="font-size: 17px;font-weight: 600;">PAN & GST Details</h3>
+                        <div style="display: grid;grid-template-columns: repeat(3, 1fr);row-gap: 3%;">
+                            <div class="form-group form1_div">
+                                <label>PAN Number</label>
+                                <input class="input_box" type="text" formControlName="property_pan" />
+                            </div>
+                            <div class="form-group form1_div">
+                                <label>GST</label>
+                                <input class="input_box" type="text" formControlName="property_gst" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="section  mb-0 pb-1">
+                        <h3 style="font-size: 17px;font-weight: 600;">Property Size</h3>
+                        <div style="display: grid;grid-template-columns: repeat(4, 1fr);row-gap: 3%;">
+                            <div class="form-group form1_div">
+                                <div class="form-check">
+                                    <input type="radio" class="form-check-input" id="radio1" name="property_size"
+                                        value="01-50 Rooms" formControlName="property_size" checked>01-50 Rooms
+                                    <label class="form-check-label" for="radio1"></label>
+                                </div>
+                            </div>
+                            <div class="form-group form1_div">
+                                <div class="form-check">
+                                    <input type="radio" class="form-check-input" id="radio1" name="property_size"
+                                        value="51-101 Rooms" formControlName="property_size">51-101 Rooms
+                                    <label class="form-check-label" for="radio1"></label>
+                                </div>
+                            </div>
+                            <div class="form-group form1_div">
+                                <div class="form-check">
+                                    <input type="radio" class="form-check-input" id="radio1" name="property_size"
+                                        value="101-150 Rooms" formControlName="property_size">101-150 Rooms
+                                    <label class="form-check-label" for="radio1"></label>
+                                </div>
+                            </div>
+                            <div class="form-group form1_div">
+                                <div class="form-check">
+                                    <input type="radio" class="form-check-input" id="radio1" name="property_size"
+                                        value="150 and above Rooms" formControlName="property_size">150 and above Rooms
+                                    <label class="form-check-label" for="radio1"></label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="service-details mt-3">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="title">Services</p>
+                    </div>
+                    <button class="edit_btn" (click)="goToServicesDetailsTab()">Edit</button>
+                </div>
+                <div class="section pt-0">
+                    <h3 style="font-size: 17px;font-weight: 600;">Exempted Services<a
+                            style="font-size: 14px;color: #A0A0A0;">(click on the
+                            services you won't provide in your Hotel)</a></h3>
+                </div>
+                <div class="services-container">
+                    <div class="service-item " *ngFor="let service of exemptedServices">
+                        {{ service.names }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

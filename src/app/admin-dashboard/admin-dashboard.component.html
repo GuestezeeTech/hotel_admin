@@ -1,0 +1,215 @@
+<div class="main">
+    <app-alerts></app-alerts>
+    <div class="centered-container">
+        <div class="container">
+            <div class="row mb-4">
+                <div class="col-md-8" style="padding-left: 0 !important;">
+                    <h5 class="fw-bolder mb-3">Guest Activity<span style="color: #9E9E9E; font-size: 15px"
+                            class="fw-medium">
+                            (10/02/25)</span></h5>
+                    <div class="row">
+                        <div class="ms-3 d-flex justify-content-between category-section border rounded"
+                            style="border-color: #9E9E9E; padding: 10px; width: 97%">
+                            <div class="d-flex align-items-center px-2 py-1">
+                                <img src="../../assets/images/guestezee/logged.png" alt="Platinum Icon"
+                                    class="me-2 rounded-circle p-2" width="40" style="background-color: #FFFDE7;">
+                                <div>
+                                    <strong class="d-block">087</strong>
+                                    <span style="color: #8F9899; font-size: 14px;">Guest Logged</span>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center px-2 py-1" style="border-left: 1px solid #E9E9E9">
+                                <img src="../../assets/images/guestezee/request.png" alt="Gold Icon"
+                                    class="me-2 rounded-circle p-2" width="40" style="background-color: #FFFDE7;">
+                                <div>
+                                    <strong class="d-block">65</strong>
+                                    <span style="color: #8F9899; font-size: 14px;">Total Request</span>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center px-2 py-1" style="border-left: 1px solid #E9E9E9">
+                                <img src="../../assets/images/guestezee/completed.png" alt="Silver Icon"
+                                    class="me-2 rounded-circle p-2" width="40" style="background-color: #FFFDE7;">
+                                <div>
+                                    <strong class="d-block">56</strong>
+                                    <span style="color: #8F9899; font-size: 14px;">Completed</span>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center px-2 py-1" style="border-left: 1px solid #E9E9E9">
+                                <img src="../../assets/images/guestezee/escalatedC.png" alt="Bronze Icon"
+                                    class="me-2 rounded-circle p-2" width="40" style="background-color: #FFFDE7;">
+                                <div>
+                                    <strong class="d-block">02</strong>
+                                    <span style="color: #8F9899; font-size: 14px;">Escalated</span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Guest visti graph report -->
+                        <div class="card p-3 mt-4 ms-3 mb-3 shadow-sm rounded-3 bg-white h-100" style="width: 97%">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="fw-semibold mb-0">Guest Usage</h6>
+                                <div class="position-relative">
+                                    <button class="btn shadow-none btn-sm dropdown-toggle"
+                                        (click)="toggleUsageDropdown()" style="background-color: #FFF7F7 !important;">
+                                        {{ selectedUsageFilter }}
+                                    </button>
+                                    <ul class="dropdown-menu" *ngIf="isUsageDropdownOpen">
+                                        <li><a class="dropdown-item" (click)="setUsageFilter('Last Year')">Last Year</a>
+                                        </li>
+                                        <li><a class="dropdown-item" (click)="setUsageFilter('Last 6 Months')">Last 6
+                                                Months</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="guestUsageChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="row">
+                        <!-- Reviews Section -->
+                        <div class="col-md-12">
+                            <div class="card review-card px-3 py-2 mb-4 text-center"
+                                style=" background: linear-gradient(290.19deg, #FFFFFF 32.26%, #EBF0F2 100%); border-color: #E9E9E9">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="fw-bold" style="color: #0B0B12;">Reviews</h6>
+                                    <select class="form-select form-select-sm"
+                                        style="width: 31%; background-color: #F5F4FD; padding-top: 0.5% !important; padding-bottom: 0.5% !important; cursor: pointer">
+                                        <option value="Week">Week</option>
+                                        <option value="Month">Month</option>
+                                    </select>
+                                </div>
+                                <h4 class="fw-bold mt-2 mb-0"
+                                    style="color: #9b9b9b; text-align: start; font-size: 20px">Reviews Count: <span
+                                        style="color: #800020">473</span></h4>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <p class="mb-0 rounded px-2 py-1 fw-medium"
+                                        style="background: linear-gradient(90deg, rgba(1, 116, 250, 0.1) 0%, rgba(1, 146, 250, 0.1) 50%, rgba(139, 0, 224, 0.1) 100%); font-size: 14px">
+                                        <span class="fw-bold" style="color: #252525; font-size: 14px">3.8<span
+                                                style="color: #FFC300; ">★</span></span> Rating
+                                    </p>
+                                    <img src="../../assets/images/guestezee/girl.png" alt="Star illustration"
+                                        class="img-fluid mt-2" />
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Generate Report -->
+                        <div class="col-md-12">
+                            <div class="card px-3 py-2"
+                                style=" background: linear-gradient(290.19deg, #FFFFFF 32.26%, #EBF0F2 100%); border-color: #E9E9E9">
+                                <h6 class="mb-3 fw-bold" style="font-size: 18px">Generate Report</h6>
+                                <form>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold" style="font-size: 14px;">Enter Room No</label>
+                                        <input type="text" class="form-control bg-white" placeholder="Room Number"
+                                            style="font-size: 14px;" />
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-6">
+                                            <label class="form-label fw-bold" style="font-size: 14px;">Start
+                                                Date</label>
+                                            <input type="date" class="form-control bg-white" style="font-size: 14px;" />
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label fw-bold">End Date</label>
+                                            <input type="date" class="form-control"
+                                                style="font-size: 14px; background-color: white;" />
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn fw-medium w-100 rounded"
+                                        style="background-color: #800020; color: white"
+                                        (click)="generateReport()">Generate Report</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Guest booking -->
+                <div class="guest-booking-table">
+                    <div class="d-flex justify-content-between  border-bottom">
+                        <p class="fw-bold mb-1" style="font-size: 15px;">Guest Booking</p>
+                        <p class="fw-bold mb-1" style="font-size: 15px; cursor: pointer;"
+                            (click)="navigateToBookings()">View all <i class="fas fa-chevron-right"
+                                style="font-size: 9px !important;"></i></p>
+                    </div>
+                    <div>
+                        <table class="table guest-reviews">
+                            <thead>
+                                <tr>
+                                    <th>Res.No</th>
+                                    <th>Guest name</th>
+                                    <th>Room no</th>
+                                    <th>No.of Guests</th>
+                                    <th>Check-In</th>
+                                    <th>Check-Out</th>
+                                    <th>Action</th>
+                                    <th>Print</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngFor="let guest of guestData">
+                                    <td>{{ guest.resNo }}</td>
+                                    <td>{{ guest.guestName }}</td>
+                                    <td>{{ guest.roomNo }}</td>
+                                    <td>{{ guest.noOfGuests }}</td>
+                                    <td>{{ guest.checkIn }}</td>
+                                    <td>{{ guest.checkOut }}</td>
+                                    <td> <i class="fa fa-ellipsis-h" style="color: #868686; cursor: pointer;"></i></td>
+                                    <td> <i class="fas fa-print" style="color: #868686; cursor: pointer;"></i></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- Services -->
+                <div class="services">
+                    <div class="d-flex justify-content-between">
+                        <p class="fw-bold mb-2" style="font-size: 15px;">Services</p>
+                    </div>
+                    <div class="d-flex justify-content-between " style="gap: 1rem;">
+                        <button class="btn fw-semibold shadow-none"
+                            [ngClass]="{'selected': selectedButton === 'escalated'}"
+                            style="border-radius: 6px; width: 25%; font-size: 14px;"
+                            (click)="selectButton('escalated')">
+                            Escalated
+                        </button>
+                        <button class="btn fw-semibold shadow-none"
+                            [ngClass]="{'selected': selectedButton === 'completed'}"
+                            style="border-radius: 6px; width: 25%; font-size: 14px;"
+                            (click)="selectButton('completed')">
+                            Completed
+                        </button>
+                        <button class="btn fw-semibold shadow-none" [ngClass]="{'selected': selectedButton === 'asap'}"
+                            style="border-radius: 6px; width: 25%; font-size: 14px;" (click)="selectButton('asap')">
+                            ASAP
+                        </button>
+                    </div>
+                    <div>
+                        <table class="table services-table">
+                            <thead>
+                                <tr>
+                                    <th>Room no</th>
+                                    <th>Name</th>
+                                    <th>Service Type</th>
+                                    <th>Service Dept</th>
+                                    <th>Assignee</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngFor="let service of serviceData">
+                                    <td>{{ service.roomNo }}</td>
+                                    <td>{{ service.name }}</td>
+                                    <td>{{ service.serviceType }}</td>
+                                    <td>{{ service.serviceDept }}</td>
+                                    <td>{{ service.assignee }}</td>
+                                    <td> <i class="fa fa-ellipsis-h" style="color: #868686; cursor: pointer;"></i></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>

@@ -1,0 +1,47 @@
+body {
+    font-family: urbanist;
+}
+
+.centered-container {
+    background-color: white;
+    min-height: 100vh;
+    width: 96%;
+    margin: 0 auto;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    margin-top: 1%;
+}
+
+table {
+    thead {
+        tr {
+            th {
+                background-color: #F2F2F2;
+                color: #800020;
+                text-align: center;
+                font-size: 14px;
+                border-bottom: 2px solid #dee2e6;
+            }
+        }
+    }
+
+    tbody {
+        tr {
+            td {
+                background-color: white;
+                font-size: 13px;
+                text-align: center;
+                font-weight: 500;
+            }
+        }
+    }
+}
+
+.table {
+    border: 1px solid #dedede;
+}
+
+input[type="checkbox"] {
+    accent-color: #800020;
+}

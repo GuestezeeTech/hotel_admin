@@ -1,0 +1,122 @@
+body {
+    font-family: urbanist;
+}
+
+.centered-container {
+    background-color: white;
+    min-height: 100vh;
+    width: 96%;
+    margin: 0 auto;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    margin-top: 1%;
+}
+
+.container {
+    padding-left: 0;
+    padding-right: 0;
+}
+
+.office-details,
+.property-details {
+    border-bottom: 1px solid #E9E9E9;
+}
+
+.form1_div {
+    width: 95%
+}
+
+.inputwidth {
+    width: 95%;
+}
+
+.section {
+    background: #fff;
+    padding: 10px 20px;
+    border-radius: 8px;
+    // margin-bottom: 20px;
+    padding-left: 0 !important;
+}
+
+h3 {
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.form1_div {
+    width: 95%;
+    margin-bottom: 0.3rem;
+}
+
+.input_box {
+    width: 95%;
+    border: 2px solid #DBDBDB;
+    border-radius: 5px;
+    padding: 5px 5px;
+}
+
+.label {
+    font-family: urbanist;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+label {
+    font-family: urbanist;
+    font-weight: 600;
+    font-size: 14px;
+
+}
+
+input {
+    font-family: urbanist;
+    font-weight: 400;
+    font-size: 13px;
+}
+
+.title {
+    color: #800020;
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 0;
+}
+
+.edit_btn {
+    color: white;
+    background-color: #800020;
+    padding: 0.5% 2%;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+#radio1 {
+    margin-top: 2%;
+}
+
+.form-check-input:checked {
+    background-color: #800020 !important;
+    border-color: #800020 !important;
+}
+
+.services-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    padding: 20px;
+    border: 1px solid #E9E9E9;
+    border-radius: 8px;
+}
+
+.service-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #E9E9E9;
+    border-radius: 10px;
+    padding: 15px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}

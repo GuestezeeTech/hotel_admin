@@ -1,0 +1,121 @@
+
+<div class="main">
+   
+    <div class="centered-container"  *ngIf="receivedData=='Subscription'">
+        <h4 style="font-size: 20px;">{{receivedData}} - {{customerdata.registered_address.company_name}} - {{customerdata.property_details.contact_details.brand
+        }}</h4>
+        <div class="container mt-5">
+            <!-- Tabs Navigation -->
+          
+          
+      
+            <!-- Tab Content -->
+       
+              <div class="tab-pane fade show active" id="general" role="tabpanel" aria-labelledby="home-tab">
+                <table class="table" >
+                    <thead>
+                        <tr>
+                            <!-- <th> <input type="checkbox" id="vehicle1" name="vehicle1" value="Bike"></th> -->
+                            <th>Payment Date</th>
+                            <th>Payment Amount</th>
+                            <th>Subscription Period</th>
+                            <th>Invoice</th>
+                           
+                          
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let data of orderData;"  >
+                            <!-- <td> <input type="checkbox" id="vehicle1" name="vehicle1" value="Bike"></td> -->
+                            <td>{{data.payment.payment_date | date:'dd-MM-yyyy'}}</td>
+                            <td>{{data.order_review.order_summary.order_total_amount}}</td>
+                            <td>{{data.subscription_end_date}}</td>
+                            <td class="gold"><i class="fa-regular fa-file-lines"></i></td>
+                          
+                         
+                        </tr>
+                    </tbody>
+                </table>
+              </div>
+              
+            
+             
+          
+        </div>
+    </div>
+
+    <div class="centered-container"  *ngIf="receivedData=='Commission'">
+        <h4 style="font-size: 20px;">{{receivedData}} - {{customerdata.registered_address.company_name}} - {{customerdata.property_details.contact_details.brand
+        }}</h4>
+        <div class="centered-container">
+            <div class="container">
+                <!-- Hotel Header -->
+                <div class="card bg-white" style="border-color: transparent;">
+                    <img src="../../assets/images/guestezee/hotel-image.png" class="card-img-top" alt="Hotel Image"
+                        style="object-fit: cover;">
+                    <div class="card-body d-flex align-items-center" style="margin-top: -5%">
+                        <img src="../../assets/images/guestezee/hotel-logo.png" style="width: 100px; height: 100px"
+                            alt="Logo" class="me-3">
+                        <div style="margin-top: 5%">
+                            <h5 class="mb-0" style="color: #1A1A1A">Customer Name</h5>
+                            <!-- <p class="text-muted" style="color: #7D7D7D; font-weight: 600 !important;">Location: <span
+                                    class="text-danger" style="color: #800020 !important">Chennai</span></p> -->
+                        </div>
+                    </div>
+                    <!-- Review Details -->
+                    <div class="row review-details bg-white  mt-3 mb-4 mx-3">
+                        <div class="col-md-4 border review-list px-3 py-4">
+                            <div class="d-flex">
+                                <img src="../../assets/images/guestezee/room_no_icon.png" alt="Reviews"
+                                    style="width: 25px; object-fit: cover; height: 25px; object-fit: cover; margin-right: 8px;">
+                                <p style="font-weight: 600">Room Number</p>
+                            </div>
+                            <h6 class="fw-bold text-center">123</h6>
+                        </div>
+                        <div class="col-md-4 border review-list px-3 py-4">
+                            <div class="d-flex">
+                                <img src="../../assets/images/guestezee/service_type_icon.png" alt="Reviews"
+                                    style="width: 25px; object-fit: cover; height: 25px; object-fit: cover; margin-right: 8px;">
+                                <p style="font-weight: 600">Service Type</p>
+                            </div>
+                            <h6 class="fw-bold text-center">In Room Dining</h6>
+                        </div>
+                        <div class="col-md-4 border review-list px-3 py-4">
+                            <div class="d-flex">
+                                <img src="../../assets/images/guestezee/amount_icon.png" alt="Reviews"
+                                    style="width: 25px; object-fit: cover; height: 25px; object-fit: cover; margin-right: 8px;">
+                                <p style="font-weight: 600">Amount</p>
+                            </div>
+                            <h6 class="fw-bold text-center">10000</h6>
+                        </div>
+                        <div class="col-md-4 border review-list px-3 py-4">
+                            <div class="d-flex">
+                                <img src="../../assets/images/guestezee/commission_icon.png" alt="Reviews"
+                                    style="width: 25px; object-fit: cover; height: 25px; object-fit: cover; margin-right: 8px;">
+                                <p style="font-weight: 600">Commision %</p>
+                            </div>
+                            <h6 class="fw-bold text-center">10%</h6>
+                        </div>
+                        <div class="col-md-4 border review-list px-3 py-4">
+                            <div class="d-flex">
+                                <img src="../../assets/images/guestezee/commision_amount_icon.png" alt="Reviews"
+                                    style="width: 25px; object-fit: cover; height: 25px; object-fit: cover; margin-right: 8px;">
+                                <p style="font-weight: 600">Commision Amount</p>
+                            </div>
+                            <h6 class="fw-bold text-center">100</h6>
+                        </div>
+                    
+                    </div>
+    
+                </div>
+    
+    
+                <!-- Ratings Summary -->
+              
+            </div>
+            <!-- Guest Ratings Table -->
+          
+        </div>
+    </div>
+</div>
+

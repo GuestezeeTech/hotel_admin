@@ -1,0 +1,118 @@
+<div class="sidenav">
+  <hr style="width: 80%;" class="center-hr" /> <!-- Horizontal line below the menu -->
+  <ul style="padding: 6px 6px 6px 10px;">
+    <!-- <li class="list_container" [class.active]="isDashboardActive()"
+      *ngIf="(( this.customerdata?.status=='approved') || this.customerType=='Staff')">
+      <img src="../../assets/images/guestezee/layout.png">
+      <a routerLink="/dashboard" (click)="sendValue('Dashboard')">Dashboard</a>
+    </li> -->
+    <!-- <li class="list_container" [class.active]="isTaskManagementActive()"
+      *ngIf="((this.customerdata?.status=='approved') || this.customerType=='Staff')">
+      <img src="../../assets/images/guestezee/taskManagement.png">
+      <a [routerLink]="['/task-management']" (click)="sendValue('Task Management')">Task Management</a>
+    </li> -->
+    <li class="list_container" [class.active]="isHotelActive()" data-toggle="collapse" data-target="#demo-hotel-tab" *ngIf="this.customerType=='Customer'">
+      <img src="../../assets/images/guestezee/hotel (2).png">
+      <a [routerLink]="['/edit-new-hotel', hotelId]" (click)="sendValue('Hotels')">Hotel</a>
+      <i class="fas fa-chevron-down dropdown-icon" style="margin-left: 8px; cursor: pointer;" (click)="toggleSubmenu()"
+        *ngIf="this.customerdata?.status=='approved'">
+      </i>
+    </li>
+    <!-- <li class="sub-menu" style="text-align: center" id="demo-hotel-tab"
+      *ngIf="this.customerdata?.status=='approved'">
+      <div class="submenu"> -->
+        <!-- <a class="submenu-item"></a>
+        <a class="submenu-item"></a> -->
+        <!-- <span class="submenu-item" style=" color: #B1B1B1; cursor: pointer"
+          (click)="goToTab('Registered Office Details')">Office Details</span>
+        <span class="submenu-item" style=" color: #B1B1B1; cursor: pointer"
+          (click)="goToTab('Property Details')">Property Details</span>
+        <span class="submenu-item" style=" color: #B1B1B1; cursor: pointer"
+          (click)="goToTab('Services')">Services</span>
+        <span class="submenu-item" style=" color: #B1B1B1; cursor: pointer"
+          (click)="goToTab('Hierarchy')">Hierarchy</span>
+        <span class="submenu-item" style=" color: #B1B1B1; cursor: pointer"
+          (click)="goToTab('Technical Info')">Technical Info</span> -->
+      <!-- </div>
+    </li> -->
+    <!-- <li class="list_container" [class.active]="isBookingsActive()"
+      *ngIf="((this.customerdata?.status=='approved') || this.customerType=='Staff')">
+      <img src="../../assets/images/guestezee/bookings.png">
+      <a routerLink="/bookings" (click)="sendValue('Bookings')">Bookings</a>
+    </li> -->
+    <!-- <li class="list_container" [class.active]="isUserAccessActive()" data-toggle="collapse" data-target="#demo"
+      *ngIf="((this.customerdata?.status=='approved') || this.customerType=='Staff')">
+      <img src="../../assets/images/guestezee/secure-access (1).png">
+      <a>User Access</a>
+      <i class="fas fa-chevron-down dropdown-icon" style="margin-left: 8px; cursor: pointer;"
+        (click)="toggleSubmenu()"></i> -->
+      <!-- <a (click)="toggleSubmenu()" data-toggle="collapse" data-target="#demo-hotel-tab">User Access</a> -->
+    <!-- </li> -->
+    <!-- <li id="demo" class="sub-menu" style="text-align: center"
+      *ngIf="((this.customerdata?.status=='approved') || this.customerType=='Staff')">
+      <div class="submenu"> -->
+        <!-- <a class="submenu-item"></a> -->
+        <!-- <a class="submenu-item"></a> -->
+        <!-- <a class="submenu-item" routerLink="/role-list" style=" color: #B1B1B1" (click)="sendValue('Roles')">Roles</a>
+        <a class="submenu-item" routerLink="/user-list" style=" color: #B1B1B1" (click)="sendValue('Users')">Users</a>
+        <a class="submenu-item" routerLink="/staff-list" style=" color: #B1B1B1" (click)="sendValue('Staff')">Staff</a>
+      </div>
+    </li> -->
+    <!-- <li class="list_container" [class.active]="isSystemSettingsActive()" data-toggle="collapse"
+      data-target="#demo_settings" *ngIf="((this.customerdata?.status=='approved') || this.customerType=='Staff')">
+      <img src="../../assets/images/guestezee/setting.png">
+      <a>System Settings</a>
+      <i class="fas fa-chevron-down dropdown-icon" style="margin-left: 8px; cursor: pointer;"
+        (click)="toggleSubmenu()"></i>
+
+    </li> -->
+    <!-- <li id="demo_settings" class="sub-menu" style="text-align: center">
+      <div class="submenu" *ngIf="((this.customerdata?.status=='approved') || this.customerType=='Staff')"> -->
+        <!-- <a class="submenu-item"></a>
+        <a class="submenu-item"></a> -->
+        <!-- <a class="submenu-item" routerLink="/settings" style=" color: #B1B1B1"
+          (click)="sendValue('Service Settings')">Service Settings</a> -->
+        <!-- <a class="submenu-item" routerLink="/form" style=" color: #B1B1B1"
+          *ngIf="(this.customerdata?.status=='approved')" (click)="sendValue('Hierarchy')">Hierarchy</a>
+        <a class="submenu-item" routerLink="/add-technical-info" style=" color: #B1B1B1"
+          (click)="sendValue('Technical Info')">Technical Info</a> -->
+      <!-- </div>
+    </li> -->
+    <!-- <li class="list_container" [class.active]="isDashboardActive()"
+      *ngIf="userAccess?.DASHBOARD?.has_read_permission==true">
+      <img src="../../assets/images/guestezee/layout.png">
+      <a routerLink="/dashboard" (click)="sendValue('Dashboard')">Dashboard</a>
+    </li>
+    <li class="list_container" [class.active]="isHotelActive()"
+      *ngIf="userAccess?.CUSTOMERS?.has_read_permission==true">
+      <img src="../../assets/images/guestezee/hotel (2).png">
+      <a routerLink="/hotel-list" (click)="sendValue('Hotels')">Hotels</a>
+    </li> -->
+    <!-- <li style="display: flex; align-items: center; gap: 8px;">
+           <img src="../../assets/images/guestezee/" style="height: 20px;">
+           <a href="#">Marketing</a>
+         </li> -->
+    <!-- <li class="list_container" [class.active]="isPaymentActive()"
+      *ngIf="userAccess?.PAYMENT?.has_read_permission==true">
+      <img src="../../assets/images/guestezee/check.png">
+      <a routerLink="/payment-tab-view" (click)="sendValue('Payment')">Payment</a>
+    </li> -->
+    <!-- <li class="list_container" [class.active]="isSystemSettingsActive()"
+      *ngIf="userAccess?.SYSTEMSETTINGS?.has_read_permission==true">
+      <img src="../../assets/images/guestezee/setting.png">
+      <a (click)="sendValue('System Settings')" style="white-space: nowrap;" data-toggle="collapse"
+        data-target="#demo_settings">System Settings</a>
+      @if (isSubmenuOpen) {
+      <ul class="submenu">
+        <li><a href="#" (click)="sendValue('General Settings')">General Settings</a></li>
+        <li><a href="#" (click)="sendValue('Security Settings')">Security Settings</a></li>
+        <li><a href="#" (click)="sendValue('Backup & Restore')">Backup & Restore</a></li>
+      </ul>
+      }
+    </li> -->
+    <!-- <li class="list_container">
+      <img src="../../assets/images/guestezee/taskManagement.png" style="height: 20px;">
+      <a routerLink="/task-management">Task Management</a>
+    </li> -->
+  </ul>
+</div>

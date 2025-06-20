@@ -1,0 +1,36 @@
+<table class="scheduled-table table">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Room No</th>
+            <th>Service</th>
+            <th>Department</th>
+            <th>Order Time</th>
+            <th>Scheduled Time</th>
+            <th>Escalate Time</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr *ngFor="let task of scheduledTasks">
+            <td (click)="navigateToTimeline(task)" style="cursor: pointer;">{{ task.guest_name }}</td>
+            <td>{{ task.room_no }}</td>
+            <td>{{ task.service.service_name }}</td>
+            <td>{{ task.service.category }}</td>
+            <td>{{ task.order_time }}</td>
+            <td>{{formatScheduledTime(task.scheduled_time)}}</td>
+            <td [ngClass]=" isBlinking(task) ? 'blink-orange' : ''">{{ task.remainingSeconds }}</td>
+            <td>
+                <button *ngIf="task.assigned_staff_name==undefined"
+                    style="color: #545460; border: none !important; cursor: pointer; text-decoration: underline;"
+                    (click)="onAddAssignee(task)">
+                    Add Assignee
+                </button>
+                <button *ngIf="task.assigned_staff_name!=undefined"
+                    style="color: #545460; border: none !important; cursor: pointer;">
+                    {{task.assigned_staff_name}}
+                </button>
+            </td>
+        </tr>
+    </tbody>
+</table>

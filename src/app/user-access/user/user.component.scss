@@ -1,0 +1,111 @@
+.nav-tabs {
+  background-color: #3537511A;
+  // padding: 2px 2px;/* Set background color for the tab container */
+  border-radius: 10px;
+
+}
+
+.nav-link {
+  color: #1A1A1A99;
+  font-size: 16px;
+  /* Set color for inactive tabs */
+  font-weight: 600;
+  font-family: urbanist;
+  // background-color: #800020; /* Set background color for inactive tabs */
+  // border: 1px solid #800020;
+}
+
+.nav-link:hover {
+  background-color: #800020;
+  border-radius: 10px;
+  padding: 10px 10px;
+  color: white;
+  /* Hover color for inactive tabs */
+}
+
+.nav-link.active {
+  color: white;
+  /* Text color for active tab */
+  background-color: #800020;
+  /* Highlight active tab background */
+  border-color: #800020;
+  border-radius: 10px;
+  padding: 10px 10px
+    /* Border color for active tab */
+}
+
+/* Optional: Style the tab content area */
+.tab-content {
+  padding: 15px;
+  // border: 1px solid #ddd;
+  border-top: none;
+  // border-radius: 5px;
+  margin-top: 3%;
+  border-top: 1px solid #ddd;
+}
+
+.centered-container {
+  background-color: white;
+  min-height: 100vh;
+  width: 96%;
+  /* 90% width of the parent */
+  margin: 0 auto;
+  /* This centers the container horizontally */
+  padding: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  /* Optional, to add shadow */
+  border-radius: 10px;
+  /* Optional, for rounded corners */
+  margin-top: 1%;
+}
+
+// .Custom-tab-spacing {
+//   margin-right: 15px;
+// }
+
+.table tbody tr td {
+  background-color: white;
+  font-size: 14px ;
+}
+
+input, option, select {
+  font-size: 14px !important;
+}
+
+.table thead th {
+  color: #800020;
+
+}
+
+.bt_active {
+  color: #30A75F;
+  background-color: #d5efdb;
+  border-radius: 10px;
+  border: none;
+  font-weight: 500;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.table {
+  border: 1px solid #dedede;
+}
+
+body {
+  font-family: urbanist;
+
+}
+
+.table {
+  border: 1px solid #dedede;
+}
+
+
+.form-control {
+  background-color: white;
+}
+
+input::placeholder {
+  color: #9E9E9E;  
+  font-size: 13px; 
+}

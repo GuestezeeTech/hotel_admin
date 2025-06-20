@@ -1,0 +1,207 @@
+<div class="main">
+    <div class="centered-container">
+        <div class="container" id="print">
+            <!-- Header -->
+            <div class="d-flex align-items-center mb-3 w-100" style="border-bottom: 1.5px solid #868686;">
+                <div class="w-100">
+                    <h5 class="mb-1 fw-bold d-flex justify-content-center">Room no :405</h5>
+                    <div class="d-flex justify-content-between guest-info mb-3">
+                        <p class="mb-0">Guest name : Mr.Ashwin</p>
+                        <p class="mb-0">Check in : 25/04/10 12:00hrs
+                        </p>
+                        <p class="mb-0">Check out : 25/04/12 11:00hrs
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="border rounded mt-4 p-3 d-flex justify-content-between align-items-center" style="width: 100%;">
+                <!-- Left Side: Requested Services -->
+                <div>
+                    <h6 class="fw-bold mb-3">Requested Service</h6>
+                    <div class="d-flex gap-2">
+                        <!-- Service Card 1 -->
+                        <div class="border rounded d-flex align-items-center p-2 gap-4">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="rounded-circle d-flex justify-content-center align-items-center">
+                                    <img src="../../assets/images/guestezee/sewing kit.png" alt="Sewing Kit"
+                                        style="width: 30px;">
+                                </div>
+                                <div>
+                                    <div class="fw-semibold" style="color: #181818; font-size: 14px;">Sewing Kit
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <div><i class="fa fa-star me-1" style="font-size: 10px; color: #FFB52D"></i></div>
+                                <div><span class="fw-bold" style="font-size: 14px;">4.5</span></div>
+                            </div>
+                        </div>
+                        <!-- Service Card 2 -->
+                        <div class="border rounded d-flex align-items-center p-2 gap-4">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="rounded-circle d-flex justify-content-center align-items-center">
+                                    <img src="../../assets/images/guestezee/trip.png" alt="Travel Desk"
+                                        style="width: 30px;">
+                                </div>
+                                <div>
+                                    <div class="fw-semibold" style="color: #181818; font-size: 14px;">Travel Desk
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <div>
+                                    <i class="fa fa-star me-1" style="font-size: 10px; color: #FFB52D"></i>
+                                </div>
+                                <div>
+                                    <span class="fw-bold" style="font-size: 14px">4.5</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Right Side: Overall Rating -->
+                <div class="d-flex align-items-center gap-1">
+                    <ng-container *ngFor="let star of [1,2,3,4,5]; let i = index">
+                        <svg width="16" height="16" viewBox="0 0 24 24" [attr.fill]="i < rating ? '#FFB52D' : 'none'"
+                            [attr.stroke]="i < rating ? 'none' : '#D7E7FF'" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round">
+                            <polygon
+                                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                        </svg>
+                    </ng-container>
+                    <span class="fw-bold ms-2">{{ rating }}</span>
+                </div>
+
+            </div>
+            <div class="guest-details1 mt-4">
+                <!-- Room Occupancy Card -->
+                <div class="border rounded p-3 mb-3">
+                    <h6 class="fw-bold mb-2">Room Occupancy</h6>
+                    <p class="mb-0" style="font-size: 14px; color: #01151F">6 Adults and 2 Childrens</p>
+                </div>
+                <!-- Review & Feedback Card -->
+                <div class="border rounded p-3">
+                    <!-- Reviews -->
+                    <h6 class="fw-bold mb-2">Reviews</h6>
+                    <div class="d-flex align-items-center gap-1 mb-2">
+                        <div class="d-flex align-items-center gap-1">
+                            <ng-container *ngFor="let star of [1,2,3,4,5]; let i = index">
+                                <svg width="16" height="16" viewBox="0 0 24 24"
+                                    [attr.fill]="i < rating ? '#FFB52D' : 'none'"
+                                    [attr.stroke]="i < rating ? 'none' : '#D7E7FF'" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <polygon
+                                        points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                                </svg>
+                            </ng-container>
+                            <span class="fw-bold ms-2">{{ rating }}</span>
+                        </div>
+                        <span class="fw-semibold ms-2" style="color: #0B0B12DE">Good Infrastructure</span>
+                    </div>
+                    <p class="mb-0" style="font-size: 14px; color: #01151F">Lorem Ipsum is simply dummy text of the
+                        printing and typesetting industry
+                    </p>
+                </div>
+            </div>
+            <div class="d-flex align-items-center mb-3 mt-4 w-100" style="border-bottom: 1.5px solid #868686;">
+                <div class="w-100">
+                    <div class="d-flex justify-content-between guest-info mb-3">
+                        <p class="mb-0">Guest name : Mr.Santhosh</p>
+                        <p class="mb-0">Check in : 25/04/10 12:00hrs
+                        </p>
+                        <p class="mb-0">Check out : 25/04/12 11:00hrs
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="border rounded p-3 mt-4 d-flex justify-content-between align-items-center" style="width: 100%;">
+                <!-- Left Side: Requested Services -->
+                <div>
+                    <h6 class="fw-bold mb-3">Requested Service</h6>
+                    <div class="d-flex gap-2">
+                        <!-- Service Card 1 -->
+                        <div class="border rounded d-flex align-items-center p-2 gap-4">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="rounded-circle d-flex justify-content-center align-items-center">
+                                    <img src="../../assets/images/guestezee/sewing kit.png" alt="Sewing Kit"
+                                        style="width: 30px;">
+                                </div>
+                                <div>
+                                    <div class="fw-semibold" style="color: #181818; font-size: 14px;">Sewing Kit
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <div><i class="fa fa-star me-1" style="font-size: 10px; color: #FFB52D"></i></div>
+                                <div><span class="fw-bold" style="font-size: 14px;">4.5</span></div>
+                            </div>
+                        </div>
+                        <!-- Service Card 2 -->
+                        <div class="border rounded d-flex align-items-center p-2 gap-4">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="rounded-circle d-flex justify-content-center align-items-center">
+                                    <img src="../../assets/images/guestezee/trip.png" alt="Travel Desk"
+                                        style="width: 30px;">
+                                </div>
+                                <div>
+                                    <div class="fw-semibold" style="color: #181818; font-size: 14px;">Travel Desk
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <div>
+                                    <i class="fa fa-star me-1" style="font-size: 10px; color: #FFB52D"></i>
+                                </div>
+                                <div>
+                                    <span class="fw-bold" style="font-size: 14px">4.5</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Right Side: Overall Rating -->
+                <div class="d-flex align-items-center gap-1">
+                    <ng-container *ngFor="let star of [1,2,3,4,5]; let i = index">
+                        <svg width="16" height="16" viewBox="0 0 24 24" [attr.fill]="i < rating ? '#FFB52D' : 'none'"
+                            [attr.stroke]="i < rating ? 'none' : '#D7E7FF'" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round">
+                            <polygon
+                                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                        </svg>
+                    </ng-container>
+                    <span class="fw-bold ms-2">{{ rating }}</span>
+                </div>
+            </div>
+            <div class="guest-details1 mt-4">
+                <!-- Room Occupancy Card -->
+                <div class="border rounded p-3 mb-3">
+                    <h6 class="fw-bold mb-2">Room Occupancy</h6>
+                    <p class="mb-0" style="font-size: 14px; color: #01151F">6 Adults and 2 Childrens</p>
+                </div>
+                <!-- Review & Feedback Card -->
+                <div class="border rounded p-3">
+                    <!-- Reviews -->
+                    <h6 class="fw-bold mb-2">Reviews</h6>
+                    <div class="d-flex align-items-center gap-1 mb-2">
+                        <div class="d-flex align-items-center gap-1">
+                            <ng-container *ngFor="let star of [1,2,3,4,5]; let i = index">
+                                <svg width="16" height="16" viewBox="0 0 24 24"
+                                    [attr.fill]="i < rating ? '#FFB52D' : 'none'"
+                                    [attr.stroke]="i < rating ? 'none' : '#D7E7FF'" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <polygon
+                                        points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                                </svg>
+                            </ng-container>
+                            <span class="fw-bold ms-2">{{ rating }}</span>
+                        </div>
+                        <span class="fw-semibold ms-2" style="color: #0B0B12DE">Good Infrastructure</span>
+                    </div>
+                    <p class="mb-0" style="font-size: 14px; color: #01151F">Lorem Ipsum is simply dummy text of the
+                        printing and typesetting industry
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

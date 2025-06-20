@@ -1,0 +1,73 @@
+<div class="main">
+    <app-alerts></app-alerts>
+    <div class="centered-container">
+        <div class="container">
+
+            <!-- Header -->
+            <div class="d-flex align-items-center mb-3 w-100">
+                <div class="w-100">
+                    <div class="d-flex justify-content-between mb-2">
+                        <h5 class="mb-1 fw-bold">Room no : {{ guestData.roomNo }}</h5>
+                        <button class="btn btn-sm rounded-pill"
+                            style="color: #800020; background-color: #f1dce1; font-size: 13px;" (click)="navigateToCheckout()">Requested Late
+                            Logout</button>
+                    </div>
+                    <div class="d-flex justify-content-between guest-info">
+                        <p class="mb-0">Guest name : {{ guestData.name }}</p>
+                        <p class="mb-0">Check in : {{ guestData.checkIn }} {{ guestData.checkInTime }}
+                        </p>
+                        <p class="mb-0">Check out : {{ guestData.checkOut }} {{ guestData.checkOutTime
+                            }}
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Room Summary Card -->
+            <div class="card mb-4 shadow-sm bg-white">
+                <div class="row">
+                    <div class="col-md-4">
+                        <img [src]="guestData.image" class="img-fluid rounded-start" alt="Room Image"
+                            style="height: 100%; object-fit: cover;">
+                    </div>
+                    <div class="col-md-8 p-3">
+                        <div class="row guest-info-details">
+                            <div class="mb-3">Guest name :<span class="ps-4">{{ guestData.name }}</span></div>
+                            <div class="mb-3">Room number :<span class="ps-2">{{ guestData.roomNo }}</span></div>
+                            <div class="mb-3">Room name :<span class="ps-4">{{ guestData.imageType }}</span></div>
+                            <div class="mb-3">Check in :<span style="padding-left: 7.5%;">{{ guestData.checkIn }} {{ guestData.checkInTime }}</span>
+                            </div>
+                            <div class="">Check out :<span style="padding-left: 6%;">{{ guestData.checkOut }} {{ guestData.checkOutTime }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="table-responsive">
+                <div style="border: 1px solid #dee2e6; border-radius: 12px; overflow: hidden;">
+                    <table class="table text-center align-middle mb-0">
+                        <thead class="table-light">
+                            <tr class="text-nowrap">
+                                <th class="text-start">Guest / User name</th>
+                                <th>Date & Time</th>
+                                <th>Reason</th>
+                                <th>Room status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let log of guestLogs">
+                              <td class="text-start">{{ log.name }}</td>
+                              <td>{{ log.dateTime }}</td>
+                              <td>{{ log.reason }}</td>
+                              <td>{{ log.status }}</td>
+                            </tr>
+                          </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,38 @@
+<table class="processing-table table" >
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Room No</th>
+            <th>Service</th>
+            <th>Order Time</th>
+            <th>Expected Time</th>
+            <th>Status</th>
+            <th>Assignee</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr *ngFor="let task of allProcessedTasks">
+            <td (click)="navigateToTimeline(task.id)" style="cursor: pointer;">{{ task.guest_name }}</td>
+            <td>{{ task.room_no }}</td>
+            <td>{{ task.service.service_name  }}</td>
+            <td>{{ task.order_time }}</td>
+            <td>{{ expectedTimesMap[task.id] }}</td>
+            <td>
+                <div style="color: #30A75F; background-color: #c2f2cd; border-radius: 50px; padding: 4px 12px; font-weight: 500; font-size: 12px; text-align: center; display: inline-block;">
+                  Processing
+                </div>
+              </td>
+            <td>{{ task.assigned_staff_name }}</td>
+        </tr>
+    </tbody>
+</table>
+<div class="pagination-container">
+    <button (click)="previousPage()" [disabled]="currentPage === 1" class="pagination-btn">
+        Previous
+    </button>
+    <input type="text" class="pagination-input" [(ngModel)]="currentPage" readonly>
+    <button (click)="nextPage()" [disabled]="currentPage === totalPages" class="pagination-btn">
+        Next
+    </button>
+</div>
+

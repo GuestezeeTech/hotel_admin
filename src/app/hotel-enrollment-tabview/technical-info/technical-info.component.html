@@ -1,0 +1,150 @@
+<app-alerts></app-alerts>
+<div class="container mt-5" style="display: unset;background: white;">
+  <!-- Tabs Navigation -->
+  <ul class="nav nav-tabs flex-wrap" id="myTabs" role="tablist">
+    <li class="nav-item Custom-tab-spacing" role="presentation">
+      <a class="nav-link" id="lock-tab" data-toggle="tab" href="#lock" role="tab" aria-controls="lock" [class.active]="selectedTab === 'lock'" 
+        aria-selected="true" (click)="selectTab('lock');firstTabCount()">Lock Integration</a>
+    </li>
+    <li class="nav-item" role="presentation">
+      <a class="nav-link Custom-tab-spacing" id="pos-tab" data-toggle="tab" href="#pos" role="tab" aria-controls="pos" [class.active]="selectedTab === 'pos'" 
+        aria-selected="false" (click)="selectTab('pos');secondTabCount()">PMS</a>
+    </li>
+    <!-- <li class="nav-item" role="presentation">
+      <a class="nav-link Custom-tab-spacing" id="sms-tab" data-toggle="tab" href="#sms" role="tab" aria-controls="sms"
+        aria-selected="false" (click)="selectTab('SMS')">SMS</a>
+    </li> -->
+    <!-- <li class="nav-item" role="presentation">
+      <a class="nav-link Custom-tab-spacing" id="payment-tab" data-toggle="tab" href="#payment" role="tab"
+        aria-controls="payment" aria-selected="false" (click)="selectTab('Payment')">Payment</a>
+    </li> -->
+    <!-- <li class="nav-item" role="presentation">
+                <a class="nav-link Custom-tab-spacing" id="logistics-tab" data-toggle="tab" href="#logistics" role="tab" aria-controls="logistics" aria-selected="false"  (click)="selectTab('Logistics')">Logistics</a>
+              </li> -->
+    <li class="nav-item" role="presentation">
+      <a class="nav-link Custom-tab-spacing" id="other-tab" data-toggle="tab" href="#other" role="tab" [class.active]="selectedTab === 'other'" 
+        aria-controls="other" aria-selected="false" (click)="selectTab('other');thirdTabCount()">Other Integration</a>
+    </li>
+  </ul>
+  <!-- Tab Content -->
+  <div class="tab-content" id="myTabContent">
+    <div class="tab-pane fade show active" id="lock" role="tabpanel" aria-labelledby="lock-tab">
+      <div class="mb-4">
+        <div class="container">
+          <div class="card" *ngFor="let data of generalTechInfoData">
+            <div>
+              <div style="display: flex;justify-content: space-between;">
+                <!-- <i class="fas fa-lock icon" style="color: #ffcc00;"></i> -->
+                <img [src]="data.image">
+                <!-- <button *ngIf="showEdit==true" type="button" class="btn btn-primary" data-toggle="modal"
+                  data-target="#techInfoUpdate" (click)="setTechInfo(data.type)"
+                  style="    background: #800020;border: none;height: 2rem;    padding: revert;">
+                  Edit Keys
+                </button> -->
+                <!-- <i class="fas fa-cog settings outlined-icon" style="font-size: 26px;    font-weight: 600;" type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#techInfoUpdate"    ></i> -->
+              </div>
+            </div>
+            <div style="display: flex;justify-content: space-between;margin-top: 5%;">
+              <h5>{{data.name}} </h5>
+              <!-- Newly added - paymentDone for disabling button -->
+              <label class="switch" *ngIf="isCustomerChoosen==false">
+                <input type="checkbox" (change)="onCustomerToggleSwitch($event, data)" [checked]="data.is_enabled==true"
+                  [disabled]="paymentDone" />
+                <span class="slider round"></span>
+              </label>
+              <label class="switch" *ngIf="isCustomerChoosen==true">
+                <input type="checkbox" (change)="onCustomerToggleSwitch($event, data)" [checked]="data.is_enabled==true"
+                  [disabled]="paymentDone" />
+                <span class="slider round"></span>
+              </label>
+            </div>
+          </div>
+          <!-- <div class="card">
+        <h5>Square</h5>
+        <i class="fas fa-cog settings"></i>
+        <div class="toggle-switch" onclick="toggleSwitch(this)"></div>
+    </div> -->
+        </div>
+        <!-- [ngClass]="{
+                'isSelected': technicalInfo.customer_id == hotelId ,
+                'isNotSelected disabled-card': (isTechnicalInfoExists && (technicalInfo.customer_id != hotelId || technicalInfo.customer_id == undefined))
+              }" -->
+        <!-- <div class="card p-3" >
+                <div class="d-flex mb-3">
+                    <div>
+                        <img src="../../../assets/images/guestezee/lock.png" alt="Lock Icon">
+                        <i class="fas fa-cog settings outlined-icon" style="font-size: 26px; font-weight: 600;"></i>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <h6 class="mb-0">{{technicalInfo.title || technicalInfo.name}}</h6>
+                    <label class="switch">
+                        <input type="checkbox" [checked]="getIsActive(technicalInfo)" (change)="chooseTechnicalInfo(technicalInfo)">
+                        <span class="slider round" ></span>
+                    </label>
+                </div>
+            </div> -->
+      </div>
+    </div>
+  </div>
+  <!-- new modal  -->
+  <div class="modal" id="techInfoUpdate">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <!-- Modal Header -->
+        <div class="modal-header">
+          <h4 class="modal-title">{{selectedTechInfo}}</h4>
+          <button type="button" class="btn-close" data-dismiss="modal" id="closetechInfo"></button>
+        </div>
+        <!-- Modal body -->
+        <div class="modal-body">
+          <app-edit-technical-info [infoData]="selectedTechInfo"></app-edit-technical-info>
+        </div>
+        <!-- Modal footer -->
+        <!-- <div class="modal-footer">
+        <button type="button" class="btn btn-danger" data-dismiss="modal">Close</button>
+      </div> -->
+      </div>
+    </div>
+  </div>
+  <div class="modal" id="paymentType">
+    <div class="modal-dialog">
+      <div class="modal-content" style="background-color: white;">
+        <!-- Modal Header -->
+        <div class="modal-header">
+          <h4 class="modal-title" style="color: #800020;">Payment Type</h4>
+          <button type="button" class="btn-close" data-dismiss="modal"></button>
+        </div>
+        <!-- Modal body -->
+        <div class="modal-body">
+          <div *ngFor="let item of paymentoptions; let i = index" style="padding: 2px;">
+            <input type="radio" [checked]="selectedIndex === i" (change)="selectOnlyOne(i)" style="color: black;"> {{
+            item }}
+          </div>
+          <!-- <app-edit-technical-info [infoData]="selectedTechInfo"></app-edit-technical-info> -->
+        </div>
+        <!-- Modal footer -->
+        <div class="modal-footer">
+          <button type="button" class="btn btn-danger" data-dismiss="modal"
+            style="color: #800020;background: white; border-radius: none;    border: 2px solid #8b1633;">Close</button>
+          <button type="button" class="btn btn-danger" style="color: white;background: #800020; border-radius: none;"
+            (click)="executePayment()">Pay</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Newly added -->
+<div class="d-flex justify-content-end mt-3">
+  <button type="submit" class="cancel_bt" (click)="back()">Back</button>&nbsp;&nbsp;
+  <button type="submit" class="next_bt" *ngIf="((this.activeTab == 1 || this.activeTab == 2) && isMemberid && !paymentDone)"
+    (click)="nextTabInfo()">Next Info</button>
+  <button type="submit" class="save_bt"   data-toggle="modal"
+    data-target="#paymentType"  *ngIf="this.activeTab == 3 && isMemberid && !paymentDone" (click)="save()">Save &
+    Continue</button>
+  <!-- <button *ngIf="isMemberid" type="submit" class="save_bt" (click)="save()" data-toggle="modal"
+    data-target="#paymentType">Save &
+    Continue</button> -->
+  <button *ngIf="!isMemberid" class="save_bt" (click)="next()">
+    Continue</button>
+</div>
