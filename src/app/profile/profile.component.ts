@@ -53,6 +53,13 @@ export class ProfileComponent implements OnInit {
     autoClose: true,
     keepAfterRouteChange: false
   };
+  customerType: any;
+  addBrandForm !: FormGroup;
+  previewImgUrl: string | null = null;
+  imageName: string = '';
+  enableEdit: boolean = true;
+  imgFile: File | null = null;
+  profile_image: string | null = '../../assets/images/guestezee/profile.png';
 
 
   constructor(
@@ -70,28 +77,43 @@ export class ProfileComponent implements OnInit {
 
   ngOnInit(): void {
     this.hotelId = Number(this.localService.get('UserId'));
+    this.customerType = this.localService.get('CustomerType');
     // this.getAdminProfileDetails();
-    this.profileService.getAdminProfileDetails(this.hotelId).subscribe(resp => {
+    this.profileService.getAdminProfileDetails(this.hotelId, this.customerType).subscribe(resp => {
       if (resp.success === 1 && resp.status_code === 200) {
         const data = resp.result.data[0];
         //console.log("data", data);
         this.mail = this.localService.get('UserEmail');
         //console.log("mail", this.mail);
         const profileImage = data?.profile_image?.trim() || null;
-        const profileName = data?.first_name || data?.last_name
-          ? `${data.first_name || ''} ${data.last_name || ''}`.trim()
-          : data.phone_number;
-
+        let profileName: string;
+        if (this.customerType === 'Staff') {
+          profileName = data?.full_name ? data?.full_name.trim() : data?.phone_number;
+        } else {
+          profileName = (data?.first_name || data?.last_name)
+            ? `${data.first_name || ''} ${data.last_name || ''}`.trim()
+            : data?.phone_number;
+        }
+        // const profileName = data?.first_name || data?.last_name
+        //   ? `${data.first_name || ''} ${data.last_name || ''}`.trim()
+        //   : data.phone_number;
         // Updates the profile service
         this.profileService.updateProfileImage(profileImage);
         this.profileService.updateProfileName(profileName);
-
         // Patch form values
-        this.userRegistartionForm.patchValue({
-          first_name: data?.first_name || '',
-          last_name: data?.last_name || '',
-          profile_image: profileImage
-        });
+        if (this.customerType === 'Staff') {
+          this.userRegistartionForm.patchValue({
+            full_name: data?.full_name || '',
+            profile_image: profileImage
+          });
+        }
+        else {
+          this.userRegistartionForm.patchValue({
+            first_name: data?.first_name || '',
+            last_name: data?.last_name || '',
+            profile_image: profileImage
+          });
+        }
       }
     });
     this.initializeForms();
@@ -101,13 +123,21 @@ export class ProfileComponent implements OnInit {
 
   // Initialize both profile and password update forms
   initializeForms() {
-    this.userRegistartionForm = this.formBuilder.group({
-      first_name: ['', [ Validators.maxLength(40), Validators.pattern("^[a-zA-Z][a-z A-Z]*$")]],
-      last_name: ['', [Validators.maxLength(40), Validators.pattern("^[a-zA-Z][a-z A-Z]*$")]],
-      profile_image: '../../assets/images/guestezee/profile.png',
-      imageFile: [''],
-    });
-
+    if (this.customerType === 'Staff') {
+      this.userRegistartionForm = this.formBuilder.group({
+        full_name: ['', [Validators.maxLength(40), Validators.pattern("^[a-zA-Z][a-z A-Z]*$")]],
+        profile_image: '../../assets/images/guestezee/profile.png',
+        imageFile: [''],
+      });
+    }
+    else {
+      this.userRegistartionForm = this.formBuilder.group({
+        first_name: ['', [Validators.maxLength(40), Validators.pattern("^[a-zA-Z][a-z A-Z]*$")]],
+        last_name: ['', [Validators.maxLength(40), Validators.pattern("^[a-zA-Z][a-z A-Z]*$")]],
+        profile_image: '../../assets/images/guestezee/profile.png',
+        imageFile: [''],
+      });
+    }
     this.passwordUpdateForm = this.fb.group({
       current_password: ['', [Validators.minLength(6), Validators.required]],
       new_password: ['', [Validators.minLength(6), Validators.required]],
@@ -119,28 +149,23 @@ export class ProfileComponent implements OnInit {
   get p() { return this.passwordUpdateForm.controls; }
 
   formCheck() {
-    this.validFirstName = this.f['first_name'].invalid;
-    this.validLastName = this.f['last_name'].invalid;
-
+    if (this.customerType === 'Staff') {
+      this.validFirstName = this.f['full_name'].invalid;
+    }
+    else {
+      this.validFirstName = this.f['first_name'].invalid;
+      this.validLastName = this.f['last_name'].invalid;
+    }
     if (this.userRegistartionForm.valid) {
       this.profileUpdate(this.profile_image);
     }
   }
 
-  addBrandForm !: FormGroup;
-  previewImgUrl: string | null = null;
-  imageName: string = '';
-  enableEdit: boolean = true;
-  imgFile: File | null = null;
-  profile_image: string | null = '../../assets/images/guestezee/profile.png';
-
   imageupload(event: any): void {
-
     let dragEvent = false
     let file_data = { name: "", size: 0 }
     //CHECKING DRAG EVENT OR UPLOAD EVENT
     if (event.target && event.target.files && event.target.files[0]) {
-
       file_data = event.target.files[0]
     }
     else {
@@ -149,7 +174,6 @@ export class ProfileComponent implements OnInit {
     }
     this.validateImage = true;
     var reader = new FileReader();
-
     this.imageName = file_data.name
     let splitFileName = this.imageName.split(".")
     //CHECKING FILE NAME
@@ -167,7 +191,6 @@ export class ProfileComponent implements OnInit {
       this.userRegistartionForm.controls['imageFile'].setErrors({ 'sizehigh': true });
       return
     }
-
     //CHECKING FILE TYPE
     if (!["jpg", "jpeg", "png", "gif", "JPG", "JPEG", "PNG", "GIF"].includes(splitFileName[splitFileName.length - 1])) {
       this.userRegistartionForm.controls['imageFile'].setErrors({ 'type': true });
@@ -177,15 +200,12 @@ export class ProfileComponent implements OnInit {
     // this.userRegistartionForm.controls['imageFile'].setErrors({ 'sizezero': false });
     this.userRegistartionForm.controls['imageFile'].setErrors({ 'type': false });
     this.userRegistartionForm.controls['imageFile'].setErrors({ 'sizehigh': false });
-
-
     reader.onload = (evt: any) => {
       this.previewImgUrl = evt.target.result;
       //console.log('Image url:', this.previewImgUrl)
       this.userRegistartionForm.controls['imageFile'].setValue(evt.target.result)
       this.imgFile = event.target.files[0];
     }
-
     //BASED ON EVENT READ FILE
     if (!dragEvent) {
       reader.readAsDataURL(event.target.files[0]);
@@ -197,8 +217,6 @@ export class ProfileComponent implements OnInit {
       this.imgFile = event.dataTransfer.files[0];
       //console.log('Image file 2:', this.imgFile)
     }
-
-
     let headers = new HttpHeaders().set("source", "Brand").set("domain_name", DOMAIN_NAME);
     let formData_imageCate = new FormData();
     if (this.imgFile !== null) {
@@ -211,7 +229,6 @@ export class ProfileComponent implements OnInit {
           this.profile_image = imgVariable.location;
           //console.log("this.logoImage" + this.profile_image)
           // Store profile image in localStorage
-
           this.profileUpdate(this.profile_image)
         }
       }
@@ -280,12 +297,20 @@ export class ProfileComponent implements OnInit {
   profileUpdate(profile_image: any) {
     //console.log("profile_image", profile_image)
     if (this.userRegistartionForm.valid) {
-      let formData = {
-        first_name: this.userRegistartionForm.value.first_name,
-        last_name: this.userRegistartionForm.value.last_name,
-        profile_image: profile_image
-      };
-
+      let formData;
+      if (this.customerType === 'Staff') {
+        formData = {
+          full_name: this.userRegistartionForm.value.full_name,
+          profile_image: profile_image
+        };
+      }
+      else {
+        formData = {
+          first_name: this.userRegistartionForm.value.first_name,
+          last_name: this.userRegistartionForm.value.last_name,
+          profile_image: profile_image
+        };
+      }
       let updateData = {
         domain_name: DOMAIN_NAME,
         user_id: USER_ID,
@@ -293,7 +318,11 @@ export class ProfileComponent implements OnInit {
           customer_creation: formData
         },
         extras: {
-          find: { id: this.hotelId }
+          find:
+            this.customerType == 'Staff'
+              ? { staff_id: this.hotelId } :
+              { id: this.hotelId }
+
         }
       };
       //console.log("Updating profile with data:", updateData);
@@ -303,24 +332,33 @@ export class ProfileComponent implements OnInit {
           this.alertService.success("Profile updated successfully!", this.options);
           // Manually patch the form and service with the updated data
           const updatedProfileImage = profile_image || this.userRegistartionForm.value.profile_image;
-          const updatedProfileName = `${this.userRegistartionForm.value.first_name} ${this.userRegistartionForm.value.last_name}`.trim();
+          const updatedProfileName = this.customerType == 'Staff' ? this.userRegistartionForm.value.full_name : `${this.userRegistartionForm.value.first_name} ${this.userRegistartionForm.value.last_name}`.trim();
 
           this.profileService.updateProfileImage(updatedProfileImage);
           this.profileService.updateProfileName(updatedProfileName);
 
           // Patch form with the new data
-          this.userRegistartionForm.patchValue({
-            first_name: this.userRegistartionForm.value.first_name,
-            last_name: this.userRegistartionForm.value.last_name,
-            profile_image: updatedProfileImage
-          });
+          if (this.customerType == 'Staff') {
+            this.userRegistartionForm.patchValue({
+              full_name: this.userRegistartionForm.value.full_name,
+              profile_image: updatedProfileImage
+            });
+          }
+          else {
+            this.userRegistartionForm.patchValue({
+              first_name: this.userRegistartionForm.value.first_name,
+              last_name: this.userRegistartionForm.value.last_name,
+              profile_image: updatedProfileImage
+            });
+          }
+
         } else {
           //console.warn("Update Failed:", resp.message);
-          this.alertService.error(resp.message,this.options);
+          this.alertService.error(resp.message, this.options);
         }
       }, err => {
         //console.error("Update Error:", err);
-        this.alertService.error("Error updating profile: " + (err.error?.message || "Please try again!"),this.options);
+        this.alertService.error("Error updating profile: " + (err.error?.message || "Please try again!"), this.options);
       });
     }
   }
@@ -401,14 +439,14 @@ export class ProfileComponent implements OnInit {
       // Check if current password matches the stored password
       if (storedPassword !== currentPassword) {
         this.p['current_password'].setErrors({ incorrect: true });
-        this.alertService.error("Current Password is incorrect.",this.options);
+        this.alertService.error("Current Password is incorrect.", this.options);
         return;
       }
 
       // Ensure passwords match
       if (this.p['new_password'].value !== this.p['confirm_password'].value) {
         this.p['confirm_password'].setErrors({ matchError: true });
-        this.alertService.error("New Password and Confirm Password do not match.",this.options);
+        this.alertService.error("New Password and Confirm Password do not match.", this.options);
         return;
       }
 
@@ -422,28 +460,32 @@ export class ProfileComponent implements OnInit {
         domain_name: DOMAIN_NAME,
         user_id: USER_ID,
         payload: { password_details: formData },
-        extras: { find: { id: this.hotelId } }
+        extras: {
+          find:
+            this.customerType == 'Staff'
+              ? { staff_id: this.hotelId }
+              : { id: this.hotelId }
+        }
       };
-
       this.profileService.updatePassword(jsonObj).subscribe(
         resp => {
           if (resp?.success === 1) {
             this.passwordUpdateForm.reset();
             this.isPasswordModalOpen = false;
-            this.alertService.success("Password updated successfully!",this.options);
+            this.alertService.success("Password updated successfully!", this.options);
             this.localService.set('Password', this.p['new_password'].value);
             setTimeout(() => {
               this.alertService.clear(); // Clears the alert message
             }, 2000);
           } else {
-            this.alertService.error(resp?.message || "Something went wrong.",this.options);
+            this.alertService.error(resp?.message || "Something went wrong.", this.options);
             setTimeout(() => {
               this.alertService.clear(); // Clears the alert message
             }, 2000);
           }
         },
         err => {
-          this.alertService.error("Error updating password: " + (err.error?.message || "Please try again!"),this.options);
+          this.alertService.error("Error updating password: " + (err.error?.message || "Please try again!"), this.options);
           setTimeout(() => {
             this.alertService.clear(); // Clears the alert message
           }, 2000);
@@ -515,7 +557,6 @@ export class ProfileComponent implements OnInit {
 
   }
 
-
   logout() {
     this.localService.remove('accessToken');
     this.localService.remove('refreshToken');
@@ -540,8 +581,6 @@ export class ProfileComponent implements OnInit {
     this.localService.remove('USERACCESS');
     this.router.navigate([''], { skipLocationChange: false });
   }
-
-
 
 }
 

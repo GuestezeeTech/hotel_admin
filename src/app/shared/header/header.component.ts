@@ -37,7 +37,7 @@ export class HeaderComponent implements OnInit {
   options = {
     autoClose: true,
     keepAfterRouteChange: false
-  }; 
+  };
   // userName:string='';
 
   constructor(
@@ -49,18 +49,32 @@ export class HeaderComponent implements OnInit {
     private loaderService: LoaderService,
     private alerts: AlertsService
   ) {
-    this.currentRoute$ = new BehaviorSubject<string>(this.router.url); // ✅
+    this.currentRoute$ = new BehaviorSubject<string>(this.router.url); 
   }
 
   ngOnInit(): void {
+    this.customerType = this.localService.get('CustomerType');
+    console.log('Customer Type:', this.customerType);
     this.hotelId = Number(this.localService.get('UserId'));
-    this.profileService.getAdminProfileDetails(this.hotelId).subscribe(resp => {
+    // Only call getCustomerById if both values exist
+    if (this.customerType && this.hotelId) {
+      this.getCustomerById();
+    }
+    this.profileService.getAdminProfileDetails(this.hotelId, this.customerType).subscribe(resp => {
       if (resp.success === 1 && resp.status_code === 200) {
         const data = resp.result.data[0];
         const profileImage = data?.profile_image?.trim() || '../../assets/images/guestezee/profile.png';
-        const profileName = data?.first_name || data?.last_name
-          ? `${data.first_name || ''} ${data.last_name || ''}`.trim()
-          : data.phone_number;
+        let profileName: string;
+        if (this.customerType === 'Staff') {
+          profileName = data?.full_name ? data?.full_name.trim() : data?.phone_number;
+        } else {
+          profileName = (data?.first_name || data?.last_name)
+            ? `${data.first_name || ''} ${data.last_name || ''}`.trim()
+            : data?.phone_number;
+        }
+        // const profileName = data?.first_name || data?.last_name
+        //   ? `${data.first_name || ''} ${data.last_name || ''}`.trim()
+        //   : data.phone_number;
         this.profileService.updateProfileImage(profileImage);
         this.profileService.updateProfileName(profileName);
       }
@@ -78,8 +92,6 @@ export class HeaderComponent implements OnInit {
         //console.log("Current Route Updated:", event.urlAfterRedirects);
       });
     this.activeMenu;
-    this.getCustomerById();
-    this.customerType = this.localService.get('CustomerType');
   }
 
   get activeMenu(): string {
@@ -115,6 +127,9 @@ export class HeaderComponent implements OnInit {
     else if (currentRoute.includes('technical')) {
       return (this.selectedMenu = "Technical Info");
     }
+    else if (currentRoute.includes('profile')) {
+      return (this.selectedMenu = "Profile");
+    }
     else {
       return "set the name here";
     }
@@ -146,43 +161,43 @@ export class HeaderComponent implements OnInit {
     this.showNotification = !this.showNotification;
   }
 
-    getCustomerById(): Promise<void> {
-      return new Promise((resolve, reject) => {
-        let requestBody = {
-          domain_name: DOMAIN_NAME,
-          user_id: USER_ID,
-          extras: {
-            find: {
-              id: this.hotelId
-            }
+  getCustomerById(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      let requestBody = {
+        domain_name: DOMAIN_NAME,
+        user_id: USER_ID,
+        extras: {
+          find: this.customerType == 'Staff'
+            ? { staff_id: this.hotelId }
+            : { id: this.hotelId }
+        }
+      };
+      this.hotelenrollmentservice.getLoginCustomerById(requestBody).subscribe(
+        resp => {
+          this.loaderService.emitComplete();
+          if (resp) {
+            this.customerdata = resp.result.data[0];
+            this.status = this.customerdata.status;
+            //console.log('Status:', this.status)
+            //console.log(this.customerdata, "RESPDATA");
+            //console.log(Array.isArray(this.customerdata));
+            resolve();  // Resolve promise when data is set
           }
-        };
-        this.hotelenrollmentservice.getLoginCustomerById(requestBody).subscribe(
-          resp => {
-            this.loaderService.emitComplete();
-            if (resp) {
-              this.customerdata = resp.result.data[0];
-              this.status = this.customerdata.status;
-              //console.log('Status:', this.status)
-              //console.log(this.customerdata, "RESPDATA");
-              //console.log(Array.isArray(this.customerdata));
-              resolve();  // Resolve promise when data is set
-            }
-          },
-          err => {
-            this.loaderService.emitComplete();
-            if (err.error.statusCode === 403) {
-              this.alerts.error('Session Time Out! Please login Again', this.options);
-              this.router.navigate([`/login`], { skipLocationChange: false });
-            } else if (err.error.message) {
-              this.alerts.error(err.error.message, this.options);
-            } else {
-              this.alerts.error('Something bad happened. Please try again!', this.options);
-            }
-            reject(err);  // Reject promise if there is an error
+        },
+        err => {
+          this.loaderService.emitComplete();
+          if (err.error.statusCode === 403) {
+            this.alerts.error('Session Time Out! Please login Again', this.options);
+            this.router.navigate([`/login`], { skipLocationChange: false });
+          } else if (err.error.message) {
+            this.alerts.error(err.error.message, this.options);
+          } else {
+            this.alerts.error('Something bad happened. Please try again!', this.options);
           }
-        );
-      });
-    }
+          reject(err);  // Reject promise if there is an error
+        }
+      );
+    });
+  }
 }
 

@@ -42,10 +42,6 @@ export class TaskManagementComponent implements OnInit {
   selectedTab = this.tabs[0]; // Default tab
   // For all task
   tasks: any = [];
-  // For tab sleection
-  selectTab(tab: string) {
-    this.selectedTab = tab;
-  }
   // For showing filter
   showFilterDropdown: boolean = false;
   // Orders data
@@ -168,6 +164,7 @@ export class TaskManagementComponent implements OnInit {
   escalatedTaskLength: any;
   isEscalatedModal: boolean = false;
   assigningTask: any;
+  escalatedCount: number = 0;
 
   constructor(
     private alertService: AlertsService,
@@ -176,6 +173,16 @@ export class TaskManagementComponent implements OnInit {
     private loaderService: LoaderService,
     private localService: LocalStorageService,
     private router: Router) { }
+
+  // For tab sleection
+  selectTab(tab: string) {
+    this.selectedTab = tab;
+    if (tab === 'Escalated') {
+      this.escalatedCount = 0;
+      console.log('Escalated Count:', this.escalatedCount);
+      this.localService.set('escalatedCount', this.escalatedCount.toString());
+    }
+  }
 
   toggleFilterDropdown() {
     this.showFilterDropdown = !this.showFilterDropdown;
@@ -197,6 +204,9 @@ export class TaskManagementComponent implements OnInit {
     //console.log('customerType of staff:', customerType);
     // To initially load all task data's
     this.getAllEscalatedTask();
+
+    const savedCount = this.localService.get('escalatedCount');
+    this.escalatedCount = savedCount ? +savedCount : 0;
   }
 
   shouldDisplayTab(tab: string): boolean {
@@ -463,5 +473,8 @@ export class TaskManagementComponent implements OnInit {
   }
 
 
+  updateEscalatedCount(count: number): void {
+    this.escalatedCount = count;
+  }
 
 }

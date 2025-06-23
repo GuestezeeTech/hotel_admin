@@ -40,6 +40,7 @@ export class OfficeDetailsComponent implements OnInit, OnChanges {
   @Output() continue = new EventEmitter<void>();
   // Newly added for disabling form on payment done
   @Input() paymentDone!: boolean;
+  customerType: any;
 
   constructor(
     private authTokenService: AuthTokenService,
@@ -53,6 +54,7 @@ export class OfficeDetailsComponent implements OnInit, OnChanges {
   ) { }
 
   ngOnInit(): void {
+    this.customerType = this.localService.get('CustomerType');
     ////console.log(this.continue,"jj")
     this.customerForm = new FormGroup({
       first_name: new FormControl('', Validators.required),
@@ -584,7 +586,7 @@ export class OfficeDetailsComponent implements OnInit, OnChanges {
             this.hotelenrollmenttabviewService.clearAdminFormEvent();
             ////console.log(resp.message, "resp.message")
             this.alertService.success(resp.message, this.options);
-            this.profileService.getAdminProfileDetails(Number(this.localService.get('UserId'))).subscribe(profileResp => {
+            this.profileService.getAdminProfileDetails(Number(this.localService.get('UserId')), this.customerType).subscribe(profileResp => {
               if (profileResp.success === 1 && profileResp.status_code === 200) {
                 const data = profileResp.result.data[0];
                 const profileImage = data?.profile_image?.trim() || 'assets/images/guestezee/profile.png';

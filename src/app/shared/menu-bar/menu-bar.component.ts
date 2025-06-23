@@ -26,7 +26,7 @@ import { ServiceDetailService } from '../../hotel-enrollment-tabview/service-det
 export class MenuBarComponent implements OnInit {
   private currentRoute$ = new BehaviorSubject<string>('');
   @Output() menuSelected = new EventEmitter<string>();
-  isSubmenuOpen: boolean = true; // Track submenu state
+  // isSubmenuOpen: boolean = false; // Track submenu state
   currentRoute: string = '';
   showSidebar = false;
   isUserAccessOpen: boolean = false;
@@ -42,6 +42,9 @@ export class MenuBarComponent implements OnInit {
   };
   maxTabReached: any;
   customerType: any;
+  isHotelSubmenuOpen: boolean = false;
+  isUserAccessSubmenuOpen: boolean = false;
+  isSettingsSubmenuOpen: boolean = false;
   @Output() continue = new EventEmitter<void>();
 
   constructor(
@@ -78,7 +81,10 @@ export class MenuBarComponent implements OnInit {
     //console.log('Hotel ID:', this.hotelId);
     this.maxTabReached = this.localService.get('maxTabReached');
     //console.log('Tab:', this.maxTabReached);
-    this.getCustomerById();
+    // this.getCustomerById();
+    if (this.customerType && this.hotelId) {
+      this.getCustomerById();
+    }
     // Customer Type
     this.customerType = this.localService.get('CustomerType');
     //console.log('Customer Type:', this.customerType);
@@ -86,12 +92,19 @@ export class MenuBarComponent implements OnInit {
 
   sendValue(value: string) {
     this.menuSelected.emit(value); // Emit value to parent
-    this.toggleSubmenu();
+    this.toggleSubmenu(value);
   }
 
-  toggleSubmenu() {
-    this.isSubmenuOpen = !this.isSubmenuOpen; // Toggle submenu open/close
-    //console.log("123456")
+  toggleSubmenu(value: any) {
+    if(value == 'Hotels') {
+      this.isHotelSubmenuOpen = !this.isHotelSubmenuOpen;
+    }
+    else if(value == 'User Access') {
+      this.isUserAccessSubmenuOpen = !this.isUserAccessSubmenuOpen;
+    }
+    else {
+      this.isSettingsSubmenuOpen = !this.isSettingsSubmenuOpen;
+    }
   }
 
   isHotelActive(): boolean {
@@ -160,9 +173,9 @@ export class MenuBarComponent implements OnInit {
         domain_name: DOMAIN_NAME,
         user_id: USER_ID,
         extras: {
-          find: {
-            id: this.hotelId
-          }
+          find: this.customerType === 'Staff'
+            ? { staff_id: this.hotelId }
+            : { id: this.hotelId }
         }
       };
       this.hotelenrollmentservice.getLoginCustomerById(requestBody).subscribe(

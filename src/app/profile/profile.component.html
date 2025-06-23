@@ -39,7 +39,7 @@
                     </div>
                 </div>
                 <p class="fw-semibold mb-0" style="font-size: 18px">Basic Information</p>
-                <div class="row g-5">
+                <div class="row g-5" *ngIf="this.customerType == 'Customer'">
                     <div class="col-md-6">
                         <label style="font-size: 14px">First Name</label>
                         <input type="text" class="form-control bg-white shadow-none" placeholder="First Name"
@@ -61,10 +61,13 @@
                         </div>
                     </div>
                 </div>
-                <div class="row g-5 mt-3" style="border-top: #80809114;">
+                <div class="row g-5 mt-3" style="border-top: #80809114;" *ngIf="this.customerType == 'Customer'">
                     <div class="col-md-6 mt-0">
                         <p style="margin-bottom: 1%; font-size: 14px;">Email</p>
                         <p style="margin-bottom: 2%; font-size: 14px">{{ this.mail }}</p>
+                        <button class="btn btn-light fw-semibold mt-1"
+                            style="background: #800020; color: #FFF4F6;font-size: 14px" (click)="formCheck()">Save
+                            Changes</button>
                         <!-- <button class="btn btn-light fw-semibold border-0 shadow-none"
                             style="background: #FFF4F6; color: #800020; padding: 1% 2%; font-size: 14px"
                             (click)="openEmailModal()">Change
@@ -79,9 +82,38 @@
                             Password</button>
                     </div>
                 </div>
-                <button class="btn btn-light fw-semibold mt-4"
-                    style="background: #800020; color: #FFF4F6;font-size: 14px" (click)="formCheck()">Save
-                    Changes</button>
+                <div class="row g-5" *ngIf="this.customerType != 'Customer'">
+                    <div class="col-md-6">
+                        <label style="font-size: 14px">Full Name</label>
+                        <input type="text" class="form-control bg-white shadow-none" placeholder="Full Name"
+                            formControlName="full_name" [class.is-invalid]="f['full_name'].invalid"
+                            style="font-size: 15px; border-color: #E1E2EB; color: #808091">
+                        <div class="invalid-feedback" *ngIf="f['full_name'].errors">
+                            <!-- <div *ngIf="f['first_name'].errors['minlength']">first name is too short</div> -->
+                            <div *ngIf="f['full_name'].errors['maxlength']">Maximum length exceeded.</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="col-md-6 mt-0">
+                            <p style="margin-bottom: 1%; font-size: 14px">Password</p>
+                            <p style="margin-bottom: 2%; font-size: 14px">{{ maskedPassword }}</p>
+                            <button class="btn btn-light fw-semibold border-0 shadow-none"
+                                style="background: #FFF4F6; color: #800020; padding: 1% 2%; font-size: 14px;"
+                                (click)="openPasswordModal()">Change
+                                Password</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="row g-5 mt-3" style="border-top: #80809114;" *ngIf="this.customerType != 'Customer'">
+                    <div class="col-md-6 mt-0">
+                        <p style="margin-bottom: 1%; font-size: 14px;">Email</p>
+                        <p style="margin-bottom: 2%; font-size: 14px">{{ this.mail }}</p>
+                        <button class="btn btn-light fw-semibold mt-1"
+                            style="background: #800020; color: #FFF4F6;font-size: 14px" (click)="formCheck()">Save
+                            Changes</button>
+                    </div>
+                </div>
+
             </form>
             <!-- Preferences and Logout -->
             <div class="row mt-4 border-top pt-3 gx-5">

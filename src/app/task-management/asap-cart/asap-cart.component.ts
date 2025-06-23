@@ -22,7 +22,7 @@ import { FormsModule } from '@angular/forms';
 
 export class AsapCartComponent implements OnInit, OnDestroy {
   @Output() openAssigneeModal = new EventEmitter<any>();
-
+  @Output() escalatedCountChanged = new EventEmitter<number>();
   private intervalId: any;
   hotelId: any;
   tasks: any[] = [];
@@ -88,6 +88,8 @@ export class AsapCartComponent implements OnInit, OnDestroy {
   pageSize: number = 10; // Show 10 roles per page
   totalTasks: number = 0; // Total number of roles
   totalPages: number = 0; // Total number of pages
+  // escalatedCount: number = 0;
+  private escalatedCount = 0;
 
   constructor(
     private router: Router,
@@ -155,6 +157,7 @@ export class AsapCartComponent implements OnInit, OnDestroy {
     this.isApiModal = false;
   }
 
+  private escalatedTaskIds = new Set<number>();
   getAllAsapTask() {
     let customerType = this.localService.get('CustomerType');
     let object;
@@ -226,18 +229,18 @@ export class AsapCartComponent implements OnInit, OnDestroy {
             ...task,
             remainingSeconds: undefined
           }));
-          this.allTasks = response.result.data.map((task: any) => ({
-            ...task,
-            remainingSeconds: undefined
-          }));
-          this.allTasks.forEach(task => this.initializeTimer(task));
           this.tasks.forEach(task => this.initializeTimer(task));
-          this.allTasks = response.result.data; //For pagination
           this.totalTasks = this.tasks.length;
           //console.log('Total  Tasks:', this.totalTasks);
           this.totalPages = Math.ceil(this.totalTasks / this.pageSize);
           //console.log('Total Pages:', this.totalPages);
           this.updatePaginatedTasks(); // Sets first page
+          // this.allTasks = response.result.data.map((task: any) => ({
+          //   ...task,
+          //   remainingSeconds: undefined
+          // }));
+          // this.allTasks.forEach(task => this.initializeTimer(task));
+          // this.allTasks = response.result.data; //For pagination
         } else {
           //console.error('No tasks found:', response?.message);
         }
@@ -272,18 +275,15 @@ export class AsapCartComponent implements OnInit, OnDestroy {
     this.getAllAsapTask();
   }
 
-
   // initializeTimer(task: any) {
   //   const initialTime = task.actual_time_to_close_the_task * 60;
   //   //console.log('Initial Time in Seconds:', initialTime);
   //   const totalTimeMs = this.formatInitialTime(task.actual_time_to_close_the_task);
   //   //console.log('Total Time in Minutes Seconds:', totalTimeMs);
-
   //   const escalationTimeInSeconds = this.escalationHierarchy?.escalationTime * 60;
   //   //console.log('Escalation Time in Seconds:', escalationTimeInSeconds);
   //   const escalationThreshold = this.formatInitialTime(this.escalationTime);
   //   //console.log('Escalation Threshold in Minutes Seconds:', escalationThreshold);
-
   //   let remainingMs = escalationTimeInSeconds - 1;
   //   let time = remainingMs - escalationTimeInSeconds;
   //   //console.log('Time in Seconds:', time);
@@ -299,11 +299,9 @@ export class AsapCartComponent implements OnInit, OnDestroy {
   //       // this.updateTaskStatus(task);
   //       alert('Task Escalated');
   //     }
-
   //   };
   //   updateTime(); // Initial call to set the time immediately
   //   setInterval(updateTime, 1000); // Updates every second
-
   // }
 
   initializeTimer(task: any): void {
@@ -323,12 +321,15 @@ export class AsapCartComponent implements OnInit, OnDestroy {
       const now = new Date();
       const secondsSinceOrderTime = Math.floor((now.getTime() - orderDateTime.getTime()) / 1000);
       const remainingSeconds = escalationDurationInSeconds - secondsSinceOrderTime;
-
       if (remainingSeconds >= 0) {
         task.remainingSeconds = this.formatTime(remainingSeconds);
       } else {
         task.remainingSeconds = '00:00';
-        this.updateEscalatedTaskStatusFromDesk(task);
+        // this.updateEscalatedTaskStatusFromDesk(task);
+        if (!this.escalatedTaskIds.has(task.id) && task.status !== 'Escalated') {
+          this.escalatedTaskIds.add(task.id); // mark as escalated locally
+          this.updateEscalatedTaskStatusFromDesk(task);
+        }
         clearInterval(interval);
       }
     };
@@ -368,6 +369,9 @@ export class AsapCartComponent implements OnInit, OnDestroy {
 
   updateEscalatedTaskStatusFromDesk(task: any): void {
     const { remainingSeconds, ...taskWithoutRemaining } = task;
+    if (task.status === 'Escalated') {
+      return;
+    }
     // const updatedTask = {
     //   ...taskWithoutRemaining,
     //   status: 'Escalated'
@@ -381,7 +385,6 @@ export class AsapCartComponent implements OnInit, OnDestroy {
           at_desk: task.at_desk,
           "sequence": 1,
           "logged_in_user_id": Number(this.localService.get('UserId'))
-
         }
       },
       extras: {
@@ -395,6 +398,10 @@ export class AsapCartComponent implements OnInit, OnDestroy {
       (resp: any) => {
         if (resp?.success === 1 && resp?.status_code === 200) {
           this.alertService.success('Task status updated to Escalated.', this.options);
+          task.status = 'Escalated';
+          this.escalatedCount += 1;
+          this.escalatedCountChanged.emit(this.escalatedCount);
+          this.localService.set('escalatedCount', this.escalatedCount.toString()); 
           // this.refreshData();
         } else {
           this.alertService.error(resp?.message || 'Update failed', this.options);
