@@ -92,7 +92,7 @@ export class MenuBarComponent implements OnInit {
 
   sendValue(value: string) {
     this.menuSelected.emit(value); // Emit value to parent
-    this.toggleSubmenu(value);
+    // this.toggleSubmenu(value);
   }
 
   toggleSubmenu(value: any) {
