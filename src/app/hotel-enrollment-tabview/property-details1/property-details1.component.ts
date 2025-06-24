@@ -991,7 +991,7 @@ export class PropertyDetails1Component {
         find: {
           customer_id: Number(customer_id),
 
-          status: "Confirmed"
+          status: "Order Confirmed"
 
         }
       },

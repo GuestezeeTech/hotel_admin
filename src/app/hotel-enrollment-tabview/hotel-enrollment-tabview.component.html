@@ -34,7 +34,7 @@
           </p>
         </div>
 
-        <!-- <button class="escalated-btn border-0 fw-medium float"
+        <button class="escalated-btn border-0 fw-medium float"
           [ngStyle]="{'background-color': this.orderdata?.status == 'Order Confirmed' ?   '#d5efdb' : '#FFECEC', 'color': this.orderdata?.status == 'Order Confirmed' ? '#30A75F' : '#FF0000'}"
           style="font-size: 18px; border-radius: 10px; margin-top: 0.6%; height: fit-content; padding: 1%;"><img
             *ngIf="this.orderdata?.status == 'Order Confirmed'" src="../../assets/images/guestezee/paid.png"
@@ -42,17 +42,17 @@
             src="../../assets/images/guestezee/notPaid.png" class="mr-2">{{this.orderdata?.status == 'Order Confirmed' ?
           'Paid' : 'Not Paid'}}
 
-        </button> -->
+        </button>
 
         <!-- Newly added for order stauts value as Confirmed -->
-        <button class="escalated-btn border-0 fw-medium float"
+        <!-- <button class="escalated-btn border-0 fw-medium float"
           [ngStyle]="{'background-color': this.orderdata?.status == 'Confirmed' ?   '#d5efdb' : '#FFECEC', 'color': this.orderdata?.status == 'Confirmed' ? '#30A75F' : '#FF0000'}"
           style="font-size: 18px; border-radius: 10px; margin-top: 0.6%; height: fit-content; padding: 1%;"><img
             *ngIf="this.orderdata?.status == 'Confirmed'" src="../../assets/images/guestezee/paid.png"
             style="width: 25%" class="mr-2"><img *ngIf="this.orderdata?.status != 'Confirmed'"
             src="../../assets/images/guestezee/notPaid.png" class="mr-2">{{this.orderdata?.status == 'Confirmed' ?
           'Paid' : 'Not Paid'}}
-        </button>
+        </button> -->
       </div>
       <div class="tab-content ">
         <!-- Newly added - paymentDone for disabling button -->

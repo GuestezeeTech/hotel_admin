@@ -52,7 +52,7 @@ export class UserComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    let req_body = { "domain_name": "https://guestezee.ecbee.net", "user_id": 1, "extras": { "find": {} } }
+    let req_body = { "domain_name": "https://www.guestezee.com", "user_id": 1, "extras": { "find": {} } }
     this.userService.clearEvent();
     this.showalertmsg = true;
     //console.log('User name:', this.localService.get('UserName'), 'User id:', this.localService.get('UserId'), 'Db schema:', this.localService.get('db_schema'))

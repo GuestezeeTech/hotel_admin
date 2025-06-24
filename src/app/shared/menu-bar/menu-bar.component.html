@@ -12,12 +12,12 @@
       <a [routerLink]="['/task-management']" (click)="sendValue('Task Management')">Task Management</a>
     </li> -->
     <li class="list_container" [class.active]="isHotelActive()"
-      *ngIf="customerType === 'Staff'">
+      *ngIf="customerType === 'Customer'">
       <div class="list-content">
         <div class="left-content">
           <a>Hotels</a>
         </div>
-        <i class="fas fa-chevron-down dropdown-icon" [ngClass]="{ 'rotate': isHotelSubmenuOpen }"
+        <i class="fas fa-chevron-down dropdown-icon" [ngClass]="{ 'rotate': isHotelSubmenuOpen }"  *ngIf="this.customerdata?.status=='approved'"
           (click)="toggleSubmenu('Hotels')">
         </i>
       </div>

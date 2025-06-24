@@ -81,7 +81,7 @@ export class PaymentDetailsComponent implements OnInit {
     this.paymentDetailsService.orderDetailsGetById(requestData).subscribe(
       resp => {
         if (resp) {
-          this.orderData = resp.result.data.filter((order:any) => order.status === "Confirmed");;
+          this.orderData = resp.result.data.filter((order:any) => order.status === "Order Confirmed");;
         }
       },
       err => {

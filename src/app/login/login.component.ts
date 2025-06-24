@@ -682,7 +682,7 @@ export class LoginComponent implements OnInit {
           this.orderdata = resp.result.data[0];
           //console.log(this.orderdata, "RESPDATA");
           //console.log('Status:', this.orderdata?.status);
-          if (this.orderdata?.status === 'Confirmed') {
+          if (this.orderdata?.status === 'Order Confirmed') {
             let maxTabReached = 4
             this.localService.set('maxTabReached', 4);
             // this.localService.set('currentTab', maxTabReached);
@@ -1328,7 +1328,8 @@ export class LoginComponent implements OnInit {
         email: String(this.email),
         password: String(this.passwordData),
         password_to_customer: String(this.passwordData),
-        status: 'pending'
+        status: 'pending',
+        send_email: true
       }
       let requestBody = {
         domain_name: DOMAIN_NAME,

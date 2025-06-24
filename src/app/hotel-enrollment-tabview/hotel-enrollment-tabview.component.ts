@@ -540,7 +540,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
         this.loaderService.emitComplete();
         if (resp && resp.result.data.length > 0) {
           this.orderdata = resp.result.data[0];
-          if (this.orderdata.status == "Confirmed") {
+          if (this.orderdata.status == "Order Confirmed") {
             this.isOrderExist = true;
           }
           const memberId = this.orderdata.customer_member_id;
@@ -548,7 +548,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
           //console.log(memberId, "MEMBERID");
           //console.log(this.orderdata, "RESPDATA");
           // Check if payment is done based on presence of status value
-          this.paymentDone = (this.orderdata.status == 'Confirmed');
+          this.paymentDone = (this.orderdata.status == 'Order Confirmed');
           // console.log('Status:', this.orderdata?.status);
           //console.log('Payment done:', this.paymentDone);
         }
@@ -601,7 +601,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
           this.loaderService.emitComplete();
           const data = resp?.result?.data;
           if (data && data.length > 0) {
-            if (data.status == "Confirmed") {
+            if (data.status == "Order Confirmed") {
               this.isOrderExist = true;
 
             }
