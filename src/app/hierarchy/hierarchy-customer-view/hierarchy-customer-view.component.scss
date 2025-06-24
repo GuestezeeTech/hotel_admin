@@ -24,7 +24,6 @@
     background: #800020;
 }
 
-
 .hierarchy-container {
     padding: 2rem;
     display: flex;
@@ -340,4 +339,15 @@
 .item-content p {
     margin: 0;
     color: #666;
+}
+
+// Newly added for disabling button
+button:disabled {
+//   pointer-events: none;
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+button:disabled:hover {
+    color: #6c757d;
 }

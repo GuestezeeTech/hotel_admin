@@ -1,5 +1,5 @@
 import { DOMAIN_NAME, USER_ID } from './../../app.config';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, Input, SimpleChanges } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HierarchyService, HierarchyItem } from '../hierarchy.service';
 import { CommonModule } from '@angular/common';
@@ -31,7 +31,11 @@ export class HierarchyCustomerViewComponent {
   };
   hasTreeItems = false;
   hotelId: any;
+  paymentDone: any;
+  // Newly added for payment done
+  // @Input() paymentDone!: boolean;
 
+ 
   getLevelBadge(level: number): string {
     if (level === 0) return 'ROOT';
     return `Level ${level}`;
@@ -58,7 +62,8 @@ export class HierarchyCustomerViewComponent {
       //console.log("123")
       this.updateHierarchyById(this.hierarchyId)
     }
-
+    this.paymentDone = this.localStorageService.get('paymentDone');
+    console.log('Payment Done', this.paymentDone);
   }
 
   getHierarchyData(): HierarchyItem[] {
@@ -296,12 +301,10 @@ export class HierarchyCustomerViewComponent {
     )
   }
 
-    back() {
+  back() {
     this.router.navigate(['/edit-new-hotel', this.hotelId], {
-      queryParams: { tab: 3 } 
+      queryParams: { tab: 3 }
     });
   }
-
-
 }
 

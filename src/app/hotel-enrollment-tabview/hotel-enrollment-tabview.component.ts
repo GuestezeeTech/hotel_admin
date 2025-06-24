@@ -549,8 +549,9 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
           //console.log(this.orderdata, "RESPDATA");
           // Check if payment is done based on presence of status value
           this.paymentDone = (this.orderdata.status == 'Order Confirmed');
+          this.localService.set('paymentDone', this.paymentDone);
           // console.log('Status:', this.orderdata?.status);
-          //console.log('Payment done:', this.paymentDone);
+          console.log('Payment done:', this.paymentDone);
         }
       },
       err => {
