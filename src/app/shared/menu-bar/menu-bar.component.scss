@@ -31,8 +31,13 @@ body {
 
 
 @media screen and (max-height: 450px) {
-    .sidenav { padding-top: 15px; }
-    .sidenav a { font-size: 14px; }
+    .sidenav {
+        padding-top: 15px;
+    }
+
+    .sidenav a {
+        font-size: 14px;
+    }
 }
 
 hr {
@@ -44,8 +49,10 @@ hr {
 
 .center-hr {
     width: 80%;
-    margin: 20px auto;  /* This centers the hr element */
-    border: 1px solid #fff;  /* Style the horizontal line */
+    margin: 20px auto;
+    /* This centers the hr element */
+    border: 1px solid #fff;
+    /* Style the horizontal line */
 }
 
 ul {
@@ -59,40 +66,51 @@ ul {
     gap: 10px;
     padding: 14px 14px;
     margin-bottom: 10px;
-    transition: background-color 0.3s ease, color 0.3s ease; /* Add transition for smoother hover effect */
+    transition: background-color 0.3s ease, color 0.3s ease;
+    /* Add transition for smoother hover effect */
     font-family: 'Urbanist', sans-serif !important;
 }
 
 .list_container:hover,
 .list_container:active {
     color: #f1f1f1;
-    background: #800020; /* Change background on hover */
+    background: #800020;
+    /* Change background on hover */
     border-radius: 5px;
 }
 
 .active {
     color: #f1f1f1;
-    background: #800020; /* Change background on hover */
+    background: #800020;
+    /* Change background on hover */
     border-radius: 5px;
 }
+
 .list_container img {
-    height: 20px; /* Set image size for consistency */
+    height: 20px;
+    /* Set image size for consistency */
 }
 
 .list_container a {
-    color: #fff; /* Default color for links */
+    color: #fff;
+    /* Default color for links */
     text-decoration: none;
-    font-size: 15px; /* Font size for links */
+    font-size: 15px;
+    /* Font size for links */
     font-family: 'Urbanist', sans-serif !important;
 }
+
 .rotate {
     transform: rotate(180deg);
 }
-.sub-menu{
-    font-size: 13px; /* Font size for links */
+
+.sub-menu {
+    font-size: 13px;
+    /* Font size for links */
     font-family: 'Urbanist', sans-serif !important;
 
 }
+
 /* Submenu styles */
 // .submenu {
 //     list-style: none;
@@ -144,8 +162,8 @@ ul {
     border-left: 1px solid #bbb;
     padding-left: 8px;
     margin-top: -20px;
-    position: relative; /* Required for absolute positioning of dots */
-  
+    position: relative;
+    /* Required for absolute positioning of dots */
 }
 
 /* Top Dot */
@@ -190,3 +208,27 @@ ul {
     color: white;
 }
 
+/* Newly added */
+.list-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.left-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.dropdown-icon {
+    font-size: 14px;
+    color: white;
+    cursor: pointer;
+    transition: transform 0.3s ease-in-out;
+}
+
+.rotate {
+    transform: rotate(180deg);
+}

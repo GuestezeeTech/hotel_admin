@@ -1,80 +1,123 @@
 <div class="sidenav">
   <hr style="width: 80%;" class="center-hr" /> <!-- Horizontal line below the menu -->
   <ul style="padding: 6px 6px 6px 10px;">
-    <li class="list_container" [class.active]="isDashboardActive()"
+    <!-- <li class="list_container" [class.active]="isDashboardActive()"
       *ngIf="(( this.customerdata?.status=='approved') || this.customerType=='Staff')">
       <img src="../../assets/images/guestezee/layout.png">
       <a routerLink="/dashboard" (click)="sendValue('Dashboard')">Dashboard</a>
-    </li>
-    <li class="list_container" [class.active]="isTaskManagementActive()"
-      *ngIf="(( this.customerdata?.status=='approved') || this.customerType=='Staff')">
+    </li> -->
+    <!-- <li class="list_container" [class.active]="isTaskManagementActive()"
+      *ngIf="(this.customerType=='Staff')">
       <img src="../../assets/images/guestezee/taskManagement.png">
       <a [routerLink]="['/task-management']" (click)="sendValue('Task Management')">Task Management</a>
-    </li>
-    <li class="list_container" [class.active]="isHotelActive()"  *ngIf="this.customerType=='Customer'">
-      <span></span>
-      <i class="fas fa-chevron-down dropdown-icon" style="margin-left: 8px; cursor: pointer;" (click)="toggleSubmenu('Hotels')"
-        *ngIf="(this.customerdata?.status=='approved')">
-      </i>
-    </li>
-    <li class="sub-menu" style="text-align: center" id="demo-hotel-tab"
-      *ngIf="(this.customerdata?.status=='approved') && isHotelSubmenuOpen">
-      <div class="submenu">
-        <!-- <a class="submenu-item"></a>
-        <a class="submenu-item"></a> -->
-        <span class="submenu-item" style=" color: #B1B1B1; cursor: pointer"
-          (click)="goToTab('Registered Office Details')">Office Details</span>
-        <span class="submenu-item" style=" color: #B1B1B1; cursor: pointer"
-          (click)="goToTab('Property Details')">Property Details</span>
-        <span class="submenu-item" style=" color: #B1B1B1; cursor: pointer"
-          (click)="goToTab('Services')">Services</span>
-        <span class="submenu-item" style=" color: #B1B1B1; cursor: pointer"
-          (click)="goToTab('Hierarchy')">Hierarchy</span>
-        <span class="submenu-item" style=" color: #B1B1B1; cursor: pointer"
-          (click)="goToTab('Technical Info')">Technical Info</span>
+    </li> -->
+    <li class="list_container" [class.active]="isHotelActive()"
+      *ngIf="customerType === 'Staff'">
+      <div class="list-content">
+        <div class="left-content">
+          <a>Hotels</a>
+        </div>
+        <i class="fas fa-chevron-down dropdown-icon" [ngClass]="{ 'rotate': isHotelSubmenuOpen }"
+          (click)="toggleSubmenu('Hotels')">
+        </i>
       </div>
     </li>
-    <li class="list_container" [class.active]="isBookingsActive()"
+    <!-- <li class="sub-menu" id="demo-hotel-tab" *ngIf=" isHotelSubmenuOpen">
+      <div class="submenu">
+        <span class="submenu-item" style="color: #B1B1B1; cursor: pointer"
+          (click)="goToTab('Registered Office Details')">
+          Office Details
+        </span>
+        <span class="submenu-item" style="color: #B1B1B1; cursor: pointer" (click)="goToTab('Property Details')">
+          Property Details
+        </span>
+        <span class="submenu-item" style="color: #B1B1B1; cursor: pointer" (click)="goToTab('Services')">
+          Services
+        </span>
+        <span class="submenu-item" style="color: #B1B1B1; cursor: pointer" (click)="goToTab('Hierarchy')">
+          Hierarchy
+        </span>
+        <span class="submenu-item" style="color: #B1B1B1; cursor: pointer" (click)="goToTab('Technical Info')">
+          Technical Info
+        </span>
+      </div>
+    </li> -->
+    <!-- <li class="list_container" [class.active]="isBookingsActive()"
       *ngIf="((this.customerdata?.status=='approved') || this.customerType=='Staff')">
       <img src="../../assets/images/guestezee/bookings.png">
       <a routerLink="/bookings" (click)="sendValue('Bookings')">Bookings</a>
-    </li>
-    <li class="list_container" [class.active]="isUserAccessActive()" 
+    </li> -->
+    <!-- <li class="list_container" [class.active]="isUserAccessActive()"
       *ngIf="((this.customerdata?.status=='approved') || this.customerType=='Staff')">
-      <img src="../../assets/images/guestezee/secure-access (1).png">
+      <div class="list-content">
+        <div class="left-content">
+          <img src="../../assets/images/guestezee/secure-access (1).png" />
+          <a>User Access</a>
+        </div>
+        <i class="fas fa-chevron-down dropdown-icon" [ngClass]="{ 'rotate': isUserAccessSubmenuOpen }"
+          (click)="toggleSubmenu('User Access')"></i>
+      </div> -->
+      <!-- <img src="../../assets/images/guestezee/secure-access (1).png">
       <a>User Access</a>
       <i class="fas fa-chevron-down dropdown-icon" style="margin-left: 8px; cursor: pointer;"
-        (click)="toggleSubmenu('User Access')"></i>
+        (click)="toggleSubmenu('User Access')"></i> -->
       <!-- <a (click)="toggleSubmenu()" data-toggle="collapse" data-target="#demo-hotel-tab">User Access</a> -->
-    </li>
-    <li id="demo" class="sub-menu" style="text-align: center"
+    <!-- </li> -->
+    <!-- <li id="demo" class="sub-menu" style="text-align: center"
       *ngIf="((this.customerdata?.status=='approved') || this.customerType=='Staff') && isUserAccessSubmenuOpen">
-      <div class="submenu">
+      <div class="submenu"> -->
         <!-- <a class="submenu-item"></a> -->
         <!-- <a class="submenu-item"></a> -->
-        <a class="submenu-item" routerLink="/role-list" style=" color: #B1B1B1" (click)="sendValue('Roles')">Roles</a>
+        <!-- <a class="submenu-item" routerLink="/role-list" style=" color: #B1B1B1" (click)="sendValue('Roles')">Roles</a>
         <a class="submenu-item" routerLink="/user-list" style=" color: #B1B1B1" (click)="sendValue('Users')">Users</a>
         <a class="submenu-item" routerLink="/staff-list" style=" color: #B1B1B1" (click)="sendValue('Staff')">Staff</a>
       </div>
-    </li>
-    <li class="list_container" [class.active]="isSystemSettingsActive()"  *ngIf="((this.customerdata?.status=='approved') || this.customerType=='Staff')">
+    </li> -->
+    <!-- <li class="list_container" [class.active]="isSystemSettingsActive()"
+      *ngIf="((this.customerdata?.status=='approved') || this.customerType=='Staff')">
+      <div class="list-content">
+        <div class="left-content">
+          <img src="../../assets/images/guestezee/setting.png" />
+          <a>System Settings</a>
+        </div>
+        <i class="fas fa-chevron-down dropdown-icon" [ngClass]="{ 'rotate': isSettingsSubmenuOpen }"
+          (click)="toggleSubmenu('Settings')"></i>
+      </div>
+    </li> -->
+
+    <!-- <li id="demo_settings" class="sub-menu"
+      *ngIf="((this.customerdata?.status=='approved') || this.customerType=='Staff') && isSettingsSubmenuOpen">
+      <div class="submenu">
+        <a class="submenu-item" routerLink="/settings" style="color: #B1B1B1"
+          (click)="sendValue('Service Settings')">Service Settings</a> -->
+        <!--
+        <a class="submenu-item" routerLink="/form" style="color: #B1B1B1"
+        *ngIf="(this.customerdata?.status=='approved')" (click)="sendValue('Hierarchy')">Hierarchy</a>
+        <a class="submenu-item" routerLink="/add-technical-info" style="color: #B1B1B1"
+        (click)="sendValue('Technical Info')">Technical Info</a>
+        -->
+      <!-- </div>
+    </li> -->
+    <!-- <li class="list_container" [class.active]="isSystemSettingsActive()"
+      *ngIf="((this.customerdata?.status=='approved') || this.customerType=='Staff')">
       <img src="../../assets/images/guestezee/setting.png">
       <a>System Settings</a>
       <i class="fas fa-chevron-down dropdown-icon" style="margin-left: 8px; cursor: pointer;"
         (click)="toggleSubmenu('Settings')"></i>
-    </li>
-    <li id="demo_settings" class="sub-menu" style="text-align: center">
-      <div class="submenu" *ngIf="((this.customerdata?.status=='approved') || this.customerType=='Staff') && isSettingsSubmenuOpen">
+    </li> -->
+    <!-- <li id="demo_settings" class="sub-menu" style="text-align: center">
+      <div class="submenu"
+        *ngIf="((this.customerdata?.status=='approved') || this.customerType=='Staff') && isSettingsSubmenuOpen">
         <a class="submenu-item"></a>
         <a class="submenu-item"></a>
         <a class="submenu-item" routerLink="/settings" style=" color: #B1B1B1"
-          (click)="sendValue('Service Settings')">Service Settings</a>
-        <!-- <a class="submenu-item" routerLink="/form" style=" color: #B1B1B1"
+          (click)="sendValue('Service Settings')">Service Settings</a> -->
+    <!-- <a class="submenu-item" routerLink="/form" style=" color: #B1B1B1"
           *ngIf="(this.customerdata?.status=='approved')" (click)="sendValue('Hierarchy')">Hierarchy</a>
         <a class="submenu-item" routerLink="/add-technical-info" style=" color: #B1B1B1"
           (click)="sendValue('Technical Info')">Technical Info</a> -->
-      </div>
-    </li>
+    <!-- </div>
+    </li> -->
     <!-- <li class="list_container" [class.active]="isDashboardActive()"
       *ngIf="userAccess?.DASHBOARD?.has_read_permission==true">
       <img src="../../assets/images/guestezee/layout.png">
