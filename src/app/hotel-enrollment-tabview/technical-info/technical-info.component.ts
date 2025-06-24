@@ -229,7 +229,7 @@ export class TechnicalInfoComponent implements OnInit {
         "order_summary": {
           "sub_total": Number(orderAmount),
           "tax": Number(orderAmount) * 0.18,
-          "order_total_amount": Number(orderAmount)
+          "order_total_amount": Number(orderAmount) + (Number(orderAmount) * 0.18)
         }
       },
       "organization_id": 46,
