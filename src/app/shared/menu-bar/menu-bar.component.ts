@@ -78,16 +78,17 @@ export class MenuBarComponent implements OnInit {
     //console.log(this.userAccess, "this.userAccess")
     // Newly added
     this.hotelId = Number(this.localService.get('UserId'));
-    //console.log('Hotel ID:', this.hotelId);
+    console.log('Hotel ID:', this.hotelId);
     this.maxTabReached = this.localService.get('maxTabReached');
     //console.log('Tab:', this.maxTabReached);
     // this.getCustomerById();
+    // Customer Type
+    this.customerType = this.localService.get('CustomerType');
+    console.log('Customer Type:', this.customerType);
     if (this.customerType && this.hotelId) {
       this.getCustomerById();
     }
-    // Customer Type
-    this.customerType = this.localService.get('CustomerType');
-    //console.log('Customer Type:', this.customerType);
+
   }
 
   sendValue(value: string) {
@@ -96,10 +97,10 @@ export class MenuBarComponent implements OnInit {
   }
 
   toggleSubmenu(value: any) {
-    if(value == 'Hotels') {
+    if (value == 'Hotels') {
       this.isHotelSubmenuOpen = !this.isHotelSubmenuOpen;
     }
-    else if(value == 'User Access') {
+    else if (value == 'User Access') {
       this.isUserAccessSubmenuOpen = !this.isUserAccessSubmenuOpen;
     }
     else {
@@ -184,8 +185,8 @@ export class MenuBarComponent implements OnInit {
           if (resp) {
             this.customerdata = resp.result.data[0];
             this.status = this.customerdata.status;
-            //console.log('Status:', this.status)
-            //console.log(this.customerdata, "RESPDATA");
+            console.log('Status:', this.status)
+            console.log(this.customerdata, "RESPDATA");
             //console.log(Array.isArray(this.customerdata));
             resolve();  // Resolve promise when data is set
           }

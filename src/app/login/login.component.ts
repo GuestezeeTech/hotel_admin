@@ -445,7 +445,9 @@ export class LoginComponent implements OnInit {
                     this.localService.set('CustomerType', 'Customer');
                     this.localService.set('UserId', Number(userData.id));
                     if (userData.status == 'approved') {
-                      this.router.navigate(['/dashboard']);
+                      // Newly commented & added
+                      // this.router.navigate(['/dashboard']);
+                      this.router.navigate([`/edit-new-hotel/${userData.id}`]);
                     }
                     else {
                       this.router.navigate([`/edit-new-hotel/${userData.id}`]);

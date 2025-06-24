@@ -67,6 +67,7 @@ export class AppComponent implements OnInit {
     this.selectedMenuItem = value; // Update selected menu value
     ////console.log(this.selectedMenuItem, "Menu Items");
   }
+  
   ngOnInit(): void {
     // Use URLSearchParams since queryParams might not be available immediately
     const queryParams = new URLSearchParams(window.location.search);
