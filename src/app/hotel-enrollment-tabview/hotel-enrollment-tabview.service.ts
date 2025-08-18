@@ -137,7 +137,7 @@ export class HotelEnrollmentTabviewService {
     }
     else
     {
-    return this.http.post("http://164.52.214.114:5300/es-countries/all", {
+    return this.http.post("https://guestezee.ecbee.net:5300/es-countries/all", {
       "domain_name": "https://www.beaubelle.in",
       "user_id": USER_ID,
       "extras": {
@@ -165,7 +165,7 @@ export class HotelEnrollmentTabviewService {
     }
     else
     {
-    return this.http.post("http://164.52.214.114:5300/es-states/all", jsonObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken())});
+    return this.http.post("https://guestezee.ecbee.net:5300/es-states/all", jsonObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken())});
     }
   }
 

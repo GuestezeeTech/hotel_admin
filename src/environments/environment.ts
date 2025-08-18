@@ -1,6 +1,6 @@
 export const environment = {
   production: false,
-  devURL: "https://www.guestezee.com",
+  devURL: "https://guestezee.ecbee.net",
   firebaseConfig: {
     apiKey: "AIzaSyChFPz4xnqcmnAi7rLBLBY2Q6-cIqmOt04",
     authDomain: "task-management-2e188.firebaseapp.com",

@@ -9,7 +9,9 @@ export const appConfig: ApplicationConfig = {
 };
 
 export const API_URL = environment.devURL
-export const DOMAIN_NAME = "https://www.guestezee.com"
+export const API_URL1 = "https://guestezee.ecbee.net"
+
+export const DOMAIN_NAME = "https://guestezee.ecbee.net"
 export const USER_ID = 16
 
 export const ENDPOINTS = {
@@ -47,7 +49,7 @@ export const ENDPOINTS = {
   ADD_LOGO_FAV_OPTIONS: API_URL + ':5409/storegallery/create',
   ADD_CUSTOMER_GROUP: API_URL + ':5429/customergroup/create',
   UPDATE_CUSTOMER_GROUP: API_URL + ':5429/customergroup/update',
-  ADD_CATEGORY: API_URL + ':5434/category/create',
+  ADD_CATEGORY: API_URL1 + ':5434/category/create',
   UPDATE_CATEGORY: API_URL + ':5434/category/update',
   ADD_STORE_PROFILE: API_URL + ':5407/store/upsert',
   ADD_STORE_SETTINGS: API_URL + ':5408/storesettings/upsert',
@@ -60,7 +62,8 @@ export const ENDPOINTS = {
   ADDINVESTORGETBYID: API_URL + ':6530/investor/getbyid',
   POSTGETALL: API_URL + ':6527/announcement/getall',
   NEWSGETALL: API_URL + ':6528/news/getall',
-  CLEMEMBERSGETALL: API_URL + ':9422/product/getall',
+  CLEMEMBERSGETALL: API_URL1 + ':9422/product/getall',
+   DELETE_PRODUCT: API_URL1 + ':9666/product/delete',
   STANDARDEMAILTEMPLATEEDIT: API_URL + ':5411/emailtemplate/update',
   STANDARDEMAILTEMPLATEDELETE: API_URL + ':5411/emailtemplate/delete',
   STANDARDEMAILTEMPLATEGETALL: API_URL + ':9428/emailtemplate/getall',
@@ -104,14 +107,14 @@ export const ENDPOINTS = {
   TAX_CLASS: API_URL + ':5420/taxclass/create',
   UPSERT_TAX_CLASS: API_URL + ':5420/taxclass/upsert',
   UPDATE_TAX_CLASS: API_URL + ':5420/taxclass/update',
-  GET_ALL_PRODUCTS: API_URL + ':9422/product/getall',
-  GET_ALL_CATEGORY: API_URL + ":9420/category/getall",
+  GET_ALL_PRODUCTS: API_URL1 + ':9422/product/getall',
+  GET_ALL_CATEGORY: API_URL1 + ":9420/category/getall",
   GET_CATEGORY_BYID: API_URL + ":9420/category/getbyid",
   COUPON_CODE_CREATE: API_URL + ":5441/couponcode/create",
   COUPON_CODE_UPDATE: API_URL + ":5441/couponcode/update",
   GET_ALL_SHIPPING_ZONES: API_URL + ":9410/shippingzones/getall",
-  ADD_PRODUCT: API_URL + ':5436/product/create',
-  UPDATE_PRODUCT: API_URL + ':5436/product/update',
+  ADD_PRODUCT: API_URL1 + ':5436/product/create',
+  UPDATE_PRODUCT: API_URL1 + ':5436/product/update',
   UPDATE_ANNOUNCEMENT: API_URL + ':3302/announcement/update',
   GET_ALL_BRANDS: API_URL + ":9419/brand/getall",
   ADD_STORE_GALLERY: API_URL + ':5409/storegallery/create',
@@ -125,7 +128,7 @@ export const ENDPOINTS = {
   GET_INVENTORY_SOURCE_BYID: API_URL + ":9414/inventorysources/getbyid",
   UPDATE_INVENTORY_SOURCE: API_URL + ':5428/inventorysources/update',
   DELETE_INVENTORY_SOURCE: API_URL + ':5428/inventorysources/delete',
-  DELETE_VARIANT: API_URL + ':5436/product/delete',
+  DELETE_VARIANT: API_URL1 + ':5436/product/delete',
   GET_ALL_CURRENCIESS: API_URL + ":9404/currencies/getall",
   // GET_ALL_CURRENCIESS : API_URL + ":5300/es-currencies/all",
   CURRENCY_MANAGEMENT: API_URL + ":5418/currencies/create",
@@ -146,7 +149,7 @@ export const ENDPOINTS = {
   UPDATE_CURRENCY: API_URL + ":5418/currencies/update",
   DELETE_CURRENCY: API_URL + ":5418/currencies/delete",
   DELETE_ANNOUNCEMENT: API_URL + ":3302/announcement/delete",
-  GET_PRODUCT_BYID: API_URL + ":9422/product/getbyid",
+  GET_PRODUCT_BYID: API_URL1 + ":9422/product/getbyid",
 
   // SEND_IMAGE: API_URL + ":9432/imageupload/create",
    SEND_IMAGE: API_URL + ":9104/imageupload/create",
@@ -219,11 +222,11 @@ export const ENDPOINTS = {
   SEARCH_PRODUCT: API_URL + ":9471/autocomplete/product",
 
   SEARCH_LOYALTY_PRPGRAM_MEMBER: API_URL + ":9489/loyalityprogrammember/getbyname",
-  OUTLET_CREATE: API_URL + ":5464/outlet/create",
-  OUTLET_UPDATE: API_URL + ":5464/outlet/update",
-  OUTLET_DELETE: API_URL + ":5464/outlet/delete",
-  OUTLET_GETALL: API_URL + ":9454/outlet/getall",
-  OUTLET_GETBYID: API_URL + ":9454/outlet/getbyid",
+  OUTLET_CREATE:API_URL1 + ":5464/outlet/create",
+  OUTLET_UPDATE: API_URL1 + ":5464/outlet/update",
+  OUTLET_DELETE: API_URL1+ ":5464/outlet/delete",
+  OUTLET_GETALL: API_URL1 + ":9454/outlet/getall",
+  OUTLET_GETBYID: API_URL1 + ":9454/outlet/getbyid",
   GET_ORDERDELIVERIES_BY_ID: API_URL + ":9464/orderdeliverylogs/getbyid",
 
   GET_ALL_CARTS: API_URL + ":9461/cart/getall",

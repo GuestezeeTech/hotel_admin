@@ -84,5 +84,17 @@ export const routes: Routes = [
   {
     path: '',
     loadChildren: () => import('./late-checkout/late-checkout.module').then(m => m.LateCheckoutModule),
+  },
+  {
+    path: '',
+    loadChildren: () => import('./Outlet/outlet-creation/outlet-creation.module').then(m => m.OutletCreationModule),
+  },
+  {
+    path: '',
+    loadChildren: () => import('./Outlet/outlet-list/outlet-list.module').then(m => m.OutletListModule),
+  },
+  {
+    path: '',
+    loadChildren: () => import('./product/product-detail.module').then(m => m.ProductDetailModule),
   }
 ];
