@@ -1,0 +1,506 @@
+/* Title Styling */
+h3 {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.company-details-form {
+  max-width: 1200px;
+  padding: 20px 5px;
+  background-color: #f9f9f9;
+  padding-bottom: 20px;
+  border-radius: 8px;
+}
+
+.tabs {
+  display: flex;
+  // justify-content: space-around;
+  margin-bottom: 2px;
+  padding: 6px;
+  border-radius: 10px;
+  background-color: #eaeaea;
+
+  button {
+    padding: 10px 20px;
+    border: none;
+    background: #eaeaea;
+    color: #757575;
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background 0.3s;
+    margin-right: 5%;
+
+    &.active {
+      background: #883a01;
+      color: #fff;
+    }
+
+    &:hover {
+      background: #883a01;
+      color: #fff;
+    }
+  }
+}
+
+.product-price {
+  // margin-bottom: 1%;
+  font-size: 13px;
+  margin-left: -15%;
+  background: #883a01;
+  color: white;
+  display: inline-block;
+  padding-left: 10px;
+  clip-path: polygon(10px 50%, 0 0, 100% 0, 100% 100%,0 100%);
+}
+
+.product-image {
+  height: 200px;
+  object-fit: cover;
+  width: 100%;
+  border-radius: 10px;
+}
+
+.product-card {
+  padding: 6% 12% 5% 12%;
+  background: #F6F6F6;
+}
+
+.card-body {
+  padding-top: 10px !important;
+  padding: 0;
+
+  .card-title {
+    font-size: 14px;
+  }
+}
+
+.product-actions {
+  margin-right: -10%;
+
+  i {
+    font-size: 13px;
+    color: #883a01;
+  }
+}
+
+.price {
+  font-weight: 600;
+  margin-right: 6px;
+  // background: rgba(0, 0, 0, 0.5);
+  padding: 2px 5px;
+  border-radius: 4px;
+}
+
+// .msrp {
+//   text-decoration: line-through;
+//   color: #ccc;
+//   font-size: 13px;
+//   background: rgba(0, 0, 0, 0.5);
+//   padding: 2px 5px;
+//   border-radius: 4px;
+// }
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+/* Flexbox for Form Rows */
+.brand-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+/* Input and Select Field Styling */
+input,
+select {
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 14px;
+  flex: 1;
+  /* Make all inputs the same width */
+}
+
+/* Remove Button */
+.remove-btn {
+  background: none;
+  border: none;
+  color: red;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+/* Add New Brand Button */
+.add-btn {
+  // background-color: #8B4513;
+  /* Brown color */
+  // color: white;
+  // padding: 8px 12px;
+  // border: none;
+  // border-radius: 5px;
+  // font-size: 14px;
+  // cursor: pointer;
+  // margin-top: 10px;
+}
+
+.add-btn:hover {
+  background-color: #6A2E0A;
+}
+
+.addBrand {
+  background: #883a01;
+  color: white;
+  padding: 10px 15px;
+  border: none;
+  height: 35px;
+  margin-top: 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.submit {
+  background: #883a01;
+  color: white;
+  padding: 10px 15px;
+  border: none;
+  height: 35px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+
+  &:disabled {
+    background: #bdbdbd;
+    cursor: not-allowed;
+  }
+}
+
+.cancel {
+  background: #ccc;
+  color: #000;
+  margin-right: 20px;
+  padding: 10px 15px;
+  height: 35px;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+
+  &:hover {
+    background: #aaa;
+  }
+}
+
+.submit1 {
+  background: #883a01;
+  color: white;
+  padding: 10px 50px;
+  border: none;
+  height: 35px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+
+  &:disabled {
+    background: #bdbdbd;
+    cursor: not-allowed;
+  }
+}
+
+.cancel1 {
+  background: #ccc;
+  color: #000;
+  margin-right: 20px;
+  padding: 10px 50px;
+  height: 35px;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+
+  &:hover {
+    background: #aaa;
+  }
+}
+
+.form-actions {
+  display: flex;
+  justify-content: end;
+  margin-top: 20px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .brand-row {
+    flex-direction: column;
+  }
+
+  input,
+  select {
+    width: 100%;
+  }
+}
+
+.certificates {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.certificates label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 14px;
+}
+
+.section {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  //  height: 100vh;
+}
+
+.upload-section {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.upload-box {
+  border: 2px dashed #ccc;
+  padding: 50px 20px;
+  text-align: center;
+  border-radius: 8px;
+}
+
+.upload-box .upload-btn {
+  background: #883a01;
+  color: white;
+  border: none;
+  padding: 10px;
+  cursor: pointer;
+  margin-top: 10px;
+  border-radius: 5px;
+}
+
+.file-list {
+  flex-grow: 1;
+}
+
+.file-item {
+  box-shadow: 1px 2px 3px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  background: #f9f9f9;
+  padding: 10px;
+  border-radius: 5px;
+  margin-bottom: 5px;
+}
+
+.file-item .file-type {
+  background: orange;
+  color: white;
+  padding: 5px;
+  margin-right: 10px;
+  border-radius: 3px;
+}
+
+.file-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 20px;
+  cursor: pointer;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-overlay1 {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 5px;
+  position: relative;
+  width: 300px;
+  text-align: center;
+}
+
+.modal-content1 {
+  background: white;
+  padding: 20px 15px;
+  border-radius: 15px;
+  position: relative;
+  width: 30%;
+  text-align: center;
+}
+
+.category-btn-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  border: none;
+  background: transparent;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.modal-image {
+  max-width: 100%;
+  max-height: 80vh;
+  border-radius: 5px;
+}
+
+.form-row {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.form-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.form-group input,
+.form-group select,
+textarea {
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: 'montsmed';
+}
+
+.custom-input::placeholder {
+  font-family: 'montsmed';
+  /* or any other font */
+  font-size: 12px;
+  color: #999;
+  /* change to your desired color */
+  opacity: 1;
+  /* fix for Firefox */
+}
+
+.custom-input1 {
+  width: 95%;
+}
+
+.label-text {
+  margin-left: 60px;
+  font-weight: bold;
+  color: #333;
+}
+
+/* Toggle Function */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 26px;
+  margin-left: 10px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.4s;
+  border-radius: 34px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.4s;
+  border-radius: 50%;
+}
+
+input:checked+.slider {
+  background-color: #219653;
+  /* Greenish */
+}
+
+input:checked+.slider:before {
+  transform: translateX(24px);
+}
+
+.label-text {
+  font-family: 'montsreg';
+  font-size: 14px;
+  margin-left: 10px;
+  vertical-align: middle;
+}
+
+.add-btn-section {
+  display: flex;
+  justify-content: flex-end;
+
+  .add-btn {
+    border-radius: 5px;
+    background: #883a01;
+    color: white;
+    font-weight: bold;
+    padding: 8px 16px;
+    cursor: pointer;
+    border: none;
+  }
+}
+
+.required {
+  color: red;
+  font-size: 12px;
+  margin-top: 4px;
+}

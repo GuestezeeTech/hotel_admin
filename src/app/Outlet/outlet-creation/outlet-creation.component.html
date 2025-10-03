@@ -1,0 +1,120 @@
+<div class="main">
+  <div class="centered-container">
+    <form [formGroup]="outletForm" (ngSubmit)="onSubmit()">
+      <div class="section">
+        <h3>Outlet Creation</h3>
+        <div class="form-grid">
+          <div class="form-group form1_div">
+            <label>Restaurant Name</label>
+            <input type="text" class="input_box" formControlName="owner_name" placeholder="Restaurant Name" />
+          </div>
+          <div class="form-group form1_div">
+            <label>Email</label>
+            <input type="email" class="input_box" formControlName="email" placeholder="Email" />
+          </div>
+          <div class="form-group form1_div">
+            <label>Phone</label>
+            <input type="text" class="input_box" formControlName="phone" placeholder="Phone" />
+          </div>
+          <div class="form-group form1_div">
+            <label>Company Phone</label>
+            <input type="text" class="input_box" formControlName="companyphone" placeholder="Company Phone" />
+          </div>
+          <div class="form-group form1_div">
+            <label>Outlet Name</label>
+            <input type="text" class="input_box" formControlName="name" placeholder="Outlet Name" />
+          </div>
+          <div class="form-group form1_div">
+            <label>GST No</label>
+            <input type="text" class="input_box" formControlName="gstno" placeholder="GST Number" />
+          </div>
+          <!-- <div class="form-group form1_div">
+            <label>Association</label>
+            <input type="text" class="input_box" formControlName="association" placeholder="Association" />
+          </div> -->
+          <!-- <div class="form-group form1_div">
+            <label>Category</label>
+            <input type="text" class="input_box" formControlName="category" placeholder="Category" />
+          </div> -->
+          <div class="form-group form1_div">
+            <label>Address Line 1</label>
+            <input type="text" class="input_box" formControlName="address" placeholder="Address" />
+          </div>
+          <div class="form-group form1_div">
+            <label>Address Line 2</label>
+            <input type="text" class="input_box" formControlName="address1" placeholder="Address 1" />
+          </div>
+          <div class="form-group form1_div">
+            <label>Door No</label>
+            <input type="text" class="input_box" formControlName="doorno" placeholder="Door Number" />
+          </div>
+          <div class="form-group form1_div">
+            <label>Location</label>
+            <input type="text" class="input_box" formControlName="location" placeholder="Location" />
+          </div>
+          <div class="form-group form1_div">
+            <label>Pincode</label>
+            <input type="text" class="input_box" formControlName="pincode" placeholder="Pincode" />
+          </div>
+          <!-- <div class="form-group form1_div">
+            <label>Delivery Pickup Pincode</label>
+            <input type="text" class="input_box" formControlName="delivery_pickup_point_pincode" placeholder="Delivery Pincode" />
+          </div> -->
+          <div class="form-group form1_div">
+            <label>Country</label>
+            <input type="text" class="input_box" formControlName="country" placeholder="Country" />
+          </div>
+          <div class="form-group form1_div">
+            <label>Shift Title</label>
+            <input type="text" class="input_box" formControlName="shift_title" placeholder="Shift Title" />
+          </div>
+          <div class="form-group form1_div">
+            <label>Time Slot</label>
+            <input type="text" class="input_box" formControlName="time_slot" placeholder="Time Slot (e.g., 30mins)" />
+          </div>
+          <div class="form-group form1_div">
+            <label>Open Time</label>
+            <input type="text" class="input_box" formControlName="open_time" placeholder="12:00AM" />
+          </div>
+          <div class="form-group form1_div">
+            <label>Close Time</label>
+            <input type="text" class="input_box" formControlName="close_time" placeholder="11:59PM" />
+          </div>
+        </div>
+
+        <!-- Toggles -->
+        <!-- <div class="form-group form1_div">
+          <label>Enable Distance Radius</label>
+          <label class="switch">
+            <input type="checkbox" formControlName="enable_distance_radius" />
+            <span class="slider round"></span>
+          </label>
+        </div> -->
+
+        <!-- <div class="form-group form1_div">
+          <label>Send Order Mail</label>
+          <label class="switch">
+            <input type="checkbox" formControlName="sendordermail" />
+            <span class="slider round"></span>
+          </label>
+        </div> -->
+
+        <!-- <div class="form-group form1_div">
+          <label>Is Active</label>
+          <label class="switch">
+            <input type="checkbox" formControlName="is_active" />
+            <span class="slider round"></span>
+          </label>
+        </div> -->
+
+        <!-- Photo Upload -->
+        <div class="form-group form1_div">
+          <label>Outlet Photo</label>
+          <input type="file" class="input_box" (change)="onPhotoUpload($event)" />
+        </div>
+
+        <button type="submit" class="btn save_bt" [disabled]="outletForm.invalid">Save</button>
+      </div>
+    </form>
+  </div>
+</div>

@@ -1,6 +1,6 @@
 {
   "all-brands": {
-    "targeturl": "http://164.52.214.114:9419/brand/getall",
+    "targeturl": "https://guestezee.ecbee.net:9419/brand/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Brands",
@@ -8,7 +8,7 @@
     "editurl": "add-brand",
     "checkbox": "true",
     "searchbar": "true",
-    "searchurl": " http://164.52.214.114:9100/search/brand",
+    "searchurl": " https://guestezee.ecbee.net:9100/search/brand",
     "Addbuttons": {
       "name": "Add Brand",
       "buttontype": "common",
@@ -157,13 +157,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5433/brand/delete"
+          "targeturl": "https://guestezee.ecbee.net:5433/brand/delete"
         }
       }
     ]
   },
   "all-members": {
-    "targeturl": "http://164.52.214.114:9422/product/getall",
+    "targeturl": "https://guestezee.ecbee.net:9422/product/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Members",
@@ -171,7 +171,7 @@
     "editurl": "add-member",
     "checkbox": "true",
     "searchbar": "true",
-    "searchurl": " http://164.52.214.114:9590/product/searchproduct",
+    "searchurl": " https://guestezee.ecbee.net:9590/product/searchproduct",
     "Addbuttons": {
       "name": "Add Member",
       "buttontype": "common",
@@ -358,13 +358,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5436/product/delete"
+          "targeturl": "https://guestezee.ecbee.net:5436/product/delete"
         }
       }
     ]
   },
   "all-clemembers": {
-    "targeturl": "http://164.52.214.114:9422/product/getall",
+    "targeturl": "https://guestezee.ecbee.net:9422/product/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Members",
@@ -372,7 +372,7 @@
     "editurl": "add-clemember",
     "checkbox": "true",
     "searchbar": "true",
-    "searchurl": " http://164.52.214.114:9590/product/searchproduct",
+    "searchurl": " https://guestezee.ecbee.net:9590/product/searchproduct",
     "Addbuttons": {
       "name": "Add Member",
       "buttontype": "common",
@@ -559,20 +559,20 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5436/product/delete"
+          "targeturl": "https://guestezee.ecbee.net:5436/product/delete"
         }
       }
     ]
   },
   "all-enquiry": {
-    "targeturl": "http://164.52.214.114:9442/order/getall",
+    "targeturl": "https://guestezee.ecbee.net:9442/order/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Enquiry",
     "p": "All Enquiry will appear in the list below.....",
     "editurl": "enquiry-details",
     "checkbox": "true",
-    "searchurl": " http://164.52.214.114:9592/brand/searchbrand",
+    "searchurl": " https://guestezee.ecbee.net:9592/brand/searchbrand",
     "Addbuttons": {
       "name": "Add Enquiry",
       "buttontype": "common",
@@ -797,7 +797,7 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:7402/enquiry/delete"
+          "targeturl": "https://guestezee.ecbee.net:7402/enquiry/delete"
         }
       }
     ]
@@ -990,14 +990,14 @@
     ]
   },
   "all-restaurant-order": {
-    "targeturl": "http://164.52.214.114:9442/order/getall",
+    "targeturl": "https://guestezee.ecbee.net:9442/order/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Restaurant Order",
     "p": "All Restaurant Order will appear in the list below.....",
     "editurl": "restaurant-order-detail",
     "checkbox": "true",
-    "searchurl": " http://164.52.214.114:9592/brand/searchbrand",
+    "searchurl": " https://guestezee.ecbee.net:9592/brand/searchbrand",
     "Addbuttons": {
       "name": "Add Enquiry",
       "buttontype": "common",
@@ -1222,20 +1222,20 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:7402/enquiry/delete"
+          "targeturl": "https://guestezee.ecbee.net:7402/enquiry/delete"
         }
       }
     ]
   },
   "all-bombayhardware-enquiry": {
-    "targeturl": "http://164.52.214.114:9442/order/getall",
+    "targeturl": "https://guestezee.ecbee.net:9442/order/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Enquiry",
     "p": "All Enquiry will appear in the list below.....",
     "editurl": "bombayhardware-enquiry-details",
     "checkbox": "true",
-    "searchurl": " http://164.52.214.114:9592/brand/searchbrand",
+    "searchurl": " https://guestezee.ecbee.net:9592/brand/searchbrand",
     "Addbuttons": {
       "name": "Add Enquiry",
       "buttontype": "common",
@@ -1422,13 +1422,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:7402/enquiry/delete"
+          "targeturl": "https://guestezee.ecbee.net:7402/enquiry/delete"
         }
       }
     ]
   },
   "all-themes": {
-    "targeturl": "http://164.52.214.114:9419/brand/getall",
+    "targeturl": "https://guestezee.ecbee.net:9419/brand/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Themes",
@@ -1436,7 +1436,7 @@
     "editurl": "add-theme",
     "checkbox": "true",
     "searchbar": "true",
-    "searchurl": " http://164.52.214.114:9592/brand/searchbrand",
+    "searchurl": " https://guestezee.ecbee.net:9592/brand/searchbrand",
     "Addbuttons": {
       "name": "Add Theme",
       "buttontype": "common",
@@ -1585,13 +1585,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5433/brand/delete"
+          "targeturl": "https://guestezee.ecbee.net:5433/brand/delete"
         }
       }
     ]
   },
   "all-features": {
-    "targeturl": "http://164.52.214.114:9419/brand/getall",
+    "targeturl": "https://guestezee.ecbee.net:9419/brand/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Features",
@@ -1599,7 +1599,7 @@
     "editurl": "add-feature",
     "checkbox": "true",
     "searchbar": "true",
-    "searchurl": " http://164.52.214.114:9592/brand/searchbrand",
+    "searchurl": " https://guestezee.ecbee.net:9592/brand/searchbrand",
     "Addbuttons": {
       "name": "Add Feature",
       "buttontype": "common",
@@ -1748,13 +1748,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5433/brand/delete"
+          "targeturl": "https://guestezee.ecbee.net:5433/brand/delete"
         }
       }
     ]
   },
   "all-finish": {
-    "targeturl": "http://164.52.214.114:9419/brand/getall",
+    "targeturl": "https://guestezee.ecbee.net:9419/brand/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Finish",
@@ -1762,7 +1762,7 @@
     "editurl": "add-finish",
     "checkbox": "true",
     "searchbar": "true",
-    "searchurl": " http://164.52.214.114:9592/brand/searchbrand",
+    "searchurl": " https://guestezee.ecbee.net:9592/brand/searchbrand",
     "Addbuttons": {
       "name": "Add Finish",
       "buttontype": "common",
@@ -1911,13 +1911,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5433/brand/delete"
+          "targeturl": "https://guestezee.ecbee.net:5433/brand/delete"
         }
       }
     ]
   },
   "all-loyalty-program-members": {
-    "targeturl": "http://164.52.214.114:9489/loyalityprogrammember/getall",
+    "targeturl": "https://guestezee.ecbee.net:9489/loyalityprogrammember/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Loyalty Program Members",
@@ -2074,13 +2074,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5485/loyalityprogrammember/delete"
+          "targeturl": "https://guestezee.ecbee.net:5485/loyalityprogrammember/delete"
         }
       }
     ]
   },
   "all-voucher-defintion-details": {
-    "targeturl": "http://164.52.214.114:9495/voucherdefinition/getall",
+    "targeturl": "https://guestezee.ecbee.net:9495/voucherdefinition/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Voucher Definitions",
@@ -2235,13 +2235,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5487/voucherdefinition/delete"
+          "targeturl": "https://guestezee.ecbee.net:5487/voucherdefinition/delete"
         }
       }
     ]
   },
   "all-loyalty-program-partners": {
-    "targeturl": "http://164.52.214.114:9490/loyalityprogrampartner/getall",
+    "targeturl": "https://guestezee.ecbee.net:9490/loyalityprogrampartner/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Loyalty Program partner",
@@ -2396,13 +2396,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5486/loyalityprogrampartner/delete"
+          "targeturl": "https://guestezee.ecbee.net:5486/loyalityprogrampartner/delete"
         }
       }
     ]
   },
   "all-benefits": {
-    "targeturl": "http://164.52.214.114:9497/benefit/getall",
+    "targeturl": "https://guestezee.ecbee.net:9497/benefit/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Benefits",
@@ -2557,13 +2557,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5494/benefit/delete"
+          "targeturl": "https://guestezee.ecbee.net:5494/benefit/delete"
         }
       }
     ]
   },
   "all-reviews": {
-    "targeturl": "http://164.52.214.114:9425/productreviews/getall",
+    "targeturl": "https://guestezee.ecbee.net:9425/productreviews/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Product Reviews",
@@ -2781,13 +2781,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5439/productreviews/delete"
+          "targeturl": "https://guestezee.ecbee.net:5439/productreviews/delete"
         }
       }
     ]
   },
   "all-orders": {
-    "targeturl": "http://164.52.214.114:9442/order/getall",
+    "targeturl": "https://guestezee.ecbee.net:9442/order/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Orders",
@@ -3047,7 +3047,7 @@
     ]
   },
   "all-kpost-orders": {
-    "targeturl": "http://164.52.214.114:9442/order/getall",
+    "targeturl": "https://guestezee.ecbee.net:9442/order/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All kpost Orders",
@@ -3193,7 +3193,7 @@
     ]
   },
   "new-orders": {
-    "targeturl": "http://164.52.214.114:9442/order/getall",
+    "targeturl": "https://guestezee.ecbee.net:9442/order/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Orders",
@@ -3492,7 +3492,7 @@
     ]
   },
   "all-information": {
-    "targeturl": "http://164.52.214.114:9436/staticinfo/getall",
+    "targeturl": "https://guestezee.ecbee.net:9436/staticinfo/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Information",
@@ -3685,13 +3685,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5442/staticinfo/delete"
+          "targeturl": "https://guestezee.ecbee.net:5442/staticinfo/delete"
         }
       }
     ]
   },
   "all-variables": {
-    "targeturl": "http://164.52.214.114:9430/variables/getall",
+    "targeturl": "https://guestezee.ecbee.net:9430/variables/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Variables",
@@ -3846,13 +3846,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5413/variables/delete"
+          "targeturl": "https://guestezee.ecbee.net:5413/variables/delete"
         }
       }
     ]
   },
   "all-newsletter-templates": {
-    "targeturl": "http://164.52.214.114:9431/newslettertemplate/getall",
+    "targeturl": "https://guestezee.ecbee.net:9431/newslettertemplate/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Newsletter Templates",
@@ -4047,13 +4047,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5415/newslettertemplate/delete"
+          "targeturl": "https://guestezee.ecbee.net:5415/newslettertemplate/delete"
         }
       }
     ]
   },
   "customer-groups": {
-    "targeturl": "http://164.52.214.114:9415/customergroup/getall",
+    "targeturl": "https://guestezee.ecbee.net:9415/customergroup/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "Member Groups",
@@ -4208,13 +4208,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5429/customergroup/delete"
+          "targeturl": "https://guestezee.ecbee.net:5429/customergroup/delete"
         }
       }
     ]
   },
   "all-vendor": {
-    "targeturl": "http://164.52.214.114:9416/customer/getall",
+    "targeturl": "https://guestezee.ecbee.net:9416/customer/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Vendor",
@@ -4370,13 +4370,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5430/customer/delete"
+          "targeturl": "https://guestezee.ecbee.net:5430/customer/delete"
         }
       }
     ]
   },
   "all-customers": {
-    "targeturl": "http://164.52.214.114:9416/customer/getall",
+    "targeturl": "https://guestezee.ecbee.net:9416/customer/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Members",
@@ -4608,13 +4608,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5430/customer/delete"
+          "targeturl": "https://guestezee.ecbee.net:5430/customer/delete"
         }
       }
     ]
   },
   "add-customer": {
-    "targeturl": "http://164.52.214.114:9417/customeraddress/getbyid",
+    "targeturl": "https://guestezee.ecbee.net:9417/customeraddress/getbyid",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Addresses",
@@ -4845,13 +4845,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5431/customeraddress/delete"
+          "targeturl": "https://guestezee.ecbee.net:5431/customeraddress/delete"
         }
       }
     ]
   },
   "add-contact": {
-    "targeturl": "http://164.52.214.114:9546/customercontact/getbyid",
+    "targeturl": "https://guestezee.ecbee.net:9546/customercontact/getbyid",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Member Contacts ",
@@ -5042,13 +5042,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5519/customercontact/delete"
+          "targeturl": "https://guestezee.ecbee.net:5519/customercontact/delete"
         }
       }
     ]
   },
   "all-products": {
-    "targeturl": "http://164.52.214.114:9422/product/getall",
+    "targeturl": "https://guestezee.ecbee.net:9422/product/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Products",
@@ -5057,7 +5057,7 @@
     "editurl1": "/product-module",
     "checkbox": "true",
     "searchbar": "true",
-    "searchurl": " http://164.52.214.114:9590/product/searchproduct",
+    "searchurl": " https://guestezee.ecbee.net:9590/product/searchproduct",
     "Addbuttons": {
       "name": "Add Product",
       "buttontype": "common",
@@ -5320,13 +5320,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5436/product/delete"
+          "targeturl": "https://guestezee.ecbee.net:5436/product/delete"
         }
       }
     ]
   },
   "all-categories": {
-    "targeturl": "http://164.52.214.114:9420/category/getall",
+    "targeturl": "https://guestezee.ecbee.net:9420/category/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Categories",
@@ -5334,7 +5334,7 @@
     "editurl": "/category",
     "checkbox": "true",
     "searchbar": "true",
-    "searchurl": " http://164.52.214.114:9591/category/searchcategory",
+    "searchurl": " https://guestezee.ecbee.net:9591/category/searchcategory",
     "Addbuttons": {
       "name": "Add Category",
       "buttontype": "common",
@@ -5559,13 +5559,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5434/category/delete"
+          "targeturl": "https://guestezee.ecbee.net:5434/category/delete"
         }
       }
     ]
   },
   "list-inventory": {
-    "targeturl": "http://164.52.214.114:9414/inventorysources/getall",
+    "targeturl": "https://guestezee.ecbee.net:9414/inventorysources/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Inventory Sources",
@@ -5720,13 +5720,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5428/inventorysources/delete"
+          "targeturl": "https://guestezee.ecbee.net:5428/inventorysources/delete"
         }
       }
     ]
   },
   "tax-zones-rates": {
-    "targeturl": "http://164.52.214.114:9407/taxzone/getall",
+    "targeturl": "https://guestezee.ecbee.net:9407/taxzone/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "Tax",
@@ -5881,13 +5881,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5421/taxzone/delete"
+          "targeturl": "https://guestezee.ecbee.net:5421/taxzone/delete"
         }
       }
     ]
   },
   "add-zone-rates": {
-    "targeturl": "http://164.52.214.114:9407/taxzone/getall",
+    "targeturl": "https://guestezee.ecbee.net:9407/taxzone/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "editurl": "/add-rates",
@@ -6040,13 +6040,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5421/taxzone/delete"
+          "targeturl": "https://guestezee.ecbee.net:5421/taxzone/delete"
         }
       }
     ]
   },
   "promotions": {
-    "targeturl": "http://164.52.214.114:9426/promotions/getall",
+    "targeturl": "https://guestezee.ecbee.net:9426/promotions/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Promotions",
@@ -6315,13 +6315,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5440/promotions/delete"
+          "targeturl": "https://guestezee.ecbee.net:5440/promotions/delete"
         }
       }
     ]
   },
   "coupon-code": {
-    "targeturl": "http://164.52.214.114:9427/couponcode/getall",
+    "targeturl": "https://guestezee.ecbee.net:9427/couponcode/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Coupon Codes",
@@ -6590,13 +6590,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5441/couponcode/delete"
+          "targeturl": "https://guestezee.ecbee.net:5441/couponcode/delete"
         }
       }
     ]
   },
   "currency-management": {
-    "targeturl": "http://164.52.214.114:9404/currencies/getall",
+    "targeturl": "https://guestezee.ecbee.net:9404/currencies/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "Additional Currency",
@@ -6828,13 +6828,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5418/currencies/delete"
+          "targeturl": "https://guestezee.ecbee.net:5418/currencies/delete"
         }
       }
     ]
   },
   "default-currency": {
-    "targeturl": "http://164.52.214.114:9404/currencies/getall",
+    "targeturl": "https://guestezee.ecbee.net:9404/currencies/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "Default Currency",
@@ -7053,13 +7053,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5418/currencies/delete"
+          "targeturl": "https://guestezee.ecbee.net:5418/currencies/delete"
         }
       }
     ]
   },
   "shipping-carriers-list": {
-    "targeturl": "http://164.52.214.114:9412/customshippingcarriers/getall",
+    "targeturl": "https://guestezee.ecbee.net:9412/customshippingcarriers/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "Shipping Carriers",
@@ -7290,13 +7290,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5426/customshippingcarriers/delete"
+          "targeturl": "https://guestezee.ecbee.net:5426/customshippingcarriers/delete"
         }
       }
     ]
   },
   "user-list": {
-    "targeturl": "http://164.52.214.114:9400/user/getall",
+    "targeturl": "https://guestezee.ecbee.net:9400/user/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "User",
@@ -7563,13 +7563,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5403/user/delete"
+          "targeturl": "https://guestezee.ecbee.net:5403/user/delete"
         }
       }
     ]
   },
   "banners": {
-    "targeturl": "http://164.52.214.114:9433/banners/getall",
+    "targeturl": "https://guestezee.ecbee.net:9433/banners/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "Banners",
@@ -7876,13 +7876,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5410/banners/delete"
+          "targeturl": "https://guestezee.ecbee.net:5410/banners/delete"
         }
       }
     ]
   },
   "giftmeal": {
-    "targeturl": "http://164.52.214.114:9463/giftmeal/getall",
+    "targeturl": "https://guestezee.ecbee.net:9463/giftmeal/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "GiftMeal",
@@ -8190,13 +8190,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5469/giftmeal/delete"
+          "targeturl": "https://guestezee.ecbee.net:5469/giftmeal/delete"
         }
       }
     ]
   },
   "tablebooking": {
-    "targeturl": "http://164.52.214.114:9453/tablebooking/getall",
+    "targeturl": "https://guestezee.ecbee.net:9453/tablebooking/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "TableBooking",
@@ -8504,13 +8504,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5463/tablebooking/delete"
+          "targeturl": "https://guestezee.ecbee.net:5463/tablebooking/delete"
         }
       }
     ]
   },
   "investor": {
-    "targeturl": "http://164.52.214.114:6530/investor/getall",
+    "targeturl": "https://guestezee.ecbee.net:6530/investor/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "Investors",
@@ -8704,13 +8704,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:3305/investor/delete"
+          "targeturl": "https://guestezee.ecbee.net:3305/investor/delete"
         }
       }
     ]
   },
   "all-variants": {
-    "targeturl": "http://164.52.214.114:9423/variants/getbyid",
+    "targeturl": "https://guestezee.ecbee.net:9423/variants/getbyid",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Variants",
@@ -8727,7 +8727,7 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5437/variants/delete"
+          "targeturl": "https://guestezee.ecbee.net:5437/variants/delete"
         }
       }
     ],
@@ -8873,7 +8873,7 @@
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "Image Manager",
-    "targeturl": "http://164.52.214.114:9434/storegallery/getall",
+    "targeturl": "https://guestezee.ecbee.net:9434/storegallery/getall",
     "p": "Uploaded images will be listed below",
     "Addbuttons": {
       "name": "Add Inventory",
@@ -9027,7 +9027,7 @@
     ]
   },
   "filter-list": {
-    "targeturl": "http://164.52.214.114:9421/filtergroup/getall",
+    "targeturl": "https://guestezee.ecbee.net:9421/filtergroup/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "Product Filters",
@@ -9220,13 +9220,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5435/filtergroup/delete"
+          "targeturl": "https://guestezee.ecbee.net:5435/filtergroup/delete"
         }
       }
     ]
   },
   "order-status": {
-    "targeturl": "http://164.52.214.114:9440/orderstatus/getall",
+    "targeturl": "https://guestezee.ecbee.net:9440/orderstatus/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "",
@@ -9438,7 +9438,7 @@
     ]
   },
   "order-status-list": {
-    "targeturl": "http://164.52.214.114:9440/orderstatus/getall",
+    "targeturl": "https://guestezee.ecbee.net:9440/orderstatus/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "",
@@ -9651,7 +9651,7 @@
     ]
   },
   "shipment-list": {
-    "targeturl": "http://164.52.214.114:9441/shippment/getall",
+    "targeturl": "https://guestezee.ecbee.net:9441/shippment/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "Shipment",
@@ -9897,7 +9897,7 @@
     ]
   },
   "carts": {
-    "targeturl": "http://164.52.214.114:9461/cart/getall",
+    "targeturl": "https://guestezee.ecbee.net:9461/cart/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "Cart List",
@@ -10330,7 +10330,7 @@
     ]
   },
   "list-outlet": {
-    "targeturl": "http://164.52.214.114:9454/outlet/getall",
+    "targeturl": "https://guestezee.ecbee.net:9454/outlet/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Outlet",
@@ -10523,13 +10523,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5464/outlet/delete"
+          "targeturl": "https://guestezee.ecbee.net:5464/outlet/delete"
         }
       }
     ]
   },
   "list-event": {
-    "targeturl": "http://164.52.214.114:6555/event/getall",
+    "targeturl": "https://guestezee.ecbee.net:6555/event/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Event",
@@ -10684,13 +10684,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:6999/event/delete"
+          "targeturl": "https://guestezee.ecbee.net:6999/event/delete"
         }
       }
     ]
   },
   "list-circular": {
-    "targeturl": "http://164.52.214.114:9454/outlet/getall",
+    "targeturl": "https://guestezee.ecbee.net:9454/outlet/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Circular",
@@ -10807,7 +10807,7 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5464/outlet/delete"
+          "targeturl": "https://guestezee.ecbee.net:5464/outlet/delete"
         }
       }
     ]
@@ -10993,7 +10993,7 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5464/outlet/delete"
+          "targeturl": "https://guestezee.ecbee.net:5464/outlet/delete"
         }
       }
     ]
@@ -11192,13 +11192,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5464/outlet/delete"
+          "targeturl": "https://guestezee.ecbee.net:5464/outlet/delete"
         }
       }
     ]
   },
   "list-event-eligibility": {
-    "targeturl": "http://164.52.214.114:6993/eligibility/getall",
+    "targeturl": "https://guestezee.ecbee.net:6993/eligibility/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Eligibility",
@@ -11353,13 +11353,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:6992/eligibility/delete"
+          "targeturl": "https://guestezee.ecbee.net:6992/eligibility/delete"
         }
       }
     ]
   },
   "order-delivery-logs": {
-    "targeturl": "http://164.52.214.114:9464/orderdeliverylogs/getall",
+    "targeturl": "https://guestezee.ecbee.net:9464/orderdeliverylogs/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "Order Delivery Logs",
@@ -11614,13 +11614,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5433/outlet/delete"
+          "targeturl": "https://guestezee.ecbee.net:5433/outlet/delete"
         }
       }
     ]
   },
   "list-newsletter-queue": {
-    "targeturl": "http://164.52.214.114:9462/newsletterqueue/getall",
+    "targeturl": "https://guestezee.ecbee.net:9462/newsletterqueue/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "Newsletter Queues",
@@ -11851,13 +11851,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5416/newsletterqueue/delete"
+          "targeturl": "https://guestezee.ecbee.net:5416/newsletterqueue/delete"
         }
       }
     ]
   },
   "recurring-profiles-list": {
-    "targeturl": "http://164.52.214.114:9486/recurringprofiles/getall",
+    "targeturl": "https://guestezee.ecbee.net:9486/recurringprofiles/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "Recurring Profiles",
@@ -11976,13 +11976,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5482/recurringprofiles/delete"
+          "targeturl": "https://guestezee.ecbee.net:5482/recurringprofiles/delete"
         }
       }
     ]
   },
   "role-list": {
-    "targeturl": "http://164.52.214.114:9602/roles/getall",
+    "targeturl": "https://guestezee.ecbee.net:9602/roles/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "Roles",
@@ -12140,13 +12140,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5572/role/delete"
+          "targeturl": "https://guestezee.ecbee.net:5572/role/delete"
         }
       }
     ]
   },
   "list-loyalty-program-currency": {
-    "targeturl": "http://164.52.214.114:9488/loyalityprogramcurrency/getall",
+    "targeturl": "https://guestezee.ecbee.net:9488/loyalityprogramcurrency/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Loyality Program Currency",
@@ -12377,13 +12377,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5484/loyalityprogramcurrency/delete"
+          "targeturl": "https://guestezee.ecbee.net:5484/loyalityprogramcurrency/delete"
         }
       }
     ]
   },
   "list-voucher": {
-    "targeturl": "http://164.52.214.114:9501/voucher/getall",
+    "targeturl": "https://guestezee.ecbee.net:9501/voucher/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Voucher",
@@ -12538,13 +12538,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5498/voucher/delete"
+          "targeturl": "https://guestezee.ecbee.net:5498/voucher/delete"
         }
       }
     ]
   },
   "list-loyalty-tier": {
-    "targeturl": "http://164.52.214.114:9487/loyalitytier/getall",
+    "targeturl": "https://guestezee.ecbee.net:9487/loyalitytier/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Loyality Tier",
@@ -12699,13 +12699,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5483/loyaltytier/delete"
+          "targeturl": "https://guestezee.ecbee.net:5483/loyaltytier/delete"
         }
       }
     ]
   },
   "list-benefit-type": {
-    "targeturl": "http://164.52.214.114:9510/benefittype/getall",
+    "targeturl": "https://guestezee.ecbee.net:9510/benefittype/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Benefit Types",
@@ -12936,13 +12936,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5507/benefittype/delete"
+          "targeturl": "https://guestezee.ecbee.net:5507/benefittype/delete"
         }
       }
     ]
   },
   "new-loyalty-program-list": {
-    "targeturl": "http://164.52.214.114:9491/loyalityprogram/getall",
+    "targeturl": "https://guestezee.ecbee.net:9491/loyalityprogram/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "New Loyalty Program",
@@ -13135,13 +13135,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:9426/newloyaltyprogram/delete"
+          "targeturl": "https://guestezee.ecbee.net:9426/newloyaltyprogram/delete"
         }
       }
     ]
   },
   "new-loyalty-tier-group-list": {
-    "targeturl": "http://164.52.214.114:9492/loyalitytiergroup/getall",
+    "targeturl": "https://guestezee.ecbee.net:9492/loyalitytiergroup/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "New Loyalty Tier Group",
@@ -13296,13 +13296,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:9426/newloyaltytiergroup/delete"
+          "targeturl": "https://guestezee.ecbee.net:9426/newloyaltytiergroup/delete"
         }
       }
     ]
   },
   "issue-voucher-list": {
-    "targeturl": "http://164.52.214.114:9412/issuevoucher/getall",
+    "targeturl": "https://guestezee.ecbee.net:9412/issuevoucher/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "New Issue Voucher",
@@ -13455,13 +13455,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:9426/issuevoucher/delete"
+          "targeturl": "https://guestezee.ecbee.net:9426/issuevoucher/delete"
         }
       }
     ]
   },
   "list-loyalty-tier-benefit": {
-    "targeturl": "http://164.52.214.114:9498/loyaltytierbenefit/getall",
+    "targeturl": "https://guestezee.ecbee.net:9498/loyaltytierbenefit/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Loyality Tier Benefits",
@@ -13616,13 +13616,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5495/loyaltytierbenefit/delete"
+          "targeturl": "https://guestezee.ecbee.net:5495/loyaltytierbenefit/delete"
         }
       }
     ]
   },
   "loyalty-partner-list": {
-    "targeturl": "http://164.52.214.114:9412/loyaltypartner/getall",
+    "targeturl": "https://guestezee.ecbee.net:9412/loyaltypartner/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "Loyalty Partner",
@@ -13775,13 +13775,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:9426/loyaltypartner/delete"
+          "targeturl": "https://guestezee.ecbee.net:9426/loyaltypartner/delete"
         }
       }
     ]
   },
   "loyalty-partner-contact-list": {
-    "targeturl": "http://164.52.214.114:9412/loyaltypartnercontact/getall",
+    "targeturl": "https://guestezee.ecbee.net:9412/loyaltypartnercontact/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "Loyalty Partner",
@@ -13934,13 +13934,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:9426/loyaltypartnercontact/delete"
+          "targeturl": "https://guestezee.ecbee.net:9426/loyaltypartnercontact/delete"
         }
       }
     ]
   },
   "merchant-list": {
-    "targeturl": "http://164.52.214.114:9525/merchant/getall",
+    "targeturl": "https://guestezee.ecbee.net:9525/merchant/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "Merchant List",
@@ -14246,13 +14246,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:9525/merchant/delete"
+          "targeturl": "https://guestezee.ecbee.net:9525/merchant/delete"
         }
       }
     ]
   },
   "list-store-permissions": {
-    "targeturl": "http://164.52.214.114:9624/store-permission/getall",
+    "targeturl": "https://guestezee.ecbee.net:9624/store-permission/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "Store Permissions",
@@ -14483,13 +14483,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5573/store-permission/delete"
+          "targeturl": "https://guestezee.ecbee.net:5573/store-permission/delete"
         }
       }
     ]
   },
   "list-privileges": {
-    "targeturl": "http://164.52.214.114:9401/roles/getall",
+    "targeturl": "https://guestezee.ecbee.net:9401/roles/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "Roles",
@@ -14644,13 +14644,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5404/roles/delete"
+          "targeturl": "https://guestezee.ecbee.net:5404/roles/delete"
         }
       }
     ]
   },
   "list-admin-users": {
-    "targeturl": "http://164.52.214.114:9400/user/getall",
+    "targeturl": "https://guestezee.ecbee.net:9400/user/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "Users",
@@ -14843,13 +14843,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5403/user/delete"
+          "targeturl": "https://guestezee.ecbee.net:5403/user/delete"
         }
       }
     ]
   },
   "list-outlet-permissions": {
-    "targeturl": "http://164.52.214.114:9625/outlet-permission/getall",
+    "targeturl": "https://guestezee.ecbee.net:9625/outlet-permission/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "Outlet Permissions",
@@ -15118,13 +15118,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5570/outlet-permission/delete"
+          "targeturl": "https://guestezee.ecbee.net:5570/outlet-permission/delete"
         }
       }
     ]
   },
   "list-auth-profile": {
-    "targeturl": "http://164.52.214.114:9601/profile/getall",
+    "targeturl": "https://guestezee.ecbee.net:9601/profile/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "Auth Profile",
@@ -15431,13 +15431,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5571/profile/delete"
+          "targeturl": "https://guestezee.ecbee.net:5571/profile/delete"
         }
       }
     ]
   },
   "list-loyalty-promotion": {
-    "targeturl": "http://164.52.214.114:9502/loyaltypromotion/getall",
+    "targeturl": "https://guestezee.ecbee.net:9502/loyaltypromotion/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Loyality Promotion",
@@ -15668,13 +15668,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5499/loyaltypromotion/delete"
+          "targeturl": "https://guestezee.ecbee.net:5499/loyaltypromotion/delete"
         }
       }
     ]
   },
   "list-market-segment": {
-    "targeturl": "http://164.52.214.114:9505/marketsegment/getall",
+    "targeturl": "https://guestezee.ecbee.net:9505/marketsegment/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Market Segment",
@@ -15829,13 +15829,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5502/marketsegment/delete"
+          "targeturl": "https://guestezee.ecbee.net:5502/marketsegment/delete"
         }
       }
     ]
   },
   "list-transaction-journal": {
-    "targeturl": "http://164.52.214.114:9506/transactionjournal/getall",
+    "targeturl": "https://guestezee.ecbee.net:9506/transactionjournal/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Transaction Journal",
@@ -16028,13 +16028,13 @@
           "updateurl": "",
           "cloneurl": "api/v1/account/clone",
           "returnurl": "",
-          "targeturl": "http://164.52.214.114:5503/transactionjournal/delete"
+          "targeturl": "https://guestezee.ecbee.net:5503/transactionjournal/delete"
         }
       }
     ]
   },
   "all-orders1": {
-    "targeturl": "http://164.52.214.114:9442/order/getall",
+    "targeturl": "https://guestezee.ecbee.net:9442/order/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Orders",
@@ -16332,7 +16332,7 @@
     ]
   },
   "wishlist": {
-    "targeturl": "http://164.52.214.114:9613/wishlist/getall",
+    "targeturl": "https://guestezee.ecbee.net:9613/wishlist/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Wishlist",
@@ -16516,7 +16516,7 @@
     ]
   },
   "all-order": {
-    "targeturl": "http://164.52.214.114:9442/order/getall",
+    "targeturl": "https://guestezee.ecbee.net:9442/order/getall",
     "columncount": 0,
     "tabkeyorder": "L-R",
     "h1": "All Orders",

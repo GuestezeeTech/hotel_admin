@@ -1,0 +1,46 @@
+<div class="main">
+    <!-- <app-alerts></app-alerts> -->
+    <div class="centered-container">
+        <div class="container">
+<div class="section" >
+    <div class="add-btn-section">
+      <button class="add-btn submit" style="float: inline-end;
+    margin-bottom: 20px;
+    background: #800020;
+    color: white;
+    border-radius: 5px;
+    border: 1px solid white;
+    padding: 5px;" (click)="navigateToOutlet()">Add Outlet</button>
+    </div>
+            <!-- Header -->
+         
+
+ 
+            <!-- Table -->
+            <div class="table-responsive">
+                <div style="border: 1px solid #dee2e6; border-radius: 12px; overflow: hidden;">
+                    <table class="table text-center align-middle mb-0">
+                        <thead class="table-light">
+                            <tr class="text-nowrap">
+                                <th class="text-start">Outlet Id</th>
+                                <th>Outlet Name</th>
+                                <th>Location</th>
+                                <th>Phone Number</th>
+                                <th>Products</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr  *ngFor="let data of outletdata;" >
+                              <td class="text-start"  style="cursor: pointer;" (click)="navigateById(data.id)">{{data.id}}</td>
+                              <td>{{data.name}}</td>
+                              <td>{{data.location}}</td>
+                              <td>{{data.phone}}</td>
+                              <td style="cursor: pointer;color: blue;" (click)="viewProducts(data.id)">view</td>
+                            </tr>
+                          </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
