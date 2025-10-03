@@ -745,7 +745,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
       err => {
         this.loaderService.emitComplete();
         if (err.error.statusCode === 403) {
-          // this.alertsService.error('Session Time Out! Please login Again', this.options);
+          // this.alertsService.error('Session Time Ot! Please login Again', this.options);
           this.router.navigate([`/login`], { skipLocationChange: false });
         } else if (err.error.message) {
           // this.alertsService.error(err.error.message, this.options);
