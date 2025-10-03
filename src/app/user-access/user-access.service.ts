@@ -1,6 +1,9 @@
 import { Injectable } from '@angular/core';
 import { LocalStorageService } from '../auth-services/local-storage.service';
 import { BehaviorSubject } from 'rxjs';
+import { DOMAIN_NAME, USER_ID } from '../app.config';
+import { HierarchyService } from '../hierarchy/hierarchy.service';
+import { ENDPOINTS } from '../app.config';
 
 @Injectable({
     providedIn: 'root'
@@ -49,12 +52,13 @@ export class UserAccessService {
     }
 
     constructor(
-        private localStorageService: LocalStorageService
+        private localStorageService: LocalStorageService,
+        private hierarchyService: HierarchyService
     ) { }
 
     setUserAccess(userAccessObj: any) {
         this.localStorageService.set("USERACCESS", JSON.stringify(userAccessObj));
-        this.userAccessSubject.next(userAccessObj); // 🚨 This notifies all subscribers
+        this.userAccessSubject.next(userAccessObj); // This notifies all subscribers
     }
 
     getUserAccess() {
@@ -71,4 +75,6 @@ export class UserAccessService {
             this.localStorageService.remove("USERACCESS")
         }
     }
+
+   
 }

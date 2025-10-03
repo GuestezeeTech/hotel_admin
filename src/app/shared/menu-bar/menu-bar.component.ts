@@ -61,6 +61,29 @@ export class MenuBarComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    console.log('Type:', this.localService.get('CustomerType'));
+    this.customerType = this.localService.get('CustomerType');
+    // Newly added
+    this.hotelId = Number(this.localService.get('UserId'));
+    console.log('Hotel ID:', this.hotelId);
+    this.maxTabReached = this.localService.get('maxTabReached');
+    //console.log('Tab:', this.maxTabReached);
+    // this.getCustomerById();
+    // Customer Type
+    // this.customerType = this.localService.get('CustomerType');
+    // console.log('Customer Type:', this.customerType);
+    // if (this.customerType && this.hotelId) {
+    //   this.getCustomerById();
+    // }
+    this.getCustomerType().then(() => {
+      console.log('Customer Type In Menu:', this.customerType);
+      if (this.customerType && this.hotelId) {
+        this.getCustomerById();
+      }
+    }).catch(err => {
+      console.error("Error fetching customer type:", err);
+    });
+
     this.router.events
       .pipe(filter(event => event instanceof NavigationEnd))
       .subscribe((event: NavigationEnd) => {
@@ -76,18 +99,6 @@ export class MenuBarComponent implements OnInit {
     // this.userAccess = this.userAccessService.userAccessList;
     this.userAccess = this.userAccessService.getUserAccess();
     //console.log(this.userAccess, "this.userAccess")
-    // Newly added
-    this.hotelId = Number(this.localService.get('UserId'));
-    console.log('Hotel ID:', this.hotelId);
-    this.maxTabReached = this.localService.get('maxTabReached');
-    //console.log('Tab:', this.maxTabReached);
-    // this.getCustomerById();
-    // Customer Type
-    this.customerType = this.localService.get('CustomerType');
-    console.log('Customer Type:', this.customerType);
-    if (this.customerType && this.hotelId) {
-      this.getCustomerById();
-    }
 
   }
 
@@ -189,6 +200,45 @@ export class MenuBarComponent implements OnInit {
             console.log(this.customerdata, "RESPDATA");
             //console.log(Array.isArray(this.customerdata));
             resolve();  // Resolve promise when data is set
+          }
+        },
+        err => {
+          this.loaderService.emitComplete();
+          if (err.error.statusCode === 403) {
+            this.alerts.error('Session Time Out! Please login Again', this.options);
+            this.router.navigate([`/login`], { skipLocationChange: false });
+          } else if (err.error.message) {
+            this.alerts.error(err.error.message, this.options);
+          } else {
+            this.alerts.error('Something bad happened. Please try again!', this.options);
+          }
+          reject(err);  // Reject promise if there is an error
+        }
+      );
+    });
+  }
+
+  getCustomerType(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      let requestBody = {
+        domain_name: DOMAIN_NAME,
+        user_id: USER_ID,
+        extras: {
+          find:
+            this.customerType === 'Staff'
+              ? { staff_id: this.hotelId }
+              : { id: this.hotelId }
+        }
+      };
+      this.hotelenrollmentservice.getLoginCustomerById(requestBody).subscribe(
+        resp => {
+          this.loaderService.emitComplete();
+          if (resp) {
+            this.customerdata = resp.result.data[0];
+            this.customerType = this.customerdata.staff_employee_number == undefined ? 'Customer' : 'Staff';
+            this.localService.set('CustomerType', this.customerType);
+            console.log('Customer Type:', this.localService.get('CustomerType'));
+            resolve();  
           }
         },
         err => {

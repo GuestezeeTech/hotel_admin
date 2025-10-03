@@ -1,3 +1,5 @@
+import { LoaderService } from './../../shared/loader/loader.service';
+import { HotelEnrollmentTabviewService } from './../../hotel-enrollment-tabview/hotel-enrollment-tabview.service';
 import { CommonModule } from '@angular/common';
 import { DOMAIN_NAME, USER_ID } from './../../app.config';
 import { Component, OnInit } from '@angular/core';
@@ -9,6 +11,7 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { LocalStorageService } from '../../auth-services/local-storage.service';
 import { FirestoreListenerService } from '../../firestore-listener.service';
 import { FormsModule } from '@angular/forms';
+import { StaffService } from '../staff/staff.service';
 
 @Component({
   selector: 'app-staff-listing',
@@ -24,6 +27,7 @@ export class StaffListingComponent implements OnInit {
     keepAfterRouteChange: false
   };
   isDeleteModalOpen: boolean = false;
+  isDeleteStaffModalOpen: boolean = false;
   staves: any = [];
   allStaves: any = [];
   isApiModal: boolean = false;
@@ -31,14 +35,18 @@ export class StaffListingComponent implements OnInit {
   pageSize: number = 10; // Show 10 roles per page
   totalStaves: number = 0; // Total number of roles
   totalPages: number = 0; // Total number of pages
-
+  hotelId: any;
+  memberId: any;
 
   constructor(
     private alertService: AlertsService,
     private routeUrl: Router,
     private staffListingService: StaffListingService,
     private localStorageService: LocalStorageService,
-    private firestoreListenerService: FirestoreListenerService
+    private firestoreListenerService: FirestoreListenerService,
+    private staffService: StaffService,
+    private hotelenrollmentservice: HotelEnrollmentTabviewService,
+    private loaderService: LoaderService
   ) { }
 
   ngOnInit() {
@@ -50,9 +58,56 @@ export class StaffListingComponent implements OnInit {
         this.firestoreListenerService.resetHitServiceChangeFlag();
       }
     });
-    // To initially load all staff data's
-    this.getAllStaves();
+    this.hotelId = Number(this.localStorageService.get('UserId'));
+    console.log('Hotel Id:', this.hotelId);
+    // First get customer → then fetch staves
+    this.getCustomerById()
+      .then(() => {
+        // Now that memberId is set, call staves API
+        this.getAllStaves();
+      })
+      .catch(err => {
+        console.error("Error in getting customer by ID:", err);
+      });
 
+  }
+
+  getCustomerById(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      let requestBody = {
+        domain_name: DOMAIN_NAME,
+        user_id: USER_ID,
+        extras: {
+          find: {
+            "id": this.hotelId
+          }
+        }
+      };
+      this.hotelenrollmentservice.getLoginCustomerById(requestBody).subscribe(
+        resp => {
+          this.loaderService.emitComplete();
+          if (resp) {
+            const customerdata = resp.result.data[0];
+            console.log('Customer Data:', customerdata);
+            this.memberId = customerdata.customer_member_id;
+            console.log('Member Id:', this.memberId);
+            resolve();
+          }
+        },
+        err => {
+          this.loaderService.emitComplete();
+          if (err.error.statusCode === 403) {
+            this.alertService.error('Session Time Out! Please login Again', this.options);
+            this.routeUrl.navigate([`/login`], { skipLocationChange: false });
+          } else if (err.error.message) {
+            this.alertService.error(err.error.message, this.options);
+          } else {
+            this.alertService.error('Something bad happened. Please try again!', this.options);
+          }
+          reject(err);  // Reject promise if there is an error
+        }
+      );
+    });
   }
 
   getAllStaves() {
@@ -62,9 +117,9 @@ export class StaffListingComponent implements OnInit {
       "user_id": USER_ID,
       "extras": {
         "find": {
-          "member_id": this.localStorageService.get('MemberId')
+          "member_id": this.memberId
         },
-        "pagination": false,
+        "pagination": true,
         "sorting": true,
         "sortingDetails": {
           "id": -1
@@ -125,9 +180,17 @@ export class StaffListingComponent implements OnInit {
   }
 
   openDeleteModal() {
+    //  Check if any selected staff is a higher_level_officer for others
+    const blockedStaffIds = this.allStaves
+      .filter((staff: any) => staff.higher_level_officer && this.selectedStaffIds.includes(staff.higher_level_officer.id))
+      .map((staff: any) => staff.higher_level_officer.id);
     if (this.selectedStaffIds.length == 0) {
-      this.alertService.error("Please select at least one user to delete.", this.options);
+      this.alertService.error("Please select at least one staff to delete.", this.options);
     }
+    // else if (blockedStaffIds.length > 0) {
+    //   this.isDeleteStaffModalOpen = true;
+    //   return;
+    // }
     else {
       this.isDeleteModalOpen = true;
     }
@@ -135,13 +198,19 @@ export class StaffListingComponent implements OnInit {
 
   // This function closes the delete modal
   closeDeleteModal() {
+    this.selectedStaffIds = [];
     this.isDeleteModalOpen = false;
+  }
+
+  closeDeleteStaffModal() {
+    this.selectedStaffIds = [];
+    this.isDeleteStaffModalOpen = false;
   }
 
   deleteSelectedStaves() {
     this.isDeleteModalOpen = false;
     if (this.selectedStaffIds.length === 0) {
-      this.alertService.error("Please select at least one user to delete.", this.options);
+      this.alertService.error("Please select at least one staff to delete.", this.options);
       return;
     }
     //console.log(this.selectedStaffIds, "this.selectedRoleIds")
@@ -158,8 +227,14 @@ export class StaffListingComponent implements OnInit {
         }
       }
     };
+    // alert("Are you sure you want to delete the selected staff members? This action cannot be undone.");
     this.staffListingService.deleteStaff(jsonObj).subscribe(
       resp => {
+        if (resp.success === 0 && resp.status_code === 200 && resp.message === "Record not deleted") {
+          this.isDeleteStaffModalOpen = true;
+          this.selectedStaffIds = []; // Clear selected IDs
+          return;
+        }
         if (resp.success === 1) {
           this.alertService.success("Staff deleted successfully!", this.options);
           this.selectedStaffIds = []; // Clear selected IDs after successful deletion
@@ -187,7 +262,30 @@ export class StaffListingComponent implements OnInit {
   }
 
   // To navigate to role page with id
-  toggleAddStaff() {
+  // toggleAddStaff() {
+  //   this.routeUrl.navigate(['/staff']);
+  // }
+
+  // To handle first staff creation
+  async toggleAddStaff() {
+    console.log('Staff length:', this.allStaves.length);
+    if (!this.allStaves || this.allStaves.length === 0) {
+      // first staff flow — fetch and store default hierarchy in service
+      await this.staffService.getDefaultHierarchyForFirstStaff();
+    } else {
+      // clear first-staff flags
+      this.staffService.defaultHierarchy = null;
+      this.staffService.isFirstStaff = false;
+    }
+    // navigate (no query params)
     this.routeUrl.navigate(['/staff']);
   }
+
+  getRoomLabels(staff: any): string {
+    if (!staff.room_no || staff.room_no.length === 0) {
+      return '';
+    }
+    return staff.room_no.map((r: any) => r.label).join(', ');
+  }
+
 }

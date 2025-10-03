@@ -4,9 +4,11 @@
             <th>Name</th>
             <th>Room No</th>
             <th>Service</th>
-            <th>Order Time</th>
+            <th>Service Date</th>
+            <th>Service Time</th>
             <th>Status</th>
-            <th>Assignee</th>
+            <th>Escalated To</th>
+            <!-- <th>Assignee</th> -->
             <!-- <th>Action</th> -->
         </tr>
     </thead>
@@ -15,6 +17,7 @@
             <td (click)="navigateToTimeline(task.id)" style="cursor: pointer">{{ task.guest_name }}</td>
             <td>{{ task.room_no }}</td>
             <td>{{ task.service.service_name }}</td>
+            <td>{{ task.order_date | date:'dd-MM-yyyy'}}</td>
             <td>{{ task.order_time }}</td>
             <td>
                 <div
@@ -22,7 +25,8 @@
                     Escalated
                 </div>
             </td>
-            <td>{{ task.assigned_staff_name }}</td>
+            <td>{{ task.escalated_to_name }}</td>
+            <!-- <td>{{ task.assigned_staff_name }}</td> -->
             <!-- <td><button style="color: #545460; border: none !important; cursor: pointer; background-color: white !important; text-decoration: underline;" (click)="onAddAssignee(task)">Update</button></td> -->
         </tr>
     </tbody>

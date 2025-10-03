@@ -12,6 +12,7 @@ import { AuthTokenService } from '../auth-services/auth-token.service';
 export class LoginService {
 
   dbSchema: string = "";
+  private baseUrl = 'https://www.guestezee.com:5520/api/Email';
 
   constructor
     (
@@ -71,91 +72,91 @@ export class LoginService {
       }
     }
   }
-  checkoutAPICall(endPoint:string, reqData?:any){
+  checkoutAPICall(endPoint: string, reqData?: any) {
     return new Promise((resolve) => {
       var respObject = {
-        success:true,
-        data:{},
-        message:""
+        success: true,
+        data: {},
+        message: ""
       }
-      this.otpApiCall(reqData ? reqData:this.commonRequestData, endPoint).subscribe(
-      resp1 => {
-        let resp = resp1;
-        if(resp.success === 1){
-          respObject.success = true;
-          if(resp.result){
-            respObject.data = resp.result.data;
-          }
-          else{
-            respObject = resp;
-          }
-         if(resp.message){
-           respObject.message = resp.message;
-         }
-         resolve(respObject);
-        }
-        else if(resp.success === 0){
-          if(resp.result){
-            if(resp.result.data.deliveryCharge){
-              respObject.success = true;
-              if(resp.result){
-                respObject.data = resp.result.data;
-              }
-              else{
-                respObject = resp;
-              }
-              if(resp.message){
-                respObject.message = resp.message;
-              }
-              resolve(respObject);
+      this.otpApiCall(reqData ? reqData : this.commonRequestData, endPoint).subscribe(
+        resp1 => {
+          let resp = resp1;
+          if (resp.success === 1) {
+            respObject.success = true;
+            if (resp.result) {
+              respObject.data = resp.result.data;
             }
-            else{
+            else {
+              respObject = resp;
+            }
+            if (resp.message) {
+              respObject.message = resp.message;
+            }
+            resolve(respObject);
+          }
+          else if (resp.success === 0) {
+            if (resp.result) {
+              if (resp.result.data.deliveryCharge) {
+                respObject.success = true;
+                if (resp.result) {
+                  respObject.data = resp.result.data;
+                }
+                else {
+                  respObject = resp;
+                }
+                if (resp.message) {
+                  respObject.message = resp.message;
+                }
+                resolve(respObject);
+              }
+              else {
+                respObject.success = false;
+                respObject.data = resp;
+                if (resp.message) {
+                  respObject.message = resp.message;
+                }
+                resolve(respObject)
+              }
+            }
+            else {
               respObject.success = false;
               respObject.data = resp;
-              if(resp.message){
+              if (resp.message) {
                 respObject.message = resp.message;
               }
               resolve(respObject)
             }
           }
-          else{
+          else {
             respObject.success = false;
-            respObject.data = resp;
-            if(resp.message){
+            if (resp.message) {
               respObject.message = resp.message;
             }
-            resolve(respObject)
+            else {
+              respObject.message = 'Something bad happened; Please try again!';
+            }
+            resolve(respObject);
           }
-        }
-        else{
+        },
+        err => {
           respObject.success = false;
-          if(resp.message){
-            respObject.message = resp.message;
+          if (err.error.statusCode === 401) {
+            respObject.message = "Your password is invalid. Please try again."
           }
-          else{
+          else if (err.error.statusCode === 500) {
+            respObject.message = err.error.message;
+          }
+          else if (err.error.error) {
+            if (err.error.error.message) {
+              respObject.message = err.error.error.message
+            }
+          }
+          else {
             respObject.message = 'Something bad happened; Please try again!';
           }
           resolve(respObject);
-        }
-      },
-      err => {
-        respObject.success = false;
-        if(err.error.statusCode === 401){
-          respObject.message = "Your password is invalid. Please try again."
-        }
-        else if(err.error.statusCode === 500){
-          respObject.message = err.error.message;
-        }
-        else if (err.error.error) {
-          if(err.error.error.message){
-            respObject.message = err.error.error.message
-          }
-        }
-        else{
-          respObject.message = 'Something bad happened; Please try again!';
-        }
-        resolve(respObject);
-      })
+        })
     })
   }
 
@@ -164,100 +165,104 @@ export class LoginService {
       headers: new HttpHeaders().set("Content-Type", "application/json"),
     });
   }
- 
-  
-  checkoutAPICall1(endPoint:string, reqData?:any){
+
+
+  checkoutAPICall1(endPoint: string, reqData?: any) {
     return new Promise((resolve, reject) => {
       var respObject = {
-        success:true,
-        data:{},
-        message:""
+        success: true,
+        data: {},
+        message: ""
       }
-      this.postApiCall1(reqData ? reqData:this.commonRequestData, endPoint).subscribe(
-      resp1 => {
-        let resp = resp1;
-        if(resp.success === 1){
-          respObject.success = true;
-          if(resp.result){
-            respObject.data = resp.result.data;
-          }
-          else{
-            respObject = resp;
-          }
-         if(resp.message){
-           respObject.message = resp.message;
-         }
-         resolve(respObject);
-        }
-        else if(resp.success === 0){
-          if(resp.result){
-            if(resp.result.data.deliveryCharge){
-              respObject.success = true;
-              if(resp.result){
-                respObject.data = resp.result.data;
-              }
-              else{
-                respObject = resp;
-              }
-              if(resp.message){
-                respObject.message = resp.message;
-              }
-              resolve(respObject);
+      this.postApiCall1(reqData ? reqData : this.commonRequestData, endPoint).subscribe(
+        resp1 => {
+          let resp = resp1;
+          if (resp.success === 1) {
+            respObject.success = true;
+            if (resp.result) {
+              respObject.data = resp.result.data;
             }
-            else{
+            else {
+              respObject = resp;
+            }
+            if (resp.message) {
+              respObject.message = resp.message;
+            }
+            resolve(respObject);
+          }
+          else if (resp.success === 0) {
+            if (resp.result) {
+              if (resp.result.data.deliveryCharge) {
+                respObject.success = true;
+                if (resp.result) {
+                  respObject.data = resp.result.data;
+                }
+                else {
+                  respObject = resp;
+                }
+                if (resp.message) {
+                  respObject.message = resp.message;
+                }
+                resolve(respObject);
+              }
+              else {
+                respObject.success = false;
+                respObject.data = resp;
+                if (resp.message) {
+                  respObject.message = resp.message;
+                }
+                resolve(respObject)
+              }
+            }
+            else {
               respObject.success = false;
               respObject.data = resp;
-              if(resp.message){
+              if (resp.message) {
                 respObject.message = resp.message;
               }
               resolve(respObject)
             }
           }
-          else{
+          else {
             respObject.success = false;
-            respObject.data = resp;
-            if(resp.message){
+            if (resp.message) {
               respObject.message = resp.message;
             }
-            resolve(respObject)
+            else {
+              respObject.message = 'Something bad happened; Please try again!';
+            }
+            resolve(respObject);
           }
-        }
-        else{
+        },
+        err => {
           respObject.success = false;
-          if(resp.message){
-            respObject.message = resp.message;
+          if (err.error.statusCode === 401) {
+            respObject.message = "Your password is invalid. Please try again."
           }
-          else{
+          else if (err.error.statusCode === 500) {
+            respObject.message = err.error.message;
+          }
+          else if (err.error.error) {
+            if (err.error.error.message) {
+              respObject.message = err.error.error.message
+            }
+          }
+          else {
             respObject.message = 'Something bad happened; Please try again!';
           }
           resolve(respObject);
-        }
-      },
-      err => {
-        respObject.success = false;
-        if(err.error.statusCode === 401){
-          respObject.message = "Your password is invalid. Please try again."
-        }
-        else if(err.error.statusCode === 500){
-          respObject.message = err.error.message;
-        }
-        else if (err.error.error) {
-          if(err.error.error.message){
-            respObject.message = err.error.error.message
-          }
-        }
-        else{
-          respObject.message = 'Something bad happened; Please try again!';
-        }
-        resolve(respObject);
-      })
+        })
     })
   }
-  
+
   postApiCall1(dataObj: any, api_endpoint: any): Observable<any> {
     return this.http.post(api_endpoint, dataObj, {
       headers: new HttpHeaders().set("Content-Type", "application/json"),
     });
+  }
+
+  sendWelcomeEmail(payload: any): Observable<any> {
+    return this.http.post(`${this.baseUrl}/enrollmentsuccessemail`, payload);
   }
 }
 

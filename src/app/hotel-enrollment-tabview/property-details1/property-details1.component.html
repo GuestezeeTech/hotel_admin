@@ -471,5 +471,10 @@
       (click)="onSubmit()" [disabled]="(customerProprtyDetailsForm.invalid || (!isAllApiDocumentsUploaded()))">Save
       &
       Continue</button>
+      <!-- <button type="submit" class="save_bt"
+      *ngIf="this.customerdata.property_details?.kyc_documents?.uploaded_documents.length > 0"
+      (click)="onSubmit()" [disabled]="(customerProprtyDetailsForm.invalid || (!isAllApiDocumentsUploaded()))">Save
+      &
+      Continue</button> -->
   </div>
 </form>

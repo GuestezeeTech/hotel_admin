@@ -1,0 +1,44 @@
+<table class="escalated-table table">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Room No</th>
+            <th>Service</th>
+            <th>Service Date</th>
+            <th>Service Time</th>
+            <th>Status</th>
+            <th>Escalated Time</th>
+            <th>Escalated From</th>
+            <th>Escalated To</th>
+            <!-- <th>Action</th> -->
+        </tr>
+    </thead>
+    <tbody>
+        <tr *ngFor="let task of allEscalatedTasks">
+            <td (click)="navigateToTimeline(task.id)" style="cursor: pointer">{{ task.guest_name }}</td>
+            <td>{{ task.room_no }}</td>
+            <td>{{ task.service.service_name }}</td>
+            <td>{{ task.order_date | date:'dd-MM-yyyy'}}</td>
+            <td>{{ task.order_time }}</td>
+            <td>
+                <div
+                    style="color: #E70909; background-color: #f2d9d9; border-radius: 50px; padding: 4px 12px; font-weight: 500; font-size: 12px; text-align: center; display: inline-block;">
+                    Escalated
+                </div>
+            </td>
+            <td>{{ task.escalated_time }}</td>
+            <td>{{ task.escalated_from_name }}</td>
+            <td>{{ task.escalated_to_name }}</td>
+            <!-- <td><button style="color: #545460; border: none !important; cursor: pointer; background-color: white !important; text-decoration: underline;" (click)="onAddAssignee(task)">Update</button></td> -->
+        </tr>
+    </tbody>
+</table>
+<div class="pagination-container">
+    <button (click)="previousPage()" [disabled]="currentPage === 1" class="pagination-btn">
+        Previous
+    </button>
+    <input type="text" class="pagination-input" [(ngModel)]="currentPage" readonly>
+    <button (click)="nextPage()" [disabled]="currentPage === totalPages" class="pagination-btn">
+        Next
+    </button>
+</div>

@@ -11,6 +11,7 @@ import { FirestoreListenerService } from '../../firestore-listener.service';
 import { LocalStorageService } from '../../auth-services/local-storage.service';
 import { TaskManagementService } from '../task-management.service';
 import { FormsModule } from '@angular/forms';
+import { HotelListService } from '../../hotel-list/hotel-list.service';
 
 @Component({
   selector: 'app-asap-cart',
@@ -90,6 +91,14 @@ export class AsapCartComponent implements OnInit, OnDestroy {
   totalPages: number = 0; // Total number of pages
   // escalatedCount: number = 0;
   private escalatedCount = 0;
+  // Newly added - parentId
+  at_desk: any;
+  deskStaff: any[] = [];
+  member_id: any;
+  deskStavesIds: number[] = []; // Store desk staff IDs
+  // Newly added for getting room number based on label
+  labelRoomArray: string[] = [];
+  customerType: any;
 
   constructor(
     private router: Router,
@@ -98,9 +107,12 @@ export class AsapCartComponent implements OnInit, OnDestroy {
     private alertService: AlertsService,
     private firestoreListenerService: FirestoreListenerService,
     private localService: LocalStorageService,
-    private taskManagementService: TaskManagementService
+    private taskManagementService: TaskManagementService,
+    private hotelListService: HotelListService
     // private firestoreService: FirestoreService
   ) { }
+
+  private escalatedTaskIds = new Set<number>();
 
   ngOnInit() {
     this.hotelId = Number(this.localService.get('UserId'));
@@ -139,10 +151,13 @@ export class AsapCartComponent implements OnInit, OnDestroy {
       this.escalationHierarchy = JSON.parse(this.escalationHierarchy);
       //console.log('Escalation Hierarchy:', this.escalationHierarchy);
       this.escalationTime = this.escalationHierarchy.escalationTime;
+      console.log('Escalation Time:', this.escalationTime);
       //console.log('Escalation Time:', this.escalationTime);
     } else {
       //console.warn('Hierarchy data not found in localStorage');
     }
+    this.member_id = this.localService.get('MemberId');
+    console.log('Member id in asap:', this.member_id);
   }
 
   ngOnDestroy() {
@@ -157,96 +172,236 @@ export class AsapCartComponent implements OnInit, OnDestroy {
     this.isApiModal = false;
   }
 
-  private escalatedTaskIds = new Set<number>();
-  getAllAsapTask() {
-    let customerType = this.localService.get('CustomerType');
-    let object;
-    if (customerType == 'Customer') {
-      object = { "status": "ASAP" };
-    }
-    else {
-      let staffData: any = this.localService.get('StaffData');
-      // //console.log('Staff Data:', staffData);
-      let staffDataParse = JSON.parse(staffData);
-      let staffRoomNo = staffDataParse.room_no;
-      // //console.log('Staff Room No:', staffRoomNo)
-      let hierarchy: any = this.localService.get('hierarchy');
-      let hierarchyParse = JSON.parse(hierarchy)
-      let sequence = hierarchyParse?.sequence;
-      // //console.log('Hierarchy Sequence:', sequence);
-      let department = hierarchyParse?.department;
-      // //console.log('Hierarchy Department:', department);
-      if (hierarchy.department == '') {
-        object = {
-          "status": "ASAP",
-          "sequence": sequence
-        };
-      }
-      else if (sequence == 2) {
-        object = {
-          "status": "ASAP",
-          "service.category": department,
-          "room_no": staffRoomNo
-        };
-      }
-      else {
-        // what staff? -- higher level staffs but having department
-        if (staffRoomNo.length > 0) {
-          object = {
-            "status": "ASAP",
-            "service.category": department,
-            "sequence": sequence,
-            "room_no": staffRoomNo,
-            "staff_id": Number(this.localService.get('UserId'))
-          };
-        } else {
-          object = {
-            "status": "ASAP",
-            "service.category": department,
-            "sequence": sequence,
-            "staff_id": Number(this.localService.get('UserId'))
-          }
-        }
+  // Newly commented for getting room number based on label
+  // getAllAsapTask() {
+  //   let customerType = this.localService.get('CustomerType');
+  //   let object;
+  //   if (customerType == 'Customer') {
+  //     object = { "status": "ASAP" };
+  //   }
+  //   else {
+  //     let staffData: any = this.localService.get('StaffData');
+  //     let staffDataParse = JSON.parse(staffData);
+  //     let staffRoomNo = staffDataParse.room_no;
+  //     let hierarchy: any = this.localService.get('hierarchy');
+  //     let hierarchyParse = JSON.parse(hierarchy)
+  //     // let sequence = hierarchyParse?.sequence;
+  //     // //console.log('Hierarchy Sequence:', sequence);
+  //     let department = hierarchyParse?.department;
+  //     //console.log('Hierarchy Department:', department);
+  //     // Newly added - parentId
+  //     this.at_desk = staffDataParse.at_desk;
+  //     this.member_id = staffDataParse.member_id;
+  //     console.log('User Data:', this.at_desk);
+  //     if (hierarchy.department == '') {
+  //       object = {
+  //         "status": "ASAP",
+  //         // "sequence": sequence
+  //       };
+  //     }
+  //     // else if (sequence == 2) {
+  //     // Newly added - parentId
+  //     else if (this.at_desk) {
+  //       object = {
+  //         "status": "ASAP",
+  //         "service.category": department,
+  //         "room_no": staffRoomNo
+  //       };
+  //     }
+  //     else {
+  //       // what staff? -- higher level staffs but having department
+  //       if (staffRoomNo.length > 0) {
+  //         object = {
+  //           "status": "ASAP",
+  //           "service.category": department,
+  //           // Newly commented - parentId
+  //           // "sequence": sequence,
+  //           "room_no": staffRoomNo,
+  //           "staff_id": Number(this.localService.get('UserId'))
+  //         };
+  //       } else {
+  //         object = {
+  //           "status": "ASAP",
+  //           "service.category": department,
+  //           // Newly commented - parentId
+  //           // "sequence": sequence,
+  //           "staff_id": Number(this.localService.get('UserId'))
+  //         }
+  //       }
+  //     }
+  //   }
+  //   let requestBody = {
+  //     "domain_name": DOMAIN_NAME,
+  //     "user_id": USER_ID,
+  //     "extras": {
+  //       "find": object,
+  //       "pagination": false,
+  //       "sorting": true,
+  //       "sortingDetails": {
+  //         "id": -1
+  //       }
+  //     }
+  //   }
+  //   this.taskManagementService.getAllTask(requestBody).subscribe({
+  //     next: (response) => {
+  //       if (response?.success) {
+  //         this.tasks = response.result.data.map((task: any) => ({
+  //           ...task,
+  //           remainingSeconds: undefined
+  //         }));
+  //         this.tasks.forEach(task => this.initializeTimer(task));
+  //         this.totalTasks = this.tasks.length;
+  //         //console.log('Total  Tasks:', this.totalTasks);
+  //         this.totalPages = Math.ceil(this.totalTasks / this.pageSize);
+  //         //console.log('Total Pages:', this.totalPages);
+  //         this.updatePaginatedTasks(); // Sets first page
+  //         // this.allTasks = response.result.data.map((task: any) => ({
+  //         //   ...task,
+  //         //   remainingSeconds: undefined
+  //         // }));
+  //         // this.allTasks.forEach(task => this.initializeTimer(task));
+  //         // this.allTasks = response.result.data; //For pagination
+  //       } else {
+  //         //console.error('No tasks found:', response?.message);
+  //       }
+  //     },
+  //     error: (err) => {
+  //       //console.error('API Error:', err);
+  //     }
+  //   });
+  // }
 
-      }
+  // Newly added for getting room number based on label
+  // Hits task api
+  getAllAsapTask() {
+    console.log('Called getAllAsapTask');
+    this.customerType = this.localService.get('CustomerType');
+    let memberId = this.localService.get('MemberId');
+    if (this.customerType == 'Customer') {
+      this.callTaskApi({
+        status: ['ASAP', "Assigned"],
+        member_id: memberId
+      });
+    } else {
+      // staff → fetch customer and rooms first
+      this.getCustomerData(memberId); // This will later call `callTaskApi`
     }
+  }
+
+  // Gets customer data based on member id
+  getCustomerData(memberId: any) {
     let requestBody = {
       "domain_name": DOMAIN_NAME,
       "user_id": USER_ID,
       "extras": {
-        "find": object,
-        "pagination": false,
-        "sorting": true,
-        "sortingDetails": {
-          "id": -1
+        "find": { "customer_member_id": memberId }
+      }
+    };
+    this.hotelListService.getSignupAllCustomers(requestBody).subscribe((res: any) => {
+      if (res && res.result.data.length > 0) {
+        const customer = res.result.data[0];
+        console.log('Customer Data:', customer);
+        if (customer && customer.settings?.room_range) {
+          this.mapStaffRooms(customer.settings.room_range);
+          // Now rooms are ready → hit task API
+          this.prepareAndCallTaskApi();
         }
       }
+    });
+  }
+
+  // Gets room no based on label of staff from customer(hotel) settings
+  mapStaffRooms(roomRange: any[]) {
+    let staffData: any = this.localService.get('StaffData');
+    let staffDataParse = JSON.parse(staffData);
+    let staffRoomNo = staffDataParse.room_no; // [{ label: "Floor 1" }, { label: "Floor 3" }]
+    console.log('Staff Room No:', staffRoomNo);
+    let finalRoomArray: string[] = [];
+    staffRoomNo.forEach((staff: any) => {
+      const matched = roomRange.find(r => r.label === staff.label);
+      if (matched) {
+        finalRoomArray.push(`${matched.startRoom}-${matched.endRoom}`);
+      }
+    });
+    console.log('Final Room Array:', finalRoomArray); // ["1-100", "201-300"]
+    this.labelRoomArray = finalRoomArray;
+  }
+
+  // Prepares object and hits task api
+  prepareAndCallTaskApi() {
+    let hierarchy: any = this.localService.get('hierarchy');
+    let hierarchyParse = JSON.parse(hierarchy);
+    let department = hierarchyParse?.department;
+    let staffData: any = this.localService.get('StaffData');
+    let staffDataParse = JSON.parse(staffData);
+    this.at_desk = staffDataParse.at_desk;
+    this.member_id = staffDataParse.member_id;
+    let object: any = { status: ["ASAP", "Assigned"] };
+    if (this.at_desk) {
+      object = {
+        status: ["ASAP", "Assigned"],
+        "service.category": department,
+        room_no: this.labelRoomArray,
+        member_id: this.member_id
+      };
     }
+    // else {
+    //   if (this.labelRoomArray.length > 0 ) {
+    //     object = {
+    //       status: "ASAP",
+    //       "service.category": department,
+    //       room_no: this.labelRoomArray,
+    //       staff_id: Number(this.localService.get('UserId')),
+    //       member_id: this.member_id
+    //     };
+    //   } else {
+    //     object = {
+    //       status: "ASAP",
+    //       "service.category": department,
+    //       staff_id: Number(this.localService.get('UserId')),
+    //       member_id: this.member_id
+    //     };
+    //   }
+    // }
+    console.log('Object:', object);
+    this.callTaskApi(object);
+  }
+
+  // Final call for api
+  callTaskApi(findObject: any) {
+    console.log('Find Object:', findObject);
+    let requestBody = {
+      "domain_name": DOMAIN_NAME,
+      "user_id": USER_ID,
+      "extras": {
+        "find": findObject,
+        "pagination": false,
+        "sorting": true,
+        "sortingDetails": { id: -1 }
+      }
+    };
     this.taskManagementService.getAllTask(requestBody).subscribe({
       next: (response) => {
         if (response?.success) {
-          this.tasks = response.result.data.map((task: any) => ({
-            ...task,
-            remainingSeconds: undefined
-          }));
-          this.tasks.forEach(task => this.initializeTimer(task));
-          this.totalTasks = this.tasks.length;
-          //console.log('Total  Tasks:', this.totalTasks);
-          this.totalPages = Math.ceil(this.totalTasks / this.pageSize);
-          //console.log('Total Pages:', this.totalPages);
-          this.updatePaginatedTasks(); // Sets first page
-          // this.allTasks = response.result.data.map((task: any) => ({
+          // this.tasks = response.result.data.map((task: any) => ({
           //   ...task,
           //   remainingSeconds: undefined
           // }));
-          // this.allTasks.forEach(task => this.initializeTimer(task));
-          // this.allTasks = response.result.data; //For pagination
-        } else {
-          //console.error('No tasks found:', response?.message);
+          // Filter only tasks not having scheduled_date & scheduled_time
+          this.tasks = (response.result.data || [])
+            .filter((task: any) => !task.scheduled_date && !task.scheduled_time)
+            .map((task: any) => ({
+              ...task,
+              remainingSeconds: undefined
+            }));
+          this.tasks.forEach(task => this.initializeTimer(task));
+          this.totalTasks = this.tasks.length;
+          this.totalPages = Math.ceil(this.totalTasks / this.pageSize);
+          this.updatePaginatedTasks();
         }
       },
       error: (err) => {
-        //console.error('API Error:', err);
+        console.error('Task API Error:', err);
       }
     });
   }
@@ -307,7 +462,7 @@ export class AsapCartComponent implements OnInit, OnDestroy {
   initializeTimer(task: any): void {
     //console.log('Initializing timer for task:', task);
     const orderDateTime = new Date(`${task.order_date}T${task.order_time}`);
-    const escalationDurationInSeconds = 1 * 60;
+    const escalationDurationInSeconds = this.escalationTime * 60;
     // const escalationTime = this.escalationHierarchy?.escalationTime || 0;
     // const escalationDurationInSeconds = Math.floor(escalationTime * 60);
     let interval: any; //  Declare interval before using it
@@ -328,7 +483,8 @@ export class AsapCartComponent implements OnInit, OnDestroy {
         // this.updateEscalatedTaskStatusFromDesk(task);
         if (!this.escalatedTaskIds.has(task.id) && task.status !== 'Escalated') {
           this.escalatedTaskIds.add(task.id); // mark as escalated locally
-          this.updateEscalatedTaskStatusFromDesk(task);
+          // Newly commented for update
+          // this.updateEscalatedTaskStatusFromDesk(task);
         }
         clearInterval(interval);
       }
@@ -372,6 +528,12 @@ export class AsapCartComponent implements OnInit, OnDestroy {
     if (task.status === 'Escalated') {
       return;
     }
+    // console.log('Task to be escalated:', task);
+    // Newly added - parentId
+    const department = task?.service?.category;
+    const roomNo = task?.room_no;
+    const task_id = task.id;
+    // this.getDeskDepartment(roomNo, department);
     // const updatedTask = {
     //   ...taskWithoutRemaining,
     //   status: 'Escalated'
@@ -381,10 +543,19 @@ export class AsapCartComponent implements OnInit, OnDestroy {
       user_id: USER_ID,
       payload: {
         update_task: {
-          status: "Escalated",
-          at_desk: task.at_desk,
-          "sequence": 1,
-          "logged_in_user_id": Number(this.localService.get('UserId'))
+          // status: "Escalated",
+          // at_desk: task.at_desk,
+          // Newly added - parentId
+          // "sequence": 1,
+          // "staff_id": this.deskStavesIds,
+          // "logged_in_user_id": Number(this.localService.get('UserId'))
+          // Newly added - parentId
+          "hierarchy.department": department,
+          "at_desk": true,
+          "member_id": this.member_id,
+          "room_no": roomNo,
+          "task_id": task_id,
+          "status": "Escalated"
         }
       },
       extras: {
@@ -401,7 +572,7 @@ export class AsapCartComponent implements OnInit, OnDestroy {
           task.status = 'Escalated';
           this.escalatedCount += 1;
           this.escalatedCountChanged.emit(this.escalatedCount);
-          this.localService.set('escalatedCount', this.escalatedCount.toString()); 
+          this.localService.set('escalatedCount', this.escalatedCount.toString());
           // this.refreshData();
         } else {
           this.alertService.error(resp?.message || 'Update failed', this.options);
@@ -412,6 +583,36 @@ export class AsapCartComponent implements OnInit, OnDestroy {
       }
     );
   }
+
+  // Newly added - parentId
+  // getDeskDepartment(roomNo: any, department: any) {
+  //   const staffFindObject = {
+  //     "hierarchy.department": department,
+  //     "at_desk": true,
+  //     "member_id": this.member_id,
+  //     "room_no": roomNo
+  //   };
+  //   const staffRequestBody = {
+  //     domain_name: DOMAIN_NAME,
+  //     user_id: USER_ID,
+  //     extras: { find: staffFindObject }
+  //   };
+  //   this.taskManagementService.getAllStaves(staffRequestBody).subscribe(
+  //     (resp: any) => {
+  //       if (resp?.success === 1 && resp?.status_code === 200) {
+  //         this.deskStaff = resp.result.data;
+  //         //store only ids
+  //         this.deskStavesIds = this.deskStaff.map((staff: any) => staff.id);
+  //         console.log('Desk Staff:', this.deskStaff);
+  //       } else {
+  //         this.deskStaff = [];
+  //       }
+  //     },
+  //     () => {
+  //       this.deskStaff = [];
+  //     }
+  //   );
+  // }
 
   getEscalateStyles(order: any) {
     const seconds = this.escalateSecondsMap.get(order.name) || 0;

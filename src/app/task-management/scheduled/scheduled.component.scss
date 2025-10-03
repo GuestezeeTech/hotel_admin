@@ -38,11 +38,12 @@ body {
     }
 }
 
+
 .pagination-container {
     display: flex;
     align-items: center;
+    justify-content: end;
     gap: 8px;
-    float: right;
 }
 
 .pagination-input {

@@ -1,3 +1,4 @@
+import { HotelListService } from './../../hotel-list/hotel-list.service';
 import { TaskManagementService } from './../task-management.service';
 import { DOMAIN_NAME, USER_ID } from './../../app.config';
 import { LocalStorageService } from './../../auth-services/local-storage.service';
@@ -5,11 +6,12 @@ import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { Component, Output, EventEmitter } from '@angular/core';
 import { AlertsService } from '../../shared/alerts/alerts.service';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-scheduled',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './scheduled.component.html',
   styleUrl: './scheduled.component.scss'
 })
@@ -17,7 +19,6 @@ import { AlertsService } from '../../shared/alerts/alerts.service';
 export class ScheduledComponent {
   // For modal in task component
   @Output() openAssigneeModal = new EventEmitter<any>();
-
   scheduledTasks: any = [];
   options = {
     autoClose: true,
@@ -137,14 +138,29 @@ export class ScheduledComponent {
   //     action: 'Add Assignee'
   //   }
   // ];
+  // Newly added - parentId
+  at_desk: any;
+  deskStaff: any[] = [];
+  member_id: any;
+  deskStavesIds: number[] = []; // Store desk staff IDs
+  // Newly added for getting room number based on label
+  labelRoomArray: string[] = [];
+  currentPage: number = 1;
+  pageSize: number = 10; // Show 10 roles per page
+  totalTasks: number = 0; // Total number of roles
+  totalPages: number = 0; // Total number of pages
+  allTasks: any[] = [];
+  customerType: any;
 
   constructor(
     private router: Router,
     private localService: LocalStorageService,
     private taskManagementService: TaskManagementService,
-    private alertService: AlertsService) { }
+    private alertService: AlertsService,
+    private hotelListService: HotelListService) { }
 
   ngOnInit() {
+    this.member_id = this.localService.get('MemberId');
     // To load inital all tasks
     this.getAllScheduledTask();
     // Escalation timer for tasks(from hierarchy)
@@ -159,91 +175,248 @@ export class ScheduledComponent {
     }
   }
 
-  getAllScheduledTask() {
-    let customerType = this.localService.get('CustomerType');
-    let object;
-    if (customerType == 'Customer') {
-      object = { "status": "Scheduled" };
-    }
-    else {
-      let staffData: any = this.localService.get('StaffData');
-      // console.log('Staff Data:', staffData);
-      let staffDataParse = JSON.parse(staffData);
-      let staffRoomNo = staffDataParse.room_no;
-      // console.log('Staff Room No:', staffRoomNo)
-      let hierarchy: any = this.localService.get('hierarchy');
-      let hierarchyParse = JSON.parse(hierarchy)
-      let sequence = hierarchyParse?.sequence;
-      // console.log('Hierarchy Sequence:', sequence);
-      let department = hierarchyParse?.department;
-      // console.log('Hierarchy Department:', department);
-      if (hierarchy.department == '') {
-        object = {
-          "status": "Scheduled",
-          "sequence": sequence
-        };
-      }
-      else if (sequence == 2) {
-        object = {
-          "status": "Scheduled",
-          "service.category": department,
-          "room_no": staffRoomNo
-        };
-      }
-      else {
-        // what staff? -- higher level staffs but having department
-        if (staffRoomNo.length > 0) {
-          object = {
-            "status": "Scheduled",
-            "service.category": department,
-            "sequence": sequence,
-            "room_no": staffRoomNo,
-            "staff_id": Number(this.localService.get('UserId'))
-          };
-        } else {
-          object = {
-            "status": "Scheduled",
-            "service.category": department,
-            "sequence": sequence,
-            "staff_id": Number(this.localService.get('UserId'))
-          }
-        }
+  // getAllScheduledTask() {
+  //   let customerType = this.localService.get('CustomerType');
+  //   let object;
+  //   if (customerType == 'Customer') {
+  //     object = { "status": "Scheduled" };
+  //   }
+  //   else {
+  //     let staffData: any = this.localService.get('StaffData');
+  //     // console.log('Staff Data:', staffData);
+  //     let staffDataParse = JSON.parse(staffData);
+  //     let staffRoomNo = staffDataParse.room_no;
+  //     // console.log('Staff Room No:', staffRoomNo)
+  //     let hierarchy: any = this.localService.get('hierarchy');
+  //     let hierarchyParse = JSON.parse(hierarchy)
+  //     let sequence = hierarchyParse?.sequence;
+  //     // console.log('Hierarchy Sequence:', sequence);
+  //     let department = hierarchyParse?.department;
+  //     // console.log('Hierarchy Department:', department);
+  //     // Newly added - parentId
+  //     this.at_desk = staffDataParse.at_desk;
+  //     this.member_id = staffDataParse.member_id;
+  //     if (hierarchy.department == '') {
+  //       object = {
+  //         "status": "Scheduled",
+  //         // "sequence": sequence
+  //       };
+  //     }
+  //     // else if (sequence == 2) {
+  //     // Newly added - parentId
+  //     else if (this.at_desk) {
+  //       object = {
+  //         "status": "Scheduled",
+  //         "service.category": department,
+  //         "room_no": staffRoomNo
+  //       };
+  //     }
+  //     else {
+  //       // what staff? -- higher level staffs but having department
+  //       if (staffRoomNo.length > 0) {
+  //         object = {
+  //           "status": "Scheduled",
+  //           "service.category": department,
+  //           // Newly commented - parentId
+  //           // "sequence": sequence,
+  //           "room_no": staffRoomNo,
+  //           "staff_id": Number(this.localService.get('UserId'))
+  //         };
+  //       } else {
+  //         object = {
+  //           "status": "Scheduled",
+  //           "service.category": department,
+  //           // Newly commented - parentId
+  //           // "sequence": sequence,
+  //           "staff_id": Number(this.localService.get('UserId'))
+  //         }
+  //       }
 
-      }
+  //     }
+  //   }
+  //   let requestBody = {
+  //     "domain_name": DOMAIN_NAME,
+  //     "user_id": USER_ID,
+  //     "extras": {
+  //       "find": object,
+  //       "pagination": false,
+  //       "sorting": true,
+  //       "sortingDetails": {
+  //         "id": -1
+  //       }
+  //     }
+  //   }
+  //   this.taskManagementService.getAllTask(requestBody).subscribe({
+  //     next: (response) => {
+  //       if (response?.success) {
+  //         this.scheduledTasks = response.result.data.map((task: any) => ({
+  //           ...task,
+  //           remainingSeconds: undefined
+  //         }));
+  //         // this.allTasks = response.result.data.map((task: any) => ({
+  //         //   ...task,
+  //         //   remainingSeconds: undefined
+  //         // }));
+  //         // this.allTasks.forEach(task => this.initializeTimer(task));
+  //         this.scheduledTasks.forEach((task: any) => this.initializeTimer(task));
+  //       } else {
+  //         console.error('No tasks found:', response?.message);
+  //       }
+  //     },
+  //     error: (err) => {
+  //       console.error('API Error:', err);
+  //     }
+  //   });
+  // }
+
+  getAllScheduledTask() {
+    this.customerType = this.localService.get('CustomerType');
+    let memberId = this.localService.get('MemberId');
+    if (this.customerType === 'Customer') {
+      this.callScheduledTaskApi({
+        status: ['Scheduled', "Assigned", "Acknowledged"],
+        member_id: memberId
+      });
+    } else {
+      // staff → fetch customer and rooms first
+      this.getCustomerDataForScheduled(memberId);
     }
+  }
+
+  // Gets customer data based on member id
+  getCustomerDataForScheduled(memberId: any) {
     let requestBody = {
       "domain_name": DOMAIN_NAME,
       "user_id": USER_ID,
       "extras": {
-        "find": object,
-        "pagination": false,
-        "sorting": true,
-        "sortingDetails": {
-          "id": -1
+        "find": { "customer_member_id": memberId }
+      }
+    };
+    this.hotelListService.getSignupAllCustomers(requestBody).subscribe((res: any) => {
+      if (res && res.result.data.length > 0) {
+        const customer = res.result.data[0];
+        console.log('Customer Data:', customer);
+        if (customer && customer.settings?.room_range) {
+          this.mapStaffRooms(customer.settings.room_range);
+          // Now rooms ready → call Scheduled API
+          this.prepareAndCallScheduledTaskApi();
         }
       }
+    });
+  }
+
+  // Uses same mapper (shared for all statuses)
+  mapStaffRooms(roomRange: any[]) {
+    let staffData: any = this.localService.get('StaffData');
+    let staffDataParse = JSON.parse(staffData);
+    let staffRoomNo = staffDataParse.room_no; // [{ label: "Floor 1" }, { label: "Floor 3" }]
+    console.log('Staff Room No:', staffRoomNo);
+    let finalRoomArray: string[] = [];
+    staffRoomNo.forEach((staff: any) => {
+      const matched = roomRange.find(r => r.label === staff.label);
+      if (matched) {
+        finalRoomArray.push(`${matched.startRoom}-${matched.endRoom}`);
+      }
+    });
+    console.log('Final Room Array:', finalRoomArray); // ["1-100", "201-300"]
+    this.labelRoomArray = finalRoomArray;
+  }
+
+  // Prepares object and hits task api
+  prepareAndCallScheduledTaskApi() {
+    let hierarchy: any = this.localService.get('hierarchy');
+    let hierarchyParse = JSON.parse(hierarchy);
+    let department = hierarchyParse?.department;
+    let staffData: any = this.localService.get('StaffData');
+    let staffDataParse = JSON.parse(staffData);
+    this.at_desk = staffDataParse?.at_desk;
+    let object: any = { status: ['Scheduled', "Assigned", "Acknowledged"] };
+    if (this.at_desk) {
+      object = {
+        status: ['Scheduled', "Assigned", "Acknowledged"],
+        "service.category": department,
+        room_no: this.labelRoomArray,
+        member_id: this.member_id
+      };
+    } else {
+      if (this.labelRoomArray.length > 0) {
+        object = {
+          status: ['Scheduled', "Assigned", "Acknowledged"],
+          "service.category": department,
+          room_no: this.labelRoomArray,
+          staff_id: Number(this.localService.get('UserId')),
+          member_id: this.member_id
+        };
+      } else {
+        object = {
+          status: ['Scheduled', "Assigned", "Acknowledged"],
+          "service.category": department,
+          staff_id: Number(this.localService.get('UserId')),
+          member_id: this.member_id
+        };
+      }
     }
+    this.callScheduledTaskApi(object);
+  }
+
+  // Final call for api
+  callScheduledTaskApi(findObject: any) {
+    let requestBody = {
+      "domain_name": DOMAIN_NAME,
+      "user_id": USER_ID,
+      "extras": {
+        "find": findObject,
+        "pagination": false,
+        "sorting": true,
+        "sortingDetails": { id: -1 }
+      }
+    };
     this.taskManagementService.getAllTask(requestBody).subscribe({
       next: (response) => {
         if (response?.success) {
-          this.scheduledTasks = response.result.data.map((task: any) => ({
-            ...task,
-            remainingSeconds: undefined
-          }));
-          // this.allTasks = response.result.data.map((task: any) => ({
+          // this.scheduledTasks = response.result.data.map((task: any) => ({
           //   ...task,
           //   remainingSeconds: undefined
           // }));
-          // this.allTasks.forEach(task => this.initializeTimer(task));
+          // Filter only tasks having scheduled_date & scheduled_time
+          this.scheduledTasks = (response.result.data || [])
+            .filter((task: any) => task.scheduled_date && task.scheduled_time)
+            .map((task: any) => ({
+              ...task,
+              remainingSeconds: undefined
+            }));
           this.scheduledTasks.forEach((task: any) => this.initializeTimer(task));
+          this.totalTasks = this.scheduledTasks.length;
+          this.totalPages = Math.ceil(this.totalTasks / this.pageSize);
+          this.updatePaginatedTasks();
         } else {
-          console.error('No tasks found:', response?.message);
+          console.error('No Scheduled tasks found:', response?.message);
         }
       },
       error: (err) => {
-        console.error('API Error:', err);
+        console.error('Scheduled API Error:', err);
       }
     });
+  }
+
+  updatePaginatedTasks() {
+    const startIndex = (this.currentPage - 1) * this.pageSize;
+    const endIndex = startIndex + this.pageSize;
+    this.allTasks = this.scheduledTasks.slice(startIndex, endIndex);
+  }
+
+  nextPage() {
+    if (this.currentPage < this.totalPages) {
+      this.currentPage++;
+      this.updatePaginatedTasks();
+    }
+  }
+
+  previousPage() {
+    if (this.currentPage > 1) {
+      this.currentPage--;
+      this.updatePaginatedTasks();
+    }
   }
 
   initializeTimer(task: any): void {
@@ -270,9 +443,9 @@ export class ScheduledComponent {
       //  STOP TIMER IF ASSIGNED
       if (task.assigned_staff_id) {
         // Condition to call the update
-        if (currentTime >= date) {
-          this.updateToAsap(task); 
-        }
+        // if (currentTime >= date) {
+        //   this.updateToAsap(task);
+        // }
         clearInterval(interval);
         task.remainingSeconds = 'Assigned';
         return;
@@ -284,7 +457,8 @@ export class ScheduledComponent {
         task.remainingSeconds = this.formatTime(remainingSeconds);
       } else {
         task.remainingSeconds = '00:00';
-        this.updateEscalatedTaskStatusFromDesk(task);
+        // Newly commented for update
+        // this.updateEscalatedTaskStatusFromDesk(task);
         clearInterval(interval);
       }
     };
@@ -300,7 +474,7 @@ export class ScheduledComponent {
         update_task: {
           status: "ASAP",
           at_desk: task.at_desk,
-          sequence: 1,
+          // sequence: 1,
           logged_in_user_id: Number(this.localService.get('UserId'))
         }
       },
@@ -345,15 +519,28 @@ export class ScheduledComponent {
     //   ...taskWithoutRemaining,
     //   status: 'Escalated'
     // };
+    // Newly added - parentId
+    const department = task?.service?.category;
+    const roomNo = task?.room_no;
+    this.getDeskDepartment(roomNo, department);
     const requestBody = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
       payload: {
         update_task: {
-          status: "Escalated",
-          at_desk: task.at_desk,
-          "sequence": 1,
-          "logged_in_user_id": Number(this.localService.get('UserId'))
+          // status: "Escalated",
+          // at_desk: task.at_desk,
+          // Newly added - parentId
+          // "sequence": 1,
+          // "staff_id": this.deskStavesIds,
+          // "logged_in_user_id": Number(this.localService.get('UserId'))
+          // Newly added - parentId
+          "hierarchy.department": department,
+          "at_desk": true,
+          "member_id": this.member_id,
+          "room_no": roomNo,
+          "status": "Escalated",
+          "task_id": task.id
         }
       },
       extras: {
@@ -377,6 +564,37 @@ export class ScheduledComponent {
       }
     );
   }
+
+  // Newly added - parentId
+  getDeskDepartment(roomNo: any, department: any) {
+    const staffFindObject = {
+      "hierarchy.department": department,
+      "at_desk": true,
+      "member_id": this.member_id,
+      "room_no": roomNo
+    };
+    const staffRequestBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: { find: staffFindObject }
+    };
+    this.taskManagementService.getAllStaves(staffRequestBody).subscribe(
+      (resp: any) => {
+        if (resp?.success === 1 && resp?.status_code === 200) {
+          this.deskStaff = resp.result.data;
+          //store only ids
+          this.deskStavesIds = this.deskStaff.map((staff: any) => staff.id);
+          console.log('Desk Staff:', this.deskStaff);
+        } else {
+          this.deskStaff = [];
+        }
+      },
+      () => {
+        this.deskStaff = [];
+      }
+    );
+  }
+
 
   refreshData() {
     this.getAllScheduledTask();

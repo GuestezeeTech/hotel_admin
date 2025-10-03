@@ -120,7 +120,8 @@ export class CheckoutApiService {
       // var now = new Date();
             // var utc_now = new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(),  now.getUTCHours(), now.getUTCMinutes(), now.getUTCSeconds(), now.getUTCMilliseconds());
             let paymentObjt = {
-              "domain_name":"https://puduvaibazaar.ecbee.net",
+              // "domain_name":"https://puduvaibazaar.ecbee.net",
+              "domain_name":"https://www.guestezee.com",
               "oid":hdfcData.oid,
               "timestamp":new Date().getTime()
             }

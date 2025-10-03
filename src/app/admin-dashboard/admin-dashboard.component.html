@@ -6,7 +6,7 @@
                 <div class="col-md-8" style="padding-left: 0 !important;">
                     <h5 class="fw-bolder mb-3">Guest Activity<span style="color: #9E9E9E; font-size: 15px"
                             class="fw-medium">
-                            (10/02/25)</span></h5>
+                        </span></h5>
                     <div class="row">
                         <div class="ms-3 d-flex justify-content-between category-section border rounded"
                             style="border-color: #9E9E9E; padding: 10px; width: 97%">
@@ -14,7 +14,7 @@
                                 <img src="../../assets/images/guestezee/logged.png" alt="Platinum Icon"
                                     class="me-2 rounded-circle p-2" width="40" style="background-color: #FFFDE7;">
                                 <div>
-                                    <strong class="d-block">087</strong>
+                                    <strong class="d-block">{{ activities.guest_status.GuestLogged }}</strong>
                                     <span style="color: #8F9899; font-size: 14px;">Guest Logged</span>
                                 </div>
                             </div>
@@ -22,7 +22,7 @@
                                 <img src="../../assets/images/guestezee/request.png" alt="Gold Icon"
                                     class="me-2 rounded-circle p-2" width="40" style="background-color: #FFFDE7;">
                                 <div>
-                                    <strong class="d-block">65</strong>
+                                    <strong class="d-block">{{ activities.guest_status.TotalRequest }}</strong>
                                     <span style="color: #8F9899; font-size: 14px;">Total Request</span>
                                 </div>
                             </div>
@@ -30,7 +30,7 @@
                                 <img src="../../assets/images/guestezee/completed.png" alt="Silver Icon"
                                     class="me-2 rounded-circle p-2" width="40" style="background-color: #FFFDE7;">
                                 <div>
-                                    <strong class="d-block">56</strong>
+                                    <strong class="d-block">{{ activities.guest_status.Completed }}</strong>
                                     <span style="color: #8F9899; font-size: 14px;">Completed</span>
                                 </div>
                             </div>
@@ -38,7 +38,7 @@
                                 <img src="../../assets/images/guestezee/escalatedC.png" alt="Bronze Icon"
                                     class="me-2 rounded-circle p-2" width="40" style="background-color: #FFFDE7;">
                                 <div>
-                                    <strong class="d-block">02</strong>
+                                    <strong class="d-block">{{ activities.guest_status.Escalated }}</strong>
                                     <span style="color: #8F9899; font-size: 14px;">Escalated</span>
                                 </div>
                             </div>
@@ -47,16 +47,20 @@
                         <div class="card p-3 mt-4 ms-3 mb-3 shadow-sm rounded-3 bg-white h-100" style="width: 97%">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <h6 class="fw-semibold mb-0">Guest Usage</h6>
-                                <div class="position-relative">
+                                <!-- Guest Usage Year Dropdown -->
+                                <div class="position-relative d-inline-block me-2">
                                     <button class="btn shadow-none btn-sm dropdown-toggle"
-                                        (click)="toggleUsageDropdown()" style="background-color: #FFF7F7 !important;">
-                                        {{ selectedUsageFilter }}
+                                        (click)="toggleUsageDropdown()" style="width: 90px; background-color: #F5F4FD;">
+                                        {{ selectedYear }}
                                     </button>
-                                    <ul class="dropdown-menu" *ngIf="isUsageDropdownOpen">
-                                        <li><a class="dropdown-item" (click)="setUsageFilter('Last Year')">Last Year</a>
+                                    <ul class="dropdown-menu" [class.show]="isUsageDropdownOpen"
+                                        style="max-height: 200px; overflow-y: auto; min-width: 90px; background-color: #F5F4FD;">
+                                        <li *ngFor="let year of years" style="list-style: none;">
+                                            <a class="dropdown-item text-center py-1" style="cursor: pointer;"
+                                                (click)="setYear(year)">
+                                                {{ year }}
+                                            </a>
                                         </li>
-                                        <li><a class="dropdown-item" (click)="setUsageFilter('Last 6 Months')">Last 6
-                                                Months</a></li>
                                     </ul>
                                 </div>
                             </div>
@@ -74,21 +78,53 @@
                                 style=" background: linear-gradient(290.19deg, #FFFFFF 32.26%, #EBF0F2 100%); border-color: #E9E9E9">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <h6 class="fw-bold" style="color: #0B0B12;">Reviews</h6>
-                                    <select class="form-select form-select-sm"
+                                    <!-- <select class="form-select form-select-sm"
                                         style="width: 31%; background-color: #F5F4FD; padding-top: 0.5% !important; padding-bottom: 0.5% !important; cursor: pointer">
-                                        <option value="Week">Week</option>
+                                        <option value="Week">2025</option>
                                         <option value="Month">Month</option>
-                                    </select>
+                                    </select> -->
+                                    <div class="position-relative d-inline-block">
+                                        <button class="btn shadow-none btn-sm dropdown-toggle"
+                                            (click)="toggleReviewDropdown()"
+                                            style="width: 90px; background-color: #F5F4FD;">
+                                            {{ selectedReviewYear }}
+                                        </button>
+                                        <ul class="dropdown-menu" [class.show]="isReviewDropdownOpen"
+                                            style="max-height: 200px; overflow-y: auto; min-width: 90px;background-color: #F5F4FD">
+                                            <li *ngFor="let year of years" style="list-style: none;">
+                                                <a class="dropdown-item text-center py-1" style="cursor: pointer;"
+                                                    (click)="setReviewYear(year)">
+                                                    {{ year }}
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
                                 </div>
                                 <h4 class="fw-bold mt-2 mb-0"
                                     style="color: #9b9b9b; text-align: start; font-size: 20px">Reviews Count: <span
-                                        style="color: #800020">473</span></h4>
+                                        style="color: #800020">{{review.reviews_count}}</span></h4> 
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <p class="mb-0 rounded px-2 py-1 fw-medium"
+                                    <!-- <p class="mb-0 rounded px-2 py-1 fw-medium"
                                         style="background: linear-gradient(90deg, rgba(1, 116, 250, 0.1) 0%, rgba(1, 146, 250, 0.1) 50%, rgba(139, 0, 224, 0.1) 100%); font-size: 14px">
-                                        <span class="fw-bold" style="color: #252525; font-size: 14px">3.8<span
+                                        <span class="fw-bold"
+                                            style="color: #252525; font-size: 14px">{{review.avg_rating}}<span
                                                 style="color: #FFC300; ">★</span></span> Rating
-                                    </p>
+                                    </p> -->
+                                    <ng-container *ngFor="let star of getStarArray(review.avg_rating)">
+                                        <!-- Full Star -->
+                                        <i *ngIf="star === 'full'" class="bi bi-star-fill"
+                                            style="color: #FFC300; font-size: 15px;"></i>
+                                        <!-- Half Star -->
+                                        <i *ngIf="star === 'half'" class="bi bi-star-half"
+                                            style="color: #FFC300; font-size: 15px;"></i>
+                                        <!-- Empty Star -->
+                                        <i *ngIf="star === 'empty'" class="bi bi-star"
+                                            style="color: #E0E0E0; font-size: 15px;"></i>
+                                    </ng-container>
+                                    <!-- Show numeric rating -->
+                                    <span class="ms-2 fw-bold" style="font-size: 14px; color: #252525;">
+                                        {{ review.avg_rating }}
+                                    </span>
                                     <img src="../../assets/images/guestezee/girl.png" alt="Star illustration"
                                         class="img-fluid mt-2" />
                                 </div>
@@ -103,21 +139,27 @@
                                     <div class="mb-3">
                                         <label class="form-label fw-bold" style="font-size: 14px;">Enter Room No</label>
                                         <input type="text" class="form-control bg-white" placeholder="Room Number"
-                                            style="font-size: 14px;" />
+                                            [(ngModel)]="roomNo" name="roomNo" style="font-size: 14px;" />
                                     </div>
                                     <div class="row mb-3">
                                         <div class="col-6">
                                             <label class="form-label fw-bold" style="font-size: 14px;">Start
                                                 Date</label>
-                                            <input type="date" class="form-control bg-white" style="font-size: 14px;" />
+                                            <input type="date" class="form-control bg-white" style="font-size: 14px;"
+                                                [(ngModel)]="startDate" name="startDate" />
                                         </div>
                                         <div class="col-6">
                                             <label class="form-label fw-bold">End Date</label>
                                             <input type="date" class="form-control"
-                                                style="font-size: 14px; background-color: white;" />
+                                                style="font-size: 14px; background-color: white;" [(ngModel)]="endDate"
+                                                name="endDate" />
+                                        </div>
+                                        <!-- Show error below End Date -->
+                                        <div *ngIf="dateError" style="color: red; font-size: 13px; margin-top: 4px;">
+                                            End Date must be greater than Start Date
                                         </div>
                                     </div>
-                                    <button type="submit" class="btn fw-medium w-100 rounded"
+                                    <button type="button" class="btn fw-medium w-100 rounded"
                                         style="background-color: #800020; color: white"
                                         (click)="generateReport()">Generate Report</button>
                                 </form>
@@ -143,20 +185,25 @@
                                     <th>No.of Guests</th>
                                     <th>Check-In</th>
                                     <th>Check-Out</th>
-                                    <th>Action</th>
-                                    <th>Print</th>
+                                    <!-- <th>Action</th>
+                                    <th>Print</th> -->
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr *ngFor="let guest of guestData">
-                                    <td>{{ guest.resNo }}</td>
-                                    <td>{{ guest.guestName }}</td>
-                                    <td>{{ guest.roomNo }}</td>
-                                    <td>{{ guest.noOfGuests }}</td>
-                                    <td>{{ guest.checkIn }}</td>
-                                    <td>{{ guest.checkOut }}</td>
-                                    <td> <i class="fa fa-ellipsis-h" style="color: #868686; cursor: pointer;"></i></td>
-                                    <td> <i class="fas fa-print" style="color: #868686; cursor: pointer;"></i></td>
+                                 <tr *ngIf="allBookings.length === 0">
+                                    <td colspan="6" style="text-align: center; color: #888;">
+                                        No guests available
+                                    </td>
+                                </tr>
+                                <tr *ngFor="let guest of allBookings">
+                                    <td>{{ guest.Reserve_No }}</td>
+                                    <td>{{ guest.Guest_detail[0].First_Name }}</td>
+                                    <td>{{ guest.Room_No }}</td>
+                                    <td>{{ guest.Adult_Pax + guest.Child_Pax }}</td>
+                                    <td>{{ guest.Arrival_Date }}</td>
+                                    <td>{{ guest.Departure_Date }}</td>
+                                    <!-- <td> <i class="fa fa-ellipsis-h" style="color: #868686; cursor: pointer;"></i></td>
+                                    <td> <i class="fas fa-print" style="color: #868686; cursor: pointer;"></i></td> -->
                                 </tr>
                             </tbody>
                         </table>
@@ -166,8 +213,14 @@
                 <div class="services">
                     <div class="d-flex justify-content-between">
                         <p class="fw-bold mb-2" style="font-size: 15px;">Services</p>
+                        <p class="fw-bold mb-1" style="font-size: 15px; cursor: pointer;" (click)="navigateToTask()">
+                            View all <i class="fas fa-chevron-right" style="font-size: 9px !important;"></i></p>
                     </div>
                     <div class="d-flex justify-content-between " style="gap: 1rem;">
+                        <button class="btn fw-semibold shadow-none" [ngClass]="{'selected': selectedButton === 'asap'}"
+                            style="border-radius: 6px; width: 25%; font-size: 14px;" (click)="selectButton('asap')">
+                            ASAP
+                        </button>
                         <button class="btn fw-semibold shadow-none"
                             [ngClass]="{'selected': selectedButton === 'escalated'}"
                             style="border-radius: 6px; width: 25%; font-size: 14px;"
@@ -180,10 +233,6 @@
                             (click)="selectButton('completed')">
                             Completed
                         </button>
-                        <button class="btn fw-semibold shadow-none" [ngClass]="{'selected': selectedButton === 'asap'}"
-                            style="border-radius: 6px; width: 25%; font-size: 14px;" (click)="selectButton('asap')">
-                            ASAP
-                        </button>
                     </div>
                     <div>
                         <table class="table services-table">
@@ -193,18 +242,30 @@
                                     <th>Name</th>
                                     <th>Service Type</th>
                                     <th>Service Dept</th>
-                                    <th>Assignee</th>
-                                    <th>Action</th>
+                                    <!-- <th>Assignee</th> 
+                                    <th>Action</th> -->
+                                    <th>Service Date</th>
+                                    <th>Service Time</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr *ngFor="let service of serviceData">
-                                    <td>{{ service.roomNo }}</td>
-                                    <td>{{ service.name }}</td>
-                                    <td>{{ service.serviceType }}</td>
-                                    <td>{{ service.serviceDept }}</td>
-                                    <td>{{ service.assignee }}</td>
-                                    <td> <i class="fa fa-ellipsis-h" style="color: #868686; cursor: pointer;"></i></td>
+                                <tr *ngIf="tasks.length === 0">
+                                    <td colspan="6" style="text-align: center; color: #888;">
+                                        {{ selectedButton === 'asap' ? 'No ASAP tasks available' :
+                                        selectedButton === 'escalated' ? 'No escalated tasks available' :
+                                        selectedButton === 'completed' ? 'No completed tasks available' : 'No records
+                                        available' }}
+                                    </td>
+                                </tr>
+                                <tr *ngFor="let service of tasks">
+                                    <td>{{ service.room_no }}</td>
+                                    <td>{{ service.guest_name }}</td>
+                                    <td>{{ service.service.service_name }}</td>
+                                    <td>{{ service.service.category }}</td>
+                                    <!-- <td>{{ service.assignee }}</td>
+                                    <td> <i class="fa fa-ellipsis-h" style="color: #868686; cursor: pointer;"></i></td> -->
+                                    <td>{{ service.order_date }}</td>
+                                    <td>{{ service.order_time }}</td>
                                 </tr>
                             </tbody>
                         </table>

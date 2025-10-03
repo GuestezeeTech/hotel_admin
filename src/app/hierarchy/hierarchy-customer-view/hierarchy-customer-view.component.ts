@@ -208,7 +208,7 @@ export class HierarchyCustomerViewComponent {
           if (resp) {
             //console.log(resp.result.data, "resp")
             this.hierarchyData = resp.result.data[0].hierarchy;
-            //console.log(this.hierarchyData, "this.hierarchyData")
+            console.log(this.hierarchyData, "this.hierarchyData")
             const hierarchyItems1: HierarchyItem[] = this.hierarchyData.map((item: any) => ({
               id: item.id,
               designation: item.designation,

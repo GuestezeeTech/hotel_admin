@@ -4,7 +4,8 @@
             <th>Name</th>
             <th>Room No</th>
             <th>Service</th>
-            <th>Order Time</th>
+            <th>Service Date</th>
+            <th>Service Time</th>
             <th>Delivered Time</th>
             <th>Status</th>
             <th>Assignee</th>
@@ -16,8 +17,9 @@
             <td (click)="navigateToTimeline(task.id)" style="cursor: pointer;">{{ task.guest_name }}</td>
             <td>{{ task.room_no }}</td>
             <td>{{ task.service.service_name }}</td>
+            <td>{{ task.order_date | date:'dd-MM-yyyy'}}</td>
             <td>{{ task.order_time }}</td>
-            <td>{{ task.delivered_time }}</td>
+            <td>{{ task.delivered_time | date:'HH:mm:ss' }}</td>
             <td>
                 <div
                     style="color: #30A75F; background-color: #c2f2cd; border-radius: 50px; padding: 4px 12px; font-weight: 500; font-size: 12px; text-align: center; display: inline-block;">

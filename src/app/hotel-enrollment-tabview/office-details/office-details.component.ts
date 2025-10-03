@@ -476,7 +476,7 @@ export class OfficeDetailsComponent implements OnInit, OnChanges {
         domain_name: DOMAIN_NAME,
         user_id: USER_ID,
         payload: {
-          customer_creation: customerObject
+          customer_update: customerObject
         }
       }
       this.hotelenrollmenttabviewService.addCustomer(requestBody).subscribe(
@@ -550,7 +550,7 @@ export class OfficeDetailsComponent implements OnInit, OnChanges {
       this.customerdata.sec_email = this.customerForm.value.sec_email,
       this.customerdata.sec_gender = this.customerForm.value.sec_gender,
       this.customerdata.is_active = true;
-    this.customerdata["password"] = this.localService.get('Password');
+    // this.customerdata["password"] = this.localService.get('Password');
     // Initialised empty object
     if (!this.customerdata.registered_address) {
       this.customerdata.registered_address = {};
@@ -569,7 +569,7 @@ export class OfficeDetailsComponent implements OnInit, OnChanges {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
       payload: {
-        customer_creation: this.customerdata
+        customer_update: this.customerdata
       },
       extras: {
         find: {

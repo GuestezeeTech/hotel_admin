@@ -94,7 +94,13 @@ export class EscalatedComponent {
   pageSize: number = 10; // Show 10 roles per page
   totalEscalatedTasks: number = 0; // Total number of roles
   totalPages: number = 0; // Total number of pages
+  //  Newly added - parentId
+  at_desk: any;
+  // Newly added for find
+  member_id: any;
+  previousTaskIds: number[] = [];
 
+  @Output() escalatedCountChanged = new EventEmitter<number>();
 
   constructor(
     private taskManagementService: TaskManagementService,
@@ -102,6 +108,7 @@ export class EscalatedComponent {
     private localService: LocalStorageService) { }
 
   ngOnInit() {
+    this.member_id = this.localService.get('MemberId');
     this.getAllTask();
   }
 
@@ -112,6 +119,65 @@ export class EscalatedComponent {
     this.openAssigneeModal.emit(order);
   }
 
+  // getAllTask() {
+  //   let customerType = this.localService.get('CustomerType');
+  //   if (customerType == 'Staff') {
+  //     let staffData: any = this.localService.get('StaffData');
+  //     let staffDataParse = JSON.parse(staffData);
+  //     let hierarchy: any = this.localService.get('hierarchy');
+  //     let hierarchyParse = JSON.parse(hierarchy)
+  //     this.sequence = hierarchyParse?.sequence;
+  //     // //console.log('Hierarchy Sequence:', sequence);
+  //     this.at_desk = staffDataParse?.at_desk;
+  //   }
+  //   let object;
+  //   // Newly added - parentId
+  //   // if (this.sequence > 2) {
+  //   if (!this.at_desk) {
+  //     object = {
+  //       "status": "Escalated",
+  //       "escalated_from_id": Number(this.localService.get('UserId')),
+  //       "member_id": this.member_id
+  //     }
+  //   } else {
+  //     object = {
+  //       "status": "Escalated",
+  //       "member_id": this.member_id
+  //     }
+  //   }
+  //   let requestBody = {
+  //     "domain_name": DOMAIN_NAME,
+  //     "user_id": USER_ID,
+  //     "extras": {
+  //       "find": object,
+  //       "pagination": false,
+  //       "sorting": true,
+  //       "sortingDetails": {
+  //         "id": -1
+  //       }
+  //     }
+  //   }
+  //   this.taskManagementService.getAllTask(requestBody).subscribe({
+  //     next: (response) => {
+  //       if (response?.success) {
+  //         this.escalatedTasks = response?.result?.data || [];
+  //         //console.log('Escalated Tasks:', this.escalatedTasks);
+  //         this.allEscalatedTasks = response.result.data; //For pagination
+  //         this.totalEscalatedTasks = this.escalatedTasks.length;
+  //         //console.log('Total Escalated Tasks:', this.totalEscalatedTasks);
+  //         this.totalPages = Math.ceil(this.totalEscalatedTasks / this.pageSize);
+  //         //console.log('Total Pages:', this.totalPages);
+  //         this.updatePaginatedEscalatedTasks(); // Sets first page
+  //       } else {
+  //         //console.error('No roles found:', response?.message);
+  //       }
+  //     },
+  //     error: (err: any) => {
+  //       //console.error('API Error:', err);
+  //     }
+  //   });
+  // }
+
   getAllTask() {
     let customerType = this.localService.get('CustomerType');
     if (customerType == 'Staff') {
@@ -120,20 +186,11 @@ export class EscalatedComponent {
       let hierarchy: any = this.localService.get('hierarchy');
       let hierarchyParse = JSON.parse(hierarchy)
       this.sequence = hierarchyParse?.sequence;
-      // //console.log('Hierarchy Sequence:', sequence);
+      this.at_desk = staffDataParse?.at_desk;
     }
-    let object;
-    if (this.sequence > 2) {
-      object = {
-        "status": "Escalated",
-        "escalted_from_id": Number(this.localService.get('UserId'))
-      }
-    } else {
-      object = {
-        "status": "Escalated"
-
-      }
-    }
+    let object: any = {
+      "member_id": this.member_id
+    };
     let requestBody = {
       "domain_name": DOMAIN_NAME,
       "user_id": USER_ID,
@@ -145,24 +202,61 @@ export class EscalatedComponent {
           "id": -1
         }
       }
-    }
+    };
     this.taskManagementService.getAllTask(requestBody).subscribe({
       next: (response) => {
         if (response?.success) {
-          this.escalatedTasks = response?.result?.data || [];
-          //console.log('Escalated Tasks:', this.escalatedTasks);
-          this.allEscalatedTasks = response.result.data; //For pagination
+          const userId = Number(this.localService.get('UserId'));
+          // Filter and also attach escalated_to_name
+          // this.escalatedTasks = (response?.result?.data || [])
+          //   .map((task: any) => {
+          //     // Find the matching escalation where logged-in user escalated
+          //     const match = task?.time_line?.find(
+          //       (tl: any) => tl.status === "Escalated" && tl.escalated_from_id === userId
+          //     );
+          //     if (match) {
+          //       return {
+          //         ...task,
+          //         escalated_to_name: match.escalated_to_name, // store to_name
+          //         escalated_to_id: match.escalated_to_id
+          //       };
+          //     }
+          //     return null;
+          //   })
+          //   .filter((t: any) => t !== null);
+          // console.log('Escalated Tasks:', this.escalatedTasks);
+          this.escalatedTasks = (response?.result?.data || [])
+            .flatMap((task: any) => {
+              // Get all matches, not just first
+              const matches = (task?.time_line || []).filter(
+                (tl: any) => tl.status === "Escalated" && tl.escalated_from_id === userId
+              );
+              // If no matches → return empty array (nothing added for this task)
+              if (!matches.length) return [];
+              // For each escalation, return a separate enriched task object
+              return matches.map((match: any) => ({
+                ...task,
+                escalated_to_name: match.escalated_to_name,
+                escalated_to_id: match.escalated_to_id
+              }));
+            });
+          console.log("Escalated Tasks:", this.escalatedTasks);
+          // Determine new tasks for badge increment
+          const newTasks = this.escalatedTasks.filter(task => !this.previousTaskIds.includes(task.id));
+          this.previousTaskIds = this.escalatedTasks.map(t => t.id); // update tracker
+
+          // Emit new tasks count to parent
+          if (newTasks.length > 0) {
+            this.escalatedCountChanged.emit(newTasks.length);
+          }
+          this.allEscalatedTasks = this.escalatedTasks; // For pagination
           this.totalEscalatedTasks = this.escalatedTasks.length;
-          //console.log('Total Escalated Tasks:', this.totalEscalatedTasks);
           this.totalPages = Math.ceil(this.totalEscalatedTasks / this.pageSize);
-          //console.log('Total Pages:', this.totalPages);
-          this.updatePaginatedEscalatedTasks(); // Sets first page
-        } else {
-          //console.error('No roles found:', response?.message);
+          this.updatePaginatedEscalatedTasks();
         }
       },
       error: (err: any) => {
-        //console.error('API Error:', err);
+        console.error('API Error:', err);
       }
     });
   }
@@ -186,7 +280,6 @@ export class EscalatedComponent {
       this.updatePaginatedEscalatedTasks();
     }
   }
-
 
   refreshData() {
     this.getAllTask();

@@ -291,3 +291,12 @@ input[type="checkbox"]:disabled+.slider {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+.pay-button {
+  font-size: 13px;
+  color: white;
+  background-color: #800020;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}

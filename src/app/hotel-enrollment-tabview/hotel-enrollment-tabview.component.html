@@ -28,20 +28,21 @@
             </a>
           </li>
         </ul>
+
         <div *ngIf="iscancelVisible" style="margin-top: 2%;">
           <p style="color: #800020; font-weight: bold;">
             NOTE : Your payment was cancelled. Please click 'Save & Continue' to retry the payment process.
           </p>
         </div>
-
         <button class="escalated-btn border-0 fw-medium float"
-          [ngStyle]="{'background-color': this.orderdata?.status == 'Order Confirmed' ?   '#d5efdb' : '#FFECEC', 'color': this.orderdata?.status == 'Order Confirmed' ? '#30A75F' : '#FF0000'}"
+          [ngStyle]="{'background-color': (this.orderdata?.status === 'Order Confirmed' || this.orderdata?.status === 'Confirmed') ?   '#d5efdb' : '#FFECEC', 'color': (this.orderdata?.status === 'Order Confirmed' || this.orderdata?.status === 'Confirmed')? '#30A75F' : '#FF0000'}"
           style="font-size: 18px; border-radius: 10px; margin-top: 0.6%; height: fit-content; padding: 1%;"><img
-            *ngIf="this.orderdata?.status == 'Order Confirmed'" src="../../assets/images/guestezee/paid.png"
-            style="width: 25%" class="mr-2"><img *ngIf="this.orderdata?.status != 'Order Confirmed'"
-            src="../../assets/images/guestezee/notPaid.png" class="mr-2">{{this.orderdata?.status == 'Order Confirmed' ?
+            *ngIf="(this.orderdata?.status === 'Order Confirmed' || this.orderdata?.status === 'Confirmed')"
+            src="../../assets/images/guestezee/paid.png" style="width: 25%" class="mr-2"><img
+            *ngIf="this.orderdata?.status != 'Order Confirmed' && this.orderdata?.status !== 'Confirmed'"
+            src="../../assets/images/guestezee/notPaid.png" class="mr-2">{{(this.orderdata?.status === 'Order Confirmed'
+          || this.orderdata?.status === 'Confirmed')?
           'Paid' : 'Not Paid'}}
-
         </button>
 
         <!-- Newly added for order stauts value as Confirmed -->
@@ -68,7 +69,8 @@
         </div>
         <div [hidden]="currentTab !== 4"><app-technical-info (continue)="handleContinue()"
             [paymentDone]="paymentDone"></app-technical-info></div>
-        <div [hidden]="currentTab !== 5" class="status-container">
+        <!-- {{currentTab}}{{paymentDone}} -->
+        <div [hidden]="currentTab !== 5 || !paymentDone" class="status-container">
           <div class="enrollment-container">
             <h4>Thank you for enrolling with <span class="brand">GuestEzee</span>!</h4>
             <p style="margin-bottom: 0.5rem">Your application has been received and is currently under review by our

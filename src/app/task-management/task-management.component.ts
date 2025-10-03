@@ -1,3 +1,4 @@
+import { HotelListService } from './../hotel-list/hotel-list.service';
 import { LocalStorageService } from './../auth-services/local-storage.service';
 import { LoaderService } from './../shared/loader/loader.service';
 import { DOMAIN_NAME, USER_ID } from './../app.config';
@@ -17,11 +18,12 @@ import { OnInit } from '@angular/core';
 import { StaffListingService } from '../user-access/staff-listing/staff-listing.service';
 import { Router } from '@angular/router';
 import { ViewChild } from '@angular/core';
+import { StaffEscalatedComponent } from './staff-escalation/staff-escalation.component';
 
 @Component({
   selector: 'app-task-management',
   standalone: true,
-  imports: [AlertsComponent, CommonModule, AsapCartComponent, ProcessingComponent, DeliveredComponent, EscalatedComponent, ScheduledComponent, EscalatedFromComponent, TimelineComponent],
+  imports: [AlertsComponent, CommonModule, AsapCartComponent, ProcessingComponent, DeliveredComponent, EscalatedComponent, StaffEscalatedComponent, ScheduledComponent, EscalatedFromComponent, TimelineComponent],
   templateUrl: './task-management.component.html',
   styleUrl: './task-management.component.scss'
 })
@@ -36,9 +38,12 @@ export class TaskManagementComponent implements OnInit {
   @ViewChild('processing') processingComponent: any;
   @ViewChild('scheduled') scheduledComponent: any;
   @ViewChild('delivered') deliveredComponent: any;
+  // Newly added - Escalation
+  @ViewChild('escalated') escalatedComponent: any;
+  @ViewChild('staffEscalated') staffEscalatedComponent: any;
 
   // Tab contents
-  tabs = ['ASAP Cart', 'High Priority', 'Schedule', 'Processing', 'Escalated', 'Delivered'];
+  tabs = ['ASAP', 'Priority', 'Schedule', 'Processing', 'My Escalation', 'Staff Escalation', 'Delivered'];
   selectedTab = this.tabs[0]; // Default tab
   // For all task
   tasks: any = [];
@@ -164,7 +169,16 @@ export class TaskManagementComponent implements OnInit {
   escalatedTaskLength: any;
   isEscalatedModal: boolean = false;
   assigningTask: any;
+  // Newly added - parentId
+  at_desk: any;
+  taskUpdateModal: boolean = false;
+  // Newly added for find
+  member_id: any;
+  labelRoomArray: any[] = [];
   escalatedCount: number = 0;
+  staffEscalatedCount: number = 0;
+  priorityEscalatedCount: number = 0;
+  customerType: any;
 
   constructor(
     private alertService: AlertsService,
@@ -172,15 +186,67 @@ export class TaskManagementComponent implements OnInit {
     private staffListingService: StaffListingService,
     private loaderService: LoaderService,
     private localService: LocalStorageService,
-    private router: Router) { }
+    private router: Router,
+    private hotelListService: HotelListService) { }
+
+  ngOnInit() {
+    this.customerType = this.localService.get('CustomerType');
+    if (this.customerType == 'Staff') {
+      let hierarchy: any = this.localService.get('hierarchy');
+      let hierarchyParse = JSON.parse(hierarchy)
+      console.log('Hierarchy:', hierarchyParse);
+      // this.sequence = hierarchyParse?.sequence;
+      // if (this.sequence > 2) {
+      //   this.selectedTab = this.tabs[1];
+      // }
+      //console.log('seqeunce of staff:', this.sequence);
+      // Newly added - parentId
+      let userData: any = this.localService.get('StaffData');
+      let userDataParse = JSON.parse(userData);
+      console.log('User Data:', userDataParse);
+      this.at_desk = userDataParse?.at_desk;
+      if (!this.at_desk) {
+        this.selectedTab = this.tabs[1];
+      }
+      console.log('Desk value of staff:', this.at_desk);
+    }
+    else {
+      this.selectedTab = this.tabs[0];
+    }
+    //console.log('customerType of staff:', customerType);
+    // To initially load all task data's
+    this.member_id = this.localService.get('MemberId');
+    this.getCustomerData(this.member_id);
+    // Assume you already have roomRange from API or constant
+    // this.getAllEscalatedTask();
+    const savedCount = this.localService.get('escalatedCount');
+    this.escalatedCount = savedCount ? +savedCount : 0;
+    const savedStaffCount = this.localService.get('staffEscalatedCount');
+    this.staffEscalatedCount = savedStaffCount ? +savedStaffCount : 0;
+    const savedPriorityCount = this.localService.get('priorityEscalatedCount');
+    this.priorityEscalatedCount = savedPriorityCount ? +savedPriorityCount : 0;
+    console.log('Escalated Count on init:', this.escalatedCount, this.staffEscalatedCount, this.priorityEscalatedCount);
+    console.log('Task:', this.at_desk)
+  }
 
   // For tab sleection
   selectTab(tab: string) {
     this.selectedTab = tab;
-    if (tab === 'Escalated') {
+    console.log('Selected Tab:', this.selectedTab);
+    if (tab === 'My Escalation') {
       this.escalatedCount = 0;
       console.log('Escalated Count:', this.escalatedCount);
       this.localService.set('escalatedCount', this.escalatedCount.toString());
+    }
+    if (tab === 'Staff Escalation') {
+      this.staffEscalatedCount = 0;
+      console.log('Staff escalated Count:', this.staffEscalatedCount);
+      this.localService.set('staffEscalatedCount', this.staffEscalatedCount.toString());
+    }
+    if (tab === 'Priority') {
+      this.priorityEscalatedCount = 0;
+      console.log('Priority escalated Count:', this.priorityEscalatedCount);
+      this.localService.set('priorityEscalatedCount', this.priorityEscalatedCount.toString());
     }
   }
 
@@ -188,38 +254,35 @@ export class TaskManagementComponent implements OnInit {
     this.showFilterDropdown = !this.showFilterDropdown;
   }
 
-  ngOnInit() {
-    let customerType = this.localService.get('CustomerType');
-    if (customerType == 'Staff') {
-      let hierarchy: any = this.localService.get('hierarchy');
-      let hierarchyParse = JSON.parse(hierarchy)
-      this.sequence = hierarchyParse?.sequence;
-      if (this.sequence > 2) {
-        this.selectedTab = this.tabs[1];
-      }
-      //console.log('seqeunce of staff:', this.sequence);
-    } else {
-      this.selectedTab = this.tabs[0];
-    }
-    //console.log('customerType of staff:', customerType);
-    // To initially load all task data's
-    this.getAllEscalatedTask();
-
-    const savedCount = this.localService.get('escalatedCount');
-    this.escalatedCount = savedCount ? +savedCount : 0;
-  }
-
   shouldDisplayTab(tab: string): boolean {
     if (this.localService.get('CustomerType') == 'Staff') {
-      if (tab === 'High Priority') {
-        return this.sequence > 2;
+      if (tab === 'ASAP') {
+        // return this.sequence == 2;
+        // Newly added - parentId
+        return this.at_desk; // Shows ASAP tab only if at_desk is true
       }
-      if (tab === 'ASAP Cart') {
-        return this.sequence == 2;
+      if (tab === 'Schedule') {
+        // return this.sequence == 2;
+        // Newly added - parentId
+        return this.at_desk; // Shows ASAP tab only if at_desk is true
       }
-    } else {
-      if (tab === 'High Priority') {
-        return false;
+      // For reassigning
+      // if (tab === 'Staff Escalation' && this.at_desk == false) {
+      //   return true;
+      // }
+      // if (tab === 'Staff Escalation' && this.at_desk == true) {
+      //   return false;
+      // }
+      if (tab === 'Priority' && (this.at_desk == false || this.at_desk == true)) {
+        return true;
+      }
+    }
+    else {
+      if (tab === 'Priority') {
+        return this.localService.get('CustomerType') != 'Customer';
+      }
+      if (tab === 'My Escalation') {
+        return this.localService.get('CustomerType') != 'Customer';
       }
     }
     return true; // default: show all other tabs
@@ -227,10 +290,10 @@ export class TaskManagementComponent implements OnInit {
 
   refreshTabData() {
     switch (this.selectedTab) {
-      case 'ASAP Cart':
+      case 'ASAP':
         this.asapCartComponent?.refreshData();
         break;
-      case 'High Priority':
+      case 'Priority':
         this.highPriorityComponent?.refreshData();
         break;
       case 'Processing':
@@ -242,8 +305,12 @@ export class TaskManagementComponent implements OnInit {
       case 'Delivered':
         this.deliveredComponent?.refreshData();
         break;
-      case 'Escalated':
-        this.getAllEscalatedTask();  // Already in this component
+      // Newly added - Escalation
+      case 'My Escalation':
+        this.escalatedComponent?.refreshData();
+        break;
+      case 'Staff Escalation':
+        this.staffEscalatedComponent?.refreshData();
         break;
     }
   }
@@ -258,6 +325,7 @@ export class TaskManagementComponent implements OnInit {
   closeModal() {
     this.isModalOpen = false;
     this.selectedStaff = {};
+    this.isStaffSelected = false;
   }
 
   // Get avaiable and total staves count
@@ -287,12 +355,27 @@ export class TaskManagementComponent implements OnInit {
     return style;
   }
 
+  // selectStaff(staff: any) {
+  //   this.selectedStaff = staff;
+  //   console.log('Selected Staff:', this.selectedStaff);
+  //   this.isStaffSelected = true;
+  //   console.log('Is staff selected:', this.isStaffSelected)
+  // }
+
   selectStaff(staff: any) {
-    this.selectedStaff = staff;
-    //console.log('Selected Staff:', this.selectedStaff);
-    this.isStaffSelected = true;
-    //console.log('Is staff selected:', this.isStaffSelected)
+    if (this.selectedStaff && this.selectedStaff.id === staff.id) {
+      // If same staff clicked again → unselect
+      this.selectedStaff = {};
+      this.isStaffSelected = false;
+      console.log('Staff unselected');
+    } else {
+      // Otherwise select new staff
+      this.selectedStaff = staff;
+      this.isStaffSelected = true;
+      console.log('Selected Staff:', this.selectedStaff);
+    }
   }
+
 
   // Staff status button style
   // getCompleteStaffStyle(staff: any): any {
@@ -320,14 +403,68 @@ export class TaskManagementComponent implements OnInit {
   //   return style;
   // }
 
+  // getAllStaves(task: any): void {
+  //   let object = {
+  //     "hierarchy.department": task.service.category,
+  //     "is_available": true,
+  //     // "hierarchy.sequence": 1,
+  //     // Newly added - parentId
+  //     "at_desk": false,
+  //     "higher_level_officer.id": Number(this.localService.get('UserId')),
+  //     "member_id": this.member_id,
+  //     // Newly added for find
+  //     // "room_no": this.labelRoomArray
+  //   }
+  //   const requestBody = {
+  //     domain_name: DOMAIN_NAME,
+  //     user_id: USER_ID,
+  //     "extras": {
+  //       "find": object
+  //     }
+  //   };
+  //   this.taskManagementService.getAllStaves(requestBody).subscribe(
+  //     (resp: any) => {
+  //       this.loaderService.emitComplete();
+  //       if (resp?.success === 1 && resp.status_code === 200) {
+  //         // Newly commented - parentId
+  //         // this.staves = resp.result.data;
+  //         //console.log("Staves based on department:", this.staves);
+  //         // Newly added - parentId
+  //         const allStaves = resp.result.data;
+  //         // Collects all higher_level_officer ids
+  //         const higherLevelIds = allStaves
+  //           .map((staff: any) => staff.higher_level_officer?.id)
+  //           .filter((id: any) => id !== null && id !== undefined);
+  //         console.log('Higher Level Officer IDs:', higherLevelIds);
+  //         // Filters staves whose id is not in higherLevelIds
+  //         this.staves = allStaves.filter((staff: any) => !higherLevelIds.includes(staff.id));
+  //         console.log('Filtered Staves:', this.staves);
+  //         this.isModalOpen = true;
+  //       } else {
+  //         const message = resp?.message || 'Something bad happened. Please try again!';
+  //         this.alertService.error(message, this.options);
+  //       }
+  //     },
+  //     (err: any) => {
+  //       this.loaderService.emitComplete();
+  //       const errorMsg = err?.error?.message || 'Something bad happened. Please try again!';
+  //       this.alertService.error(errorMsg, this.options);
+  //       if (err?.error?.statusCode === 403) {
+  //         this.router.navigate(['/login'], { skipLocationChange: false });
+  //       }
+  //     }
+  //   );
+  // }
 
   getAllStaves(task: any): void {
     let object = {
       "hierarchy.department": task.service.category,
       "is_available": true,
-      "hierarchy.sequence": 1,
-      "higher_level_officer.id": Number(this.localService.get('UserId'))
-    }
+      "at_desk": false,
+      "higher_level_officer.id": Number(this.localService.get('UserId')),
+      "member_id": this.member_id,
+      // "room_no": this.labelRoomArray
+    };
     const requestBody = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
@@ -339,8 +476,28 @@ export class TaskManagementComponent implements OnInit {
       (resp: any) => {
         this.loaderService.emitComplete();
         if (resp?.success === 1 && resp.status_code === 200) {
-          this.staves = resp.result.data;
-          //console.log("Staves based on department:", this.staves);
+          const allStaves = resp.result.data;
+          // Collect all higher_level_officer ids
+          const higherLevelIds = allStaves
+            .map((staff: any) => staff.higher_level_officer?.id)
+            .filter((id: any) => id !== null && id !== undefined);
+          console.log('Higher Level Officer IDs:', higherLevelIds);
+          // Filter by higherLevel + room_no.label
+          this.staves = allStaves.filter((staff: any) => {
+            // exclude if already a higher_level_officer
+            if (higherLevelIds.includes(staff.id)) {
+              return false;
+            }
+            // if no room_no array, skip
+            if (!staff.room_no || staff.room_no.length === 0) {
+              return false;
+            }
+            // extract staff room labels
+            const staffLabels = staff.room_no.map((r: any) => r.label);
+            // check if any staff label exists in labelRoomArray
+            return staffLabels.some((label: string) => this.labelRoomArray.includes(label));
+          });
+          console.log('Filtered Staves:', this.staves);
           this.isModalOpen = true;
         } else {
           const message = resp?.message || 'Something bad happened. Please try again!';
@@ -358,12 +515,56 @@ export class TaskManagementComponent implements OnInit {
     );
   }
 
+
   assignDuty() {
-    if (this.isStaffSelected) {
-      this.updateStaffDetailsInTask(this.assigningTask);
-    }
-    this.closeModal();
-    this.selectedStaff = {}; // reset selection
+    // check if task already has an assignee
+    let requestBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: {
+        find: { id: this.assigningTask.id }, // fetch only this task
+        pagination: false,
+        sorting: true,
+        sortingDetails: { id: -1 }
+      }
+    };
+    this.taskManagementService.getAllTask(requestBody).subscribe({
+      next: (response) => {
+        if (response?.success && response.result.data?.length) {
+          // update with fresh task details
+          this.assigningTask = response.result.data[0];
+          console.log('Assigning Task:', this.assigningTask);
+          // checks if already assigned - newly adding status key check for reassigning
+          if (
+            this.assigningTask.assigned_staff_id &&
+            this.assigningTask.assigned_staff_name &&
+            this.assigningTask.assigned_staff_employee_number && this.assigningTask.status !== 'Escalated'
+          ) {
+            // this.taskUpdatedModal();
+            this.closeModal();
+            this.taskUpdateModal = true;
+            if (this.asapCartComponent && typeof this.asapCartComponent.refresh === 'function') {
+              console.log('Refreshing asap component(update)');
+              this.asapCartComponent.refresh();
+            }
+            return;
+          }
+          // assign if staff selected - if not assigned
+          if (this.isStaffSelected) {
+            this.updateStaffDetailsInTask(this.assigningTask);
+          }
+          this.closeModal();
+          this.selectedStaff = {}; // reset
+        }
+      },
+      error: (err) => {
+        console.error('Error fetching task details:', err);
+      }
+    });
+  }
+
+  closeTaskUpdatedModal() {
+    this.taskUpdateModal = false;
   }
 
   updateStaffDetailsInTask(task: any): void {
@@ -373,6 +574,7 @@ export class TaskManagementComponent implements OnInit {
       user_id: USER_ID,
       payload: {
         update_task: {
+          "status": "Assigned",
           "assigned_staff_id": this.selectedStaff.id,
           "assigned_staff_name": this.selectedStaff.full_name,
           "assigned_staff_employee_number": this.selectedStaff.staff_employee_number
@@ -398,6 +600,7 @@ export class TaskManagementComponent implements OnInit {
               this.scheduledcomponent.refresh();
             }
             if (this.asapCartComponent && typeof this.asapCartComponent.refresh === 'function') {
+              console.log('Refreshing asap component');
               this.asapCartComponent.refresh();
             }
           } catch (error) {
@@ -422,10 +625,14 @@ export class TaskManagementComponent implements OnInit {
       let hierarchy: any = this.localService.get('hierarchy');
       let hierarchyParse = JSON.parse(hierarchy)
       this.sequence = hierarchyParse?.sequence;
-      // //console.log('Hierarchy Sequence:', sequence);
+      //console.log('Hierarchy Sequence:', sequence);
+      // Newly added - parentId
+      this.at_desk = staffDataParse?.at_desk;
     }
     let object;
-    if (this.sequence > 2) {
+    // Newly added - parentId
+    // if (this.sequence > 2) {
+    if (!this.at_desk) {
       object = {
         "status": "Escalated",
         "escalted_from_id": Number(this.localService.get('UserId'))
@@ -472,9 +679,43 @@ export class TaskManagementComponent implements OnInit {
     });
   }
 
-
   updateEscalatedCount(count: number): void {
     this.escalatedCount = count;
   }
 
+  // Newly added
+  // Gets customer data based on member id
+  getCustomerData(memberId: any) {
+    let requestBody = {
+      "domain_name": DOMAIN_NAME,
+      "user_id": USER_ID,
+      "extras": {
+        "find": { "customer_member_id": memberId }
+      }
+    };
+    this.hotelListService.getSignupAllCustomers(requestBody).subscribe((res: any) => {
+      if (res && res.result.data.length > 0) {
+        const customer = res.result.data[0];
+        console.log('Customer Data:', customer);
+        if (customer && customer.settings?.room_range) {
+          this.mapStaffRooms(customer.settings.room_range);
+        }
+      }
+    });
+  }
+
+  mapStaffRooms(roomRange: any[]) {
+    let staffData: any = this.localService.get('StaffData');
+    let staffDataParse = JSON.parse(staffData);
+    let staffRoomNo = staffDataParse.room_no; // [{ label: "Floor 1" }, { label: "Floor 3" }]
+    console.log('Staff Room No:', staffRoomNo);
+    // Just collect labels (no startRoom-endRoom mapping)
+    let finalRoomArray: string[] = staffRoomNo.map((staff: any) => staff.label);
+    console.log('Final Room Array (Labels only):', finalRoomArray); // ["Floor 1", "Floor 3"]
+    this.labelRoomArray = finalRoomArray;
+  }
+
+
 }
+
+

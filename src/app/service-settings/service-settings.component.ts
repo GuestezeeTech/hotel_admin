@@ -9,6 +9,7 @@ import { Router,ActivatedRoute } from '@angular/router';
   templateUrl: './service-settings.component.html',
   styleUrl: './service-settings.component.scss'
 })
+
 export class ServiceSettingsComponent {
     constructor(
       private router: Router,
@@ -16,7 +17,6 @@ export class ServiceSettingsComponent {
     ) { }
   navigateTNewService(){
     this.router.navigate([`/add-new-service`], { skipLocationChange: false });
-
   }
 
 }

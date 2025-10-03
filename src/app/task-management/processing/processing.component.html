@@ -1,10 +1,11 @@
-<table class="processing-table table" >
+<table class="processing-table table">
     <thead>
         <tr>
             <th>Name</th>
             <th>Room No</th>
             <th>Service</th>
-            <th>Order Time</th>
+            <th>Service Date</th>
+            <th>Service Time</th>
             <th>Expected Time</th>
             <th>Status</th>
             <th>Assignee</th>
@@ -14,14 +15,16 @@
         <tr *ngFor="let task of allProcessedTasks">
             <td (click)="navigateToTimeline(task.id)" style="cursor: pointer;">{{ task.guest_name }}</td>
             <td>{{ task.room_no }}</td>
-            <td>{{ task.service.service_name  }}</td>
+            <td>{{ task.service.service_name }}</td>
+            <td>{{ task.order_date | date:'dd-MM-yyyy'}}</td>
             <td>{{ task.order_time }}</td>
             <td>{{ expectedTimesMap[task.id] }}</td>
             <td>
-                <div style="color: #30A75F; background-color: #c2f2cd; border-radius: 50px; padding: 4px 12px; font-weight: 500; font-size: 12px; text-align: center; display: inline-block;">
-                  Processing
+                <div
+                    style="color: #30A75F; background-color: #c2f2cd; border-radius: 50px; padding: 4px 12px; font-weight: 500; font-size: 12px; text-align: center; display: inline-block;">
+                    Processing
                 </div>
-              </td>
+            </td>
             <td>{{ task.assigned_staff_name }}</td>
         </tr>
     </tbody>
@@ -35,4 +38,3 @@
         Next
     </button>
 </div>
-

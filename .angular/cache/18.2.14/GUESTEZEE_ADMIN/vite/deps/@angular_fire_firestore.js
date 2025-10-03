@@ -1,19 +1,24 @@
 import {
+  FirebaseApp,
+  FirebaseApps,
+  VERSION,
+  ɵAngularFireSchedulers,
+  ɵgetAllInstancesOf,
+  ɵgetDefaultInstanceOf,
+  ɵzoneWrap
+} from "./chunk-Y3KVDDMU.js";
+import "./chunk-TJ7FUAR5.js";
+import "./chunk-7V5PYSAS.js";
+import {
   Component,
   Deferred,
   ErrorFactory,
-  FirebaseApp,
-  FirebaseApps,
   FirebaseError,
   LogLevel,
   Logger,
   SDK_VERSION,
-  SDK_VERSION2,
-  VERSION,
   _getProvider,
-  _getProvider2,
   _registerComponent,
-  _registerComponent2,
   _removeServiceInstance,
   base64,
   base64Decode,
@@ -22,7 +27,6 @@ import {
   deepEqual,
   extractQuerystring,
   getApp,
-  getApp2,
   getDefaultEmulatorHost,
   getDefaultEmulatorHostnameAndPort,
   getExperimentalSetting,
@@ -39,13 +43,8 @@ import {
   querystring,
   querystringDecode,
   registerVersion,
-  registerVersion2,
-  uuidv4,
-  ɵAngularFireSchedulers,
-  ɵgetAllInstancesOf,
-  ɵgetDefaultInstanceOf,
-  ɵzoneWrap
-} from "./chunk-CLLT37D7.js";
+  uuidv4
+} from "./chunk-5VLU5WO7.js";
 import "./chunk-CWLCFDWI.js";
 import {
   InjectionToken,
@@ -58,8 +57,8 @@ import {
   ɵɵdefineInjector,
   ɵɵdefineNgModule
 } from "./chunk-3MW5YOBE.js";
-import "./chunk-OCY53FXS.js";
 import "./chunk-VWEI3PJ6.js";
+import "./chunk-OCY53FXS.js";
 import {
   Observable,
   __rest,
@@ -735,9 +734,9 @@ function internalFactory(appCheck) {
 }
 var name = "@firebase/app-check";
 var version = "0.8.0";
-function initializeAppCheck(app = getApp2(), options) {
+function initializeAppCheck(app = getApp(), options) {
   app = getModularInstance(app);
-  const provider = _getProvider2(app, "app-check");
+  const provider = _getProvider(app, "app-check");
   if (!getDebugState().initialized) {
     initializeDebugMode();
   }
@@ -828,7 +827,7 @@ function onTokenChanged(appCheckInstance, onNextOrObserver, onError, onCompletio
 var APP_CHECK_NAME = "app-check";
 var APP_CHECK_NAME_INTERNAL = "app-check-internal";
 function registerAppCheck() {
-  _registerComponent2(new Component(
+  _registerComponent(new Component(
     APP_CHECK_NAME,
     (container) => {
       const app = container.getProvider("app").getImmediate();
@@ -843,7 +842,7 @@ function registerAppCheck() {
   ).setInstanceCreatedCallback((container, _identifier, _appcheckService) => {
     container.getProvider(APP_CHECK_NAME_INTERNAL).initialize();
   }));
-  _registerComponent2(new Component(
+  _registerComponent(new Component(
     APP_CHECK_NAME_INTERNAL,
     (container) => {
       const appCheck = container.getProvider("app-check").getImmediate();
@@ -855,7 +854,7 @@ function registerAppCheck() {
     "EXPLICIT"
     /* InstantiationMode.EXPLICIT */
   ));
-  registerVersion2(name, version);
+  registerVersion(name, version);
 }
 registerAppCheck();
 
@@ -932,12 +931,12 @@ var _DEFAULT_AUTH_ERROR_FACTORY = new ErrorFactory("auth", "Firebase", _prodErro
 var logClient = new Logger("@firebase/auth");
 function _logWarn(msg, ...args) {
   if (logClient.logLevel <= LogLevel.WARN) {
-    logClient.warn(`Auth (${SDK_VERSION2}): ${msg}`, ...args);
+    logClient.warn(`Auth (${SDK_VERSION}): ${msg}`, ...args);
   }
 }
 function _logError(msg, ...args) {
   if (logClient.logLevel <= LogLevel.ERROR) {
-    logClient.error(`Auth (${SDK_VERSION2}): ${msg}`, ...args);
+    logClient.error(`Auth (${SDK_VERSION}): ${msg}`, ...args);
   }
 }
 function _fail(authOrCode, ...rest) {
@@ -2325,7 +2324,7 @@ function _getClientVersion(clientPlatform, frameworks = []) {
       reportedPlatform = clientPlatform;
   }
   const reportedFrameworks = frameworks.length ? frameworks.join(",") : "FirebaseCore-web";
-  return `${reportedPlatform}/${"JsCore"}/${SDK_VERSION2}/${reportedFrameworks}`;
+  return `${reportedPlatform}/${"JsCore"}/${SDK_VERSION}/${reportedFrameworks}`;
 }
 function getRecaptchaConfig(auth, request) {
   return __async(this, null, function* () {
@@ -3028,7 +3027,7 @@ var Subscription = class {
   }
 };
 function initializeAuth(app, deps) {
-  const provider = _getProvider2(app, "auth");
+  const provider = _getProvider(app, "auth");
   if (provider.isInitialized()) {
     const auth2 = provider.getImmediate();
     const initialOptions = provider.getOptions();
@@ -6764,7 +6763,7 @@ function getIframeUrl(auth) {
   const params = {
     apiKey: config.apiKey,
     appName: auth.name,
-    v: SDK_VERSION2
+    v: SDK_VERSION
   };
   const eid = EID_FROM_APIHOST.get(auth.config.apiHost);
   if (eid) {
@@ -6905,7 +6904,7 @@ function _getRedirectUrl(auth, provider, authType, redirectUrl, eventId, additio
       appName: auth.name,
       authType,
       redirectUrl,
-      v: SDK_VERSION2,
+      v: SDK_VERSION,
       eventId
     };
     if (provider instanceof FederatedAuthProvider) {
@@ -7343,7 +7342,7 @@ function getVersionForPlatform(clientPlatform) {
   }
 }
 function registerAuth(clientPlatform) {
-  _registerComponent2(new Component(
+  _registerComponent(new Component(
     "auth",
     (container, {
       options: deps
@@ -7383,7 +7382,7 @@ function registerAuth(clientPlatform) {
     );
     authInternalProvider.initialize();
   }));
-  _registerComponent2(new Component(
+  _registerComponent(new Component(
     "auth-internal",
     (container) => {
       const auth = _castAuth(container.getProvider(
@@ -7398,8 +7397,8 @@ function registerAuth(clientPlatform) {
     "EXPLICIT"
     /* InstantiationMode.EXPLICIT */
   ));
-  registerVersion2(name2, version2, getVersionForPlatform(clientPlatform));
-  registerVersion2(name2, version2, "esm2017");
+  registerVersion(name2, version2, getVersionForPlatform(clientPlatform));
+  registerVersion(name2, version2, "esm2017");
 }
 var DEFAULT_ID_TOKEN_MAX_AGE = 5 * 60;
 var authIdTokenMaxAge = getExperimentalSetting("authIdTokenMaxAge") || DEFAULT_ID_TOKEN_MAX_AGE;
@@ -7422,8 +7421,8 @@ var mintCookieFactory = (url) => (user3) => __async(void 0, null, function* () {
     } : {}
   });
 });
-function getAuth(app = getApp2()) {
-  const provider = _getProvider2(app, "auth");
+function getAuth(app = getApp()) {
+  const provider = _getProvider(app, "auth");
   if (provider.isInitialized()) {
     return provider.getImmediate();
   }
@@ -10230,7 +10229,7 @@ var XhrIo = esm.XhrIo = P;
 var Md5 = esm.Md5 = S;
 var Integer = esm.Integer = T;
 
-// node_modules/@angular/fire/node_modules/@firebase/firestore/dist/index.esm2017.js
+// node_modules/@firebase/firestore/dist/index.esm2017.js
 var b = "@firebase/firestore";
 var V2 = class {
   constructor(t) {

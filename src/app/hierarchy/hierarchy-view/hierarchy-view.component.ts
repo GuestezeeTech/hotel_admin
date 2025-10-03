@@ -343,7 +343,6 @@ export class HierarchyViewComponent {
         }
       },
       err => {
-
         if (err.error.statusCode === 403) {
           this.alertService.error('Session Time Out! Please login Again', this.options)
           this.router.navigate([`/login`], { skipLocationChange: false });
@@ -356,7 +355,6 @@ export class HierarchyViewComponent {
         }
       }
     )
-
   }
 
   back() {

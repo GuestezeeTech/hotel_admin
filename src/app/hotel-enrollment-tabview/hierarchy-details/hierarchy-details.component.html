@@ -13,7 +13,7 @@
        'isSelected': hierarchy.customer_id == hotelId,
        'isNotSelected': hierarchy.customer_id != hotelId || hierarchy.customer_id == undefined
      }">
-        <div class="card-header fw-bold" id=`{{hierarchy.name}}`>{{ hierarchy.name || hierarchy.customer_hierarchy.name
+        <div class="card-header fw-bold" id=`{{hierarchy?.name}}`>{{ hierarchy?.name || hierarchy.customer_hierarchy?.name
           || ' '}} </div>
         <div class="card-body text-start">
           <button class="isViewBtn button w-100 py-1 my-1 fw-bold"

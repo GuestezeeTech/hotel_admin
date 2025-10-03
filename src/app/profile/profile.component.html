@@ -233,11 +233,9 @@
                 <div *ngIf="passwordUpdateForm.controls['confirm_password'].errors?.['minlength']">
                     Password can't be less than 6 characters long.
                 </div>
-                <div *ngIf="passwordUpdateForm.controls['confirm_password'].errors?.['matchError']">New Password and
-                    Confirm Password do not match</div>
+                <!-- <div *ngIf="passwordUpdateForm.controls['confirm_password'].errors?.['matchError']">New Password and
+                    Confirm Password do not match</div> -->
             </div>
-
-
             <!-- Save Button -->
             <button type="button"
                 style="padding: 12px; background: #800020; color: white; border: none; cursor: pointer; width: 100%; margin-top: 10px; font-size: 16px; border-radius: 8px;"
@@ -247,7 +245,6 @@
         </form>
     </div>
 </div>
-
 <!-- Email Modal -->
 <div *ngIf="isEmailModalOpen" (click)="closeEmailModal($event)"
     style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center;">

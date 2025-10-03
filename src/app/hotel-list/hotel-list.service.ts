@@ -21,14 +21,14 @@ export class HotelListService {
     private route: ActivatedRoute
   ) {
 
-   }
-   getAllCustomers(jsonObj: any): Observable<any> {
-    if(this.authTokenService.isTokenExpired()){
-      this.router.navigate([`/login`], {skipLocationChange: false});
-      return new Observable(); 
+  }
+  getAllCustomers(jsonObj: any): Observable<any> {
+    if (this.authTokenService.isTokenExpired()) {
+      this.router.navigate([`/login`], { skipLocationChange: false });
+      return new Observable();
     }
-    else{
-    return this.http.post(ENDPOINTS.GETALLCUSTOMER, jsonObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken())});
+    else {
+      return this.http.post(ENDPOINTS.GETALLCUSTOMER, jsonObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
     }
   }
 
@@ -39,51 +39,49 @@ export class HotelListService {
     //   return new Observable(); 
     // }
     // else{
-      
-    return this.http.post(ENDPOINTS.GETSIGNUPALLCUSTOMER, jsonObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken())});
+
+    return this.http.post(ENDPOINTS.GETSIGNUPALLCUSTOMER, jsonObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
     // }
   }
 
   getCustomerByName(jsonObj: any): Observable<any> {
-    if(this.authTokenService.isTokenExpired()){
-      this.router.navigate([`/login`], {skipLocationChange: false});
-      return new Observable(); 
+    if (this.authTokenService.isTokenExpired()) {
+      this.router.navigate([`/login`], { skipLocationChange: false });
+      return new Observable();
     }
-    else
-    {
-    return this.http.post(ENDPOINTS.GET_CUSTOMER_BY_NAME , jsonObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken())});
+    else {
+      return this.http.post(ENDPOINTS.GET_CUSTOMER_BY_NAME, jsonObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
     }
   }
   deleteCustomer(jsonObj: any): Observable<any> {
-    if(this.authTokenService.isTokenExpired()){
-      this.router.navigate([`/login`], {skipLocationChange: false});
-      return new Observable(); 
+    if (this.authTokenService.isTokenExpired()) {
+      this.router.navigate([`/login`], { skipLocationChange: false });
+      return new Observable();
     }
-    else
-    {
-    return this.http.post(ENDPOINTS.DELETE_CUSTOMER , jsonObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken())});
+    else {
+      return this.http.post(ENDPOINTS.DELETE_CUSTOMER, jsonObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
     }
   }
   updateCustomer(UpdateCustomerObj: any): Observable<any> {
-    if(this.authTokenService.isTokenExpired()){
-      this.router.navigate([`/login`], {skipLocationChange: false});
-      return new Observable(); 
+    if (this.authTokenService.isTokenExpired()) {
+      this.router.navigate([`/login`], { skipLocationChange: false });
+      return new Observable();
     }
-    else{
-    return this.http.post(ENDPOINTS.UPDATE_CUSTOMER, UpdateCustomerObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken())});
+    else {
+      return this.http.post(ENDPOINTS.UPDATE_CUSTOMER, UpdateCustomerObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
     }
   }
   getCustomerById(getCustomerObj: any): Observable<any> {
-    if(this.authTokenService.isTokenExpired()){
-      this.router.navigate([`/login`], {skipLocationChange: false});
-      return new Observable(); 
+    if (this.authTokenService.isTokenExpired()) {
+      this.router.navigate([`/login`], { skipLocationChange: false });
+      return new Observable();
     }
-    else{
-    return this.http.post(ENDPOINTS.GET_CUSTOMER, getCustomerObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken())});
+    else {
+      return this.http.post(ENDPOINTS.GET_CUSTOMER, getCustomerObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
     }
   }
-  postApiCall(dataObj: any, api_endpoint: any): Observable<any>{
-    return this.http.post(api_endpoint, dataObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken())});
+  postApiCall(dataObj: any, api_endpoint: any): Observable<any> {
+    return this.http.post(api_endpoint, dataObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
   }
 }
 

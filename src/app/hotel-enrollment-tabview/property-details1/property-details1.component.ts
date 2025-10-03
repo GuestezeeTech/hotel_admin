@@ -108,6 +108,7 @@ export class PropertyDetails1Component {
     private activatedRoute: ActivatedRoute,
     private checkoutApiService: CheckoutApiService,
     private localStorageService: LocalStorageService,
+    private hotelenrollmentservice: HotelEnrollmentTabviewService,
     // Newly added
     private profileService: ProfileService
   ) {
@@ -521,14 +522,14 @@ export class PropertyDetails1Component {
     this.customerdata["is_property_details_exists"] = true;
 
     //  Password key reset value
-    this.customerdata["password"] = this.localStorageService.get('Password');
+    // this.customerdata["password"] = this.localStorageService.get('Password');
     //console.log(tempCustomerObject)
     //console.log(this.customerdata, " this.customerdata")
     let requestBody = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
       payload: {
-        customer_creation: this.customerdata
+        customer_update: this.customerdata
       },
       extras: {
         find: {
@@ -542,12 +543,41 @@ export class PropertyDetails1Component {
         this.loaderService.emitComplete();
         if (resp) {
           if (resp.success === 1 && resp.status_code === 200) {
-            // //console.log(resp);
-            this.hotelenrollmenttabviewService.clearAdminFormEvent();
-            //console.log("alerttttt")
-            this.alertService.success(resp.message, this.options);
-            this.executeFunctions(); //For storing all values am calling this function
-            this.onContinue();
+            this.hotelenrollmenttabviewService.updateCustomer(requestBody).subscribe(
+              resp1 => {
+                this.loaderService.emitComplete();
+                if (resp1) {
+                  console.log(resp1.success, resp1.status_code, "resp1")
+                  if (resp1.success === 1 && resp1.status_code === 200) {
+                    let requestBody = {
+                      domain_name: DOMAIN_NAME,
+                      user_id: USER_ID,
+                      extras: {
+                        find: {
+                          id: this.hotelId
+                        }
+                      }
+                    };
+                    this.hotelenrollmentservice.getLoginCustomerById(requestBody).subscribe(
+                      resp2 => {
+                        this.loaderService.emitComplete();
+                        if (resp2) {
+                          console.log(resp2.result.data[0].customer_member_id, "Member iddddddd");
+                          this.localStorageService.set('MemberId', resp2.result.data[0].customer_member_id);
+                          this.hotelenrollmenttabviewService.clearAdminFormEvent();
+                          //console.log("alerttttt")
+                          this.alertService.success(resp1.message, this.options);
+                          this.executeFunctions(); //For storing all values am calling this function
+                          this.onContinue();
+                          // //console.log(resp);
+                        }
+                      })
+
+
+                  }
+                }
+              })
+
           }
           else if (resp.success === 0) {
             if (resp.message) {

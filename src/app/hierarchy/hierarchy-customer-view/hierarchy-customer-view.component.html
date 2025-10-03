@@ -19,13 +19,13 @@
             </span>
           </div>
           <div class="icons">
-            <button (click)="onEdit(item.id)" class="icon-button" title="Edit" [disabled]="paymentDone">
+            <button (click)="onEdit(item.id)" class="icon-button" title="Edit">
               <i class="fas fa-edit"></i>
             </button>
-            <button (click)="onDelete(item.id)" class="icon-button" title="Delete" [disabled]="paymentDone">
+            <button (click)="onDelete(item.id)" class="icon-button" title="Delete">
               <i class="fas fa-trash"></i>
             </button>
-            <button (click)="onAdd(item.id, item.department)" class="icon-button" title="Add Child" [disabled]="paymentDone">
+            <button (click)="onAdd(item.id, item.department)" class="icon-button" title="Add Child">
               <i class="fas fa-plus"></i>
             </button>
           </div>
@@ -52,3 +52,5 @@
     </div>
   </div>
 </div>
+
+<!-- [disabled] -->

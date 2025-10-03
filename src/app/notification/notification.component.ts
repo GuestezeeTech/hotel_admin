@@ -2,6 +2,7 @@ import { Component, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AlertsService } from '../shared/alerts/alerts.service';
 import { AlertsComponent } from '../shared/alerts/alerts.component';
+import { Input } from '@angular/core';
 
 @Component({
   selector: 'app-notification',
@@ -38,4 +39,8 @@ export class NotificationComponent {
     }
   ];
 
+  // Receives the list of notifications from a parent component (like HeaderComponent).
+  // @Input() notifications: any[] = [];
+  // // Emits an event when the user closes the notification panel.
+  // @Output() close = new EventEmitter<void>();
 }

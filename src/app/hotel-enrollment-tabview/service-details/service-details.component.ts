@@ -43,6 +43,7 @@ export class ServiceDetailsComponent implements OnInit {
   @Output() continue = new EventEmitter<void>();
   // Newly added for payment done
   @Input() paymentDone!: boolean;
+  member_id: any;
 
   constructor(
     private authTokenService: AuthTokenService,
@@ -79,6 +80,8 @@ export class ServiceDetailsComponent implements OnInit {
           this.loaderService.emitComplete();
           if (resp) {
             this.customerdata = resp.result.data[0];
+            console.log(this.customerdata.customer_member_id, "Member id");
+            this.member_id = this.customerdata.customer_member_id;
             this.hotelName = this.customerdata.property_details.contact_details.hotel_name;
             resolve();  // Resolve promise when data is set
           }
@@ -403,6 +406,7 @@ export class ServiceDetailsComponent implements OnInit {
   }
 
   async serviceCreate(): Promise<void> {
+    const memberId = this.localService.get('MemberId');
     return new Promise((resolve, reject) => {
       const selectedIds = new Set(this.selectedServices.map(s => s.id));  // Efficient lookup
       const service_details1 = this.services.map((service: any) => {
@@ -419,7 +423,8 @@ export class ServiceDetailsComponent implements OnInit {
         payload: {
           create_Service: {
             customer_id: this.hotelId,
-            services: service_details1
+            services: service_details1,
+            member_id: memberId
           }
         }
       };
@@ -439,6 +444,10 @@ export class ServiceDetailsComponent implements OnInit {
                 if (tab != undefined) {
                   tab.click();
                 }
+              }
+              // Newly added for auto next tab
+              if (this.activeTab == 3) {
+                this.continue.emit();
               }
               resolve();
             } else if (resp.success === 0 && resp.message) {

@@ -89,4 +89,17 @@ export class TaskManagementService {
             return this.http.post(ENDPOINTS.GET_All_STAVES, jsonObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
         }
     }
+
+    getAllRatings(requestBody: any): Observable<any> {
+        if (this.authTokenService.isTokenExpired()) {
+            this.router.navigate(['/login'], { skipLocationChange: false });
+            return of({ success: 0, result: { data: [] }, message: "Session Expired" }); // Return empty response
+        }
+        return this.http.post(ENDPOINTS.GET_TASK_RATINGS, requestBody, {
+            headers: new HttpHeaders()
+                .set('Content-Type', 'application/json')
+                .set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken())
+        });
+    }
+
 }

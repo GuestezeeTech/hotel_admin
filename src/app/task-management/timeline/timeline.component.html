@@ -46,7 +46,8 @@
                             }}</span>
                     </div>
                     <div style="color: #BBBBBB; font-size: 14px;">
-                        Room type: <span class="fw-medium" style="color: #1A1A1A">Silver</span>
+                        Room type: <span class="fw-medium" style="color: #1A1A1A">{{ getRoomType(this.member_id)
+                            }}</span>
                     </div>
                     <div style="color: #BBBBBB; font-size: 14px;">
                         Dept: <span class="fw-medium" style="color: #1A1A1A">{{ timelineData.service.category }}</span>
@@ -80,10 +81,23 @@
                     <ng-container *ngIf="i % 2 === 0">
                         <div class="col-5 text-end">
                             <div class="pe-3">
-                                <h6 class="fw-bold mb-0" style="font-size: 15px;">{{ i === 0 ? item.status + ' - (Room
-                                    No:' + timelineData.room_no + ')': item.status }}<span
-                                        *ngIf="item.remarks">{{item.remarks}}</span></h6>
+                                <!-- <h6 class="fw-bold mb-0" style="font-size: 15px;">{{ i === 0 ? item.status + ' - (Room
+                                    No:' + timelineData.room_no + ')': item.status }}
+                                    <span *ngIf="item.remarks">{{item.remarks}}</span>
+                                </h6> 
                                 <span class='mb-0' *ngIf="item.remarks" style="font-size: 14px;">{{timelineData.assigned_staff_name}}</span>
+                                -->
+                                <h6 class="fw-bold mb-0" style="font-size: 15px;">{{ i === 0 ? item.status + ' - (Room
+                                    No:' + timelineData.room_no + ')': item.status }} </h6>
+                                <span class='mb-0' *ngIf="item.status === 'Assigned' || item.status === 'Escalated'"
+                                    style="font-size: 13px;"><span class="fw-medium">{{ item.status === 'Assigned' ?
+                                        'Staff' : 'Escalated from' }} : </span> {{ item.status
+                                    === 'Assigned' ? item.assigned_staff_name : item.escalated_from_name }}</span>
+                                <br *ngIf="item.status === 'Escalated'">
+                                <span class='mb-0' *ngIf="item.status === 'Assigned' || item.status === 'Escalated'"
+                                    style="font-size: 13px;"><span class="fw-medium">{{ item.status === 'Assigned' ?
+                                        'Staff' : 'Escalated to' }} : </span> {{ item.status
+                                    === 'Assigned' ? item.assigned_staff_name : item.escalated_to_name }}</span>
                                 <p class="mb-0" style="color: #444; font-size: 13px;">({{item.date}} : {{ item.time}})
                                 </p>
                             </div>
@@ -103,9 +117,17 @@
                         </div>
                         <div class="col-5 text-start">
                             <div class="ps-3">
-                                <h6 class="fw-bold mb-0" style="font-size: 15px;">{{ item.status }}<span
-                                        *ngIf="item.remarks">-{{item.remarks}}</span></h6>
-                                <span class='mb-0' *ngIf="item.remarks" style="font-size: 14px;">{{timelineData.assigned_staff_name}}</span>
+                                <h6 class="fw-bold mb-0" style="font-size: 15px;">{{ i === 0 ? item.status + ' - (Room
+                                    No:' + timelineData.room_no + ')': item.status }} </h6>
+                                <span class='mb-0' *ngIf="item.status === 'Assigned' || item.status === 'Escalated'"
+                                    style="font-size: 13px;"><span class="fw-medium">{{ item.status === 'Assigned' ?
+                                        'Staff' : 'Escalated from' }} : </span> {{ item.status
+                                    === 'Assigned' ? item.assigned_staff_name : item.escalated_from_name }}</span>
+                                <br *ngIf="item.status === 'Escalated'">
+                                <span class='mb-0' *ngIf="item.status === 'Assigned' || item.status === 'Escalated'"
+                                    style="font-size: 13px;"><span class="fw-medium">{{ item.status === 'Assigned' ?
+                                        'Staff' : 'Escalated to' }} : </span> {{ item.status
+                                    === 'Assigned' ? item.assigned_staff_name : item.escalated_to_name }}</span>
                                 <p class="mb-0" style="color: #444; font-size: 13px;">({{item.date}} : {{ item.time }})
                                 </p>
                             </div>
@@ -126,9 +148,9 @@
                                 <h6 class="mb-0 fw-semibold" style="color: #0B0B12DE; font-size: 15px">{{
                                     timelineData.guest_name }}
                                 </h6>
-                                <span class="ms-2 mt-1 fw-semibold" style="font-size: 11px; color: #909090;">{{
-                                    timelineData.timeAgo
-                                    }}</span>
+                                <span class="ms-2 mt-1 fw-semibold" style="font-size: 11px; color: #909090;">
+                                    {{ timelineData.created_on | date:'HH:mm:ss (dd-MM-yyyy)' }}
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -143,7 +165,7 @@
                         </ng-container>
                     </div>
                 </div>
-                <p class="mb-0 mt-2" style="color: #0C0E10; font-size: 13px;">{{ timelineData.feedback }}</p>
+                <p class="mb-0 mt-2" style="color: #0C0E10; font-size: 13px;">{{ timelineData.feedback_text }}</p>
             </div>
 
         </div>

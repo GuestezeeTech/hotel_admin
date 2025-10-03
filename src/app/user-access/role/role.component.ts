@@ -424,11 +424,11 @@ export class RoleComponent implements OnInit {
             payload: {
               role_updation: payloadData
             },
-            extras: {
-              find: {
-                id: Number(this.roleId)
-              }
-            }
+            // extras: {
+            //   find: {
+                // id: Number(this.roleId)
+            //   }
+            // }
           }
           this.roleService.postApiCall(requestData, ENDPOINTS.CREATE_ROLES).subscribe(resp => {
             this.loaderService.emitComplete();

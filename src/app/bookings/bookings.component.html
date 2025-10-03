@@ -15,7 +15,7 @@
                         <i class="fas fa-search" style="color: gray; font-size: 18px;"></i>
                     </span>
                     <input type="text" placeholder="Search" class="form-control border-0 bg-white"
-                        style="box-shadow: none; color: #8F9899">
+                        style="box-shadow: none; color: #8F9899" [(ngModel)]="searchTerm" (input)="filterGuests()">
                     <div class="px-3 py-2" (click)="toggleFilterDropdown()"
                         style="background-color: #D8D8D8;  border-top-right-radius: 10px; border-bottom-right-radius: 10px; cursor: pointer">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="black" class="bi bi-funnel"
@@ -26,19 +26,16 @@
                     </div>
                     <!-- Dropdown Popup -->
                     <div *ngIf="showFilterDropdown" class="position-absolute mt-2 shadow-sm"
-                        style="background: white; padding: 12px 16px; border-radius: 10px; z-index: 1000; min-width: 10%; right: 4%; top: 26%">
-
+                        style="background: white; padding: 12px 16px; border-radius: 10px; z-index: 1000; min-width: 10%; right: 4%; top: 21%">
                         <!-- Triangle Arrow -->
                         <div
                             style="position: absolute; top: -10px; right: 12px; width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 10px solid white;">
                         </div>
-
                         <!-- Date -->
                         <div class="d-flex align-items-center mb-2" style="cursor: pointer;">
                             <i class="fas fa-briefcase me-2" style="font-size: 14px;"></i>
                             <span style="font-weight: 500; font-size: 14px;">Date</span>
                         </div>
-
                         <!-- Room No -->
                         <div class="d-flex align-items-center" style="cursor: pointer;">
                             <i class="fas fa-hotel me-2" style="font-size: 14px;"></i>
@@ -47,14 +44,14 @@
                     </div>
                 </div>
             </div>
-
             <!-- Guest Table -->
             <table class="table" style="margin-top: 3%;">
                 <thead>
                     <tr>
-                        <th style="text-align: center;">
+                        <!-- <th style="text-align: center;">
                             <input type="checkbox">
-                        </th>
+                        </th> -->
+                        <th>S.No</th>
                         <th>Guest Name</th>
                         <th>Room No</th>
                         <th>No.Of Guests</th>
@@ -65,22 +62,28 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr *ngFor="let guest of guests" style="background-color: white;">
-                        <td>
+                    <tr *ngIf="!allBookings || allBookings.length === 0">
+                        <td colspan="7" class="text-center text-muted">No guest logs found</td>
+                    </tr>
+                    <tr *ngFor="let guest of allBookings; let i = index" style="background-color: white;">
+                        <!-- <td>
                             <input type="checkbox" [id]="guest.name" [name]="guest.name" [value]="guest.name"
                                 (change)="toggleSelection($event, guest.id)">
-                        </td>
-                        <td>{{ guest.name }}</td>
-                        <td>{{ guest.roomNo }}</td>
-                        <td>{{ guest.noOfGuests }}</td>
-                        <td>{{ guest.checkIn }}</td>
-                        <td>{{ guest.checkOut }}</td>
-                        <td [ngStyle]="{ color: guest.roomOccupancy === 'Stayed' ? '#FF6E27' : '#009F13' }">{{
-                            guest.roomOccupancy }}</td>
+                        </td> -->
+                        <td>{{ i + 1 }}.</td> <!-- Serial Number -->
+                        <td>{{ guest.Guest_detail[0].First_Name }}</td>
+                        <td>{{ guest.Room_No }}</td>
+                        <td>{{ guest.Adult_Pax + guest.Child_Pax }}</td>
+                        <td>{{ guest.Arrival_Date }}</td>
+                        <td>{{ guest.Departure_Date }}</td>
+                        <td
+                            [ngStyle]="{ color: ((guest.Event === 'Check-in') || (guest.Event === 'Reserved')) ? '#009F13' : '#FF6E27'}">
+                            {{
+                            guest.Event === 'Check-in' ? 'Staying' : guest.Event === 'Check-out' ? 'Stayed' : 'Reserved'
+                            }}</td>
                         <td class="position-relative">
                             <i class="fa fa-ellipsis-h" style="color: #868686; cursor: pointer;"
                                 (click)="toggleDropdown(guest.id)"></i>
-
                             <!-- Dropdown -->
                             <div *ngIf="dropdownVisibleId === guest.id" class="position-absolute mt-2 shadow-sm"
                                 style="background: white; padding: 5px 15px; border-radius: 10px; z-index: 1000; min-width: 10%; top: 60%;">
@@ -88,13 +91,12 @@
                                 <div
                                     style="position: absolute; top: -10px; right: 12px; width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 10px solid white;">
                                 </div>
-
                                 <!-- View Option -->
-                                <div class="d-flex align-items-center" style="cursor: pointer;" (click)="viewGuest(guest.id)">
+                                <div class="d-flex align-items-center" style="cursor: pointer;"
+                                    (click)="viewGuest(guest.id)">
                                     <i class="fa fa-eye me-2" style="font-size: 10px;"></i>
                                     <span style="font-weight: 500; font-size: 11px;">View</span>
                                 </div>
-
                                 <!-- Date Option -->
                                 <div class="d-flex align-items-center mb-2 mt-1"
                                     style="cursor: pointer; margin-bottom: 0 !important;">
@@ -106,7 +108,15 @@
                     </tr>
                 </tbody>
             </table>
-
+        </div>
+        <div class="pagination-container">
+            <button (click)="previousPage()" [disabled]="currentPage === 1" class="pagination-btn">
+                Previous
+            </button>
+            <input type="text" class="pagination-input" [(ngModel)]="currentPage" readonly>
+            <button (click)="nextPage()" [disabled]="currentPage === totalPages" class="pagination-btn">
+                Next
+            </button>
         </div>
     </div>
 </div>
@@ -114,16 +124,12 @@
 <!-- Confirmation Modal for Deleting -->
 <div *ngIf="isDeleteModalOpen"
     style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center;">
-
     <div
         style="background: white; padding: 30px; border-radius: 15px; width: 450px; text-align: center; box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);">
-
         <!-- Confirmation Text -->
         <h2 style="margin-bottom: 10px; font-size: 20px; font-weight: bold;">Are you sure you want to delete?</h2>
-
         <!-- Warning Text (optional) -->
         <p style="font-size: 16px; margin-bottom: 20px;">This action cannot be undone.</p>
-
         <!-- Buttons: Cancel and Confirm -->
         <div style="display: flex; justify-content: space-around;">
             <button
@@ -137,6 +143,5 @@
                 Delete
             </button>
         </div>
-
     </div>
 </div>

@@ -1,12 +1,13 @@
 <app-alerts></app-alerts>
-
 <div class="container-fluid" style=" background-color: #FFFEFA; backdrop-filter: blur(638.83px);">
   <div class="row">
-     <div class="col-xs-5 col-sm-5 col-md-5 col-lg-5  p-0"  *ngIf="!login">
+    <div class="col-xs-5 col-sm-5 col-md-5 col-lg-5  p-0" *ngIf="!login">
       <img src="../../assets/images/guestezee/login-img.png" class="img-fluid" class="login-page_img">
     </div>
-     <div class="col-xs-5 col-sm-5 col-md-5 col-lg-5  p-5" *ngIf="login">
-      <img src="https://ecbee-labes-images1.s3.ap-south-1.amazonaws.com/Mayan/StoreGallery/1749548341599%20-%20login.png" class="img-fluid" class="login-page_img" >
+    <div class="col-xs-5 col-sm-5 col-md-5 col-lg-5  p-5" *ngIf="login">
+      <img
+        src="https://ecbee-labes-images1.s3.ap-south-1.amazonaws.com/Mayan/StoreGallery/1749548341599%20-%20login.png"
+        class="img-fluid" class="login-page_img">
     </div>
     <div class="col-xs-7 col-sm-7 col-md-7 col-lg-7 justify-content-center" style="text-align: center;">
       <img src="../../assets/images/guestezee/logo.png" class="img-fluid" class="login_logo_img">
@@ -37,8 +38,8 @@
             <div class="input-wrapper" style="position: relative;">
               <input [type]="passwordVisible ? 'text' : 'password'" class="form-control" formControlName="password"
                 placeholder="******" required />
-              <i [class]="passwordVisible ? 'fa fa-eye eye-icon' : 'fa fa-eye-slash eye-icon'" (click)="showPassword('login')"
-                style="color: #878E96;"></i>
+              <i [class]="passwordVisible ? 'fa fa-eye eye-icon' : 'fa fa-eye-slash eye-icon'"
+                (click)="showPassword('login')" style="color: #878E96;"></i>
             </div>
             <div *ngIf="loginForm.controls['password'].invalid && loginForm.controls['password'].touched"
               style="color: red;">

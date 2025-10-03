@@ -1,21 +1,23 @@
+import { HotelListService } from './../hotel-list/hotel-list.service';
+import { LocalStorageService } from './../auth-services/local-storage.service';
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { AlertsService } from '../shared/alerts/alerts.service';
 import { AlertsComponent } from '../shared/alerts/alerts.component';
 import { Router } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { DOMAIN_NAME, USER_ID } from '../app.config';
+import { BookingsService } from './bookings.service';
+
 @Component({
   selector: 'app-bookings',
   standalone: true,
-  imports: [AlertsComponent, CommonModule],
+  imports: [AlertsComponent, CommonModule, FormsModule],
   templateUrl: './bookings.component.html',
   styleUrl: './bookings.component.scss'
 })
-export class BookingsComponent {
-  constructor(
-    private alertService: AlertsService,
-    private routeUrl: Router,
-  ) { }
 
+export class BookingsComponent {
   // Guests data
   guests = [
     {
@@ -159,14 +161,7 @@ export class BookingsComponent {
       actions: 'View/Edit'
     }
   ];
-
-
-  // For showing filter
-  showFilterDropdown: boolean = false;
-  toggleFilterDropdown() {
-    this.showFilterDropdown = !this.showFilterDropdown;
-  }
-
+  filteredGuests = [...this.guests]; // initialize with all guests
   // For deleting guests
   options = {
     autoClose: true,
@@ -174,6 +169,40 @@ export class BookingsComponent {
   };
   selectedGuestIds: number[] = [];
   isDeleteModalOpen: boolean = false;
+  // For viewing guest details
+  dropdownVisibleId: number | null = null;
+  // For showing filter
+  showFilterDropdown: boolean = false;
+  searchTerm: string = '';
+  allBookings: any[] = [];
+  hotelId: any;
+  memberId: any;
+  currentPage: number = 1;
+  pageSize: number = 10; // Show 10 per page
+  totalTasks: number = 0; // Total number of roles
+  totalPages: number = 0; // Total number of pages
+  bookings: any[] = [];
+
+  constructor(
+    private alertService: AlertsService,
+    private routeUrl: Router,
+    private bookingService: BookingsService,
+    private localStorageService: LocalStorageService,
+    private hotelListService: HotelListService
+  ) { }
+
+  ngOnInit(): void {
+    this.hotelId = Number(this.localStorageService.get('UserId'));
+    if (this.hotelId) {
+      this.getCustomerById(this.hotelId);
+    }
+    // this.getAllBookings();
+  }
+
+  toggleFilterDropdown() {
+    this.showFilterDropdown = !this.showFilterDropdown;
+  }
+
   // For storing selected guest ids
   toggleSelection(event: any, guestId: number) {
     if (event.target.checked) {
@@ -197,14 +226,12 @@ export class BookingsComponent {
       this.isDeleteModalOpen = true;
     }
   }
+
   // This function closes the delete modal
   closeDeleteModal() {
     this.isDeleteModalOpen = false;
   }
 
-
-  // For viewing guest details
-  dropdownVisibleId: number | null = null;
   toggleDropdown(id: number) {
     this.dropdownVisibleId = this.dropdownVisibleId === id ? null : id;
   }
@@ -213,6 +240,107 @@ export class BookingsComponent {
     this.routeUrl.navigate(['/bookings-management', guestId]);
   }
 
+  filterGuests() {
+    const term = this.searchTerm.toLowerCase().trim();
+    console.log('Search term:', term);
+    if (!term) {
+      this.filteredGuests = [...this.guests]; // reset when empty
+      return;
+    }
+    this.filteredGuests = this.guests.filter(guest =>
+      guest.name.toLowerCase().includes(term) ||
+      guest.roomNo.toLowerCase().includes(term)
+    );
+    console.log('Filtered Guests:', this.filteredGuests);
+  }
 
+  getCustomerById(hotelId: any): Promise<any> {
+    let requestBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: { find: { id: hotelId } }
+    };
+    return new Promise((resolve, reject) => {
+      this.hotelListService.getSignupAllCustomers(requestBody).subscribe({
+        next: (resp: any) => {
+          if (resp.success === 1 && resp.status_code === 200) {
+            const userData = resp.result.data[0];
+            this.memberId = userData.customer_member_id;
+            console.log('Member id:', this.memberId);
+            this.getAllBookings(this.memberId);
+            resolve(userData);
+          } else {
+            reject('Customer not found');
+          }
+        },
+        error: reject
+      });
+    });
+  }
+
+  getAllBookings(memberId: any) {
+    let requestBody = {
+      "domain_name": DOMAIN_NAME,
+      "user_id": USER_ID,
+      "extras": {
+        "find": {
+          "member_id": "BINM00071"
+        },
+        "pagination": true,
+        "paginationDetails": {
+          "limit": 0,
+          "pageSize": 10
+        },
+        "sorting": true,
+        "sortingDetails": {
+          "email": -1
+        }
+      }
+    }
+    this.bookingService.getAllBookings(requestBody).subscribe(
+      resp => {
+        if (resp) {
+          this.allBookings = resp.result.data;
+          console.log(this.allBookings, "Bookings List");
+          this.bookings = this.allBookings;
+          this.totalTasks = this.allBookings.length;
+          this.totalPages = Math.ceil(this.totalTasks / this.pageSize);
+          this.updatePaginatedTasks();
+        }
+      },
+      err => {
+        if (err.error.statusCode === 403) {
+          this.alertService.error('Session Time Out! Please login Again', this.options)
+          this.routeUrl.navigate([`/login`], { skipLocationChange: false });
+        }
+        else if (err.error.message) {
+          this.alertService.error(err.error.message, this.options)
+        }
+        else {
+          this.alertService.error('Something bad happened. Please try again!', this.options);
+        }
+      }
+    )
+  }
+
+  updatePaginatedTasks() {
+    const startIndex = (this.currentPage - 1) * this.pageSize;
+    const endIndex = startIndex + this.pageSize;
+    this.allBookings = this.bookings.slice(startIndex, endIndex);
+  }
+
+  nextPage() {
+    if (this.currentPage < this.totalPages) {
+      this.currentPage++;
+      this.updatePaginatedTasks();
+    }
+  }
+
+  previousPage() {
+    if (this.currentPage > 1) {
+      this.currentPage--;
+      this.updatePaginatedTasks();
+    }
+  }
 
 }

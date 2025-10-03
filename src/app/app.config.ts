@@ -5,7 +5,7 @@ import { routes } from './app.routes';
 import { environment } from '../environments/environment.prod';
 
 export const appConfig: ApplicationConfig = {
-  providers: [provideZoneChangeDetection({ eventCoalescing: true }), provideRouter(routes),provideHttpClient() ]
+  providers: [provideZoneChangeDetection({ eventCoalescing: true }), provideRouter(routes), provideHttpClient()]
 };
 
 export const API_URL = environment.devURL
@@ -149,7 +149,7 @@ export const ENDPOINTS = {
   GET_PRODUCT_BYID: API_URL + ":9422/product/getbyid",
 
   // SEND_IMAGE: API_URL + ":9432/imageupload/create",
-   SEND_IMAGE: API_URL + ":9104/imageupload/create",
+  SEND_IMAGE: API_URL + ":9104/imageupload/create",
   DELETE_IMAGE: API_URL + ":9432/imageupload/delete",
 
   GET_ALL_USERS: API_URL + ":9400/user/getall",
@@ -488,27 +488,27 @@ export const ENDPOINTS = {
   GET_ALL_EVENTELIGIBILITY: API_URL + ':6993/eligibility/getall',
   FORMS_GETALL: API_URL + ':6899/forms/getall',
   ORDER_UPDATION: API_URL + ':5456/order/upsert',
-  HDFC_PAYMENT : API_URL + ":5621/api/payment/generateHDFCLink",
-  GETBYID_ORDERS: API_URL+':9475/order/getbyid',
-  DELETE_CUSTOMER:API_URL+":5430/customer/delete",
+  HDFC_PAYMENT: API_URL + ":5621/api/payment/generateHDFCLink",
+  GETBYID_ORDERS: API_URL + ':9475/order/getbyid',
+  DELETE_CUSTOMER: API_URL + ":5430/customer/delete",
 
   // Newly added APIs
   GETSIGNUPALLCUSTOMER: API_URL + ':9526/customer/getall',
   ADD_CUSTOMER_SIGNUP: API_URL + ':5447/customer/create',
-  SEND_OTP : API_URL + ':5622/sms/GenerateOtpSMS',
-  VERIFY_OTP : API_URL + ':5622/sms/verifyotp',
-  LOGIN_TWO : API_URL + ":5202/login ",
+  SEND_OTP: API_URL + ':5622/sms/GenerateOtpSMS',
+  VERIFY_OTP: API_URL + ':5622/sms/verifyotp',
+  LOGIN_TWO: API_URL + ":5202/login ",
   GET_LOGIN_CUSTOMER: API_URL + ':9526/customer/getbyid',
-  UPDATE_LOGIN_CUSTOMER: API_URL + ':5447/customer/updatecustomer',
-  CHANGE_PASSWORD : API_URL + ':5447/customer/updatepassword',
-  RESET_PASSWORD : API_URL + ':5447/customer/resetpassword',
+  UPDATE_LOGIN_CUSTOMER_FCM: API_URL + ':5447/customer/updatecustomer',
+  CHANGE_PASSWORD: API_URL + ':5447/customer/updatepassword',
+  RESET_PASSWORD: API_URL + ':5447/customer/resetpassword',
   CREATE_SERVICE: API_URL + ':7780/services/create',
   GET_ALL_SERVICES: API_URL + ':9979/services/getall',
   UPDATE_SERVICES: API_URL + ':7780/services/update',
   GET_HIERARCHY: API_URL + ':3390/hierarchy/getall',
   CREATE_HIERARCHY: API_URL + ':3391/hierarchy/create',
   UPDATE_HIERARCHY: API_URL + ':3391/hierarchy/update',
-  GETBYID_HIERARCHY: API_URL+':3390/hierarchy/getbyid',
+  GETBYID_HIERARCHY: API_URL + ':3390/hierarchy/getbyid',
   CREATE_STAFF: API_URL + ':3404/staff/create',
   DELETE_STAFF: API_URL + ':3404/staff/delete',
   UPDATE_STAFF: API_URL + ":3404/staff/update",
@@ -519,5 +519,11 @@ export const ENDPOINTS = {
   UPDATE_TECHNICAL_INFO: API_URL + ':3567/ecomintegrationsettings/update',
   GET_ALL_TASK: API_URL + ':3411/task/getall',
   UPDATE_TASK: API_URL + ':3410/task/update',
+  GET_ALL_BOOKINGS: API_URL + ':4676/reservation/getall',
+  UPDATE_LOGIN_CUSTOMER: API_URL + ':5447/customer/updateguestezeecustomer',
+  GET_ALL_DASHBOARD: API_URL + ':1217/dashboard/getall',
+  GET_ALL_REPORTS: API_URL + ':1218/report/getall',
+  GET_TASK_RATINGS: API_URL + ':9545/productreviews/getall',
+  GET_ALL_BOOKING_STATUS: API_URL + ':1219/booking/getall',
 }
 

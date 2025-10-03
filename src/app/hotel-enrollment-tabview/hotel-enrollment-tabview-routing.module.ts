@@ -4,8 +4,6 @@ import { HotelEnrollmentTabviewComponent } from './hotel-enrollment-tabview.comp
 import { EditTechnicalInfoComponent } from './technical-info/edit-technical-info/edit-technical-info.component';
 import { CancellationComponent } from './cancellation/cancellation.component';
 
-
-
 const routes: Routes = [
   { path: 'add-new-hotel', component: HotelEnrollmentTabviewComponent }, // Default route for this module
   { path: 'hotel-registration/add-new-hotel', component: HotelEnrollmentTabviewComponent }, // Default route for this module
@@ -18,7 +16,6 @@ const routes: Routes = [
  {  path:'hotel-registration/cancellation', component: HotelEnrollmentTabviewComponent },
   // Default route for this module
 ];
-
 
 @NgModule({
   imports: [RouterModule.forChild(routes)],

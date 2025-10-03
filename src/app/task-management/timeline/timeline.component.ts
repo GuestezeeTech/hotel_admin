@@ -1,3 +1,5 @@
+import { LocalStorageService } from './../../auth-services/local-storage.service';
+import { HotelListService } from './../../hotel-list/hotel-list.service';
 import { DOMAIN_NAME, USER_ID } from './../../app.config';
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
@@ -7,7 +9,6 @@ import { TaskManagementService } from '../task-management.service';
 import { AlertsService } from '../../shared/alerts/alerts.service';
 import { LoaderService } from '../../shared/loader/loader.service';
 
-
 @Component({
   selector: 'app-timeline',
   standalone: true,
@@ -15,20 +16,37 @@ import { LoaderService } from '../../shared/loader/loader.service';
   templateUrl: './timeline.component.html',
   styleUrl: './timeline.component.scss'
 })
+
 export class TimelineComponent {
   timelineData: any;
+  member_id: any;
 
   constructor(
     private router: Router,
     private route: ActivatedRoute,
     private taskManagementService: TaskManagementService,
     private alertService: AlertsService,
-    private loaderService: LoaderService) { }
+    private loaderService: LoaderService,
+    private hotelListService: HotelListService,
+    private localService: LocalStorageService) { }
 
   ngOnInit(): void {
+    this.member_id = this.localService.get('MemberId');
     const taskId = Number(this.route.snapshot.paramMap.get('id'));
     //console.log('Received Task ID:', taskId);
     this.getTaskById(taskId);
+  }
+
+  getRoomType(memberId: string): string {
+    if (!memberId) return '';
+    const firstChar = memberId.charAt(0).toUpperCase();
+    switch (firstChar) {
+      case 'S': return 'Silver';
+      case 'B': return 'Bronze';
+      case 'P': return 'Platinum';
+      case 'G': return 'Gold';
+      default: return '';
+    }
   }
 
   // Timeline - Order details array
@@ -85,35 +103,98 @@ export class TimelineComponent {
   //   }
   // ];
 
+  // getTaskById(taskId: any) {
+  //   let requestBody = {
+  //     "domain_name": DOMAIN_NAME,
+  //     "user_id": USER_ID,
+  //     "extras": {
+  //       "find": {
+  //         "id": taskId
+  //       },
+  //       "pagination": true,
+  //       "paginationDetails": {
+  //         "limit": 0,
+  //         "pageSize": 1
+  //       },
+  //       "sorting": true,
+  //       "sortingDetails": {
+  //         "id": -1
+  //       }
+  //     }
+  //   }
+  //   this.taskManagementService.getAllTask(requestBody).subscribe({
+  //     next: (response) => {
+  //       if (response?.success) {
+  //         this.timelineData = response.result.data[0];
+  //       } else {
+  //         console.error('No tasks found:', response?.message);
+  //       }
+  //     },
+  //     error: (err) => {
+  //       //console.error('API Error:', err);
+  //     }
+  //   });
+  // }
+
   getTaskById(taskId: any) {
     let requestBody = {
-      "domain_name": DOMAIN_NAME,
-      "user_id": USER_ID,
-      "extras": {
-        "find": {
-          "id": taskId
-        },
-        "pagination": true,
-        "paginationDetails": {
-          "limit": 0,
-          "pageSize": 1
-        },
-        "sorting": true,
-        "sortingDetails": {
-          "id": -1
-        }
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: {
+        find: { id: taskId },
+        pagination: true,
+        paginationDetails: { limit: 0, pageSize: 1 },
+        sorting: true,
+        sortingDetails: { id: -1 }
       }
-    }
+    };
     this.taskManagementService.getAllTask(requestBody).subscribe({
       next: (response) => {
-        if (response?.success) {
-          this.timelineData = response.result.data[0];
+        if (response?.success && response.result.data.length > 0) {
+          const task = response.result.data[0];
+          // Now fetch rating for this task
+          const ratingRequestBody = {
+            domain_name: DOMAIN_NAME,
+            user_id: USER_ID,
+            extras: {
+              find: {
+                task_id: task.id,
+                member_id: this.member_id
+              },
+              pagination: false,
+              sorting: true,
+              sortingDetails: { id: -1 }
+            }
+          };
+          this.taskManagementService.getAllRatings(ratingRequestBody).subscribe({
+            next: (ratingResponse) => {
+              if (ratingResponse?.success && ratingResponse.result.data.length > 0) {
+                const ratingData = ratingResponse.result.data[0];
+                task.rating = ratingData.rating;
+                task.feedback_text = ratingData.feedback_text;
+                task.created_on = ratingData.created_on;
+              } else {
+                task.rating = 0;
+                task.feedback_text = '';
+                task.created_on = null;
+              }
+              this.timelineData = task; // attach everything to timelineData
+            },
+            error: (err) => {
+              console.error('Rating API Error:', err);
+              task.rating = 0;
+              task.feedback_text = '';
+              task.created_on = null;
+              this.timelineData = task;
+            }
+          });
         } else {
-          //console.error('No tasks found:', response?.message);
+          this.timelineData = null;
         }
       },
       error: (err) => {
-        //console.error('API Error:', err);
+        console.error('Task API Error:', err);
+        this.timelineData = null;
       }
     });
   }

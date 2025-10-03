@@ -5,6 +5,8 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { HttpClient, HttpHeaders, HttpParams, HttpErrorResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { ENDPOINTS } from '../../app.config';
+// Newly added for payment
+import { Subject } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
@@ -15,7 +17,7 @@ export class TechnicalInfoService {
   private data = new BehaviorSubject('');
   currentData = this.data.asObservable();
   httpOptions = new HttpHeaders().set('Content-Type', 'application/json');
-  
+
   constructor(
     private authTokenService: AuthTokenService,
     private router: Router,
@@ -82,4 +84,22 @@ export class TechnicalInfoService {
   sendImage(jsonObj: any, headers: any): Observable<any> {
     return this.http.post(ENDPOINTS.SEND_IMAGE, jsonObj, { headers: headers });
   }
+
+  // Newly added for payment 
+  // Observable Subject for "Pay Now" clicks
+  private payNowSubject = new Subject<void>();
+  payNow$ = this.payNowSubject.asObservable();
+
+  triggerPayNow() {
+    this.payNowSubject.next();
+  }
+
+  // For payment button enable & showing
+  private payNowButtonSubject = new BehaviorSubject<any>({ show: false, enabled: false, installmentText: '' });
+  payNowButton$ = this.payNowButtonSubject.asObservable();
+
+  updatePayNowButton(show: boolean, enabled: boolean, installmentText: string = '') {
+    this.payNowButtonSubject.next({ show, enabled, installmentText });
+  }
+
 }

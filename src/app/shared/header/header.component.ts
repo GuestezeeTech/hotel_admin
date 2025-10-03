@@ -14,6 +14,7 @@ import { NotificationComponent } from '../../notification/notification.component
 import { HotelEnrollmentTabviewService } from '../../hotel-enrollment-tabview/hotel-enrollment-tabview.service';
 import { Alert } from 'bootstrap';
 import { AlertsService } from '../alerts/alerts.service';
+import { TechnicalInfoService } from '../../hotel-enrollment-tabview/technical-info/technical-info.service';
 
 @Component({
   selector: 'app-header',
@@ -39,6 +40,12 @@ export class HeaderComponent implements OnInit {
     keepAfterRouteChange: false
   };
   // userName:string='';
+  // Receives the list of notifications from AppComponent.
+  @Input() notifications: any[] = [];
+  @Output() close = new EventEmitter<void>();
+  // Newly added for payment
+  payNowButtonState = { show: false, enabled: false, installmentText: '' };
+
 
   constructor(
     private localService: LocalStorageService,
@@ -47,9 +54,11 @@ export class HeaderComponent implements OnInit {
     private userAccessService: UserAccessService,
     private hotelenrollmentservice: HotelEnrollmentTabviewService,
     private loaderService: LoaderService,
-    private alerts: AlertsService
+    private alerts: AlertsService,
+    // Newly added for payment
+    private paymentEventService: TechnicalInfoService
   ) {
-    this.currentRoute$ = new BehaviorSubject<string>(this.router.url); 
+    this.currentRoute$ = new BehaviorSubject<string>(this.router.url);
   }
 
   ngOnInit(): void {
@@ -92,6 +101,17 @@ export class HeaderComponent implements OnInit {
         //console.log("Current Route Updated:", event.urlAfterRedirects);
       });
     this.activeMenu;
+    // Newly added for payment
+    // Load persisted Pay Now button state
+    const savedState = this.localService.get('payNowButtonState');
+    if (savedState) {
+      const state = JSON.parse(savedState);
+      this.paymentEventService.updatePayNowButton(state.show, state.enabled, state.installmentText);
+    }
+    this.paymentEventService.payNowButton$.subscribe(state => {
+      this.payNowButtonState = state;
+    });
+   console.log('this.payNowButtonState', this.payNowButtonState);
   }
 
   get activeMenu(): string {
@@ -111,6 +131,9 @@ export class HeaderComponent implements OnInit {
     }
     else if (currentRoute.includes('dashboard')) {
       return (this.selectedMenu = "Dashboard");
+    }
+    else if (currentRoute.includes('report')) {
+      return (this.selectedMenu = "Report");
     }
     else if (currentRoute.includes('task-management')) {
       return (this.selectedMenu = "Task Management");
@@ -149,6 +172,22 @@ export class HeaderComponent implements OnInit {
     this.localService.remove('UserId');
     this.localService.remove('domainName');
     this.localService.remove('rexpireTime');
+    this.localService.remove('MemberId');
+    this.localService.remove('CustomerType');
+    this.localService.remove('guestData');
+    this.localService.remove('maxTabReached');
+    this.localService.remove('currentTab');
+    this.localService.remove('StaffData');
+    this.localService.remove('hierarchy');
+    this.localService.remove('roleName');
+    this.localService.remove('role_id');
+    this.localService.remove('Password');
+    this.localService.remove('db_schema');
+    this.localService.remove('selectedSlots');
+    this.localService.remove('baseStaffIds');
+    this.localService.remove('allLowerStaffIds');
+    this.localService.remove('roomRange');
+    this.localService.remove('USERACCESS');
     this.router.navigate([''], { skipLocationChange: false });
     this.userAccessService.removeUserAccess();
   }
@@ -198,6 +237,12 @@ export class HeaderComponent implements OnInit {
         }
       );
     });
+  }
+
+  // Newly added for payment
+  onPayNowClick() {
+    // Notify PaymentComponent to execute payNow
+    this.paymentEventService.triggerPayNow();
   }
 }
 

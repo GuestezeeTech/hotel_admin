@@ -53,9 +53,10 @@ export class HierarchyDetailsComponent {
 
   async ngOnInit(): Promise<void> {
     this.hotelId = Number(this.localService.get('UserId'));
-    // console.log("id:", this.hotelId)
+    console.log("id:", this.hotelId)
     if (this.hotelId !== 0) {
       try {
+        console.log('Hotel id:', this.hotelId)
         await this.getCustomerById();
         this.getAllHierarchy();
       } catch (err) {
@@ -84,12 +85,14 @@ export class HierarchyDetailsComponent {
           this.loaderService.emitComplete();
           if (resp) {
             this.customerdata = resp.result.data[0];
+            console.log(this.customerdata.customer_member_id, "Member id");
             // Sets the radio button value based on `hierarchy_details`
             if (this.customerdata?.hierarchy_details) {
               this.selectedTemplate = this.customerdata.hierarchy_details;
             }
             ////console.log(this.customerdata, "RESPDATA");
             ////console.log(Array.isArray(this.customerdata));
+            console.log()
             resolve();
           }
         },
@@ -128,7 +131,7 @@ export class HierarchyDetailsComponent {
   //     domain_name: DOMAIN_NAME,
   //     user_id: USER_ID,
   //     payload: {
-  //       customer_creation: this.customerdata
+  //       customer_update: this.customerdata
   //     },
   //     extras: {
   //       find: {
@@ -216,8 +219,9 @@ export class HierarchyDetailsComponent {
                   ////console.log('All Hierarchies Length:', resp.result.data.length);
                   ////console.log('Selected Hierarchy id:', this.isSelectedHierarchyId);
                   if (resp.result.data.length > 0) {
+                    console.log(resp.result.data, 'All Hierarchy Data');
                     this.hierarchies = resp.result.data.filter((hierarchy: any) => hierarchy.customer_id === undefined);
-                    ////console.log(this.hierarchies, 'Common Hierarchy Data');
+                    console.log(this.hierarchies, 'Common Hierarchy Data');
                   }
                 }
               },
@@ -335,6 +339,7 @@ export class HierarchyDetailsComponent {
   }
 
   async hierarchyCreate(selectedHierarchyToCreate: any): Promise<void> {
+    const memberId = this.localService.get('MemberId');
     delete this.selectedHierarchyToCreate._id
     return new Promise((resolve, reject) => {
       let requestBody = {
@@ -344,8 +349,8 @@ export class HierarchyDetailsComponent {
           create_Hierarchy: {
             customer_id: this.hotelId,
             hierarchy: selectedHierarchyToCreate.hierarchy,
-            name: selectedHierarchyToCreate.name
-
+            name: selectedHierarchyToCreate.name,
+            member_id: memberId
           }
         }
       };

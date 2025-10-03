@@ -9,4 +9,5 @@ import { BookingsRoutingModule } from './bookings-routing.module';
         BookingsRoutingModule
     ]
 })
+
 export class BookingsModule { }

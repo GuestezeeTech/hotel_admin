@@ -5,9 +5,13 @@
     </h1>
   </div>
   <!-- User Info Section -->
-  <div class="user-info d-flex align-items-center" >
+  <div class="user-info d-flex align-items-center">
+    
+    <!-- Newly added for Payment -->
+    <button class="pay-button"  *ngIf="payNowButtonState.show" [ngClass]="{'disabled-btn': !payNowButtonState.enabled}" [disabled]="!payNowButtonState.enabled" (click)="onPayNowClick()">{{ payNowButtonState.installmentText || 'Pay Now' }}</button>
     <img class="notification-icon" src="../../../assets/images/guestezee/notify.png" alt="Notification"
       (click)="toggleNotification()" *ngIf="((this.customerdata?.status=='approved') || this.customerType=='Staff')">
+
     <div (click)="toggleLogout()" style="cursor: pointer;">
       <img class="profile-icon" [src]="profile_image" alt="Profile" class="rounded-circle border mr-2"
         style="width: 35px; height: 35px; object-fit: cover;">
@@ -28,3 +32,6 @@
   </div>
 </header>
 <app-notification *ngIf="showNotification" (close)="toggleNotification()"></app-notification>
+<!-- <app-notification *ngIf="showNotification" [notifications]="notifications"
+  (close)="toggleNotification()"></app-notification> -->
+

@@ -1,6 +1,6 @@
 
 
-import { Component, OnInit, Input,SimpleChanges  } from '@angular/core';
+import { Component, OnInit, Input, SimpleChanges } from '@angular/core';
 import { AlertsComponent } from '../../../shared/alerts/alerts.component';
 
 import { TechnicalInfoService } from '../technical-info.service';
@@ -45,7 +45,7 @@ export class EditTechnicalInfoComponent implements OnInit {
     autoClose: true,
     keepAfterRouteChange: false
   };
-  showEdit:boolean=true;
+  showEdit: boolean = true;
 
 
   constructor(
@@ -65,41 +65,26 @@ export class EditTechnicalInfoComponent implements OnInit {
   }
   ngOnInit(): void {
     this.techInfoForm = new FormGroup({
-
-
-
       api_url: new FormControl('', Validators.required),
-
-
-
-
-
-
-
-
     });
-
-
-
     this.route.paramMap.subscribe(params => {
       const id = params.get('id');
-      ////console.log('Reactive ID:', id);
-    if(id!=undefined){
-      this.tech_info_id = Number(id);
+      console.log('Reactive ID:', id);
+      if (id != undefined) {
+        this.tech_info_id = Number(id);
+        this.getTechInfoById();
+      }
+    });
+  }
+  
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['infoData'] && this.infoData) {
+      // Example condition: infoData.type === 'lock'
+
       this.getTechInfoById();
 
     }
-      
-    });
-
   }
-ngOnChanges(changes: SimpleChanges): void {
-    if (changes['infoData'] && this.infoData) {
-      // Example condition: infoData.type === 'lock'
-      
-        this.getTechInfoById();
-      
-    }}
 
 
   employees(): FormArray {
@@ -221,11 +206,11 @@ ngOnChanges(changes: SimpleChanges): void {
           // this.techInfoData = resp.result.data[0];
           // this.tech_info_id = resp.result.data[0].id;
           var closebt = document.getElementById("closetechInfo");
-          if(closebt){
+          if (closebt) {
             closebt.click();
 
           }
-          
+
           // this.router.navigate(['/tech-info-list'])
 
 
@@ -378,7 +363,7 @@ ngOnChanges(changes: SimpleChanges): void {
     return new Promise((resolve, reject) => {
       let requestBody = {
         domain_name: DOMAIN_NAME,
-        user_id:USER_ID,
+        user_id: USER_ID,
         extras: {
           find: {
             customer_id: this.tech_info_id
@@ -392,18 +377,18 @@ ngOnChanges(changes: SimpleChanges): void {
           if (resp) {
 
             const customerInfo = resp.result.data[0].customer_technical_info;
-            if(resp.result.data[0].customer_technical_info==undefined){
-              this.showEdit=false;
+            if (resp.result.data[0].customer_technical_info == undefined) {
+              this.showEdit = false;
 
             }
-            else{
-                this.showEdit=true;
+            else {
+              this.showEdit = true;
             }
-            if(this.infoData!=undefined){
-                this.filterInfo = this.infoData;
+            if (this.infoData != undefined) {
+              this.filterInfo = this.infoData;
 
             }
-          
+
             const lockIndex = customerInfo.findIndex((item: any) => item.type === this.filterInfo);
             // this.ecomData = resp.result.data[0].customer_technical_info[1];
             if (lockIndex !== -1) {
@@ -414,10 +399,10 @@ ngOnChanges(changes: SimpleChanges): void {
             }
 
 
-////console.log( this.ecomData," this.ecomData")
+            ////console.log( this.ecomData," this.ecomData")
 
             // this.uploadedFileName = resp.result.data[0].logo;
-            this.techInfoForm.reset(); 
+            this.techInfoForm.reset();
 
             this.techInfoForm.patchValue({
               name: this.ecomData.name,

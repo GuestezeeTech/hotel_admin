@@ -1,6 +1,7 @@
 <app-alerts></app-alerts>
 <div class="section">
-  <h3 style="font-size: 20px;font-weight: 600;">Hotel Services <a style="font-size: 14px;color: #A0A0A0;">(Select the services that your hotel does not provide)</a></h3>
+  <h3 style="font-size: 20px;font-weight: 600;">Hotel Services <a style="font-size: 14px;color: #A0A0A0;">(Select the
+      services that your hotel does not provide)</a></h3>
   <div class="container mt-3 ps-0">
     <div class="d-flex justify-content-between align-items-center">
       <!-- Tabs Navigation -->
@@ -21,20 +22,21 @@
       <!-- <p class="fw-bold" style="color: #800020; background-color: #FBF9FA; border-radius: 10px; padding: 1%; width: 25%; font-size: 18px; margin-bottom: 0;">{{this.hotelName }}</p> -->
     </div>
     <!-- Tab Content -->
-     <!-- Newly added class name for disable(paymentDone)-->
-    <div class="tab-content" id="myTabContent" [class.disabled-section]="paymentDone">
+    <!-- Newly added class name for disable(paymentDone)-->
+    <!-- <div class="tab-content" id="myTabContent" [class.disabled-section]="paymentDone"> -->
+    <div class="tab-content" id="myTabContent">
       <div class="tab-pane fade show active" id="generalservices" role="tabpanel" aria-labelledby="generalservices-tab">
         <div class="services-container">
           <div class="service-item " *ngFor="let service of getServicesByType('FO')"
             [class.selected]="isSelected(service.id)" (click)="GetSelectedService(service.name)">
             {{ service.name}}</div>
         </div>
-        <h3 style="font-size: 20px;font-weight: 600;">Exempted Services <a
-            style="font-size: 14px;color: #A0A0A0;"></a></h3>
+        <h3 style="font-size: 20px;font-weight: 600;">Exempted Services <a style="font-size: 14px;color: #A0A0A0;"></a>
+        </h3>
         <div class="services-container">
           <div class="service-item " *ngFor="let service of apiSelectedServices"
-            [class.selected]="isServiceActive(service)" style="cursor: default;"> 
-             {{ service.name }}</div>
+            [class.selected]="isServiceActive(service)" style="cursor: default;">
+            {{ service.name }}</div>
         </div>
       </div>
       <div class="tab-pane fade" id="amenities" role="tabpanel" aria-labelledby="profile-tab">
@@ -44,25 +46,25 @@
             [class.selected]="isSelected(service.id)" (click)="GetSelectedService(service.name)">{{ service.name }}
           </div>
         </div>
-        <h3 style="font-size: 20px;font-weight: 600;">Exempted Services <a
-            style="font-size: 14px;color: #A0A0A0;"></a></h3>
+        <h3 style="font-size: 20px;font-weight: 600;">Exempted Services <a style="font-size: 14px;color: #A0A0A0;"></a>
+        </h3>
         <div class="services-container">
           <div class="service-item " *ngFor="let service of apiSelectedServices"
-            [class.selected]="isServiceTypeIIActive(service)" style="cursor: default"> 
+            [class.selected]="isServiceTypeIIActive(service)" style="cursor: default">
             {{ service.name }}</div>
         </div>
       </div>
       <div class="tab-pane fade" id="otherservices" role="tabpanel" aria-labelledby="contact-tab">
         <div class="services-container">
           <div class="service-item " *ngFor="let service of getServicesByType('Engineering')"
-            [class.selected]="isSelected(service.id)" (click)="GetSelectedService(service.name)"> 
+            [class.selected]="isSelected(service.id)" (click)="GetSelectedService(service.name)">
             {{ service.name }}</div>
         </div>
-        <h3 style="font-size: 20px;font-weight: 600;">Exempted Services <a
-            style="font-size: 14px;color: #A0A0A0;"></a></h3>
+        <h3 style="font-size: 20px;font-weight: 600;">Exempted Services <a style="font-size: 14px;color: #A0A0A0;"></a>
+        </h3>
         <div class="services-container">
           <div class="service-item " *ngFor="let service of apiSelectedServices"
-            [class.selected]="isServiceTypeIIIActive(service)" style="cursor: default"> 
+            [class.selected]="isServiceTypeIIIActive(service)" style="cursor: default">
             {{ service.name }}</div>
         </div>
       </div>
@@ -75,6 +77,10 @@
     (click)="nextTabService()">Next Service</button>
   <button type="submit" class="save_bt" *ngIf="this.activeTab == 3 && !paymentDone" (click)="handleSubmit()">Save &
     Continue</button>
+  <!-- <button type="submit" class="next_bt" *ngIf="((this.activeTab == 1 || this.activeTab == 2) )"
+    (click)="nextTabService()">Next Service</button>
+  <button type="submit" class="save_bt" *ngIf="this.activeTab == 3 " (click)="handleSubmit()">Save &
+    Continue</button> -->
 </div>
 
 

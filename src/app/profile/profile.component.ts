@@ -315,7 +315,7 @@ export class ProfileComponent implements OnInit {
         domain_name: DOMAIN_NAME,
         user_id: USER_ID,
         payload: {
-          customer_creation: formData
+          customer_update: formData
         },
         extras: {
           find:
@@ -508,8 +508,8 @@ export class ProfileComponent implements OnInit {
 
   closePasswordModal(event: Event) {
     if (event.target === event.currentTarget) {
-      this.isPasswordModalOpen = false;
       this.passwordUpdateForm.reset(); // Resets all input fields
+      this.isPasswordModalOpen = false;
       // this.validateForm2 = false;
     }
   }
@@ -554,7 +554,6 @@ export class ProfileComponent implements OnInit {
 
   closeExitModal() {
     this.isExitModalOpen = false;
-
   }
 
   logout() {

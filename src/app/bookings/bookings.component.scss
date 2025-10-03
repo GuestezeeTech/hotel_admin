@@ -45,3 +45,37 @@ table {
 input[type="checkbox"] {
     accent-color: #800020;
 }
+
+.pagination-container {
+    display: flex;
+    align-items: center;
+    justify-content: end;
+    gap: 8px;
+}
+
+.pagination-input {
+    width: 30px;
+    height: 30px;
+    text-align: center;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 14px;
+    outline: none;
+}
+
+.pagination-btn {
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+    color: #6c757d;
+    padding: 5px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.pagination-btn:disabled {
+    background-color: #eee;
+    cursor: not-allowed;
+    color: #a0a0a0;
+}
+

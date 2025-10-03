@@ -3,12 +3,13 @@
   <!-- Tabs Navigation -->
   <ul class="nav nav-tabs flex-wrap" id="myTabs" role="tablist">
     <li class="nav-item Custom-tab-spacing" role="presentation">
-      <a class="nav-link" id="lock-tab" data-toggle="tab" href="#lock" role="tab" aria-controls="lock" [class.active]="selectedTab === 'lock'" 
-        aria-selected="true" (click)="selectTab('lock');firstTabCount()">Lock Integration</a>
+      <a class="nav-link" id="lock-tab" data-toggle="tab" href="#lock" role="tab" aria-controls="lock"
+        [class.active]="selectedTab === 'lock'" aria-selected="true" (click)="selectTab('lock');firstTabCount()">Lock
+        Integration</a>
     </li>
     <li class="nav-item" role="presentation">
-      <a class="nav-link Custom-tab-spacing" id="pos-tab" data-toggle="tab" href="#pos" role="tab" aria-controls="pos" [class.active]="selectedTab === 'pos'" 
-        aria-selected="false" (click)="selectTab('pos');secondTabCount()">PMS</a>
+      <a class="nav-link Custom-tab-spacing" id="pos-tab" data-toggle="tab" href="#pos" role="tab" aria-controls="pos"
+        [class.active]="selectedTab === 'pos'" aria-selected="false" (click)="selectTab('pos');secondTabCount()">PMS</a>
     </li>
     <!-- <li class="nav-item" role="presentation">
       <a class="nav-link Custom-tab-spacing" id="sms-tab" data-toggle="tab" href="#sms" role="tab" aria-controls="sms"
@@ -22,8 +23,9 @@
                 <a class="nav-link Custom-tab-spacing" id="logistics-tab" data-toggle="tab" href="#logistics" role="tab" aria-controls="logistics" aria-selected="false"  (click)="selectTab('Logistics')">Logistics</a>
               </li> -->
     <li class="nav-item" role="presentation">
-      <a class="nav-link Custom-tab-spacing" id="other-tab" data-toggle="tab" href="#other" role="tab" [class.active]="selectedTab === 'other'" 
-        aria-controls="other" aria-selected="false" (click)="selectTab('other');thirdTabCount()">Other Integration</a>
+      <a class="nav-link Custom-tab-spacing" id="other-tab" data-toggle="tab" href="#other" role="tab"
+        [class.active]="selectedTab === 'other'" aria-controls="other" aria-selected="false"
+        (click)="selectTab('other');thirdTabCount()">Other Integration</a>
     </li>
   </ul>
   <!-- Tab Content -->
@@ -137,14 +139,14 @@
 <!-- Newly added -->
 <div class="d-flex justify-content-end mt-3">
   <button type="submit" class="cancel_bt" (click)="back()">Back</button>&nbsp;&nbsp;
-  <button type="submit" class="next_bt" *ngIf="((this.activeTab == 1 || this.activeTab == 2) && isMemberid && !paymentDone)"
+  <button type="submit" class="next_bt" *ngIf="((this.activeTab == 1 || this.activeTab == 2)  && !paymentDone)"
     (click)="nextTabInfo()">Next Info</button>
-  <button type="submit" class="save_bt"   data-toggle="modal"
-    data-target="#paymentType"  *ngIf="this.activeTab == 3 && isMemberid && !paymentDone" (click)="save()">Save &
+  <button type="submit" class="save_bt" data-toggle="modal" data-target="#paymentType"
+    *ngIf="this.activeTab == 3 " (click)="save()">Save &
     Continue</button>
   <!-- <button *ngIf="isMemberid" type="submit" class="save_bt" (click)="save()" data-toggle="modal"
     data-target="#paymentType">Save &
     Continue</button> -->
-  <button *ngIf="!isMemberid" class="save_bt" (click)="next()">
-    Continue</button>
+  <!-- <button *ngIf="!isMemberid" class="save_bt" (click)="next()">
+    Continue</button> -->
 </div>

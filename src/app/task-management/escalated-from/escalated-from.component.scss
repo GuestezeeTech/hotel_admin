@@ -41,8 +41,8 @@ body {
 .pagination-container {
     display: flex;
     align-items: center;
+    justify-content: end;
     gap: 8px;
-    float: right;
 }
 
 .pagination-input {
@@ -69,4 +69,15 @@ body {
     background-color: #eee;
     cursor: not-allowed;
     color: #a0a0a0;
+}
+.blink-orange {
+    color: #E27F15;
+    animation: blink 0.5s step-start 0s infinite;
+}
+
+// Blinking animation
+@keyframes blink {
+    50% {
+        opacity: 0;
+    }
 }

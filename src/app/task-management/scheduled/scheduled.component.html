@@ -4,10 +4,12 @@
             <th>Name</th>
             <th>Room No</th>
             <th>Service</th>
-            <th>Department</th>
-            <th>Order Time</th>
+            <th>Depart</th>
+            <th>Service Date</th>
+            <th>Service Time</th>
+            <th>Scheduled Date</th>
             <th>Scheduled Time</th>
-            <th>Escalate Time</th>
+            <th *ngIf ='this.customerType == "Staff"'>Escalate Time</th>
             <th>Action</th>
         </tr>
     </thead>
@@ -17,16 +19,22 @@
             <td>{{ task.room_no }}</td>
             <td>{{ task.service.service_name }}</td>
             <td>{{ task.service.category }}</td>
+            <td>{{ task.order_date | date:'dd-MM-yyyy'}}</td>
             <td>{{ task.order_time }}</td>
+            <td>{{task.scheduled_date | date:'dd-MM-yyyy'}}</td>
             <td>{{formatScheduledTime(task.scheduled_time)}}</td>
-            <td [ngClass]=" isBlinking(task) ? 'blink-orange' : ''">{{ task.remainingSeconds }}</td>
+            <td [ngClass]=" isBlinking(task) ? 'blink-orange' : ''" *ngIf ='this.customerType == "Staff"'>{{ task.remainingSeconds }}</td>
             <td>
-                <button *ngIf="task.assigned_staff_name==undefined"
+                <button *ngIf="task.assigned_staff_name ==undefined && this.customerType == 'Staff'"
                     style="color: #545460; border: none !important; cursor: pointer; text-decoration: underline;"
                     (click)="onAddAssignee(task)">
                     Add Assignee
                 </button>
-                <button *ngIf="task.assigned_staff_name!=undefined"
+                <button *ngIf="task.assigned_staff_name ==undefined && this.customerType == 'Customer'"
+                    style="color: #545460; border: none !important; cursor: pointer">
+                    Not Assigned
+                </button>
+                <button *ngIf="task.assigned_staff_name != undefined"
                     style="color: #545460; border: none !important; cursor: pointer;">
                     {{task.assigned_staff_name}}
                 </button>
@@ -34,3 +42,12 @@
         </tr>
     </tbody>
 </table>
+<div class="pagination-container">
+    <button (click)="previousPage()" [disabled]="currentPage === 1" class="pagination-btn">
+        Previous
+    </button>
+    <input type="text" class="pagination-input" [(ngModel)]="currentPage" readonly>
+    <button (click)="nextPage()" [disabled]="currentPage === totalPages" class="pagination-btn">
+        Next
+    </button>
+</div>

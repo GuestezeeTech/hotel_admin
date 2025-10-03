@@ -3,7 +3,9 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 
 
-const routes: Routes = [{ path: 'late-checkout', component: LateCheckoutComponent }
+const routes: Routes = [
+  { path: 'late-checkout', component: LateCheckoutComponent },
+  { path: 'late-checkout/:id', component: LateCheckoutComponent }
 ];
 
 @NgModule({

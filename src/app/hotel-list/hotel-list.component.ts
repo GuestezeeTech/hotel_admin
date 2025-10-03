@@ -10,7 +10,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Modal } from 'bootstrap';
 import { AlertsComponent } from '../shared/alerts/alerts.component';
-import { DOMAIN_NAME, ENDPOINTS } from '../app.config';
+import { DOMAIN_NAME, ENDPOINTS, USER_ID } from '../app.config';
 import { LocalStorageService } from '../auth-services/local-storage.service';
 
 @Component({
@@ -322,7 +322,7 @@ export class HotelListComponent implements OnInit {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
       payload: {
-        customer_creation: this.customerdata
+        customer_update: this.customerdata
       },
       extras: {
         find: {

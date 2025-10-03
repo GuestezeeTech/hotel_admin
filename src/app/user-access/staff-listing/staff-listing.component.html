@@ -20,7 +20,8 @@
             <table class="table" style="margin-top: 3%;">
                 <thead>
                     <tr>
-                        <th><input type="checkbox"></th>
+                        <!-- <th><input type="checkbox"></th> -->
+                        <th></th>
                         <th>Employee Id</th>
                         <th>Staff Name</th>
                         <th>Phone Number</th>
@@ -34,12 +35,12 @@
                         <td style="text-align: center;">
                             <input type="checkbox" [id]="staff.full_name" [name]="staff.full_name"
                                 [value]="staff.full_name" (change)="toggleSelection($event, staff.id)"
-                                style="cursor: pointer">
+                                style="cursor: pointer" [checked]="selectedStaffIds.includes(staff.id)" >
                         </td>
                         <td style="text-align: center;">{{ staff.staff_employee_number }}</td>
                         <td style="text-align: center;">{{ staff.full_name }}</td>
                         <td style="text-align: center;">{{ staff.phone_number }}</td>
-                        <td style="text-align: center;">{{ staff.room_no?.join(', ') }}</td>
+                        <td style="text-align: center;">{{ getRoomLabels(staff) }}</td>
                         <td style="text-align: center;">{{ staff.hierarchy.designation + '-' +
                             staff.hierarchy.department }}</td>
                         <td style="text-align: center;">
@@ -86,6 +87,26 @@
         </div>
     </div>
 </div>
+
+<!--  Modal for Deleting(if staff is assigned as a higher officer)-->
+<div *ngIf="isDeleteStaffModalOpen"
+    style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center;">
+    <div
+        style="background: white; padding: 25px; border-radius: 15px; width: 500px; text-align: center; box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);">
+        <!-- Custom Warning -->
+        <h2 style="margin-bottom: 10px; font-size: 20px; font-weight: bold;">Staff member holds a higher position.
+        </h2>
+        <p style="font-size: 16px; margin-bottom: 10px;">
+            Move the staff under this member to another member and delete.</p>
+        <!-- Buttons -->
+        <div class="modal-actions">
+            <button class="cancel-btn"
+                style="padding: 5px; background: #800020; color: white; border: none; cursor: pointer; width: 20%; border-radius: 8px;"
+                (click)="closeDeleteStaffModal()">OK</button>
+        </div>
+    </div>
+</div>
+
 <!--Modal-->
 <div *ngIf="isApiModal"
     style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center; z-index: 1050">

@@ -1,5 +1,3 @@
-
-
 <table class="escalated-from-table table">
     <thead>
         <tr>
@@ -7,27 +5,38 @@
             <th>Room No</th>
             <th>Service</th>
             <th>Department</th>
-            <th>Order Time</th>
-            <th>Escalate Time</th>
-            <th>Action</th>
+            <th>Service Date</th>
+            <th>Service Time</th>
+            <th>Escalated From</th>
+            <th *ngIf="!this.at_desk">Escalation Time</th>
+            <th *ngIf="this.at_desk">Action</th>
         </tr>
     </thead>
     <tbody>
-        <tr *ngFor="let task of escalatedTasks">
+        <tr *ngFor="let task of allEscalatedTasks">
             <td (click)="navigateToTimeline(task.id)" style="cursor: pointer;"
                 [ngClass]=" task.countingUp ? 'escalated' : ''">{{ task.guest_name }}</td>
             <td [ngClass]=" task.countingUp ? 'escalated' : ''">{{ task.room_no }}</td>
             <td [ngClass]=" task.countingUp ? 'escalated' : ''">{{ task.service.service_name }}</td>
             <td [ngClass]=" task.countingUp ? 'escalated' : ''">{{ task.service.category }}</td>
+            <td [ngClass]=" task.countingUp ? 'escalated' : ''">{{ task.order_date | date:'dd-MM-yyyy'}}</td>
             <td [ngClass]=" task.countingUp ? 'escalated' : ''">{{ task.order_time }}</td>
+            <td [ngClass]=" task.countingUp ? 'escalated' : ''">{{ task.escalated_from_name }}</td>
             <!-- <td [ngClass]="getEscalateStyles(task)">
                 {{ formatSeconds(escalateSecondsMap.get(task.name) || 0) }}
             </td> -->
-             <!-- <td [ngClass]=" task.countingUp ? 'escalated' : ''">{{(escalateSecondsMap.get(task.guest_name) || 0)}}</td> -->
-            <td [ngClass]=" task.countingUp ? 'escalated' : ''">{{ task.remainingSeconds }}</td>
-            <td [ngClass]=" task.countingUp ? 'escalated' : ''">
-                <button  [ngClass]=" task.countingUp ? 'escalated' : 'not-escalated'"
+            <!-- <td [ngClass]=" task.countingUp ? 'escalated' : ''">{{(escalateSecondsMap.get(task.guest_name) || 0)}}</td> -->
+            <td [ngClass]=" isBlinking(task) ? 'blink-orange' : ''" *ngIf="!this.at_desk">{{ task.remainingSeconds }}
+            </td>
+            <!-- <td [ngClass]=" task.countingUp ? 'escalated' : ''">
+                <button [ngClass]=" task.countingUp ? 'escalated' : 'not-escalated'"
                     style="color: #545460; border: none !important; cursor: pointer; text-decoration: underline;"
+                    (click)="onAddAssignee(task)">
+                    Add Assignee
+                </button>
+            </td> -->
+            <td *ngIf='this.at_desk'>
+                <button style="color: #545460; border: none !important; cursor: pointer; text-decoration: underline;"
                     (click)="onAddAssignee(task)">
                     Add Assignee
                 </button>
@@ -35,3 +44,12 @@
         </tr>
     </tbody>
 </table>
+<div class="pagination-container">
+    <button (click)="previousPage()" [disabled]="currentPage === 1" class="pagination-btn">
+        Previous
+    </button>
+    <input type="text" class="pagination-input" [(ngModel)]="currentPage" readonly>
+    <button (click)="nextPage()" [disabled]="currentPage === totalPages" class="pagination-btn">
+        Next
+    </button>
+</div>
