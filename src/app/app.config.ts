@@ -9,9 +9,9 @@ export const appConfig: ApplicationConfig = {
 };
 
 export const API_URL = environment.devURL
-export const API_URL1 = "https://guestezee.ecbee.net"
+export const API_URL1 = "https://www.guestezee.com"
 
-export const DOMAIN_NAME = "https://guestezee.ecbee.net"
+export const DOMAIN_NAME = "https://www.guestezee.com"
 export const USER_ID = 16
 
 export const ENDPOINTS = {

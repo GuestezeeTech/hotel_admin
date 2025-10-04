@@ -15,7 +15,7 @@ import { TechnicalInfoService } from './technical-info.service';
 import { EditTechnicalInfoComponent } from './edit-technical-info/edit-technical-info.component';
 // Newly added for payment
 import { Subscription } from 'rxjs';
-
+declare var $: any;
 
 @Component({
   selector: 'app-technical-info',
@@ -24,6 +24,7 @@ import { Subscription } from 'rxjs';
   templateUrl: './technical-info.component.html',
   styleUrl: './technical-info.component.scss'
 })
+
 export class TechnicalInfoComponent implements OnInit {
   toggleSwitch(element: any) {
     element.classList.toggle("active");
@@ -98,7 +99,10 @@ export class TechnicalInfoComponent implements OnInit {
     // Nelwy added for Payment
     // Subscribe to "Pay Now" events from header
     this.payNowSub = this.technicalInfoService.payNow$.subscribe(() => {
-      this.payNow(); // call your existing payNow method
+      this.payNow();
+    });
+    this.technicalInfoService.modalTrigger$.subscribe(() => {
+      this.openModal();
     });
   }
 
@@ -1911,6 +1915,10 @@ export class TechnicalInfoComponent implements OnInit {
   //     });
   //   });
   // }
+
+  openModal() {
+    $('#paymentType').modal('show');  // or use Angular modal if implemented
+  }
 
 
   async payNow() {

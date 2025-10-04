@@ -6,7 +6,7 @@ import { OnInit } from '@angular/core';
 import { LoaderService } from '../shared/loader/loader.service';
 import { AuthTokenService } from '../auth-services/auth-token.service';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute,Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AlertsService } from '../shared/alerts/alerts.service';
 import { SharedDataService } from '../shared/shared-data.service';
 import { HotelEnrollmentTabviewService } from '../hotel-enrollment-tabview/hotel-enrollment-tabview.service';
@@ -19,53 +19,37 @@ import { HotelEnrollmentTabviewService } from '../hotel-enrollment-tabview/hotel
   templateUrl: './payment-details.component.html',
   styleUrl: './payment-details.component.scss'
 })
+
 export class PaymentDetailsComponent implements OnInit {
-  orderData: Array<any> = [];
+  orderData: any;
+  paidInstallments: any;
   customerId: string | null = null;
   hotelId: Number | null = null;
-  receivedData:any
-  customerdata:any;
-    constructor(
-        private route: ActivatedRoute,
-        private router: Router,
-        private authTokenService: AuthTokenService,
-         private hotelenrollmenttabviewService: HotelEnrollmentTabviewService,
-         private loaderService:LoaderService,
-         private alertService:AlertsService,
-         private paymentDetailsService:PaymentDetailsService,
-         private sharedService:SharedDataService
-      ){}
-      
+  receivedData: any
+  customerdata: any;
+
+  constructor(
+    private route: ActivatedRoute,
+    private router: Router,
+    private authTokenService: AuthTokenService,
+    private hotelenrollmenttabviewService: HotelEnrollmentTabviewService,
+    private loaderService: LoaderService,
+    private alertService: AlertsService,
+    private paymentDetailsService: PaymentDetailsService,
+    private sharedService: SharedDataService
+  ) { }
+
   ngOnInit(): void {
-    
-   
-    this.route.paramMap.subscribe(params => {
-      var temphotelid =  params.get('id'); // Get the 'id' from the URL
-      this.hotelId =Number(temphotelid) ;
-      //console.log('Hotel ID:', this.hotelId);
-      this.getCustomerById(); // Debugging
-    });
     this.getOrderDetails();
-    
-    this.sharedService.currentData.subscribe(data => {
-      //console.log("data")
-      if (data) {
-        this.receivedData = data;
-        //console.log('Received data:', this.receivedData);
-      }
-      else{
-        this.receivedData=this.sharedService.getStoredData();
-      }
-    });
-    
   }
+
   getOrderDetails() {
     var requestData = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
       "extras": {
         "find": {
-          customer_id:(this.hotelId)
+          customer_id: (this.hotelId)
         },
         "pagination": false,
         "paginationDetails": {
@@ -81,55 +65,31 @@ export class PaymentDetailsComponent implements OnInit {
     this.paymentDetailsService.orderDetailsGetById(requestData).subscribe(
       resp => {
         if (resp) {
-          this.orderData = resp.result.data.filter((order:any) => order.status === "Order Confirmed" || "Confirmed");;
+          // get the first confirmed order only
+          this.orderData = resp.result.data.find((order: any) => order.status === "Order Confirmed" || "Confirmed");
+          // extract only paid installments with their payment_split name
+          if (this.orderData?.payment_split) {
+            this.paidInstallments = this.orderData.payment_split.flatMap((split: any) =>
+              split.installments
+                .filter((inst: any) => inst.status === "Paid") // only Paid
+                .map((inst: any) => ({
+                  ...inst,
+                  name: split.name // attach payment_split name
+                }))
+            );
+          } else {
+            this.paidInstallments = [];
+          }
         }
       },
       err => {
-
+        console.error("Error fetching order details", err);
       }
     )
   }
-  getCustomerById() {
- 
-    return new Promise((resolve, reject) => {
-      let requestBody = {
-        domain_name: DOMAIN_NAME,
-        user_id: 1,
-        extras: {
-          find: {
-            id: Number(this.hotelId)
-          }
-        }
-      };
-  
-      this.hotelenrollmenttabviewService.getLoginCustomerById(requestBody).subscribe(
-        resp => {
-          this.loaderService.emitComplete();
-          if (resp) {
-            this.customerdata = resp.result.data[0];
-           
-            
-  
-            //console.log(this.customerdata, "RESPDATA");
-            //console.log(Array.isArray(this.customerdata)); 
-           
-          }
-        },
-        err => {
-          this.loaderService.emitComplete();
-          if (err.error.statusCode === 403) {
-            // this.alertService.error('Session Time Out! Please login Again', this.options);
-            this.router.navigate([`/login`], { skipLocationChange: false });
-          } else if (err.error.message) {
-            // this.alertService.error(err.error.message, this.options);
-          } else {
-            // this.alertService.error('Something bad happened. Please try again!', this.options);
-          }
-          reject(err);  // Reject promise if there is an error
-        }
-      );
-    });
+
+  downloadInvoice(id: number) {
+    window.open("https://www.guestezee.com:5520/api/Email/DownloadEnrollmentInvoicePdf?domain_name=" + this.authTokenService.getDomain() + "&order_id=" + id + "", '_blank')
   }
-  
 
 }

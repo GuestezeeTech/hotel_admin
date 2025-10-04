@@ -2,7 +2,7 @@
   <hr style="width: 80%;" class="center-hr" /> <!-- Horizontal line below the menu -->
 
   <ul style="padding: 6px 6px 6px 10px;">
-    
+
     <li class="list_container" [class.active]="isDashboardActive()" *ngIf="(( this.customerdata?.status=='approved'))">
       <img src="../../assets/images/guestezee/layout.png">
       <a routerLink="/dashboard" (click)="sendValue('Dashboard')">Dashboard</a>
@@ -43,13 +43,11 @@
         </span>
       </div>
     </li>
-    <li class="list_container" [class.active]="isBookingsActive()"
-      *ngIf="((this.customerdata?.status=='approved'))">
+    <li class="list_container" [class.active]="isBookingsActive()" *ngIf="((this.customerdata?.status=='approved'))">
       <img src="../../assets/images/guestezee/bookings.png">
       <a routerLink="/bookings" (click)="sendValue('Bookings')">Bookings</a>
     </li>
-    <li class="list_container" [class.active]="isUserAccessActive()"
-      *ngIf="(this.customerdata?.status=='approved')">
+    <li class="list_container" [class.active]="isUserAccessActive()" *ngIf="(this.customerdata?.status=='approved')">
       <div class="list-content" (click)="toggleSubmenu('User Access')">
         <div class="left-content">
           <img src="../../assets/images/guestezee/secure-access (1).png" />
@@ -152,16 +150,21 @@
       <img src="../../assets/images/guestezee/taskManagement.png" style="height: 20px;">
       <a routerLink="/task-management">Task Management</a>
     </li> -->
+    <!-- Newly added for payment -->
+    <li class="list_container" [class.active]="isPaymentActive()">
+      <img src="../../assets/images/guestezee/check.png">
+      <a routerLink="/payment-details" (click)="sendValue('Payment')">Payment</a>
+    </li>
 
 
 
 
-     <li class="list_container" [class.active]="isSystemSettingsActive()"
+    <li class="list_container" [class.active]="isSystemSettingsActive()"
       *ngIf="(customerType === 'Staff' || this.customerdata?.status=='approved')">
       <div class="list-content">
         <div class="left-content">
           <i class="fas fa-store" style="color: white;"></i>
-          <a routerLink="/outlet-list" >Outlet</a>
+          <a routerLink="/outlet-list">Outlet</a>
         </div>
         <!-- <i class="fas fa-chevron-down dropdown-icon" [ngClass]="{ 'rotate': isSettingsSubmenuOpen }"
           (click)="toggleSubmenu('Settings')"></i> -->

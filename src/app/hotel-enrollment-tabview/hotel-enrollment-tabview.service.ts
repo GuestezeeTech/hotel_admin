@@ -130,36 +130,35 @@ export class HotelEnrollmentTabviewService {
       return this.http.post(ENDPOINTS.ORDER_UPDATION, UpdateCustomerObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
     }
   }
-<<<<<<< HEAD
-=======
-  
-  getCountries(): Observable<any> {
-    if(this.authTokenService.isTokenExpired()){
-      this.router.navigate([`/login`], {skipLocationChange: false});
-      return new Observable(); 
-    }
-    else
-    {
-    return this.http.post("https://guestezee.ecbee.net:5300/es-countries/all", {
-      "domain_name": "https://www.beaubelle.in",
-      "user_id": USER_ID,
-      "extras": {
-        "find": {
-          
-        },
-        "pagination": true,
-        "paginationDetails": {
-          "limit": 0,
-          "pageSize": 10
-        },
->>>>>>> 03760fda20e136fed6877aad4cd95ec577e2b454
+
+  // getCountries(): Observable<any> {
+  //   if (this.authTokenService.isTokenExpired()) {
+  //     this.router.navigate([`/login`], { skipLocationChange: false });
+  //     return new Observable();
+  //   }
+  //   else {
+  //     return this.http.post("https://www.guestezee.com:5300/es-countries/all", {
+  //       "domain_name": "https://www.beaubelle.in",
+  //       "user_id": USER_ID,
+  //       "extras": {
+  //         "find": {
+
+  //         },
+  //         "pagination": true,
+  //         "paginationDetails": {
+  //           "limit": 0,
+  //           "pageSize": 10
+  //         },
+  //       }
+  //     }, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
+  //   }
+  // }
 
   getCountries(): Observable<any> {
     if (this.authTokenService.isTokenExpired()) {
       this.router.navigate([`/login`], { skipLocationChange: false });
       return new Observable();
     }
-<<<<<<< HEAD
     else {
       return this.http.post("http://164.52.214.114:5300/es-countries/all", {
         "domain_name": "https://www.beaubelle.in",
@@ -182,6 +181,7 @@ export class HotelEnrollmentTabviewService {
       }, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
     }
   }
+
   getStatesById(jsonObj: any): Observable<any> {
     if (this.authTokenService.isTokenExpired()) {
       this.router.navigate([`/login`], { skipLocationChange: false });
@@ -189,11 +189,6 @@ export class HotelEnrollmentTabviewService {
     }
     else {
       return this.http.post("http://164.52.214.114:5300/es-states/all", jsonObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
-=======
-    else
-    {
-    return this.http.post("https://guestezee.ecbee.net:5300/es-states/all", jsonObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken())});
->>>>>>> 03760fda20e136fed6877aad4cd95ec577e2b454
     }
   }
 

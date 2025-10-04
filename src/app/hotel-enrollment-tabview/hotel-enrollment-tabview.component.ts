@@ -670,25 +670,25 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
             let nextUnpaidCycleIndex = allCycles.findIndex(cycle =>
               cycle.installments.some((inst: any) => inst.status === "Not Paid")
             );
-
             if (nextUnpaidCycleIndex === -1) {
               console.log("All installments already paid");
               return; // nothing to update
             }
-
             const nextCycle = allCycles[nextUnpaidCycleIndex];
+            console.log('nextCycle', nextCycle);
             const nextUnpaidIndex = nextCycle.installments.findIndex((inst: any) => inst.status === "Not Paid");
+            console.log('nextUnpaidIndex', nextUnpaidIndex);
             const nextInstallment = nextCycle.installments[nextUnpaidIndex];
-
+            console.log('nextInstallment', nextInstallment);
             // Mark installment as paid
             nextInstallment.status = "Paid";
             nextInstallment.paid_date_time = new Date().toISOString();
-
             // Update subscription_end_date
             this.orderdata.subscription_end_date = nextInstallment.subscription_end_date;
-
+            console.log('Orderdata subscription enddate', this.orderdata.subscription_end_date);
             // Update order_review to the next unpaid installment, or current if none left
             let nextUnpaidInstallment = nextCycle.installments.find((inst: any) => inst.status === "Not Paid");
+            console.log('nextUnpaidInstallment', nextUnpaidInstallment);
             if (!nextUnpaidInstallment) {
               // Check next cycle
               const futureCycle = allCycles.slice(nextUnpaidCycleIndex + 1).find(c =>
@@ -696,29 +696,25 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
               );
               nextUnpaidInstallment = futureCycle?.installments.find((inst: any) => inst.status === "Not Paid") || nextInstallment;
             }
-
             this.orderdata.order_review.order_summary = {
               sub_total: nextUnpaidInstallment.sub_total,
               tax: nextUnpaidInstallment.tax,
               order_total_amount: nextUnpaidInstallment.order_total_amount
             };
-
             // Prepare payload
             const orderPayload = { ...this.orderdata };
+            console.log('Order payload', orderPayload);
             delete orderPayload._id;
             delete orderPayload.id;
-
             const orderUpdateData = {
               domain_name: DOMAIN_NAME,
               user_id: USER_ID,
               payload: { order_creation: orderPayload },
               extras: { find: { id: this.orderdata.id } }
             };
-
             this.hotelenrollmentservice.orderUpsert(orderUpdateData).subscribe(orderResp => {
               if (orderResp.success === 1) {
                 console.log("Order updated after payment", orderResp);
-
                 // Update customer subscription_end_date
                 const customerUpdateData = {
                   domain_name: DOMAIN_NAME,
@@ -740,7 +736,6 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
             this.updateHeaderPayNowButton();
           }
         }
-
       },
       err => {
         this.loaderService.emitComplete();
@@ -750,7 +745,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
         } else if (err.error.message) {
           // this.alertsService.error(err.error.message, this.options);
         } else {
-          // this.alertsService.error('Something bad happened. Please try again!', this.options);
+          // this.alertsService.error('Something  happened. Please try again!', this.options);
         }
         // Reject promise if there is an error
       }
@@ -795,7 +790,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
   //   const installmentText = `Pay Installment ${nextUnpaidIndex + 1} of ${totalInstallments}`;
   //   console.log('installmentText', installmentText);
   //   // Persist button state
-  //   this.localService.set('payNowButtonState', JSON.stringify({ show: showButton, enabled, installmentText }));
+  //   this.localService.set('State', JSON.stringify({ show: showButton, enabled, installmentText }));
   //   console.log('payNowButtonState', this.localService.get('payNowButtonState'));
   //   this.technicalInfoService.updatePayNowButton(showButton, enabled, installmentText);
   // }
@@ -805,27 +800,27 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
       this.technicalInfoService.updatePayNowButton(false, false);
       return;
     }
-
     const allCycles: any[] = this.orderdata.payment_split;
     let nextUnpaidCycleIndex = allCycles.findIndex(cycle =>
       cycle.installments.some((inst: any) => inst.status === "Not Paid")
     );
-
+    console.log('nextUnpaidCycleIndex', nextUnpaidCycleIndex);
     if (nextUnpaidCycleIndex === -1) {
       // All paid
       this.technicalInfoService.updatePayNowButton(false, false);
+      this.localService.remove('payNowButtonState');
       return;
     }
-
     const nextCycle = allCycles[nextUnpaidCycleIndex];
+    console.log('nextCycle', nextCycle);
     const nextUnpaidIndex = nextCycle.installments.findIndex((inst: any) => inst.status === "Not Paid");
+    console.log('nextUnpaidIndex', nextUnpaidIndex);
     const totalInstallments = nextCycle.installments.length;
-
+    console.log('totalInstallments', totalInstallments);
     if (nextUnpaidIndex <= 0) {
       this.technicalInfoService.updatePayNowButton(false, false);
       return;
     }
-
     // Enable button 1 week before previous installment's end date
     const prevInstallment = nextCycle.installments[nextUnpaidIndex - 1];
     const [day, month, year] = prevInstallment.subscription_end_date.split('-').map(Number);
@@ -834,15 +829,22 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
     // const enableDate = new Date(subEndDate);
     // enableDate.setDate(enableDate.getDate() - 7);
     const enableDate = new Date(2025, 9, 3);
-
+    console.log('enableDate', enableDate);
     const showButton = true;
     const enabled = today >= enableDate;
-    const installmentText = `Pay Installment ${nextUnpaidIndex + 1} of ${totalInstallments}`;
-
+    //  Added cycle name for clarity
+    const cycleName = nextCycle.name ? this.capitalizeFirstLetter(nextCycle.name) : 'Installment';
+    const installmentText = `${cycleName} - Installment ${nextUnpaidIndex + 1} of ${totalInstallments}`;
+    // const installmentText = `Pay Installment ${nextUnpaidIndex + 1} of ${totalInstallments}`;
+    console.log('installmentText', installmentText);
     this.localService.set('payNowButtonState', JSON.stringify({ show: showButton, enabled, installmentText }));
+    console.log('payNowButtonState', this.localService.get('payNowButtonState'));
     this.technicalInfoService.updatePayNowButton(showButton, enabled, installmentText);
   }
 
+  capitalizeFirstLetter(str: string) {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  }
 
   getOrderByIdAsync(): Promise<boolean> {
     return new Promise((resolve, reject) => {

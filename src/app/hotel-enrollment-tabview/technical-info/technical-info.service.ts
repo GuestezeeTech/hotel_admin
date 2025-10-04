@@ -86,12 +86,20 @@ export class TechnicalInfoService {
   }
 
   // Newly added for payment 
-  // Observable Subject for "Pay Now" clicks
+  // For caaling payNow function
   private payNowSubject = new Subject<void>();
   payNow$ = this.payNowSubject.asObservable();
 
   triggerPayNow() {
     this.payNowSubject.next();
+  }
+
+  // For calling payment type modal
+  private modalTrigger = new Subject<void>();
+  modalTrigger$ = this.modalTrigger.asObservable();
+
+  openModal() {
+    this.modalTrigger.next();
   }
 
   // For payment button enable & showing

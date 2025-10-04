@@ -218,7 +218,7 @@ export class ProductDetailsComponent {
 
   deleteProduct(id: any) {
     let requestBody = {
-      "domain_name": "https://guestezee.ecbee.net",
+      "domain_name": "https://www.guestezee.com",
       "user_id": 1,
       "payload": {
         "delete_data": {},
@@ -275,7 +275,7 @@ export class ProductDetailsComponent {
 
   // getAllCategories() {
   //   let jsonRequest = {
-  //     domain_name: 'https://guestezee.ecbee.net',
+  //     domain_name: 'https://www.guestezee.com',
   //     user_id: 1,
   //     extras: {
   //       find: {},
@@ -295,7 +295,7 @@ export class ProductDetailsComponent {
   getAllCategories() {
     this.productDetailService.getAllCategories(
       {
-        "domain_name": 'https://guestezee.ecbee.net',
+        "domain_name": 'https://www.guestezee.com',
         "user_id": 1,
         "extras": {
           "find": {
@@ -326,7 +326,7 @@ export class ProductDetailsComponent {
 
   getAllProducts() {
     let requestBody = {
-      "domain_name": "https://guestezee.ecbee.net",
+      "domain_name": "https://www.guestezee.com",
       "user_id": 1,
       "extras": {
         "find": {
@@ -404,7 +404,7 @@ export class ProductDetailsComponent {
       formData.append('upload', this.imgFile);
       let headers = new HttpHeaders()
         .set("source", "Certificate")
-        .set("domain_name", "https://guestezee.ecbee.net");
+        .set("domain_name", "https://www.guestezee.com");
       this.productDetailService.sendImage(formData, headers).subscribe(resp => {
         if (resp && resp.success === 1 && resp.status_code === 200) {
           let imgVariable = resp.result.data[0];
@@ -427,7 +427,7 @@ export class ProductDetailsComponent {
     const file = event.target.files[0];
     let headers = new HttpHeaders()
       .set("source", "Certificate")
-      .set("domain_name", "https://guestezee.ecbee.net");
+      .set("domain_name", "https://www.guestezee.com");
     if (!file) return;
     // Allowed file types
     const allowedExtensions = ['pdf', 'jpeg', 'jpg', 'png'];
@@ -509,7 +509,7 @@ export class ProductDetailsComponent {
   //   }
   //   let headers = new HttpHeaders()
   //     .set("source", "Certificate")
-  //     .set("domain_name", "https://guestezee.ecbee.net");
+  //     .set("domain_name", "https://www.guestezee.com");
   //   let formData = new FormData();
   //   formData.append('upload', file);
   //   this.appService.sendImage(formData, headers).subscribe(resp => {
@@ -535,7 +535,7 @@ export class ProductDetailsComponent {
     let orderDetails = this.categoryForm.value.name;
     // console.log('Order:', orderDetails);
     let jsonRequest = {
-      domain_name: 'https://guestezee.ecbee.net',
+      domain_name: 'https://www.guestezee.com',
       user_id: 1,
       payload: {
         category_creation: {
@@ -791,7 +791,7 @@ export class ProductDetailsComponent {
     };
     if (!this.isEditMode) {
       let requestData = {
-        domain_name: 'https://guestezee.ecbee.net',
+        domain_name: 'https://www.guestezee.com',
         user_id: 1,
         payload: {
           product_creation: orderDetails
@@ -824,7 +824,7 @@ export class ProductDetailsComponent {
     }
     else {
       let requestData = {
-        domain_name: 'https://guestezee.ecbee.net',
+        domain_name: 'https://www.guestezee.com',
         user_id: 1,
         extras: {
           find: {

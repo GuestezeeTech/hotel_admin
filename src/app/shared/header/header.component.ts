@@ -1,3 +1,4 @@
+import { TechnicalInfoService } from './../../hotel-enrollment-tabview/technical-info/technical-info.service';
 import { DOMAIN_NAME, USER_ID } from './../../app.config';
 import { LoaderService } from './../loader/loader.service';
 import { Component, Input, OnInit } from '@angular/core';
@@ -14,7 +15,6 @@ import { NotificationComponent } from '../../notification/notification.component
 import { HotelEnrollmentTabviewService } from '../../hotel-enrollment-tabview/hotel-enrollment-tabview.service';
 import { Alert } from 'bootstrap';
 import { AlertsService } from '../alerts/alerts.service';
-import { TechnicalInfoService } from '../../hotel-enrollment-tabview/technical-info/technical-info.service';
 
 @Component({
   selector: 'app-header',
@@ -45,7 +45,7 @@ export class HeaderComponent implements OnInit {
   @Output() close = new EventEmitter<void>();
   // Newly added for payment
   payNowButtonState = { show: false, enabled: false, installmentText: '' };
-
+  orderdata: any;
 
   constructor(
     private localService: LocalStorageService,
@@ -102,16 +102,21 @@ export class HeaderComponent implements OnInit {
       });
     this.activeMenu;
     // Newly added for payment
-    // Load persisted Pay Now button state
+    // For tracking pay now button state & values
     const savedState = this.localService.get('payNowButtonState');
     if (savedState) {
       const state = JSON.parse(savedState);
       this.paymentEventService.updatePayNowButton(state.show, state.enabled, state.installmentText);
     }
+    else {
+      // fallback: call API to rebuild state
+      this.updateHeaderPayNowButton();
+    }
     this.paymentEventService.payNowButton$.subscribe(state => {
       this.payNowButtonState = state;
     });
-   console.log('this.payNowButtonState', this.payNowButtonState);
+    console.log('this.payNowButtonState', this.payNowButtonState);
+    // For storing order data(for payment)
   }
 
   get activeMenu(): string {
@@ -188,6 +193,7 @@ export class HeaderComponent implements OnInit {
     this.localService.remove('allLowerStaffIds');
     this.localService.remove('roomRange');
     this.localService.remove('USERACCESS');
+    this.localService.remove('payNowButtonState');
     this.router.navigate([''], { skipLocationChange: false });
     this.userAccessService.removeUserAccess();
   }
@@ -240,9 +246,108 @@ export class HeaderComponent implements OnInit {
   }
 
   // Newly added for payment
-  onPayNowClick() {
+  async onPayNowClick() {
     // Notify PaymentComponent to execute payNow
-    this.paymentEventService.triggerPayNow();
+    // this.paymentEventService.triggerPayNow();
+    await this.getLastestOrderOfCustomer();
+    const allCycles = this.orderdata.payment_split || [];
+    const hasUnpaid = allCycles.some((cycle: any) =>
+      cycle.installments.some((inst: any) => inst.status === "Not Paid")
+    );
+    if (hasUnpaid) {
+      // Continue normal installment payment flow
+      console.log("Proceeding with existing installment payment...");
+      this.paymentEventService.triggerPayNow();
+    } else {
+      // All paid → open Payment Type modal
+      console.log("All installments paid → opening modal for new payment type");
+      this.paymentEventService.openModal();
+    }
   }
+
+  getLastestOrderOfCustomer(): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const req = {
+        domain_name: DOMAIN_NAME,
+        user_id: USER_ID,
+        extras: {
+          find: { customer_id: this.customerdata.id }
+        }
+      };
+      this.hotelenrollmentservice.orderDetailsGetById(req).subscribe({
+        next: (res: any) => {
+          this.orderdata = res?.result?.data?.[0] || null;
+          console.log('Latest order data of customer:', this.orderdata);
+          resolve(this.orderdata);
+        },
+        error: (err: any) => {
+          console.error('Error fetching last order:', err);
+          reject(err);
+        }
+      });
+    });
+  }
+
+  async updateHeaderPayNowButton() {
+    await this.getLastestOrderOfCustomer();
+    if (!this.orderdata || !this.orderdata.payment_split) {
+      this.paymentEventService.updatePayNowButton(false, false);
+      return;
+    }
+    const allCycles: any[] = this.orderdata.payment_split;
+    // Find first cycle with unpaid installments
+    const nextUnpaidCycleIndex = allCycles.findIndex(cycle =>
+      cycle.installments.some((inst: any) => inst.status === "Not Paid")
+    );
+    console.log('nextUnpaidCycleIndex', nextUnpaidCycleIndex);
+    if (nextUnpaidCycleIndex === -1) {
+      // All installments are paid
+      this.paymentEventService.updatePayNowButton(false, false);
+      this.localService.remove('payNowButtonState');
+      return;
+    }
+    const nextCycle = allCycles[nextUnpaidCycleIndex];
+    console.log('nextCycle', nextCycle);
+    const nextUnpaidIndex = nextCycle.installments.findIndex(
+      (inst: any) => inst.status === "Not Paid"
+    );
+    console.log('nextUnpaidIndex', nextUnpaidIndex);
+    const totalInstallments = nextCycle.installments.length;
+    console.log('totalInstallments', totalInstallments);
+    if (nextUnpaidIndex <= 0) {
+      // First installment not payable yet
+      this.paymentEventService.updatePayNowButton(false, false);
+      return;
+    }
+    // Enable button only 1 week before prev installment expiry
+    const prevInstallment = nextCycle.installments[nextUnpaidIndex - 1];
+    const [day, month, year] = prevInstallment.subscription_end_date.split('-').map(Number);
+    const subEndDate = new Date(year, month - 1, day);
+    const today = new Date();
+    // const enableDate = new Date(subEndDate);
+    // enableDate.setDate(enableDate.getDate() - 7); // 7 days before due date
+    const enableDate = new Date(2025, 9, 3);
+    console.log('enableDate', enableDate);
+    const showButton = true;
+    const enabled = today >= enableDate;
+    // Add cycle name for clarity
+    const cycleName = nextCycle.name
+      ? this.capitalizeFirstLetter(nextCycle.name)
+      : 'Installment';
+    const installmentText = `${cycleName} - Installment ${nextUnpaidIndex + 1} of ${totalInstallments}`;
+    console.log('installmentText', installmentText);
+    // Save to localStorage (optional cache)
+    const buttonState = { show: showButton, enabled, installmentText };
+    this.localService.set('payNowButtonState', JSON.stringify(buttonState));
+    console.log('payNowButtonState', buttonState);
+    // update service (header binding)
+    this.paymentEventService.updatePayNowButton(showButton, enabled, installmentText);
+  }
+
+  capitalizeFirstLetter(str: string) {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  }
+
 }
+
 
