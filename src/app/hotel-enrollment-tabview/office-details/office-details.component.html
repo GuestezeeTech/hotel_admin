@@ -246,7 +246,8 @@
   <div style="display: flex;justify-content: flex-end;">
     <button type="submit" class="cancel_bt" (click)="openExiteModal()">Cancel</button>&nbsp;&nbsp;
     <!--Newly added - paymentDone for button view -->
-    <button  type="submit" *ngIf="!paymentDone" class="save_bt" [disabled]="customerForm.invalid" (click)="save()">Save & Continue</button>
+    <!-- <button  type="submit" *ngIf="!paymentDone" class="save_bt" [disabled]="customerForm.invalid" (click)="save()">Save & Continue</button> -->
+     <button  type="submit" *ngIf="this.customerStatus !== 'approved'" class="save_bt" [disabled]="customerForm.invalid" (click)="save()">Save & Continue</button>
   </div>
 </form>
 

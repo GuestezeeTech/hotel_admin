@@ -10,8 +10,17 @@ body {
     top: 0;
     left: 0;
     background-color: #6D575C;
-    overflow-x: hidden;
+    // overflow-x: hidden;
     padding-top: 20px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    /* ✅ Allow scroll but hide scrollbar visually */
+    padding-top: 20px;
+    scrollbar-width: none;
+    /* Firefox */
+    -ms-overflow-style: none;
+    /* IE, Edge */
+
 }
 
 .sidenav a {
@@ -198,6 +207,7 @@ ul {
     transition: color 0.3s ease-in-out;
     text-align: left;
     font-size: 13px;
+    cursor: pointer;
 }
 
 .submenu-item:hover {
@@ -231,4 +241,9 @@ ul {
 
 .rotate {
     transform: rotate(180deg);
+}
+
+.sidenav::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }

@@ -1,13 +1,12 @@
-import { ProfileService } from './profile/profile.service';
 import { Component, OnInit } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { Router, NavigationEnd, RouterOutlet } from '@angular/router';
 import { LoginComponent } from './login/login.component';
-import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { MenuBarComponent } from './shared/menu-bar/menu-bar.component';
 import { HeaderComponent } from './shared/header/header.component';
 import { LocalStorageService } from './auth-services/local-storage.service';
 import { PushService } from './services/push.service';
 import { NotificationService } from './notification/notification.service';
+import { ProfileService } from './profile/profile.service';
 
 @Component({
   selector: 'app-root',
@@ -16,110 +15,123 @@ import { NotificationService } from './notification/notification.service';
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
 })
-
 export class AppComponent implements OnInit {
-  showSidebar = true;
   title = 'GUESTEZEE_ADMIN';
+  showSidebar = true;
   selectedMenuItem: string = '';
-  private routesWithoutSidebar = ['/login', '/', '/view']; // Add routes where sidebar is required
-  // Holds all notifications for the entire app.
-  notifications: any[] = [];
   showNotification = false;
+  customerType: string | null = null;
+  private audioUnlocked = false;
+  notifications: any[] = [];
+
+  private routesWithoutSidebar = ['/login', '/', '/view'];
 
   constructor(
     private router: Router,
     private localservice: LocalStorageService,
     private pushService: PushService,
-    private notificationService: NotificationService) {
+    private notificationService: NotificationService
+  ) {
+    // --- Sidebar and menu tracking ---
     this.router.events.subscribe(event => {
       if (event instanceof NavigationEnd) {
-        this.showSidebar = this.routesWithoutSidebar.some(route => {
-          console.log(event.url, "event.url")
-          return route === event.url;
-        });
-        ////console.log(this.showSidebar, " this.showSidebar", event.url);
-        if (event.url == '/hotel-list' || event.url == '/add-new-hotel') {
-          this.selectedMenuItem = "Hotels"
-        }
-        if (event.url == '/role-list' || event.url == '/role') {
-          this.selectedMenuItem = "Roles"
-        }
-        if (event.url == '/user-list' || event.url == '/user') {
-          this.selectedMenuItem = "Users"
-        }
-        if (event.url == '/staff-list' || event.url == '/staff') {
-          this.selectedMenuItem = "Staff"
-        }
-        if (event.url == '/bookings') {
-          this.selectedMenuItem = "Bookings"
-        }
-        if (event.url == '/bookings-management') {
-          this.selectedMenuItem = "Bookings & Guest Management"
-        }
-        if (event.url == '/late-checkout') {
-          this.selectedMenuItem = "Late Checkout"
-        }
-        if (event.url == '/settings') {
-          this.selectedMenuItem = "Settings"
-        }
-        // Newly added
-        if (event.url.startsWith('/view-hierarchy')) {
+        this.showSidebar = this.routesWithoutSidebar.some(route => route === event.url);
+        if (event.url == '/hotel-list' || event.url == '/add-new-hotel') this.selectedMenuItem = "Hotels";
+        else if (event.url == '/role-list' || event.url == '/role') this.selectedMenuItem = "Roles";
+        else if (event.url == '/user-list' || event.url == '/user') this.selectedMenuItem = "Users";
+        else if (event.url == '/staff-list' || event.url == '/staff') this.selectedMenuItem = "Staff";
+        else if (event.url == '/bookings') this.selectedMenuItem = "Bookings";
+        else if (event.url == '/bookings-management') this.selectedMenuItem = "Bookings & Guest Management";
+        else if (event.url == '/late-checkout') this.selectedMenuItem = "Late Checkout";
+        else if (event.url == '/settings') this.selectedMenuItem = "Settings";
+
+        if (event.url.startsWith('/view-hierarchy') || event.url.startsWith('/view-customer-hierarchy')) {
           this.showSidebar = true;
-        }
-        if (event.url.startsWith('/view-customer-hierarchy')) {
-          this.showSidebar = true;
-        }
-        if (event.url.startsWith('/bookings-management')) {
-          this.selectedMenuItem = "Bookings & Guest Management";
-        }
-        else if (event.url.startsWith('/late-checkout')) {
-          this.selectedMenuItem = "Late Checkout";
         }
       }
     });
   }
 
-  updateMenu(value: string) {
-    this.selectedMenuItem = value; // Update selected menu value
-    ////console.log(this.selectedMenuItem, "Menu Items");
-  }
-
   ngOnInit(): void {
-    // Use URLSearchParams since queryParams might not be available immediately
+    // --- Restore user info ---
+    this.customerType = this.localservice.get('CustomerType');
+    console.log('[App] Customer Type:', this.customerType);
     const queryParams = new URLSearchParams(window.location.search);
     const customerIdFromUrl = queryParams.get('customer_id');
-    // const customerIdInLocal = this.localservice.get('UserId');
-    // this.localservice.set('UserId',customerIdFromUrl);
-    ////console.log(customerIdFromUrl,"customerIdInLocal")
-    if (customerIdFromUrl != undefined && customerIdFromUrl != null && customerIdFromUrl != "") {
-      // ////console.log("1111")
+    if (customerIdFromUrl) {
       localStorage.setItem('customer_id', customerIdFromUrl);
       this.localservice.set('UserId', customerIdFromUrl);
-      ////console.log('customer_id restored in localStorage:', customerIdFromUrl);
+      console.log('[App] Restored customer_id:', customerIdFromUrl);
     }
-    const urlParams = new URLSearchParams(window.location.search);
-    const IdFromUrl = urlParams.get('id');
-    // Start listening for foreground messages
-    this.pushService.onMessageListener(payload => {
-      console.log('📩 Foreground message received:', payload);
 
-      // Push notification into service
-      this.notificationService.addNotification({
-        initials: payload.data?.['initials'] || 'N',
-        name: payload.notification?.title || 'New Notification',
-        time: new Date().toLocaleTimeString(),
-        body: payload.notification?.body
-      });
+    // --- Unlock audio context ---
+    const unlockAudio = () => {
+      console.log('[App] Attempting to unlock audio...');
+      if (!this.audioUnlocked) {
+        try {
+          const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+          const buffer = audioCtx.createBuffer(1, 1, 22050);
+          const source = audioCtx.createBufferSource();
+          source.buffer = buffer;
+          source.connect(audioCtx.destination);
+          source.start(0);
+          this.audioUnlocked = true;
+          console.log('[App] Audio unlocked for notifications');
+          window.removeEventListener('click', unlockAudio);
+          window.removeEventListener('keydown', unlockAudio);
+          window.removeEventListener('mousemove', unlockAudio);
+        } catch (err) {
+          console.warn('[App] Failed to unlock audio:', err);
+        }
+      }
+    };
+    window.addEventListener('click', unlockAudio);
+    window.addEventListener('keydown', unlockAudio);
+    window.addEventListener('mousemove', unlockAudio);
+    unlockAudio(); // attempt immediate unlock
+    // --- Foreground Notifications ---
+    this.pushService.onMessageListener().subscribe((payload: any) => {
+      console.log('[App] Foreground message received:', payload);
+
+      if (this.audioUnlocked) {
+        const audio = new Audio('assets/images/guestezee/alarm.mp3');
+        audio.play().then(() => {
+          console.log('[App] Foreground sound played');
+        }).catch(err => {
+          console.warn('[App] Foreground sound blocked:', err);
+        });
+      }
+
+      const structuredData = this.extractNotificationData(payload);
+      this.notificationService.addNotification(structuredData);
     });
 
 
+    // --- Background Notifications from SW ---
+    navigator.serviceWorker.addEventListener('message', (event: any) => {
+      if (event.data?.action === 'playSound') {
+        console.log('[App] Received playSound from SW');
+        if (this.audioUnlocked) {
+          const audio = new Audio('assets/images/guestezee/alarm.mp3');
+          audio.play().then(() => {
+            console.log('[App] Background sound played');
+          }).catch(err => {
+            console.warn('[App] Background sound blocked:', err);
+          });
+        }
+      }
+      // if (event.data?.action === 'openTaskManagement') {
+      //   window.location.href = '/task-management';
+      // }
+    });
+    // --- Staff-specific panel handling ---
+    if (this.customerType === 'Staff') {
+      this.notificationService.showPanel$.subscribe(show => this.showNotification = show);
+    }
+  }
 
-    // Subscribe to notifications list
-    this.notificationService.notifications$.subscribe(list => this.notifications = list);
-
-    // Subscribe to panel visibility
-    this.notificationService.showPanel$.subscribe(show => this.showNotification = show);
-
+  updateMenu(value: string) {
+    this.selectedMenuItem = value;
   }
 
   toggleNotification() {
@@ -127,6 +139,57 @@ export class AppComponent implements OnInit {
     if (!this.showNotification) this.notificationService.closePanel();
   }
 
-
-
+  // --- Extract Notification Data (Structured) ---
+  private extractNotificationData(payload: any) {
+    let parsedMessage: any = {};
+    try {
+      if (payload?.data?.message) {
+        let rawMessage = payload.data.message;
+        try {
+          parsedMessage = JSON.parse(rawMessage);
+          if (typeof parsedMessage === 'string') parsedMessage = JSON.parse(parsedMessage);
+        } catch {
+          console.warn('[App] Failed nested JSON parse:', rawMessage);
+        }
+      }
+    } catch (err) {
+      console.warn('[App] Failed to parse payload.data.message:', err);
+    }
+    const structured = {
+      title: payload?.notification?.title || 'No Title',
+      body: payload?.notification?.body || '',
+      task_id: parsedMessage?.task_id || null,
+      redirection_tab: parsedMessage?.redirection_tab || null,
+    };
+    console.log('[App] Extracted Notification Data:', structured);
+    return structured;
+  }
 }
+
+//                     +---------------------------+
+//                     |       User Interaction    |
+//                     |  (Clicked / Touched App) |
+//                     +------------+--------------+
+//                                  |
+//                 +----------------+----------------+
+//                 |                                 |
+//           +-----v-----+                     +-----v-----+
+//           |  Foreground|                     | Background|
+//           |  Tab Active|                     |   Tab    |
+//           +-----+-----+                     +-----+-----+
+//                 |                                 |
+//       +---------+---------+               +-------+-------+
+//       | Sound Plays        |               | Audio unlocked?|
+//       | Immediately        |               +-------+-------+
+//       +-------------------+                       |
+//                                                 +--+--+
+//                                                 |     |
+//                                            +----v---+ +---v----+
+//                                            | Yes    | |  No    |
+//                                            | Sound  | | Blocked|
+//                                            | Plays  | | Sound  |
+//                                            +--------+ +--------+
+// No tab open / user not logged in → Sound cannot play, only system notification appears.
+// “Silent” AudioContext
+// A silent AudioContext is an AudioContext that plays a tiny, empty buffer with no sound.
+// Purpose: browsers now consider the user “interacted” with audio, so future audio can be played without being blocked, even in background tabs.

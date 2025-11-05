@@ -26,6 +26,8 @@ export class ReportComponent implements AfterViewInit {
   endDate: any;
   guestData: any[] = [];
   roomOccupancy: string = '';
+  reviewForGuest: any[] = [];
+  loading: boolean = true; // loader flag
 
   constructor(
     private localStorageService: LocalStorageService,
@@ -71,7 +73,7 @@ export class ReportComponent implements AfterViewInit {
     return new Promise((resolve, reject) => {
       this.hotelListService.getSignupAllCustomers(requestBody).subscribe({
         next: (resp: any) => {
-          if (resp.success === 1 && resp.status_code === 200 && resp.result.data.length > 0) {
+          if (resp.success === 1 && resp.status_code === 200 && resp?.result?.data?.length > 0) {
             const userData = resp.result.data[0];
             this.memberId = userData.customer_member_id;
             console.log('Member id:', this.memberId);
@@ -138,111 +140,134 @@ export class ReportComponent implements AfterViewInit {
   //       console.error('Task API Error:', err);
   //     }
   //   });
-
   // }
 
   getAllReport(roomNo: any, startDate: any, endDate: any) {
-    console.log('Member id:', this.memberId);
+    this.loading = true;
     let requestBody = {
-      "domain_name": DOMAIN_NAME,
-      "user_id": USER_ID,
-      "extras": {
-        "find": {
-          "member_id": this.memberId,
-          "room_no": roomNo,
-        }
-      },
-      "payload": {
-        "date": {
-          "start_date": startDate,
-          "end_date": endDate
-        }
-      }
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: { find: { member_id: this.memberId, room_no: roomNo } },
+      payload: { date: { start_date: startDate, end_date: endDate } }
     };
     this.bookingService.getAllReport(requestBody).subscribe({
       next: (response) => {
         if (response?.success) {
           const resultData = response.result.data;
-          if (resultData.length > 0) {
-            // 1. Patch guest details
-            this.guestData = resultData.guest_data.map((guest: any) => {
-              const guestId = guest.Guest_detail[0].Guest_Id;
-              // 2. Match tasks for this guest
-              const tasksForGuest = resultData.task_data.filter(
-                (task: any) => task.guest_id === guestId
-              );
-              // guest.requestedServices = tasksForGuest.map((task: any) => ({
-              //   serviceName: task.service.service_name,
-              //   rating: task.rating
-              // }));
-              // 3. Fetch ratings for each task in parallel
-              const ratingRequests = tasksForGuest.map((task: any) => {
-                const ratingRequestBody = {
-                  domain_name: DOMAIN_NAME,
-                  user_id: USER_ID,
-                  extras: {
-                    find: {
-                      task_id: task.id,
-                      member_id: this.memberId
-                    },
-                    pagination: false,
-                    sorting: true,
-                    sortingDetails: { id: -1 }
-                  }
-                };
-                return this.taskManagementService.getAllRatings(ratingRequestBody);
-              });
-              if (ratingRequests.length > 0) {
+          if (resultData) {
+            this.guestData = resultData.guest_data || [];
+            let guestsProcessed = 0; // counter for completed guests
+            for (let i = 0; i < this.guestData.length; i++) {
+              const guest = this.guestData[i];
+              const guestId = guest.id;
+              const tasksForGuest = resultData.task_data.filter((task: any) => task.guest_id === guestId);
+              if (tasksForGuest.length > 0) {
+                const ratingRequests = tasksForGuest.map((task: any) => {
+                  const ratingRequestBody = {
+                    domain_name: DOMAIN_NAME,
+                    user_id: USER_ID,
+                    extras: {
+                      find: { task_id: task.id, member_id: this.memberId },
+                      pagination: false,
+                      sorting: true,
+                      sortingDetails: { id: -1 }
+                    }
+                  };
+                  return this.taskManagementService.getAllRatings(ratingRequestBody);
+                });
                 forkJoin(ratingRequests).subscribe({
                   next: (ratingResponses: any) => {
-                    guest.requestedServices = tasksForGuest.map((task: any, index: number) => {
-                      const ratingResp = ratingResponses[index];
+                    guest.requestedServices = [];
+                    for (let j = 0; j < tasksForGuest.length; j++) {
                       let ratingValue = 0;
+                      const ratingResp = ratingResponses[j];
                       if (ratingResp?.success && ratingResp.result.data.length > 0) {
                         ratingValue = ratingResp.result.data[0].rating;
                       }
-                      return {
-                        serviceName: task.service.service_name,
-                        rating: ratingValue
-                      };
-                    });
+                      guest.requestedServices.push({
+                        serviceName: tasksForGuest[j].service.service_name,
+                        rating: ratingValue,     
+                        serviceIcon: tasksForGuest[j].service.icon              
+                      });
+                    }
+                    // Calculate average rating
+                    console.log('Guest requestedServices', guest.requestedServices);
+                    const totalRatings = guest.requestedServices.reduce((sum: any, s: any) => sum + s.rating, 0);
+                    guest.averageRating = guest.requestedServices.length > 0 ? totalRatings / guest.requestedServices.length : 0;
+                    // Match review ratings
+                    guest.guestRatings = resultData.review_data?.filter((r: any) => r.guest_id === guestId && r.checkout_feedback === true)   || [];
+                    guestsProcessed++;
+                    // If all guests processed, hide loading and trigger PDF/Print
+                    if (guestsProcessed === this.guestData.length) {
+                      this.finalizeReport(resultData);
+                    }
                   },
-                  error: (err: any) => {
-                    console.error("Ratings API Error:", err);
-                    guest.requestedServices = tasksForGuest.map((task: any) => ({
-                      serviceName: task.service.service_name,
-                      rating: 0
-                    }));
+                  error: () => {
+                    guest.requestedServices = tasksForGuest.map((task: any) => ({ serviceName: task.service.service_name, rating: 0 }));
+                    guest.averageRating = 0;
+                    guest.guestRatings = resultData.review_data?.filter((r: any) => r.guest_id === guestId && r.checkout_feedback === true) || [];
+                    guestsProcessed++;
+                    if (guestsProcessed === this.guestData.length) {
+                      this.finalizeReport(resultData);
+                    }
                   }
                 });
               } else {
+                // No tasks for this guest
                 guest.requestedServices = [];
+                guest.averageRating = 0;
+                guest.guestRatings = resultData.review_data?.filter((r: any) => r.guest_id === guestId && r.checkout_feedback === true) || [];
+                guestsProcessed++;
+                if (guestsProcessed === this.guestData.length) {
+                  this.finalizeReport(resultData);
+                }
               }
-              // 3. Match review rating for this guest
-              const reviewForGuest = resultData.review_data.find(
-                (review: any) => review.guest_id === guestId
-              );
-              guest.guestRating = reviewForGuest ? reviewForGuest.rating : 0;
-              return guest;
-            });
-            // 4. Patch room occupancy
-            const totalAdults = this.guestData.reduce((acc, g) => acc + g.Adult_Pax, 0);
-            const totalChildren = this.guestData.reduce((acc, g) => acc + g.Child_Pax, 0);
-            this.roomOccupancy = `${totalAdults} Adults and ${totalChildren} Children`;
-            // Wait for DOM to update before printing/downloading
-            setTimeout(() => {
-              this.downloadPDF();
-              this.printReport();
-            }, 500);
+            }
+            // If no guests at all
+            if (this.guestData.length === 0) {
+              this.finalizeReport(resultData);
+            }
           }
         }
       },
       error: (err) => {
         console.error('Task API Error:', err);
+        this.loading = false;
       }
     });
   }
 
+  // Separate method to finalize report
+  finalizeReport(resultData: any) {
+    // Patch room occupancy
+    let totalAdults = 0, totalChildren = 0;
+    for (let i = 0; i < this.guestData.length; i++) {
+      totalAdults += this.guestData[i].Adult_Pax;
+      totalChildren += this.guestData[i].Child_Pax;
+    }
+    this.roomOccupancy = `${totalAdults} Adults and ${totalChildren} Children`;
+    this.loading = false;
+    setTimeout(() => {
+      // Trigger PDF and Print
+      this.downloadPDF();
+      this.printReport();
+    }, 2000)
+  }
+
+
+  getStarArray(rating: number): ('full' | 'half' | 'empty')[] {
+    const stars: ('full' | 'half' | 'empty')[] = [];
+    for (let i = 1; i <= 5; i++) {
+      if (rating >= i) {
+        stars.push('full'); // full star
+      } else if (rating >= i - 0.5) {
+        stars.push('half'); // half star
+      } else {
+        stars.push('empty'); // empty star
+      }
+    }
+    return stars;
+  }
 
   printReport(): void {
     const printElement = document.getElementById('print');
@@ -276,7 +301,6 @@ export class ReportComponent implements AfterViewInit {
 
   downloadPDF(): void {
     const element = document.getElementById('print') as HTMLElement; // Select the modal content
-
     const options = {
       margin: [10, 10, 10, 10], // Margins for the PDF
       filename: 'Report.pdf', // Name of the PDF file
@@ -293,6 +317,11 @@ export class ReportComponent implements AfterViewInit {
       pagebreak: { mode: ['css', 'legacy'] }, // Avoid splitting content
     };
     html2pdf().set(options).from(element).save();
+  }
+
+  
+  goBack() {
+    this.router.navigate(['/dashboard']);
   }
 
 }

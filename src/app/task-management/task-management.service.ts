@@ -18,6 +18,7 @@ export class TaskManagementService {
         private router: Router,
         private http: HttpClient
     ) { }
+    private apiUrl = 'https://guestezee.com:1249/pms/orderpush';
 
     // addCustomerService(AddCustomerObj: any): Observable<any> {
     //     if (this.authTokenService.isTokenExpired()) {
@@ -90,6 +91,15 @@ export class TaskManagementService {
         }
     }
 
+    pushOrder(payload: any): Observable<any> {
+        const headers = new HttpHeaders({
+            'Content-Type': 'application/json',
+            'x-api-key': '4trkedwin243lide342tst'
+        });
+
+        return this.http.post(this.apiUrl, payload, { headers });
+    }
+
     getAllRatings(requestBody: any): Observable<any> {
         if (this.authTokenService.isTokenExpired()) {
             this.router.navigate(['/login'], { skipLocationChange: false });
@@ -100,6 +110,23 @@ export class TaskManagementService {
                 .set('Content-Type', 'application/json')
                 .set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken())
         });
+    }
+
+    getCheckOut(jsonObj: any): Observable<any> {
+        if (this.authTokenService.isTokenExpired()) {
+            this.router.navigate([`/login`], { skipLocationChange: false });
+            return new Observable();
+        }
+        else {
+            return this.http.post(ENDPOINTS.GET_CHECKOUT_BY_ID, jsonObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
+        }
+    }
+
+    private selectedTabSubject = new BehaviorSubject<string| null>(null);
+    selectedTab$ = this.selectedTabSubject.asObservable();
+
+    setSelectedTab(tab: string) {
+        this.selectedTabSubject.next(tab);
     }
 
 }

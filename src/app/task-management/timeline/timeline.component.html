@@ -22,9 +22,14 @@
             <div class="order-card d-flex flex-column flex-md-row gap-4">
                 <!-- Product Info -->
                 <div class="d-flex align-items-start gap-3 flex-grow-1 dot-divider-right">
-                    <div class="img-container">
-                        <img src="../../../assets/images/guestezee/hotel-logo.png" [alt]="timelineData.productName"
+                    <!-- <div class="img-container">
+                        <img src="../../../assets/images/guestezee/hotel_aadithya_logo.png" [alt]="timelineData.productName"
                             style="object-fit: contain">
+                    </div> -->
+                    <div class="img-container"
+                        style="width: 120px; height: 120px;display: flex; align-items: center; justify-content: center; border-radius: 10px; overflow: hidden;">
+                        <img [src]="hotelLogoUrl || '../../../assets/images/guestezee/default_hotel_logo.jpg'"
+                            alt="Hotel Logo" style="object-fit: contain;">
                     </div>
                     <div>
                         <h5 class="mb-1 fw-bold" style="color: #1A1A1A; font-size: 16px;">{{
@@ -63,7 +68,9 @@
                     </div>
                     <div class="d-flex justify-content-center"
                         *ngFor="let item of timelineData.time_line; let i = index">
-                        <div class="tag tag-blue" *ngIf="item.status === 'Delivered'">Delivered on: {{ item.time }}
+                        <!-- <div class="tag tag-blue" *ngIf="item.status === 'Completed'">Delivered on: {{ timelineData.completed_time | date:'HH:mm:ss' }}
+                        </div> -->
+                        <div class="tag tag-blue" *ngIf="item.status === 'Completed'">Delivered on: {{ item.time  }}
                         </div>
                     </div>
                 </div>
@@ -94,11 +101,22 @@
                                         'Staff' : 'Escalated from' }} : </span> {{ item.status
                                     === 'Assigned' ? item.assigned_staff_name : item.escalated_from_name }}</span>
                                 <br *ngIf="item.status === 'Escalated'">
-                                <span class='mb-0' *ngIf="item.status === 'Assigned' || item.status === 'Escalated'"
-                                    style="font-size: 13px;"><span class="fw-medium">{{ item.status === 'Assigned' ?
+                                <span class='mb-0' *ngIf="item.status === 'ASAP' && timelineData.task_description" style="font-size: 13px;"><span
+                                        class="fw-medium">Notes: </span><span>{{
+                                        timelineData.task_description
+                                        }}</span> </span>
+                                <span class='mb-0'
+                                    *ngIf="timelineData.status === 'Cancelled' && item.status === 'Cancelled'"
+                                    style="font-size: 13px;"><span class="fw-medium">Cancellation reason: </span><span>{{
+                                        timelineData.cancel_remark
+                                        }}</span> </span>
+                                <!-- <span class='mb-0' *ngIf="item.status === 'Assigned' || item.status === 'Escalated'" -->
+                                <span class='mb-0' *ngIf="item.status === 'Escalated'" style="font-size: 13px;"><span
+                                        class="fw-medium">{{ item.status === 'Assigned' ?
                                         'Staff' : 'Escalated to' }} : </span> {{ item.status
                                     === 'Assigned' ? item.assigned_staff_name : item.escalated_to_name }}</span>
-                                <p class="mb-0" style="color: #444; font-size: 13px;">({{item.date}} : {{ item.time}})
+                                <p class="mb-0" style="color: #444; font-size: 13px;">({{item.date}} : {{
+                                    item.time}})
                                 </p>
                             </div>
                         </div>
@@ -124,10 +142,21 @@
                                         'Staff' : 'Escalated from' }} : </span> {{ item.status
                                     === 'Assigned' ? item.assigned_staff_name : item.escalated_from_name }}</span>
                                 <br *ngIf="item.status === 'Escalated'">
-                                <span class='mb-0' *ngIf="item.status === 'Assigned' || item.status === 'Escalated'"
-                                    style="font-size: 13px;"><span class="fw-medium">{{ item.status === 'Assigned' ?
+                                <span class='mb-0' *ngIf="item.status === 'ASAP' && timelineData.task_description" style="font-size: 13px;"><span
+                                        class="fw-medium">Notes: </span><span>{{
+                                        timelineData.task_description
+                                        }}</span> </span>
+                                <span class='mb-0'
+                                    *ngIf="timelineData.status === 'Cancelled' && item.status === 'Cancelled'"
+                                    style="font-size: 13px;"><span class="fw-medium">Cancellation reason:
+                                    </span><span>{{
+                                        timelineData.cancel_remark
+                                        }}</span> </span>
+                                <span class='mb-0' *ngIf="item.status === 'Escalated'" style="font-size: 13px;"><span
+                                        class="fw-medium">{{ item.status === 'Assigned' ?
                                         'Staff' : 'Escalated to' }} : </span> {{ item.status
                                     === 'Assigned' ? item.assigned_staff_name : item.escalated_to_name }}</span>
+
                                 <p class="mb-0" style="color: #444; font-size: 13px;">({{item.date}} : {{ item.time }})
                                 </p>
                             </div>
@@ -136,36 +165,44 @@
                 </div>
             </div>
             <!-- Reviews -->
-            <h5 class="mt-2 mb-3">Review</h5>
-            <div class="border rounded p-3 mb-3">
-                <div class="d-flex justify-content-between align-items-center w-100">
-                    <div class="d-flex align-items-center">
-                        <img src="../../../assets/images/guestezee/profile.png" alt="User"
-                            class="me-2 rounded-circle border"
-                            style="width: 30px; height: 30px; object-fit: contain;" />
-                        <div class="d-flex justify-content-between w-100">
-                            <div class="d-flex align-items-center mt-1">
-                                <h6 class="mb-0 fw-semibold" style="color: #0B0B12DE; font-size: 15px">{{
-                                    timelineData.guest_name }}
-                                </h6>
-                                <span class="ms-2 mt-1 fw-semibold" style="font-size: 11px; color: #909090;">
-                                    {{ timelineData.created_on | date:'HH:mm:ss (dd-MM-yyyy)' }}
-                                </span>
+            <div
+                *ngIf="timelineData.feedback_text !== null && timelineData.feedback_text !== '' && timelineData.feedback_text !== undefined">
+                <h5 class="mt-2 mb-3">Review</h5>
+                <div class="border rounded p-3 mb-3">
+                    <div class="d-flex justify-content-between align-items-center w-100">
+                        <div class="d-flex align-items-center">
+                            <img src="../../../assets/images/guestezee/profile.png" alt="User"
+                                class="me-2 rounded-circle border"
+                                style="width: 30px; height: 30px; object-fit: contain;" />
+                            <div class="d-flex justify-content-between w-100">
+                                <div class="d-flex align-items-center mt-1">
+                                    <h6 class="mb-0 fw-semibold" style="color: #0B0B12DE; font-size: 15px">{{
+                                        timelineData.guest_name }}
+                                    </h6>
+                                    <span class="ms-2 mt-1 fw-semibold" style="font-size: 11px; color: #909090;">
+                                        {{ timelineData.created_on | date:'HH:mm:ss (dd-MM-yyyy)' }}
+                                    </span>
+                                </div>
                             </div>
                         </div>
+                        <div class="d-flex align-items-center mt-2">
+                            <ng-container *ngFor="let filled of getStarArray(timelineData.rating)">
+                                <svg width="16" height="16" viewBox="0 0 24 24"
+                                    [attr.fill]="filled ? '#FFB52D' : 'none'"
+                                    [attr.stroke]="filled ? 'none' : '#D7E7FF'" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <polygon
+                                        points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                                </svg>
+                            </ng-container>
+                        </div>
                     </div>
-                    <div class="d-flex align-items-center mt-2">
-                        <ng-container *ngFor="let filled of getStarArray(timelineData.rating)">
-                            <svg width="16" height="16" viewBox="0 0 24 24" [attr.fill]="filled ? '#FFB52D' : 'none'"
-                                [attr.stroke]="filled ? 'none' : '#D7E7FF'" stroke-width="2" stroke-linecap="round"
-                                stroke-linejoin="round">
-                                <polygon
-                                    points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                            </svg>
-                        </ng-container>
-                    </div>
+                    <span class='mb-0 mt-2 fw-bold' *ngIf="!timely_delivered" style="font-size: 13px;color: red">Not
+                        delivered on time</span>
+                    <span class='mb-0 mt-2 fw-bold' *ngIf="timely_delivered"
+                        style="font-size: 13px;color: rgb(8, 181, 8)">Delivered on time</span>
+                    <p class="mb-0 mt-1" style="color: #0C0E10; font-size: 13px;">{{ timelineData.feedback_text }}</p>
                 </div>
-                <p class="mb-0 mt-2" style="color: #0C0E10; font-size: 13px;">{{ timelineData.feedback_text }}</p>
             </div>
 
         </div>

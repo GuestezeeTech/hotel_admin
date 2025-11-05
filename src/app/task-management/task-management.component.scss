@@ -5,9 +5,9 @@ body {
 .centered-container {
     background-color: white;
     //   min-height: 100vh;
-    width: 96%;
+    width: 98%;
     margin: 0 auto;
-    padding: 20px;
+    padding: 20px 0;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     border-radius: 10px;
     margin-top: 1%;
@@ -26,7 +26,7 @@ body {
     color: #1A1A1A;
     border: none;
     font-weight: 600;
-    font-size: 14px;
+    font-size: 13px;
 }
 
 .tab-btn.active {

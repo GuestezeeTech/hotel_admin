@@ -41,6 +41,7 @@ export class HierarchyDetailsComponent {
   shouldRenderComponent = true;
   // Newly added for payment done
   @Input() paymentDone!: boolean;
+  customerStatus: any;
 
   constructor(
     private localService: LocalStorageService,
@@ -92,7 +93,9 @@ export class HierarchyDetailsComponent {
             }
             ////console.log(this.customerdata, "RESPDATA");
             ////console.log(Array.isArray(this.customerdata));
-            console.log()
+            // Newly added for disabling form on payment done to approving the customer
+            this.customerStatus = this.customerdata.status;
+            console.log('Customer status:', this.customerStatus);
             resolve();
           }
         },

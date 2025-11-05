@@ -44,6 +44,7 @@ export class ServiceDetailsComponent implements OnInit {
   // Newly added for payment done
   @Input() paymentDone!: boolean;
   member_id: any;
+  customerStatus: any;
 
   constructor(
     private authTokenService: AuthTokenService,
@@ -82,7 +83,10 @@ export class ServiceDetailsComponent implements OnInit {
             this.customerdata = resp.result.data[0];
             console.log(this.customerdata.customer_member_id, "Member id");
             this.member_id = this.customerdata.customer_member_id;
-            this.hotelName = this.customerdata.property_details.contact_details.hotel_name;
+            this.hotelName = this.customerdata.property_details?.contact_details?.hotel_name;
+             // Newly added for disabling form on payment done to approving the customer
+            this.customerStatus = this.customerdata.status;
+            console.log('Customer status:', this.customerStatus);
             resolve();  // Resolve promise when data is set
           }
         },

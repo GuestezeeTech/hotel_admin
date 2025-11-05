@@ -7,7 +7,6 @@ import { AuthTokenService } from '../../auth-services/auth-token.service';
 import { AlertsService } from '../../shared/alerts/alerts.service';
 import { ENDPOINTS } from '../../app.config';
 // import { HierarchyService, HierarchyItem } from '../../services/hierarchy.service';
-
 // Newly added
 import { LocalStorageService } from '../../auth-services/local-storage.service';
 import { LoaderService } from './../../shared/loader/loader.service';

@@ -1,46 +1,107 @@
-<div class="position-fixed top-2 end-0 bg-white shadow hide-scrollbar"
+<!-- <div class="position-fixed top-2 end-0 bg-white shadow hide-scrollbar"
     style="width: 27%; height: 87vh; z-index: 1050; transition: transform 0.3s ease-in-out; overflow-y: auto;">
-
-    <!-- Header -->
-    <div class="px-1 d-flex align-items-center">
-        <button class="btn" style="padding-right: 5px !important;" (click)="close.emit()"><i class="fas fa-chevron-left"
-                style="font-size: 12px !important;"></i></button>
-        <h6 class="mb-0 fw-bold">Notification</h6>
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <div class="px-1 d-flex align-items-center">
+            <button class="btn" style="padding-right: 5px !important;" (click)="close.emit()">
+                <i class="fas fa-chevron-left" style="font-size: 12px !important;"></i>
+            </button>
+            <h6 class="mb-0 fw-bold">Notification</h6>
+        </div>
+        <button *ngIf="notifications.length > 0" class="btn btn-sm btn-outline-black fw-semibold pe-3" style='text-decoration: underline;' (click)="clearAll()">Clear All</button>
     </div>
-
     <div class="px-3 pb-2">
-        <div *ngFor="let group of notifications">
-            <p class="fw-medium mb-2 text-end" [ngStyle]="{ 'color': '#606060', 'font-size': '13px', 'margin-top': group.day === 'Today' ? '-8.5%' : '0'}">
-                {{ group.day }}
-            </p>
-
-            <div *ngFor="let notify of group.list; let i = index" class="border rounded mb-2 p-2"
-                [ngStyle]="{ 'background-color': ( group.day == 'Today' && i == 0 )  ? '#FBFFF2' : '#fff' }">
-
-                <div class="d-flex justify-content-between">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div class="d-flex align-items-center">
-                            <div class="rounded-circle fw-semibold text-black d-flex align-items-center justify-content-center me-2"
-                                style="width: 15%; height: 30px; background-color: #64C0F4; font-size: 14px;">
-                                {{ notify.initials }}
-                            </div>
-                            <div>
-                                <div class="fw-semibold" style="color: #000000DE">{{ notify.name }}</div>
-                                <div class="fw-medium" style="font-size: 12px; color: #8C8C8C">
-                                    Requested a Room Cleaning service
-                                </div>
-                            </div>
-                        </div>
+        <div *ngIf="notifications.length === 0" class="text-center text-muted mt-3">
+            No notifications yet
+        </div>
+        <div *ngFor="let notify of notifications; let i = index" class="border rounded mb-2 p-2"
+            [ngStyle]="{ 'background-color': i === 0 ? '#FBFFF2' : '#ffffff', 'cursor': 'pointer' }"
+            (click)="navigateNotification(notify)">
+            <div class="d-flex justify-content-between">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle fw-semibold text-black d-flex align-items-center justify-content-center me-2"
+                        style="width: 27%; height: 30px; background-color: #64C0F4; font-size: 14px;">
+                        {{ notify.title.charAt(0) }}
                     </div>
                     <div>
-                        <span class="fw-semibold" style="font-size: 12px; color: #212121">{{ notify.time }}</span>
+                        <div class="fw-semibold" style="color: #000000DE">{{ notify.title }}</div>
+                        <div class="fw-medium" style="font-size: 12px; color: #8C8C8C">
+                            {{ notify.body }}
+                        </div>
                     </div>
+                </div>
+                <div>
+                    <span class="fw-semibold" style="font-size: 12px; color: #212121">{{ notify.time }}</span>
                 </div>
             </div>
         </div>
     </div>
 </div>
+<div class="position-fixed top-0 start-0 w-100 h-100" style="background-color: rgba(0,0,0,0.5); z-index: 1040;"
+    (click)="close.emit()"></div> -->
+<div
+  class="position-fixed top-2 end-0 bg-white shadow hide-scrollbar"
+  style="width: 27%; height: 87vh; z-index: 1050; transition: transform 0.3s ease-in-out; overflow-y: auto;"
+>
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <div class="px-1 d-flex align-items-center">
+      <button class="btn" style="padding-right: 5px !important;" (click)="close.emit()">
+        <i class="fas fa-chevron-left" style="font-size: 12px !important;"></i>
+      </button>
+      <h6 class="mb-0 fw-bold">Notification</h6>
+    </div>
+    <button
+      *ngIf="notifications.length > 0"
+      class="btn btn-sm btn-outline-black fw-semibold pe-3"
+      style="text-decoration: underline;"
+      (click)="clearAll()"
+    >
+      Clear All
+    </button>
+  </div>
+
+  <!-- Notification List -->
+  <div class="px-3 pb-2">
+    <!-- Empty State -->
+    <div *ngIf="notifications.length === 0" class="text-center text-muted mt-3">
+      No notifications yet
+    </div>
+
+    <!-- Notification Items -->
+    <ng-container *ngFor="let notify of notifications; let i = index">
+      <div
+        class="border rounded mb-2 p-2"
+        [ngStyle]="{
+          'background-color': i === 0 ? '#FBFFF2' : '#ffffff',
+          'cursor': 'pointer'
+        }"
+        (click)="navigateNotification(notify)"
+      >
+        <div class="d-flex justify-content-between">
+          <div class="d-flex align-items-center">
+            <div
+              class="rounded-circle fw-semibold text-black d-flex align-items-center justify-content-center me-2"
+              style="width: 27%; height: 30px; background-color: #64C0F4; font-size: 14px;"
+            >
+              {{ notify.title.charAt(0) }}
+            </div>
+            <div>
+              <div class="fw-semibold" style="color: #000000DE">{{ notify.title }}</div>
+              <div class="fw-medium" style="font-size: 12px; color: #8C8C8C">{{ notify.body }}</div>
+            </div>
+          </div>
+          <div>
+            <span class="fw-semibold" style="font-size: 12px; color: #212121">{{ notify.time }}</span>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+</div>
 
 <!-- Overlay -->
-<div class="position-fixed top-0 start-0 w-100 h-100" style="background-color: rgba(0,0,0,0.5); z-index: 1040;"
-    (click)="close.emit()"></div>
+<div
+  class="position-fixed top-0 start-0 w-100 h-100"
+  style="background-color: rgba(0, 0, 0, 0.5); z-index: 1040;"
+  (click)="close.emit()"
+></div>

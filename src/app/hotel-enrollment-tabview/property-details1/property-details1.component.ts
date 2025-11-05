@@ -13,7 +13,6 @@ import { CustomValidators } from '../validators';
 import { DOMAIN_NAME, ENDPOINTS, USER_ID } from '../../app.config';
 import { CheckoutApiService } from '../checkout.service';
 import { LocalStorageService } from '../../auth-services/local-storage.service';
-
 // Newly added
 import { HttpHeaders } from '@angular/common/http';
 import { ProfileService } from '../../profile/profile.service';
@@ -98,6 +97,37 @@ export class PropertyDetails1Component {
   uploadedDocumentsApi: any = [];
   // Newly added for payment done
   @Input() paymentDone!: boolean;
+  hotelLogo: File | null = null;
+  hotelLogoUrl: string | null = null;
+  logoUploading = false;
+  // Selected property size
+  // selectedPropertySize: string = '01-50 Rooms';
+  // plans: any[] = [];
+  // selectedPropertySize: string = ''; // <-- no hardcoded default
+  // propertyPricingMap: any = {}; // stores mapping of all plan sizes & prices
+  // finalPrice: number = 0;
+  // totalCost: number = 0;
+  selectedPropertySize: string = ''; // don't hardcode default here
+  plans: any[] = [];
+  propertyPricingMap: Record<string, number> = {};
+  singleRoomFinalPrice: number = 0; // from "SingleRoomPricing"
+  finalPrice: number = 0; // current selected per-room final price
+  totalCost: number = 0;
+  // perRoomCost!: number; // default
+  // finalPrice!: number;
+  // totalCost!: number; // default initial total cost
+  // plans: any[] = [];
+  propertySizes: any[] = []; // will be fetched from API
+  // Add a map to define max rooms for each property size
+  propertySizeLimits: { [key: string]: number } = {
+    '01-50 Rooms': 50,
+    '51-100 Rooms': 100,
+    '101-150 Rooms': 150,
+    '150 and above Rooms': Infinity // no upper limit
+  };
+  // dynamicRoomCost: number = 0;
+  status: string = '';
+  customerStatus: string = '';
 
   constructor(
     private authTokenService: AuthTokenService,
@@ -140,7 +170,6 @@ export class PropertyDetails1Component {
       secondary_phone_number: new FormControl('', [Validators.required, Validators.pattern(/^[0-9\s\-+()]+$/)]),
       email: new FormControl('', [Validators.required, Validators.email]),
       brand: new FormControl('', Validators.required),
-
       property_doorno: new FormControl('', Validators.required),
       property_address: new FormControl('', Validators.required),
       property_city: new FormControl('', Validators.required),
@@ -154,15 +183,24 @@ export class PropertyDetails1Component {
       // Newly added
       company_status: new FormControl('', Validators.required),
       // other_brand_name: new FormControl('', Validators.required),
-
       // Newly added for other brand name
-      other_brand_name: new FormControl('')
-
+      other_brand_name: new FormControl(''),
       // uploaded_documents: new FormControl('', Validators.required),
+      // Newly added for room number 
+      number_of_rooms: new FormControl('', [Validators.required]),
     });
 
     if (this.hotelId != 0) {
-      this.getCustomerById();
+      // this.getCustomerById();
+      this.getCustomerById().then(() => {
+        if (!this.selectedPropertySize && Object.keys(this.propertyPricingMap).length > 0) {
+          const defaultSize = Object.keys(this.propertyPricingMap).find(k => k !== 'SingleRoomPricing')
+            || Object.keys(this.propertyPricingMap)[0];
+          this.selectedPropertySize = defaultSize;
+          // Set form control value to trigger validation
+          this.customerProprtyDetailsForm.get('property_size')?.setValue(defaultSize);
+        }
+      });
     }
     // this.getCountries();
     this.getCustomerDataAfterConfirmation();
@@ -170,9 +208,15 @@ export class PropertyDetails1Component {
 
   // Newly added for disabling form on payment done
   ngOnChanges(changes: SimpleChanges): void {
+    // console.log('Changes:', changes['paymentDone']);
     // Check if paymentDone input has changed - changes(contains the previous and current value)
-    if (changes['paymentDone'] && this.paymentDone) {
-      this.customerProprtyDetailsForm.disable();
+    // if (changes['paymentDone'] || this.paymentDone) {
+    //   this.customerProprtyDetailsForm.disable();
+    // }
+    console.log('Payment changes:', changes, 'Payment done:', this.paymentDone);
+    if (changes['paymentDone'] || this.paymentDone) {
+      this.customerProprtyDetailsForm.get('property_size')?.disable();
+      this.customerProprtyDetailsForm.get('number_of_rooms')?.disable();
     }
   }
 
@@ -485,40 +529,43 @@ export class PropertyDetails1Component {
   }
 
   async customerUpdate() {
+    console.log('Clicked')
     delete this.customerdata._id;
     //console.log(this.customerdata._id, this.customerdata, "test check ")
+    const formValues = this.customerProprtyDetailsForm.getRawValue();
     let tempCustomerObject = {
       "contact_details": {
-        hotel_name: this.customerProprtyDetailsForm.value.hotel_name,
-        contact_person: this.customerProprtyDetailsForm.value.contact_person,
-        designation: this.customerProprtyDetailsForm.value.designation,
-        primary_phone_number: this.customerProprtyDetailsForm.value.primary_phone_number,
-        secondary_phone_number: this.customerProprtyDetailsForm.value.secondary_phone_number,
-        email: this.customerProprtyDetailsForm.value.email,
-        brand: this.customerProprtyDetailsForm.value.brand,
-        other_brand_name: this.customerProprtyDetailsForm.value.other_brand_name,
+        hotel_name: formValues.hotel_name,
+        contact_person: formValues.contact_person,
+        designation: formValues.designation,
+        primary_phone_number: formValues.primary_phone_number,
+        secondary_phone_number: formValues.secondary_phone_number,
+        email: formValues.email,
+        brand: formValues.brand,
+        other_brand_name: formValues.other_brand_name,
       },
       "property_address": {
-        property_doorno: this.customerProprtyDetailsForm.value.property_doorno,
-        property_address: this.customerProprtyDetailsForm.value.property_address,
-        property_city: this.customerProprtyDetailsForm.value.property_city,
-        property_state: this.customerProprtyDetailsForm.value.property_state,
-        property_location: this.customerProprtyDetailsForm.value.property_location,
-        property_country: this.customerProprtyDetailsForm.value.property_country,
-        property_pincode: this.customerProprtyDetailsForm.value.property_pincode,
-        property_pan: this.customerProprtyDetailsForm.value.property_pan,
-        property_gst: this.customerProprtyDetailsForm.value.property_gst,
-        property_size: this.customerProprtyDetailsForm.value.property_size,
+        property_doorno: formValues.property_doorno,
+        property_address: formValues.property_address,
+        property_city: formValues.property_city,
+        property_state: formValues.property_state,
+        property_location: formValues.property_location,
+        property_country: formValues.property_country,
+        property_pincode: formValues.property_pincode,
+        property_pan: formValues.property_pan,
+        property_gst: formValues.property_gst,
+        property_size: formValues.property_size,
+        number_of_rooms: formValues.number_of_rooms
       },
       // Newly added
       "kyc_documents": {
-        company_status: this.customerProprtyDetailsForm.value.company_status,
+        company_status: formValues.company_status,
         uploaded_documents: this.uploaded_documents
       },
-
+      "hotel_logo": this.hotelLogoUrl
     }
     this.customerdata["property_details"] = tempCustomerObject;
-    this.customerdata["name"] = this.customerProprtyDetailsForm.value.hotel_name;
+    this.customerdata["name"] = formValues.hotel_name;
     this.customerdata["is_property_details_exists"] = true;
 
     //  Password key reset value
@@ -577,7 +624,6 @@ export class PropertyDetails1Component {
                   }
                 }
               })
-
           }
           else if (resp.success === 0) {
             if (resp.message) {
@@ -608,6 +654,7 @@ export class PropertyDetails1Component {
     )
   }
 
+
   getCustomerById(): Promise<void> {
     return new Promise((resolve, reject) => {
       let requestBody = {
@@ -619,21 +666,50 @@ export class PropertyDetails1Component {
           }
         }
       };
-
       this.hotelenrollmenttabviewService.getLoginCustomerById(requestBody).subscribe(
         resp => {
           this.loaderService.emitComplete();
           if (resp) {
             this.customerdata = resp.result.data[0];
+            console.log('Customer data:', this.customerdata);
             if (resp.result.data[0]) {
               if (resp?.result?.data[0]?.property_details?.kyc_documents?.uploaded_documents) {
                 this.uploadedDocuments = resp?.result?.data[0]?.property_details?.kyc_documents?.uploaded_documents;
                 this.uploaded_documents = resp?.result?.data[0]?.property_details?.kyc_documents?.uploaded_documents;
                 this.uploadedDocumentsApi = resp?.result?.data[0]?.property_details?.kyc_documents?.uploaded_documents;
               }
+              //  Store company logo URL from API
+              if (resp?.result?.data[0]?.property_details?.hotel_logo) {
+                this.hotelLogoUrl = resp?.result?.data[0]?.property_details?.hotel_logo;
+                console.log('Existing company logo:', this.hotelLogoUrl);
+              }
+              this.status = this.customerdata.status;
+              this.customerStatus = this.customerdata.status;
+              console.log('Customer status:', this.status);
+              if (this.paymentDone) {
+                this.customerProprtyDetailsForm.get('property_size')?.disable();
+                this.customerProprtyDetailsForm.get('number_of_rooms')?.disable();
+              }
+              if (this.status === 'approved') {
+                // Disable the form if not approved
+                this.customerProprtyDetailsForm.disable();
+              }
+              // Set perRoomCost from customer subscription if exists
+              // if (this.customerdata?.subscription_detail?.perRoomCost) {
+              //   this.perRoomCost = this.customerdata.subscription_detail.perRoomCost;
+              // }
+              // if (this.customerdata?.subscription_detail?.finalPrice) {
+              //   this.finalPrice = this.customerdata.subscription_detail.finalPrice;
+              // }
+              // else {
+              // fallback to general plan
+              this.getAllSubscriptionsAndSetGeneral();
+              // Only calculate input field cost if rooms already entered
 
+              // }
+              // Set initial total cost based on selected size
+              // this.totalCost = this.getTotalCostForOption(this.selectedPropertySize);
             }
-
             //console.log(this.customerdata, "RESPDATA",this.uploaded_documents);
             //console.log(Array.isArray(this.customerdata));
             resolve();  // Resolve promise when data is set
@@ -655,6 +731,66 @@ export class PropertyDetails1Component {
     });
   }
 
+  // Fetch general subscription if customer has no subscription_detail
+  // getAllSubscriptionsAndSetGeneral() {
+  //   let requestBody = {
+  //     domain_name: DOMAIN_NAME,
+  //     user_id: USER_ID,
+  //     extras: {
+  //       find: { },
+  //       pagination: true,
+  //       paginationDetails: { limit: 0, pageSize: 10 },
+  //       sorting: true,
+  //       sortingDetails: { email: -1 }
+  //     }
+  //   };
+  //   this.hotelenrollmenttabviewService.getAllSubscriptionDetails(requestBody).subscribe(
+  //     resp => {
+  //       if (resp && resp.result?.data?.length) {
+  //         // Take the first plan as general fallback
+  //         this.plans = resp.result.data;
+  //         console.log('Subscription Plans', this.plans);
+  //         // this.perRoomCost = this.plans[0]?.perRoomCost;
+  //         // console.log('Per Room Cost Set To:', this.perRoomCost);
+  //         this.finalPrice = this.plans[0]?.finalPrice;
+  //         console.log('Final Price Cost Set To:', this.finalPrice);
+  //         // Update total cost for current selection
+  //         this.totalCost = this.getTotalCostForOption(this.selectedPropertySize);
+  //         console.log('Total Cost Updated To:', this.totalCost);
+  //       }
+  //     },
+  //     (err: any) => {
+  //       if (err.error.statusCode === 403) {
+  //         this.alertService.error('Session Time Out! Please login Again', this.options);
+  //       } else if (err.error.message) {
+  //         this.alertService.error(err.error.message, this.options);
+  //       } else {
+  //         this.alertService.error('Something bad happened. Please try again!', this.options);
+  //       }
+  //     }
+  //   );
+  // }
+
+  // Calculate total cost for a given property size
+  // getTotalCostForOption(option: string): number {
+  //   let roomCount = 50; // default
+  //   switch (option) {
+  //     case '01-50 Rooms': roomCount = 50; break;
+  //     case '51-100 Rooms': roomCount = 100; break;
+  //     case '101-150 Rooms': roomCount = 150; break;
+  //     case '150 and above Rooms': roomCount = 200; break;
+  //   }
+  //   // return this.perRoomCost * roomCount * 12; // Annual cost
+  //   return this.perRoomCost * roomCount * 12; // Annual cost
+  // }
+
+  // Handle user changing property size
+  // onPropertySizeChange(option: string) {
+  //   this.selectedPropertySize = option;
+  //   this.totalCost = this.getTotalCostForOption(option);
+  // }
+
+
   setFormValues() {
     if (
       this.customerdata?.property_details?.contact_details &&
@@ -672,9 +808,15 @@ export class PropertyDetails1Component {
       // }
       if (this.customerdata.property_details.contact_details?.brand == "Others") {
         this.isOtherBrand = true;
-
       }
-
+      if (
+        this.customerdata?.property_details?.contact_details &&
+        this.customerdata?.property_details?.property_address &&
+        this.customerdata?.property_details?.kyc_documents &&
+        this.customerdata?.property_details?.hotel_logo
+      ) {
+        this.hotelLogoUrl = this.customerdata.property_details?.hotel_logo
+      }
       this.customerProprtyDetailsForm.patchValue({
         hotel_name: this.customerdata?.property_details?.contact_details?.hotel_name,
         contact_person: this.customerdata.property_details?.contact_details?.contact_person,
@@ -699,7 +841,9 @@ export class PropertyDetails1Component {
 
         // Newly added
         company_status: this.customerdata.property_details?.kyc_documents?.company_status,
-        uploaded_documents: this.customerdata.property_details?.kyc_documents?.uploaded_documents
+        uploaded_documents: this.customerdata.property_details?.kyc_documents?.uploaded_documents,
+        // Newly added for room no
+        number_of_rooms: this.customerdata.property_details?.property_address?.number_of_rooms
       });
       this.uploadedDocumentsApi = this.customerdata.property_details?.kyc_documents?.uploaded_documents;
       //console.log('Uploaded Documents', this.uploadedDocumentsApi);
@@ -1287,8 +1431,10 @@ export class PropertyDetails1Component {
   // Newly added for other brand name
   onBrandChange(event: any): void {
     const selectedBrand = event.target.value;
+    console.log('Selected Brand:', selectedBrand);
     this.isOtherBrand = selectedBrand === 'Others';
     const otherBrandControl = this.customerProprtyDetailsForm.controls['other_brand_name'];
+    console.log('Other Brand Name:', otherBrandControl);
     // Always reset value and validation status
     otherBrandControl.setValue('');
     otherBrandControl.markAsPristine();
@@ -1345,6 +1491,389 @@ export class PropertyDetails1Component {
       event.preventDefault(); // Block non-numeric or >6-digit pastes
     }
   }
+
+  // Newly added for company logo upload
+  onLogoChange(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      const file = input.files[0];
+      // Validate type
+      if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
+        this.alertService.error('Only JPG, JPEG, or PNG files are allowed.', this.options);
+        return;
+      }
+      // Validate size
+      if (file.size > 2 * 1024 * 1024) {
+        this.alertService.error('File size must be less than 2MB.', this.options);
+        return;
+      }
+      this.logoUploading = true;
+      this.hotelLogo = file;
+      // Preview locally
+      const reader = new FileReader();
+      reader.onload = (e: any) => {
+        this.hotelLogoUrl = e.target.result;
+      };
+      reader.readAsDataURL(file);
+      // Upload to API
+      const headers = new HttpHeaders().set('source', 'Brand').set('domain_name', DOMAIN_NAME);
+      const formData = new FormData();
+      formData.append('upload', file);
+      this.profileService.sendImage(formData, headers).subscribe({
+        next: (resp: any) => {
+          if (resp && resp.success === 1 && resp.status_code === 200) {
+            const imgVariable = resp.result.data[0];
+            this.hotelLogoUrl = imgVariable.location;
+            this.alertService.success('Logo uploaded successfully.', this.options);
+          } else {
+            this.alertService.error('Failed to upload logo. Please try again.', this.options);
+          }
+          this.logoUploading = false;
+        },
+        error: () => {
+          this.alertService.error('Error uploading logo.', this.options);
+          this.logoUploading = false;
+        },
+      });
+      // Reset file input
+      input.value = '';
+    }
+  }
+
+  previewLogo() {
+    if (this.hotelLogoUrl) {
+      const newTab = window.open('', '_blank');
+      if (newTab) {
+        newTab.document.write(`
+        <html>
+          <head><title>Hotel Logo Preview</title></head>
+          <body style="margin:0;display:flex;justify-content:center;align-items:center;height:100vh;background: black;">
+            <img src="${this.hotelLogoUrl}" alt="Company Logo" style="max-width:100%;max-height:100%;object-fit:contain;">
+          </body>
+        </html>
+      `);
+      }
+    } else {
+      this.alertService.error('Logo not uploaded yet.', this.options);
+    }
+  }
+
+  removeLogo() {
+    if (this.hotelLogoUrl) {
+      this.hotelLogo = null;
+      this.hotelLogoUrl = null;
+      this.alertService.success('Logo removed.', this.options);
+    } else {
+      this.alertService.error('No logo to remove.', this.options);
+    }
+  }
+
+  // Newly added for subscription
+  getAllSubscriptionsAndSetGeneral() {
+    const requestBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: { find: {}, pagination: true, paginationDetails: { limit: 0, pageSize: 10 } }
+    };
+    this.hotelenrollmenttabviewService.getAllSubscriptionDetails(requestBody).subscribe(
+      (resp: any) => {
+        if (resp?.result?.data?.length) {
+          this.plans = resp.result.data;
+          // reset maps
+          this.propertyPricingMap = {};
+          this.singleRoomFinalPrice = this.singleRoomFinalPrice || 0;
+          // Build map and pick out SingleRoomPricing
+          this.plans.forEach((plan: any) => {
+            if (!plan || !plan.name) return;
+            // store plan.finalPrice for its name
+            this.propertyPricingMap[plan.name] = plan.finalPrice ?? 0;
+            // capture SingleRoomPricing as fallback per-room price
+            if (plan.name === 'SingleRoomPricing') {
+              this.singleRoomFinalPrice = plan.finalPrice ?? this.singleRoomFinalPrice;
+            }
+          });
+          console.log('All property sizes final price:', this.propertyPricingMap);
+          console.log('SingleRoomFinalPrice (fallback):', this.singleRoomFinalPrice);
+          // Ensure selectedPropertySize exists (default to first non-SingleRoomPricing plan if empty)
+          // Set default selectedPropertySize if not set, and update form control
+          // if (!this.selectedPropertySize) {
+          //   const keys = Object.keys(this.propertyPricingMap).filter(k => k !== 'SingleRoomPricing');
+          //   this.selectedPropertySize = keys.length ? keys[0] : (Object.keys(this.propertyPricingMap)[0] ?? '');
+          //   this.customerProprtyDetailsForm.get('property_size')?.setValue(this.selectedPropertySize);
+          // }
+          // Set finalPrice and totalCost
+          this.finalPrice = this.propertyPricingMap[this.selectedPropertySize] ?? this.singleRoomFinalPrice ?? 0;
+          this.totalCost = this.getTotalCostForOption(this.selectedPropertySize);
+        }
+      },
+      err => {
+        this.alertService.error('Failed to load plans', this.options);
+      }
+    );
+  }
+
+  // onPropertySizeChange(option: string) {
+  //   this.selectedPropertySize = option;
+  //   // Prefer plan-specific finalPrice, else fallback to SingleRoomPricing
+  //   this.finalPrice = this.propertyPricingMap[option] ?? this.singleRoomFinalPrice ?? 0;
+  //   this.totalCost = this.getTotalCostForOption(option);
+  //   console.log(`Changed to ${option}, finalPrice: ${this.finalPrice}, totalCost: ${this.totalCost}`);
+  //   // Validate number of rooms against new selection
+  //   this.validateNumberOfRooms();
+  // }
+
+  // onPropertySizeChange(option: string) {
+  //   this.selectedPropertySize = option;
+  //   this.customerProprtyDetailsForm.get('property_size')?.setValue(option);
+  //   const numberOfRooms = this.customerProprtyDetailsForm.get('number_of_rooms')?.value || 0;
+  //   this.finalPrice = this.propertyPricingMap[option] ?? this.singleRoomFinalPrice ?? 0;
+  //   this.totalCost = this.finalPrice * numberOfRooms * 12;
+  //   this.validateNumberOfRooms();
+  // }
+
+  // getTotalCostForOption(option: string): number {
+  //   let roomCount = 50;
+  //   switch (option) {
+  //     case '01-50 Rooms': roomCount = 50; break;
+  //     case '51-100 Rooms': roomCount = 100; break;
+  //     case '101-150 Rooms': roomCount = 150; break;
+  //     case '150 and above Rooms': roomCount = 200; break;
+  //   }
+  //   // Use property-specific price if available, otherwise use singleRoomFinalPrice fallback
+  //   const pricePerRoom = this.propertyPricingMap[option] ?? this.singleRoomFinalPrice ?? 0;
+  //   return pricePerRoom * roomCount * 12; // annual
+  // }
+
+  // Newly added for room no
+  // allowOnlyNumbers(event: KeyboardEvent): void {
+  //   const charCode = event.which ? event.which : event.keyCode;
+  //   const input = event.target as HTMLInputElement;
+  //   // Allow only digits 0-9
+  //   if (charCode < 48 || charCode > 57) {
+  //     event.preventDefault();
+  //     return;
+  //   }
+  //   // Prevent 0 as the first character
+  //   if (charCode === 48 && input.value.length === 0) {
+  //     event.preventDefault();
+  //   }
+  // }
+
+
+  // onRoomNumberChange() {
+  //   this.validateNumberOfRooms();
+  //   // Optionally, recalc totalCost based on entered rooms
+  //   const numberOfRooms = this.customerProprtyDetailsForm.get('number_of_rooms')?.value;
+  //   if (numberOfRooms > 0) {
+  //     this.totalCost = (this.finalPrice ?? 0) * numberOfRooms * 12;
+  //   }
+  // }
+
+  // onRoomNumberChange() {
+  //   const numberOfRooms = this.customerProprtyDetailsForm.get('number_of_rooms')?.value;
+  //   if (!numberOfRooms || numberOfRooms < 1) return;
+  //   // Determine property size based on number of rooms
+  //   if (numberOfRooms <= 50) {
+  //     this.selectedPropertySize = '01-50 Rooms';
+  //   } else if (numberOfRooms <= 100) {
+  //     this.selectedPropertySize = '51-100 Rooms';
+  //   } else if (numberOfRooms <= 150) {
+  //     this.selectedPropertySize = '101-150 Rooms';
+  //   } else {
+  //     this.selectedPropertySize = '150 and above Rooms';
+  //   }
+  //   // Update form control to match selection
+  //   this.customerProprtyDetailsForm.get('property_size')?.setValue(this.selectedPropertySize);
+  //   // Set finalPrice and totalCost
+  //   this.finalPrice = this.propertyPricingMap[this.selectedPropertySize] ?? this.singleRoomFinalPrice ?? 0;
+  //   this.totalCost = this.finalPrice * numberOfRooms * 12; // annual
+  //   // Validate against property size limit
+  //   this.validateNumberOfRooms();
+  // }
+
+
+  // Function to validate number of rooms
+  // validateNumberOfRooms() {
+  //   const control = this.customerProprtyDetailsForm.get('number_of_rooms');
+  //   const numberOfRooms = control?.value;
+  //   const maxRooms = this.propertySizeLimits[this.selectedPropertySize] || Infinity;
+  //   if (numberOfRooms > maxRooms) {
+  //     control?.setErrors({ maxExceeded: true });
+  //   } else {
+  //     // remove maxExceeded error if it exists
+  //     if (control?.errors) {
+  //       delete control.errors['maxExceeded'];
+  //       if (Object.keys(control.errors).length === 0) {
+  //         control.setErrors(null);
+  //       }
+  //     }
+  //   }
+  // }
+
+  // --- Update total cost and validate dynamically
+  // updatePricingAndValidation(numberOfRooms?: number, selectedSize?: string) {
+  //   const control = this.customerProprtyDetailsForm.get('number_of_rooms');
+  //   const rooms = numberOfRooms ?? control?.value ?? 0;
+  //   let propertySize = selectedSize ?? this.selectedPropertySize;
+  //   console.log('propertySize', propertySize);
+  //   // --- Auto-set property size if not selected and input exists
+  //   if (!selectedSize && rooms > 0) {
+  //     if (rooms <= 50) propertySize = '01-50 Rooms';
+  //     else if (rooms <= 100) propertySize = '51-100 Rooms';
+  //     else if (rooms <= 150) propertySize = '101-150 Rooms';
+  //     else propertySize = '150 and above Rooms';
+  //     // Update form control for property size when auto-set
+  //     this.selectedPropertySize = propertySize;
+  //     this.customerProprtyDetailsForm.get('property_size')?.setValue(propertySize, { emitEvent: false });
+  //   }
+  //   // --- Determine price per room (always from general plan)
+  //   let pricePerRoom = this.propertyPricingMap[propertySize] ?? this.singleRoomFinalPrice;
+  //   // Use subscription if exists AND matches selected property size
+  //   if (
+  //     this.customerdata?.subscription_detail &&
+  //     this.customerdata.subscription_detail.name === propertySize &&
+  //     this.customerdata.subscription_detail.finalPrice != null
+  //   ) {
+  //     pricePerRoom = this.customerdata.subscription_detail.finalPrice;
+  //   }
+  //   this.finalPrice = pricePerRoom;
+  //   this.totalCost = rooms > 0 ? pricePerRoom * rooms * 12 : 0;
+  //   // --- Validate number of rooms against selected property size limits
+  //   const maxRooms = this.propertySizeLimits[propertySize] ?? Infinity;
+  //   const errors: any = {};
+  //   if (!rooms) errors.required = true;
+  //   if (rooms < 1) errors.min = true;
+  //   if (rooms > maxRooms) errors.maxExceeded = true;
+  //   // Additional check: if user manually selected a property size that doesn't match room count
+  //   if (selectedSize && rooms > 0) {
+  //     let sizeMismatch = false;
+  //     if (rooms <= 50 && selectedSize !== '01-50 Rooms') sizeMismatch = true;
+  //     else if (rooms <= 100 && selectedSize !== '51-100 Rooms') sizeMismatch = true;
+  //     else if (rooms <= 150 && selectedSize !== '101-150 Rooms') sizeMismatch = true;
+  //     else if (rooms > 150 && selectedSize !== '150 and above Rooms') sizeMismatch = true;
+  //     if (sizeMismatch) errors.sizeMismatch = true;
+  //   }
+  //   control?.setErrors(Object.keys(errors).length > 0 ? errors : null);
+  // }
+
+  // // Input events
+  // onRoomNumberChange() {
+  //   const rooms = this.customerProprtyDetailsForm.get('number_of_rooms')?.value;
+  //   this.updatePricingAndValidation(rooms, undefined);
+  //   // const rooms = this.customerProprtyDetailsForm.get('number_of_rooms')?.value ?? 0;
+  //   // const selectedSize = this.customerProprtyDetailsForm.get('property_size')?.value;
+  //   // this.updatePricingAndValidation(rooms, selectedSize)
+  // }
+
+  // onPropertySizeChange(option: string) {
+  //   // this.updatePricingAndValidation(undefined, option);
+  //   const rooms = this.customerProprtyDetailsForm.get('number_of_rooms')?.value ?? 0;
+  //   this.updatePricingAndValidation(rooms, option)
+  // }
+
+  updatePricingAndValidation(numberOfRooms?: number, selectedSize?: string) {
+    const control = this.customerProprtyDetailsForm.get('number_of_rooms');
+    const rooms = numberOfRooms ?? control?.value ?? 0;
+    // const rooms = this.customerProprtyDetailsForm.get('number_of_rooms')?.value ?? 0;
+    let propertySize = selectedSize ?? this.selectedPropertySize;
+    // --- Auto-set property size only if user hasn't manually selected one
+    if (!selectedSize && rooms > 0) {
+      if (rooms <= 50) propertySize = '01-50 Rooms';
+      else if (rooms <= 100) propertySize = '51-100 Rooms';
+      else if (rooms <= 150) propertySize = '101-150 Rooms';
+      else propertySize = '150 and above Rooms';
+      this.selectedPropertySize = propertySize;
+      this.customerProprtyDetailsForm.get('property_size')?.setValue(propertySize, { emitEvent: false });
+    }
+
+    // --- Determine price per room (from general pricing map)
+    let pricePerRoom = this.propertyPricingMap[propertySize] ?? this.singleRoomFinalPrice;
+
+    // If subscription exists AND matches property size
+    // if (
+    //   this.customerdata?.subscription_detail &&
+    //   this.customerdata.subscription_detail.name === propertySize &&
+    //   this.customerdata.subscription_detail.finalPrice != null
+    // ) {
+    //   pricePerRoom = this.customerdata.subscription_detail.finalPrice;
+    // }
+
+    this.finalPrice = pricePerRoom;
+    this.totalCost = rooms > 0 ? pricePerRoom * rooms * 12 : 0;
+
+    // --- Validate number of rooms against selected property size limits
+    const maxRooms = this.propertySizeLimits[propertySize] ?? Infinity;
+    const errors: any = {};
+    if (!rooms) errors.required = true;
+    if (rooms < 1) errors.min = true;
+    if (rooms > maxRooms) errors.maxExceeded = true;
+
+    // --- Additional check: manual size selection mismatch
+    if (selectedSize && rooms > 0) {
+      let sizeMismatch = false;
+      if (rooms <= 50 && selectedSize !== '01-50 Rooms') sizeMismatch = true;
+      else if (rooms <= 100 && selectedSize !== '51-100 Rooms') sizeMismatch = true;
+      else if (rooms <= 150 && selectedSize !== '101-150 Rooms') sizeMismatch = true;
+      else if (rooms > 150 && selectedSize !== '150 and above Rooms') sizeMismatch = true;
+
+      if (sizeMismatch) errors.sizeMismatch = true;
+    }
+
+    control?.setErrors(Object.keys(errors).length > 0 ? errors : null);
+  }
+
+  // Triggered when number input changes
+  onRoomNumberChange() {
+    const rooms = this.customerProprtyDetailsForm.get('number_of_rooms')?.value;
+    this.updatePricingAndValidation(rooms, undefined);
+  }
+
+  // Triggered when property size radio is changed
+  onPropertySizeChange(option: string) {
+    this.selectedPropertySize = option;
+    // const rooms = this.customerProprtyDetailsForm.get('number_of_rooms')?.value ?? 0;
+    const control = this.customerProprtyDetailsForm.get('number_of_rooms');
+    let rooms = control?.value ?? 0;
+    // Mark control as touched so errors appear immediately
+    control?.markAsTouched();
+    this.updatePricingAndValidation(rooms, option);
+  }
+
+  // Numeric only input
+  allowOnlyNumbers(event: KeyboardEvent) {
+    const charCode = event.which ? event.which : event.keyCode;
+    const input = event.target as HTMLInputElement;
+
+    if (charCode < 48 || charCode > 57) event.preventDefault();
+    if (charCode === 48 && input.value.length === 0) event.preventDefault();
+  }
+
+  // Get total cost for radio labels
+  getTotalCostForOption(option: string, rooms?: number): number {
+    const roomCount = rooms ?? (() => {
+      switch (option) {
+        case '01-50 Rooms': return 50;
+        case '51-100 Rooms': return 100;
+        case '101-150 Rooms': return 150;
+        case '150 and above Rooms': return 200;
+        default: return 50;
+      }
+    })();
+    console.log('Customer data for subscription: ', this.customerdata);
+    let pricePerRoom = this.singleRoomFinalPrice;
+    // if (this.customerdata?.subscription_detail?.name === option &&
+    //   this.customerdata.subscription_detail.finalPrice != null) {
+    //   console.log('Customer data for subscription(Price per room): ', this.customerdata.subscription_detail.finalPrice);
+    //   pricePerRoom = this.customerdata.subscription_detail.finalPrice;
+    //   console.log('Price per room based on subscription: ', pricePerRoom);
+    // } else if 
+    // (this.propertyPricingMap[option] != null) {
+    pricePerRoom = this.propertyPricingMap[option];
+    // }
+    console.log('Total amount: ', pricePerRoom * roomCount * 12);
+    return pricePerRoom * roomCount * 12;
+  }
+
 }
 
 

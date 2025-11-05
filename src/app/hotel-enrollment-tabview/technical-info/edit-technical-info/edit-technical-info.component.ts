@@ -145,7 +145,7 @@ export class EditTechnicalInfoComponent implements OnInit {
         ////console.log("test", "123")
         if (resp) {
           this.techInfoData = resp.result.data[0];
-          this.tech_info_id = resp.result.data[0].id;
+          this.tech_info_id = resp.result.data[0]?.id;
           this.router.navigate(['/tech-info-list'])
 
 
@@ -376,8 +376,8 @@ export class EditTechnicalInfoComponent implements OnInit {
 
           if (resp) {
 
-            const customerInfo = resp.result.data[0].customer_technical_info;
-            if (resp.result.data[0].customer_technical_info == undefined) {
+            const customerInfo = resp.result.data[0]?.customer_technical_info;
+            if (resp.result.data[0]?.customer_technical_info == undefined) {
               this.showEdit = false;
 
             }
@@ -389,7 +389,7 @@ export class EditTechnicalInfoComponent implements OnInit {
 
             }
 
-            const lockIndex = customerInfo.findIndex((item: any) => item.type === this.filterInfo);
+            const lockIndex = customerInfo?.findIndex((item: any) => item.type === this.filterInfo);
             // this.ecomData = resp.result.data[0].customer_technical_info[1];
             if (lockIndex !== -1) {
               ////console.log('Lock found at index:', lockIndex);

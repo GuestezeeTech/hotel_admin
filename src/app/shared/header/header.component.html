@@ -6,12 +6,11 @@
   </div>
   <!-- User Info Section -->
   <div class="user-info d-flex align-items-center">
-    
-    <!-- Newly added for Payment -->
-    <button class="pay-button"  *ngIf="payNowButtonState.show" [ngClass]="{'disabled-btn': !payNowButtonState.enabled}" [disabled]="!payNowButtonState.enabled" (click)="onPayNowClick()">{{ payNowButtonState.installmentText || 'Pay Now' }}</button>
+    <button class="pay-button" *ngIf="payNowButtonState.show" [ngClass]="{'disabled-btn': !payNowButtonState.enabled}"
+      [disabled]="!payNowButtonState.enabled" (click)="onPayNowClick()">{{ payNowButtonState.installmentText ?
+      (payNowButtonState.installmentText + ' - Pay') : 'Pay Now' }}</button>
     <img class="notification-icon" src="../../../assets/images/guestezee/notify.png" alt="Notification"
-      (click)="toggleNotification()" *ngIf="((this.customerdata?.status=='approved') || this.customerType=='Staff')">
-
+      (click)="toggleNotification()" *ngIf="(this.customerType=='Staff')">
     <div (click)="toggleLogout()" style="cursor: pointer;">
       <img class="profile-icon" [src]="profile_image" alt="Profile" class="rounded-circle border mr-2"
         style="width: 35px; height: 35px; object-fit: cover;">
@@ -31,7 +30,53 @@
     </button>
   </div>
 </header>
-<app-notification *ngIf="showNotification" (close)="toggleNotification()"></app-notification>
+<!-- <app-notification *ngIf="showNotification" (close)="toggleNotification()"></app-notification> -->
 <!-- <app-notification *ngIf="showNotification" [notifications]="notifications"
   (close)="toggleNotification()"></app-notification> -->
-
+<app-notification *ngIf="showNotification  && customerType === 'Staff'"
+  (close)="toggleNotification()"></app-notification>
+<!-- <app-notification *ngIf="showNotification" [notifications]="notifications"
+  (close)="toggleNotification()"></app-notification> -->
+<!-- Newly commented for Payment modal -->
+<div class="modal fade" #paymentModal tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content" style="background-color:white;">
+      <div class="modal-header">
+        <h4 class="modal-title" style="color:#800020;">Payment Type</h4>
+        <button type="button" class="btn-close" (click)="closeModal()"></button>
+      </div>
+      <div class="modal-body">
+        <div *ngFor="let item of paymentoptions; let i = index" style="padding:2px;">
+          <input type="radio" [checked]="selectedIndex===i" (change)="selectOnlyOne(i)"> {{item}}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-danger" style="color:#800020;background:white;border:2px solid #8b1633;"
+          (click)="closeModal()">Close</button>
+        <button type="button" class="btn btn-danger" style="color:white;background:#800020;"
+          (click)="executePayment()">Pay</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- <div class="modal" id="paymentType">
+  <div class="modal-dialog">
+    <div class="modal-content" style="background-color: white; z-index: 1050;">
+      <div class="modal-header">
+        <h4 class="modal-title" style="color: #800020;">Payment Type</h4>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div *ngFor="let item of paymentoptions; let i = index" style="padding: 2px;">
+          <input type="radio" [checked]="selectedIndex === i" (change)="selectOnlyOne(i)" style="color: black;"> {{
+          item }}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-danger" data-bs-dismiss="modal"
+          style="color: #800020;background: white; border-radius: none;    border: 2px solid #8b1633;">Close</button>
+        <button type="button" class="btn btn-danger" style="color: white;background: #800020; border-radius: none;"
+          (click)="executePayment()">Pay</button>
+      </div>
+    </div>
+  </div></div> -->

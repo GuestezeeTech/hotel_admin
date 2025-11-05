@@ -1,7 +1,8 @@
+import { NotificationService } from './../notification/notification.service';
 import { TaskManagementService } from './../task-management/task-management.service';
 import { TaskManagementComponent } from './../task-management/task-management.component';
 import { USER_ID, DOMAIN_NAME } from './../app.config';
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, UntypedFormGroup } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
@@ -24,6 +25,8 @@ import { ServiceDetailService } from '../hotel-enrollment-tabview/service-detail
 import { HierarchyDetailService } from '../hotel-enrollment-tabview/hierarchy-details/hierarchy-details.service';
 import { TechnicalInfoService } from '../hotel-enrollment-tabview/technical-info/technical-info.service';
 import { PushService } from '../services/push.service';
+import { StaffService } from '../user-access/staff/staff.service';
+import { Observable } from 'rxjs';
 
 @Component({
   selector: 'app-login',
@@ -75,6 +78,8 @@ export class LoginComponent implements OnInit {
   technicalInfodatalength: any;
   checkExistingTechnicalInfoChoosen!: Number;
   token !: any;
+  // isStaffLogin: Boolean = false;
+  navigatingValue: any = '';
 
   constructor(private fb: FormBuilder, private alertService: AlertsService,
     private appService: LoginService,
@@ -94,7 +99,10 @@ export class LoginComponent implements OnInit {
     private hierarchyService: HierarchyDetailService,
     private technicalInfoService: TechnicalInfoService,
     private pushService: PushService,
-    private taskManagementService: TaskManagementService
+    private taskManagementService: TaskManagementService,
+    private staffService: StaffService,
+    private notificationService: NotificationService,
+    private cdr: ChangeDetectorRef
   ) { }
 
   ngOnInit(): void {
@@ -130,6 +138,17 @@ export class LoginComponent implements OnInit {
       confirm_password: ['', [Validators.required, Validators.minLength(6), Validators.maxLength(20)]]
     });
     this.checkIfHierarchyExists();
+    // Newly added for email/employee id
+    this.loginForm.get('email')?.valueChanges.subscribe(() => {
+      const emailControl = this.loginForm.get('email');
+      // if (emailControl?.errors) {
+      //   emailControl.setErrors(null); // Clear errors while typing
+      // }
+      if (emailControl?.hasError('email') && emailControl.value) {
+        // Clear only the 'email' format error while typing
+        emailControl.setErrors(null);
+      }
+    });
   }
 
   get f() { return this.loginForm.controls; }
@@ -140,14 +159,19 @@ export class LoginComponent implements OnInit {
   get p() { return this.passwordForm.controls; }
 
   onSubmit(): void {
-    if (this.loginForm.valid) {
-      const formData = this.loginForm.value;
-      console.log('Form Data:', formData);
-      this.signIn();
-    } else {
-      console.log('Form is invalid');
-      this.loginForm.markAllAsTouched();  // Mark all controls as touched to trigger validation
-    }
+    // if (this.loginForm.valid) {
+    //  const formData = this.loginForm.value;
+    // console.log('Form Data:', formData);
+    // this.loginForm.markAllAsTouched();
+    //  this.signIn();
+    // } else {
+    //   console.log('Form is invalid');
+    //   this.loginForm.markAllAsTouched();  // Mark all controls as touched to trigger validation
+    // }
+    // Newly added for email/employee id
+    const formData = this.loginForm.value;
+    console.log('Form Data:', formData);
+    this.signIn();
   }
 
 
@@ -387,43 +411,111 @@ export class LoginComponent implements OnInit {
   //   ); 
   // }
 
+
   signIn() {
-    //console.log('signIn');
+    // Newly added for email/staff employee number
+    // 1.Checking whether user is customer or staff
+    // this.loginData = {
+    //   domain_name: DOMAIN_NAME,
+    //   username: this.loginForm.value.email + '-' + DOMAIN_NAME,
+    //   password: this.loginForm.value.password
+    // };
+    this.loginForm.markAllAsTouched();
+    this.validateForm = true;
+    const enteredValue = this.loginForm.value.email?.trim();
+    const password = this.loginForm.value.password?.trim();
+    const emailControl = this.loginForm.controls['email'];
+    console.log('Entered Value:', enteredValue);
+    console.log('Password:', password);
+    console.log('Email / Employee ID Control:', emailControl);
+    // Clear any old errors before new validation
+    emailControl.setErrors(null);
+    // 2.Required check
+    if (!enteredValue) {
+      console.log('Email / Employee ID is required');
+      emailControl.setErrors({ required: true });
+      this.cdr.detectChanges();
+      return;
+    }
+    // 3.Email or Employee ID validation
+    const isEmailLogin = enteredValue.includes('@');
+    if (isEmailLogin) {
+      const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      if (!emailPattern.test(enteredValue)) {
+        console.log('Invalid email format');
+        emailControl.setErrors({ invalid: true });
+        this.cdr.detectChanges();
+        return;
+      }
+    } else {
+      const empPattern = /^[A-Z]{4}\d{8}$/;
+      if (!empPattern.test(enteredValue)) {
+        console.log('Invalid Employee ID format');
+        emailControl.setErrors({ invalid: true });
+        this.cdr.detectChanges();
+        return;
+      }
+    }
+    // 4.If the form is invalid, stop here
+    if (this.loginForm.invalid) return;
+    // 5. All validations passed
+    emailControl.setErrors(null);
+    this.validateForm = false;
     this.alertService.clear();
     this.showalertmsg = true;
     if (this.loginForm.valid) {
       //console.log('signIn');
       this.loaderService.emitLoading();
       this.validateForm = false;
-      this.loginData = {
-        domain_name: DOMAIN_NAME,
-        username: this.loginForm.value.email + '-' + DOMAIN_NAME,
-        password: this.loginForm.value.password
-      };
+      // 5.Sending key based on user type(customer/staff) to get customer/staff data's
       let requestBody = {
         domain_name: DOMAIN_NAME,
         user_id: USER_ID,
         extras: {
-          find: {
-            email: this.loginForm.value.email
-          }
+          // find: {
+          //   email: this.loginForm.value.email
+          // }
+          find: isEmailLogin ? { email: enteredValue } : { staff_employee_number: enteredValue }
         }
       }
-      //console.log('signIn',requestBody);
+      console.log('signIn', requestBody);
       this.hotellistService.getSignupAllCustomers(requestBody).subscribe(
         (resp: any) => {
           if (resp.success === 1 && resp.status_code === 200 && resp.result.data.length > 0) {
             const userData = resp.result.data[0];
-            //console.log('User Data:',userData);
-            this.appService.login(this.loginData).subscribe(
+            console.log('User Data:', userData);
+            // 5. Based on user type(customer/staff) login(2 different login)
+            let loginPayload: any;
+            let loginObservable: Observable<any>;
+            if (isEmailLogin) {
+              // Customer Login
+              loginPayload = {
+                domain_name: DOMAIN_NAME,
+                username: `${enteredValue}-${DOMAIN_NAME}`,
+                password: password
+              };
+              loginObservable = this.appService.login(loginPayload);
+            } else {
+              // Staff Login
+              loginPayload = {
+                domain_name: DOMAIN_NAME,
+                username: `${enteredValue}-${DOMAIN_NAME}`,
+                password: password
+              };
+              loginObservable = this.appService.staffLogin(loginPayload);
+            }
+            // this.appService.login(this.loginData).subscribe(
+            loginObservable.subscribe(
               async (resp: any) => {
                 if (resp && resp.success === 1 && resp.status_code === 200) {
                   // Staff type
                   if (userData.staff_employee_number != undefined) {
+                    this.notificationService.clearAll();
                     this.localService.set('CustomerType', 'Staff');
                     this.localService.set('StaffData', JSON.stringify(userData));
                     this.localService.set('hierarchy', JSON.stringify(userData.hierarchy));
                     this.localService.set('UserId', Number(userData.staff_id));
+                    this.localService.set('CustomerId', Number(userData.id));
                     console.log('Staff ID:', this.localService.get('UserId'));
                     this.localService.set('MemberId', userData.member_id);
                     // Newly added for processing / delivered
@@ -431,6 +523,68 @@ export class LoginComponent implements OnInit {
                     const department = userData.hierarchy.department;
                     this.getAllStaffIds(userData.staff_id, department, member)
                     this.router.navigate(['/task-management']);
+                    // handles FCM token for Staff
+                    try {
+                      const userId: any = this.localService.get('UserId');
+                      const token = await this.pushService.requestPermissionAndGetToken(userId);
+                      console.log('Staff FCM Token:', token);
+                      // Step 1: Fetch staff by staff_id
+                      const fetchBody = {
+                        domain_name: DOMAIN_NAME,
+                        user_id: USER_ID,
+                        extras: {
+                          find: {
+                            id: userData.staff_id
+                          }
+                        }
+                      };
+                      this.taskManagementService.getAllStaves(fetchBody).subscribe(
+                        (resp: any) => {
+                          if (resp.success === 1 && resp.status_code === 200 && resp.result.data.length > 0) {
+                            const staff = resp.result.data[0];
+                            // Step 2: Ensure fcm_token array exists
+                            if (!Array.isArray(staff.fcm_token)) {
+                              staff.fcm_token = [];
+                            }
+                            staff.fcm_token.push(token);
+                            // Step 3: Update staff FCM token
+                            const updateBody = {
+                              domain_name: DOMAIN_NAME,
+                              user_id: USER_ID,
+                              payload: {
+                                staff_updation: {
+                                  fcm_token: staff.fcm_token
+                                }
+                              },
+                              extras: {
+                                find: {
+                                  id: userData.staff_id
+                                }
+                              }
+                            };
+                            this.staffService.updateStaff(updateBody).subscribe(
+                              (updateResp: any) => {
+                                if (updateResp.success === 1 && updateResp.status_code === 200) {
+                                  console.log('Staff FCM token updated successfully:', token);
+                                } else {
+                                  console.error('Failed to update staff FCM token:', updateResp?.message);
+                                }
+                              },
+                              (err: any) => {
+                                console.error('Error updating staff FCM token:', err);
+                              }
+                            );
+                          } else {
+                            console.error('Staff not found for ID:', userData.staff_id);
+                          }
+                        },
+                        (err: any) => {
+                          console.error('Error fetching staff:', err);
+                        }
+                      );
+                    } catch (err) {
+                      console.error('Failed to get FCM token for staff:', err);
+                    }
                     // this.localService.set('higher_level_hierarchy', {
                     //   "id": Number(4),
                     //   "designation": "FOM",
@@ -490,16 +644,18 @@ export class LoginComponent implements OnInit {
                   // Requesting FCM token right after login
                   try {
                     const userId: any = this.localService.get('UserId');
-                    this.token = await this.pushService.requestPermissionAndGetToken(userId);
-                    console.log('User FCM Token:', this.token);
+                    const token = await this.pushService.requestPermissionAndGetToken(userId);
+                    // this.token = await this.pushService.requestPermission();
+                    console.log('User FCM Token:', token);
                     // Step 1: Fetch customer by email
                     const fetchBody = {
                       domain_name: DOMAIN_NAME,
                       user_id: USER_ID,
                       extras: {
-                        find: {
-                          email: this.loginForm.value.email
-                        }
+                        // find: {
+                        // email: this.loginForm.value.email
+                        find: isEmailLogin ? { email: enteredValue } : { staff_employee_number: enteredValue }
+                        // }
                       }
                     };
                     this.hotellistService.getSignupAllCustomers(fetchBody).subscribe(
@@ -510,7 +666,7 @@ export class LoginComponent implements OnInit {
                           if (!Array.isArray(customer.fcm_token)) {
                             customer.fcm_token = [];
                           }
-                          customer.fcm_token.push(this.token);
+                          customer.fcm_token.push(token);
                           // Step 4: Update customer with the new array
                           const updateBody = {
                             domain_name: DOMAIN_NAME,
@@ -521,15 +677,16 @@ export class LoginComponent implements OnInit {
                               }
                             },
                             extras: {
-                              find: {
-                                email: this.loginForm.value.email
-                              }
+                              // find: {
+                              //   email: this.loginForm.value.email
+                              // }
+                              find: isEmailLogin ? { email: enteredValue } : { staff_employee_number: enteredValue }
                             }
                           };
                           this.hotelenrollmenttabviewService.updateCustomerFcm(updateBody).subscribe(
                             (updateResp: any) => {
                               if (updateResp.success === 1 && updateResp.status_code === 200) {
-                                console.log('FCM token updated successfully:', this.token);
+                                console.log('FCM token updated successfully:', token);
                               } else {
                                 console.error('Failed to update FCM token:', updateResp?.message);
                               }
@@ -954,63 +1111,144 @@ export class LoginComponent implements OnInit {
   }
 
   forgetPassword() {
-    if (this.loginForm.value.email == '') {
-      this.alertService.error("Please enter email", this.options);
+    // if (this.loginForm.value.email == '') {
+    //   this.alertService.error("Please enter email", this.options);
+    // }
+    // else {
+    //   let requestBody = {
+    //     domain_name: DOMAIN_NAME,
+    //     user_id: USER_ID, //Default user id
+    //     "extras": {
+    //       "find": {
+    //         email: this.loginForm.value.email
+    //         // phone_number: phoneNumber
+    //       }
+    //     }
+    //   }
+    //   this.hotellistService.getSignupAllCustomers(requestBody).subscribe(
+    //     (resp: any) => {
+    //       this.loaderService.emitComplete();
+    //       if (resp.success === 1 && resp.status_code === 200) {
+    //         if (resp.result.data.length > 0) {
+    //           this.customerList = resp.result.data[0];
+    //           //console.log(this.customerList);
+    //           this.forgot_phone_number = resp.result.data[0].phone_number;
+    //           this.mail = resp.result.data[0].email;
+    //           if (this.localService.get('CusromerType') === 'Staff') {
+    //             this.hotelId = resp.result.data[0].staff_id;
+    //           }
+    //           else {
+    //             this.hotelId = resp.result.data[0].id;
+    //           }
+    //           //console.log(this.hotelId);
+    //           this.sendOTP(Number(this.forgot_phone_number));
+    //           this.alertService.success("OTP has been sent to your mobile number.", this.options);
+    //           this.forgotPassword = true
+    //           this.login = false;
+    //           this.otp = true;
+    //         }
+    //         else {
+    //           this.alertService.error("Email not found. Please signup first!", this.options);
+    //           this.otp = true;
+    //           // this.router.navigate([`/login`], { skipLocationChange: false });
+    //         }
+    //       }
+    //     },
+    //     (err: any) => {
+    //       if (err.error.statusCode === 403) {
+    //         this.alertService.error('Session Time Out! Please login Again', this.options)
+    //         this.router.navigate([`/login`], { skipLocationChange: false });
+    //       }
+    //       else if (err.error.message) {
+    //         this.alertService.error(err.error.message, this.options)
+    //       }
+    //       else {
+    //         this.alertService.error('Something bad happened. Please try again!', this.options);
+    //       }
+    //     }
+    //   )
+    // }
+    // Newly added for email/staff employee number
+    const enteredValue = this.loginForm.value.email?.trim();
+    this.navigatingValue = enteredValue;
+    if (!enteredValue) {
+      this.alertService.error("Please enter Email / Employee ID", this.options);
+      return;
     }
-    else {
-      let requestBody = {
-        domain_name: DOMAIN_NAME,
-        user_id: USER_ID, //Default user id
-        "extras": {
-          "find": {
-            email: this.loginForm.value.email
-            // phone_number: phoneNumber
-          }
-        }
+    let requestBody: any;
+    // Patterns
+    const empIdPattern = /^[A-Z]{4}\d{8}$/; // e.g. INTN00235123
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    // Detect type
+    if (enteredValue.includes('@')) {
+      // Treat as email (Customer)
+      if (!emailPattern.test(enteredValue)) {
+        this.alertService.error("Invalid Email format", this.options);
+        return;
       }
-      this.hotellistService.getSignupAllCustomers(requestBody).subscribe(
-        (resp: any) => {
-          this.loaderService.emitComplete();
-          if (resp.success === 1 && resp.status_code === 200) {
-            if (resp.result.data.length > 0) {
-              this.customerList = resp.result.data[0];
-              //console.log(this.customerList);
-              this.forgot_phone_number = resp.result.data[0].phone_number;
-              this.mail = resp.result.data[0].email;
-              if (this.localService.get('CusromerType') === 'Staff') {
-                this.hotelId = resp.result.data[0].staff_id;
-              }
-              else {
-                this.hotelId = resp.result.data[0].id;
-              }
-              //console.log(this.hotelId);
-              this.sendOTP(Number(this.forgot_phone_number));
-              this.alertService.success("OTP has been sent to your mobile number.", this.options);
-              this.forgotPassword = true
-              this.login = false;
-              this.otp = true;
+      requestBody = {
+        domain_name: DOMAIN_NAME,
+        user_id: USER_ID,
+        extras: {
+          find: { email: enteredValue }
+        }
+      };
+    } else if (empIdPattern.test(enteredValue)) {
+      // Treat as staff employee ID
+      requestBody = {
+        domain_name: DOMAIN_NAME,
+        user_id: USER_ID,
+        extras: {
+          find: { staff_employee_number: enteredValue }
+        }
+      };
+    } else {
+      // Neither valid email nor valid employee ID
+      this.alertService.error("Invalid Email / Employee ID format", this.options);
+      return;
+    }
+    this.hotellistService.getSignupAllCustomers(requestBody).subscribe(
+      (resp: any) => {
+        this.loaderService.emitComplete();
+        if (resp.success === 1 && resp.status_code === 200) {
+          if (resp.result.data.length > 0) {
+            this.customerList = resp.result.data[0];
+            //console.log(this.customerList);
+            this.forgot_phone_number = resp.result.data[0].phone_number;
+            this.mail = resp.result.data[0].email;
+            if (this.localService.get('CusromerType') === 'Staff') {
+              this.hotelId = resp.result.data[0].staff_id;
             }
             else {
-              this.alertService.error("Email not found. Please signup first!", this.options);
-              this.otp = true;
-              // this.router.navigate([`/login`], { skipLocationChange: false });
+              this.hotelId = resp.result.data[0].id;
             }
-          }
-        },
-        (err: any) => {
-          if (err.error.statusCode === 403) {
-            this.alertService.error('Session Time Out! Please login Again', this.options)
-            this.router.navigate([`/login`], { skipLocationChange: false });
-          }
-          else if (err.error.message) {
-            this.alertService.error(err.error.message, this.options)
+            //console.log(this.hotelId);
+            this.sendOTP(Number(this.forgot_phone_number));
+            this.alertService.success("OTP has been sent to your mobile number.", this.options);
+            this.forgotPassword = true
+            this.login = false;
+            this.otp = true;
           }
           else {
-            this.alertService.error('Something bad happened. Please try again!', this.options);
+            this.alertService.error("Email / Employee ID not found. Please signup first!", this.options);
+            this.otp = true;
+            // this.router.navigate([`/login`], { skipLocationChange: false });
           }
         }
-      )
-    }
+      },
+      (err: any) => {
+        if (err.error.statusCode === 403) {
+          this.alertService.error('Session Time Out! Please login Again', this.options)
+          this.router.navigate([`/login`], { skipLocationChange: false });
+        }
+        else if (err.error.message) {
+          this.alertService.error(err.error.message, this.options)
+        }
+        else {
+          this.alertService.error('Something bad happened. Please try again!', this.options);
+        }
+      }
+    )
   }
 
   // getAllCustomers() {
@@ -1376,8 +1614,18 @@ export class LoginComponent implements OnInit {
         this.alertService.success("Password reset successfully!", this.options);
         this.alertClear();
         this.localService.set('Password', this.passwordForm.value.new_password);
-        this.router.navigate([`/edit-new-hotel/${this.hotelId}`], { skipLocationChange: false });
-        // Navigate to login or other page here
+        // Newly added for email/staff employee number
+        // this.router.navigate([`/edit-new-hotel/${this.hotelId}`], { skipLocationChange: false });
+        // checking whether it's staff or customer
+        const enteredValue = this.navigatingValue || '';
+        const empIdPattern = /^[A-Z]{4}\d{8}$/; // Staff ID format (INTN00235123) 
+        if (empIdPattern.test(enteredValue)) {
+          // Staff → Go to task-management
+          this.router.navigate([`/task-management`], { skipLocationChange: false });
+        } else {
+          // Customer → Go to edit-new-hotel
+          this.router.navigate([`/edit-new-hotel/${this.hotelId}`], { skipLocationChange: false });
+        }
       } else {
         this.alertService.error(resetRes.message || "Failed to reset password.");
         this.alertClear();
@@ -1432,6 +1680,7 @@ export class LoginComponent implements OnInit {
               this.customerdata = resp.result.data[0];
               console.log('Customer Data:', this.customerdata);
               this.sendEmail(this.customerdata);
+              this.sendMessage(this.customerdata);
               this.authService.setExpiryTime(new Date().getTime() + (resp.access_token_expires_in * 1000));
               this.authService.setRTokenExpireTime(new Date().getTime() + (resp.refresh_token_expires_in * 1000));
               this.authService.setAccessToken(resp.access_token);
@@ -1440,11 +1689,12 @@ export class LoginComponent implements OnInit {
               this.localService.set('UserId', this.customerdata.id);
               this.localService.set('Password', this.passwordForm.value.new_password);
               this.localService.set('CustomerType', 'Customer');
-               this.localService.set('domainName', this.customerdata.domain_name);
+              this.localService.set('domainName', this.customerdata.domain_name);
               // ---  Newly added FCM token logic ---
               try {
                 const userId: any = this.localService.get('UserId');
                 const token = await this.pushService.requestPermissionAndGetToken(userId);
+                // const token = await this.pushService.requestPermission();
                 console.log('New Customer FCM Token:', token);
                 // Ensure fcm_token array exists
                 if (!Array.isArray(this.customerdata.fcm_token)) {
@@ -1617,5 +1867,30 @@ export class LoginComponent implements OnInit {
       }
     });
   }
+
+  sendMessage(customerData: any) {
+    const payload = {
+      // username: customerData.first_name,
+      // email: customerData.email,
+      // name: customerData.first_name,
+      domain_name: 'https://www.guestezee.com',
+      data: {
+        otp: {
+          countrycode: "+91",
+          mobile: customerData.phone_number,
+          otppurpose: "Register"
+        }
+      }
+    };
+    this.loginService.sendSMS(payload).subscribe({
+      next: (res) => {
+        console.log('Email API response:', res);
+      },
+      error: (err) => {
+        console.error('Email API error:', err);
+      }
+    });
+  }
+
 
 }

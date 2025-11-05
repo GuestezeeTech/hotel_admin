@@ -1,8 +1,6 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-
 import { PaymentDetailsRoutingModule } from './payment-details-routing.module';
-
 
 @NgModule({
   declarations: [],
@@ -11,4 +9,5 @@ import { PaymentDetailsRoutingModule } from './payment-details-routing.module';
     PaymentDetailsRoutingModule
   ]
 })
+
 export class PaymentDetailsModule { }

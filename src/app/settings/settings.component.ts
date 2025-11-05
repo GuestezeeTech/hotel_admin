@@ -53,6 +53,7 @@ export class SettingsComponent implements OnInit {
   roomErrorMessage: string = '';
   isRoomModalOpen: boolean = false;
   isRoomFormValid: boolean = false;
+  customerType: any;
 
   constructor(
     private fb: FormBuilder,
@@ -72,6 +73,7 @@ export class SettingsComponent implements OnInit {
     // Customer id
     this.hotelId = Number(this.localService.get('UserId'));
     // this.availableStartTimes = this.generateTimeList('12:00 AM', '11:59 PM');
+    this.customerType = this.localService.get('CustomerType');
   }
 
   get p() { return this.passwordUpdateForm.controls; }

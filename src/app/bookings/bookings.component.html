@@ -76,11 +76,8 @@
                         <td>{{ guest.Adult_Pax + guest.Child_Pax }}</td>
                         <td>{{ guest.Arrival_Date }}</td>
                         <td>{{ guest.Departure_Date }}</td>
-                        <td
-                            [ngStyle]="{ color: ((guest.Event === 'Check-in') || (guest.Event === 'Reserved')) ? '#009F13' : '#FF6E27'}">
-                            {{
-                            guest.Event === 'Check-in' ? 'Staying' : guest.Event === 'Check-out' ? 'Stayed' : 'Reserved'
-                            }}</td>
+                        <!-- Newly added - to get event status -->
+                        <td [ngStyle]="{ color: ((guest.Event === 'Check-in') || (guest.Event === 'Reserved') || (guest.Event === 'In-house(Amend)') || (guest.Event === 'Reserved(Amend)')) ? '#009F13' : '#FF6E27'}">{{ getEventStatus(guest.Event) }}</td>
                         <td class="position-relative">
                             <i class="fa fa-ellipsis-h" style="color: #868686; cursor: pointer;"
                                 (click)="toggleDropdown(guest.id)"></i>
@@ -98,11 +95,11 @@
                                     <span style="font-weight: 500; font-size: 11px;">View</span>
                                 </div>
                                 <!-- Date Option -->
-                                <div class="d-flex align-items-center mb-2 mt-1"
+                                <!-- <div class="d-flex align-items-center mb-2 mt-1"
                                     style="cursor: pointer; margin-bottom: 0 !important;">
                                     <i class="fas fa-print me-2" style="font-size: 10px;"></i>
                                     <span style="font-weight: 500; font-size: 11px;">Print</span>
-                                </div>
+                                </div> -->
                             </div>
                         </td>
                     </tr>

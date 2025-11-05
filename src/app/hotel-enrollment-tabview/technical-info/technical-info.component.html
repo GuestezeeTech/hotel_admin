@@ -49,14 +49,15 @@
             <div style="display: flex;justify-content: space-between;margin-top: 5%;">
               <h5>{{data.name}} </h5>
               <!-- Newly added - paymentDone for disabling button -->
+              <!-- Newly added for disabling form on payment done to approving the customer -->
               <label class="switch" *ngIf="isCustomerChoosen==false">
                 <input type="checkbox" (change)="onCustomerToggleSwitch($event, data)" [checked]="data.is_enabled==true"
-                  [disabled]="paymentDone" />
+                  [disabled]="this.customerStatus === 'approved'" />
                 <span class="slider round"></span>
               </label>
               <label class="switch" *ngIf="isCustomerChoosen==true">
                 <input type="checkbox" (change)="onCustomerToggleSwitch($event, data)" [checked]="data.is_enabled==true"
-                  [disabled]="paymentDone" />
+                  [disabled]="this.customerStatus === 'approved'" />
                 <span class="slider round"></span>
               </label>
             </div>
@@ -109,40 +110,63 @@
       </div>
     </div>
   </div>
-  <div class="modal" id="paymentType">
+  <!--  Newly added & commented for Payment modal -->
+  <!-- component template -->
+  <div class="modal fade" #paymentModal tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
-      <div class="modal-content" style="background-color: white;">
-        <!-- Modal Header -->
+      <div class="modal-content" style="background-color:white;">
         <div class="modal-header">
-          <h4 class="modal-title" style="color: #800020;">Payment Type</h4>
-          <button type="button" class="btn-close" data-dismiss="modal"></button>
+          <h4 class="modal-title" style="color:#800020;">Payment Type</h4>
+          <button type="button" class="btn-close" (click)="closeModal()"></button>
         </div>
-        <!-- Modal body -->
         <div class="modal-body">
-          <div *ngFor="let item of paymentoptions; let i = index" style="padding: 2px;">
-            <input type="radio" [checked]="selectedIndex === i" (change)="selectOnlyOne(i)" style="color: black;"> {{
-            item }}
+          <div *ngFor="let item of paymentoptions; let i = index" style="padding:2px;">
+            <input type="radio" [checked]="selectedIndex===i" (change)="selectOnlyOne(i)"> {{item}}
           </div>
-          <!-- <app-edit-technical-info [infoData]="selectedTechInfo"></app-edit-technical-info> -->
         </div>
-        <!-- Modal footer -->
         <div class="modal-footer">
-          <button type="button" class="btn btn-danger" data-dismiss="modal"
-            style="color: #800020;background: white; border-radius: none;    border: 2px solid #8b1633;">Close</button>
-          <button type="button" class="btn btn-danger" style="color: white;background: #800020; border-radius: none;"
+          <button type="button" class="btn btn-danger" style="color:#800020;background:white;border:2px solid #8b1633;"
+            (click)="closeModal()">Close</button>
+          <button type="button" class="btn btn-danger" style="color:white;background:#800020;"
             (click)="executePayment()">Pay</button>
         </div>
       </div>
     </div>
   </div>
+  <!-- <div class="modal" id="paymentType">
+    <div class="modal-dialog">
+      <div class="modal-content" style="background-color: white; z-index: 1050;">
+        <div class="modal-header">
+          <h4 class="modal-title" style="color: #800020;">Payment Type</h4>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div *ngFor="let item of paymentoptions; let i = index" style="padding: 2px;">
+            <input type="radio" [checked]="selectedIndex === i" (change)="selectOnlyOne(i)" style="color: black;"> {{
+            item }}
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-danger" data-bs-dismiss="modal"
+            style="color: #800020;background: white; border-radius: none;    border: 2px solid #8b1633;" (click)="closeModal()" >Close</button>
+          <button type="button" class="btn btn-danger" style="color: white;background: #800020; border-radius: none;"
+            (click)="executePayment()">Pay</button>
+        </div>
+      </div>
+    </div>
+  </div> -->
 </div>
 <!-- Newly added -->
 <div class="d-flex justify-content-end mt-3">
   <button type="submit" class="cancel_bt" (click)="back()">Back</button>&nbsp;&nbsp;
-  <button type="submit" class="next_bt" *ngIf="((this.activeTab == 1 || this.activeTab == 2)  && !paymentDone)"
+  <!-- <button type="submit" class="next_bt" *ngIf="((this.activeTab == 1 || this.activeTab == 2)  && !paymentDone)"
+    (click)="nextTabInfo()">Next Info</button> -->
+  <button type="submit" class="next_bt" *ngIf="((this.activeTab == 1 || this.activeTab == 2)  && this.customerStatus !== 'approved')"
     (click)="nextTabInfo()">Next Info</button>
-  <button type="submit" class="save_bt" data-toggle="modal" data-target="#paymentType"
-    *ngIf="this.activeTab == 3 " (click)="save()">Save &
+  <!-- <button type="submit" class="save_bt" data-toggle="modal" data-target="#paymentType" *ngIf="this.activeTab == 3 "
+    (click)="save()">Save &
+    Continue</button> -->
+  <button type="submit" class="save_bt" *ngIf="this.activeTab == 3 && this.customerStatus !== 'approved'" (click)="save()">Save &
     Continue</button>
   <!-- <button *ngIf="isMemberid" type="submit" class="save_bt" (click)="save()" data-toggle="modal"
     data-target="#paymentType">Save &

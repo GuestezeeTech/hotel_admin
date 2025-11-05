@@ -13,6 +13,12 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { FormGroup } from '@angular/forms';
 import { ProfileService } from './profile.service';
 import { AlertsComponent } from "../shared/alerts/alerts.component";
+import { HotelListService } from '../hotel-list/hotel-list.service';
+import { TaskManagementService } from '../task-management/task-management.service';
+import { PushService } from '../services/push.service';
+import { StaffService } from '../user-access/staff/staff.service';
+import { UserAccessService } from '../user-access/user-access.service';
+import { HotelEnrollmentTabviewService } from '../hotel-enrollment-tabview/hotel-enrollment-tabview.service';
 
 
 @Component({
@@ -72,7 +78,14 @@ export class ProfileComponent implements OnInit {
     private alertService: AlertsService,
     private http: HttpClient,
     private authTokenService: AuthTokenService,
-    private profileService: ProfileService
+    private profileService: ProfileService,
+    // Newly added & commented for logout
+    private hotellistService: HotelListService,
+    private taskManagementService: TaskManagementService,
+    private pushService: PushService,
+    private staffService: StaffService,
+    private userAccessService: UserAccessService,
+    private hotelenrollmenttabviewService: HotelEnrollmentTabviewService
   ) { }
 
   ngOnInit(): void {
@@ -556,7 +569,91 @@ export class ProfileComponent implements OnInit {
     this.isExitModalOpen = false;
   }
 
-  logout() {
+  // Newly added & commented for logout
+  // logout() {
+  //   this.localService.remove('accessToken');
+  //   this.localService.remove('refreshToken');
+  //   this.localService.remove('expireTime');
+  //   this.localService.remove('UserName');
+  //   this.localService.remove('UserEmail');
+  //   this.localService.remove('UserId');
+  //   this.localService.remove('domainName');
+  //   this.localService.remove('rexpireTime');
+  //   this.localService.remove('db_schema');
+  //   this.localService.remove('Password');
+  //   this.localService.remove('MemberId');
+  //   this.localService.remove('CustomerType');
+  //   this.localService.remove('guestData');
+  //   this.localService.remove('maxTabReached');
+  //   this.localService.remove('currentTab');
+  //   this.localService.remove('StaffData');
+  //   this.localService.remove('hierarchy');
+  //   this.localService.remove('roleName');
+  //   this.localService.remove('role_id');
+  //   this.localService.remove('selectedSlots');
+  //   this.localService.remove('USERACCESS');
+  //   this.router.navigate([''], { skipLocationChange: false });
+  // }
+  async logout() {
+    try {
+      const userId = Number(this.localService.get('UserId'));
+      const customerType = this.localService.get('CustomerType');
+      console.log('Logging out userId:', userId, 'customerType:', customerType);
+      if (!userId) return;
+      const currentToken = await this.pushService.getCurrentToken();
+      console.log('Current FCM token to remove:', currentToken);
+      // Prepare Customer fetch body dynamically based on user type
+      const customerFindKey = customerType === 'Staff' ? 'staff_id' : 'id';
+      const customerFetchBody = {
+        domain_name: DOMAIN_NAME,
+        user_id: USER_ID,
+        extras: { find: { [customerFindKey]: userId } }
+      };
+      // Remove FCM token from Customer table
+      const customerResp: any = await this.hotellistService.getSignupAllCustomers(customerFetchBody).toPromise();
+      if (customerResp.success === 1 && customerResp.result.data.length > 0) {
+        const customer = customerResp.result.data[0];
+        console.log('Fetched customer for FCM removal:', customer);
+        if (Array.isArray(customer.fcm_token)) {
+          customer.fcm_token = customer.fcm_token.filter((t: string) => t !== currentToken);
+          const updateBody = {
+            domain_name: DOMAIN_NAME,
+            user_id: USER_ID,
+            payload: { customer_update: { fcm_token: customer.fcm_token } },
+            extras: { find: { [customerFindKey]: userId } }
+          };
+          await this.hotelenrollmenttabviewService.updateCustomerFcm(updateBody).toPromise();
+          console.log('FCM token removed for customer:', currentToken);
+        }
+      }
+      // Remove FCM token from Staff table only if user is Staff
+      if (customerType === 'Staff') {
+        const staffFetchBody = {
+          domain_name: DOMAIN_NAME,
+          user_id: USER_ID,
+          extras: { find: { id: userId } }
+        };
+        const staffResp: any = await this.taskManagementService.getAllStaves(staffFetchBody).toPromise();
+        if (staffResp.success === 1 && staffResp.result.data.length > 0) {
+          const staff = staffResp.result.data[0];
+          console.log('Fetched staff for FCM removal:', staff);
+          if (Array.isArray(staff.fcm_token)) {
+            staff.fcm_token = staff.fcm_token.filter((t: string) => t !== currentToken);
+            const updateBody = {
+              domain_name: DOMAIN_NAME,
+              user_id: USER_ID,
+              payload: { staff_updation: { fcm_token: staff.fcm_token } },
+              extras: { find: { id: userId } }
+            };
+            await this.staffService.updateStaff(updateBody).toPromise();
+            console.log('FCM token removed for staff:', currentToken);
+          }
+        }
+      }
+      // await this.pushService.deleteCurrentToken();
+    } catch (err) {
+      console.error('Error removing FCM token on logout:', err);
+    }
     this.localService.remove('accessToken');
     this.localService.remove('refreshToken');
     this.localService.remove('expireTime');
@@ -565,8 +662,6 @@ export class ProfileComponent implements OnInit {
     this.localService.remove('UserId');
     this.localService.remove('domainName');
     this.localService.remove('rexpireTime');
-    this.localService.remove('db_schema');
-    this.localService.remove('Password');
     this.localService.remove('MemberId');
     this.localService.remove('CustomerType');
     this.localService.remove('guestData');
@@ -576,9 +671,16 @@ export class ProfileComponent implements OnInit {
     this.localService.remove('hierarchy');
     this.localService.remove('roleName');
     this.localService.remove('role_id');
+    this.localService.remove('Password');
+    this.localService.remove('db_schema');
     this.localService.remove('selectedSlots');
+    this.localService.remove('baseStaffIds');
+    this.localService.remove('allLowerStaffIds');
+    this.localService.remove('roomRange');
     this.localService.remove('USERACCESS');
+    this.localService.remove('payNowButtonState');
     this.router.navigate([''], { skipLocationChange: false });
+    this.userAccessService.removeUserAccess();
   }
 
 }

@@ -103,6 +103,8 @@ export class AdminDashboardComponent implements OnInit {
       const customer = await this.getCustomerById(hotelId);
       console.log('Customer Data:', customer);
       this.memberId = customer.customer_member_id;
+      console.log('Member ID:', this.memberId);
+      // this.getAllAsapTask();
       this.guestActivity(this.selectedYear, this.selectedReviewYear);
       this.getAllBookings();
     } catch (err) {
@@ -172,71 +174,135 @@ export class AdminDashboardComponent implements OnInit {
     this.guestActivity(this.selectedYear, this.selectedReviewYear);
   }
 
+  // guestActivity(usageYear: string, reviewYear: string) {
+  //   let requestBody = {
+  //     "domain_name": DOMAIN_NAME,
+  //     "user_id": USER_ID,
+  //     "extras": {
+  //       "find": {
+  //         "member_id": this.memberId
+  //       },
+  //       "pagination": true,
+  //       "paginationDetails": {
+  //         "limit": 0,
+  //         "pageSize": 10
+  //       },
+  //       "sorting": true,
+  //       "sortingDetails": {
+  //         "email": -1
+  //       }
+  //     }
+  //   }
+  //   console.log(requestBody);
+  //   this.bookingService.getAllDashboard(requestBody).subscribe(
+  //     resp => {
+  //       if (resp) {
+  //         this.activities = resp.result.data;
+  //         console.log(this.activities, "All activity");
+  //         // const guestUsageData = Object.values(resp.result.data.guest_activity) as number[];
+  //         // pass to chart
+  //         // this.createGuestUsageChart(guestUsageData);
+  //         // Get guest_activity for selected year
+  //         const guestYearData = resp.result.data.guest_activity[usageYear];
+  //         if (guestYearData && guestYearData.length > 0) {
+  //           const guestUsageData = Object.values(guestYearData[0]) as number[];
+  //           this.createGuestUsageChart(guestUsageData);
+  //         } else {
+  //           // If no data, pass zeros
+  //           this.createGuestUsageChart(new Array(12).fill(0));
+  //         }
+  //         const reviewYearData = resp.result.data.reviews[reviewYear];
+  //         console.log('Review Year Data:', reviewYearData);
+  //         if (reviewYearData && reviewYearData.length > 0) {
+  //           this.review = reviewYearData[0];
+  //           console.log('Review:',this.review);
+  //         } else {
+  //           // If no data, pass zeros
+  //           this.review = {
+  //             "reviews_count": 0,
+  //             "avg_rating": 0
+  //           }
+  //         }
+  //         this.getStarArray(this.review.avg_ratings);
+  //       }
+  //     },
+  //     err => {
+  //       if (err.error.statusCode === 403) {
+  //         this.alerts.error('Session Time Out! Please login Again', this.options)
+  //         this.routerUrl.navigate([`/login`], { skipLocationChange: false });
+  //       }
+  //       else if (err.error.message) {
+  //         this.alerts.error(err.error.message, this.options)
+  //       }
+  //       else {
+  //         this.alerts.error('Something bad happened. Please try again!', this.options);
+  //       }
+  //     }
+  //   )
+  // }
+
   guestActivity(usageYear: string, reviewYear: string) {
     let requestBody = {
-      "domain_name": DOMAIN_NAME,
-      "user_id": USER_ID,
-      "extras": {
-        "find": {
-          "member_id": this.memberId
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: {
+        find: { member_id: this.memberId },
+        pagination: true,
+        paginationDetails: {
+          limit: 0,
+          pageSize: 10
         },
-        "pagination": true,
-        "paginationDetails": {
-          "limit": 0,
-          "pageSize": 10
-        },
-        "sorting": true,
-        "sortingDetails": {
-          "email": -1
+        sorting: true,
+        sortingDetails: {
+          email: -1
         }
       }
-    }
+    };
     console.log(requestBody);
     this.bookingService.getAllDashboard(requestBody).subscribe(
       resp => {
-        if (resp) {
-          this.activities = resp.result.data;
-          console.log(this.activities, "All activity");
-          // const guestUsageData = Object.values(resp.result.data.guest_activity) as number[];
-          // pass to chart
-          // this.createGuestUsageChart(guestUsageData);
-          // Get guest_activity for selected year
-          const guestYearData = resp.result.data.guest_activity[usageYear];
-          if (guestYearData && guestYearData.length > 0) {
-            const guestUsageData = Object.values(guestYearData[0]) as number[];
-            this.createGuestUsageChart(guestUsageData);
-          } else {
-            // If no data, pass zeros
-            this.createGuestUsageChart(new Array(12).fill(0));
+        const data = resp?.result?.data || {};
+        // Set activities safely with defaults
+        this.activities = {
+          guest_status: {
+            GuestLogged: data.guest_status?.GuestLogged || 0,
+            TotalRequest: data.guest_status?.TotalRequest || 0,
+            Completed: data.guest_status?.Completed || 0,
+            Escalated: data.guest_status?.Escalated || 0
           }
-          const reviewYearData = resp.result.data.reviews[reviewYear];
-          console.log('Review Year Data:', reviewYearData);
-          if (reviewYearData && reviewYearData.length > 0) {
-            this.review = reviewYearData[0];
-            console.log('Review:',this.review);
-          } else {
-            // If no data, pass zeros
-            this.review = {
-              "reviews_count": 0,
-              "avg_rating": 0
-            }
-          }
-          this.getStarArray(this.review.avg_ratings);
+        };
+        console.log(this.activities, "All activity");
+        // Guest Usage Chart
+        const guestYearData = data.guest_activity?.[usageYear] || [];
+        if (guestYearData.length > 0) {
+          const guestUsageData = Object.values(guestYearData[0]).map(val => val || 0) as number[];
+          this.createGuestUsageChart(guestUsageData);
+        } else {
+          this.createGuestUsageChart(new Array(12).fill(0));
         }
+        // Reviews
+        const reviewYearData = data.reviews?.[reviewYear] || [];
+        if (reviewYearData.length > 0) {
+          this.review = {
+            reviews_count: reviewYearData[0].reviews_count || 0,
+            avg_rating: reviewYearData[0].avg_rating || 0
+          };
+        } else {
+          this.review = { reviews_count: 0, avg_rating: 0 };
+        }
+        this.getStarArray(this.review.avg_rating);
       },
       err => {
-        if (err.error.statusCode === 403) {
-          this.alerts.error('Session Time Out! Please login Again', this.options)
+        if (err.error?.statusCode === 403) {
+          this.alerts.error('Session Time Out! Please login Again', this.options);
           this.routerUrl.navigate([`/login`], { skipLocationChange: false });
-        }
-        else if (err.error.message) {
-          this.alerts.error(err.error.message, this.options)
-        }
-        else {
+        } else if (err.error?.message) {
+          this.alerts.error(err.error.message, this.options);
+        } else {
           this.alerts.error('Something bad happened. Please try again!', this.options);
         }
       }
-    )
+    );
   }
 
   getStarArray(rating: number): ('full' | 'half' | 'empty')[] {
@@ -530,7 +596,8 @@ export class AdminDashboardComponent implements OnInit {
       resp => {
         if (resp) {
           this.allBookings = resp.result.data;
-          console.log(this.allBookings, "Bookings List")
+          console.log(this.allBookings, this.allBookings.length,
+            "Bookings List")
         }
       },
       err => {
@@ -550,12 +617,14 @@ export class AdminDashboardComponent implements OnInit {
 
 
   roomReport(roomNo: any) {
+    console.log('Report member id:', this.memberId);
     let requestBody = {
       "domain_name": DOMAIN_NAME,
       "user_id": USER_ID,
       "extras": {
         "find": {
-          "member_id": "INM00071",
+          // "member_id": "INM00071",
+          "member_id": this.memberId,
           "room_no": roomNo
         },
         "pagination": true,

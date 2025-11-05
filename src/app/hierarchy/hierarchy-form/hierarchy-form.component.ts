@@ -148,78 +148,128 @@ export class HierarchyFormComponent implements OnInit {
     this.addItem();
   }
 
+  // onSubmit() {
+  //   //console.log("1")
+  //   if (this.hierarchyForm.valid) {
+  //     //console.log("1", this.items)
+  //     const formData: HierarchyItem[] = this.items.value;
+  //     //console.log(formData)
+  //     if (this.parentDepartment != "") {
+  //       formData[0].department = this.parentDepartment;
+  //     }
+  //     const isTopLevelChecked = this.items.at(0).value.isTopLevel;
+  //     if (this.isEditMode && this.editId !== undefined) {
+  //       // Update the item in service
+  //       const all = this.hierarchyService.getHierarchyData();
+  //       const idx = all.findIndex(i => i.id === this.editId);
+  //       if (idx !== -1) {
+  //         all[idx] = {
+  //           ...all[idx],
+  //           ...formData[0]
+  //         };
+  //         this.hierarchyService['hierarchyData'].next([...all]);
+  //         //console.log("11", [...all]);
+  //         this.updateHierarchyData([...all]);
+  //       }
+  //     }
+  //     else {
+  //       if (this.showTopLevelOption && isTopLevelChecked && this.parentId !== undefined) {
+  //         //console.log(formData[0].department, " formData[0].department")
+  //         // Insert as sibling right after the parent, and move all parent's children under the new item
+  //         const data = this.hierarchyService.getHierarchyData();
+  //         //console.log(data, "data");
+  //         const parentIdx = data.findIndex(item => item.id === this.parentId);
+  //         if (parentIdx !== -1) {
+  //           // Find all children of the parent
+  //           const children = data.filter(item => item.parentId === this.parentId);
+  //           // Add new item after parent
+  //           const newId = this.hierarchyService['getNextId']();
+  //           //console.log(newId, "newId")
+  //           //console.log('Before Top Level logic:', JSON.stringify(data, null, 2));
+  //           const newItem = {
+  //             ...formData[0],
+  //             id: newId,
+  //             parentId: this.parentId,
+  //             isTopLevel: true
+  //           };
+  //           // Move all direct children (except the new one) to be children of the new item
+  //           // Re-parent all current direct children to the new node (except the new node itself)
+  //           for (let i = 0; i < data.length; i++) {
+  //             if (data[i].parentId === this.parentId) {
+  //               data[i].parentId = newId;
+  //             }
+  //           }
+  //           // Insert the new child as the only direct child of the parent
+  //           data.splice(parentIdx + 1, 0, newItem);
+  //           //console.log('After Top Level logic:', JSON.stringify(data, null, 2));
+  //           this.hierarchyService['hierarchyData'].next([...data]);
+  //         }
+  //       }
+  //       else {
+  //         this.hierarchyService.clearHierarchyData();
+  //         this.hierarchyService.setHierarchyData(formData, this.isTreeForm, this.parentId);
+  //         // //console.log(formData,this.isTreeForm, this.parentId,'formdata',newId);
+  //         // let array = [];
+  //         // array=formData;
+  //         // array.push({
+  //         //   "isTreeItem":this.isTreeForm,"dta":this.parentId
+  //         // })
+  //       }
+  //       let array = [];
+  //       array = this.hierarchyService.getHierarchyData()
+  //       //console.log("array value ", array)
+  //       this.createHierarchy(array);
+  //     }
+  //   }
+  // }
+
   onSubmit() {
-    //console.log("1")
-    if (this.hierarchyForm.valid) {
-      //console.log("1", this.items)
-      const formData: HierarchyItem[] = this.items.value;
-      //console.log(formData)
-      if (this.parentDepartment != "") {
-        formData[0].department = this.parentDepartment;
+    if (!this.hierarchyForm.valid) return;
+
+    const formData: HierarchyItem[] = this.items.value;
+    if (this.parentDepartment) formData[0].department = this.parentDepartment;
+    const isTopLevelChecked = this.items.at(0).value.isTopLevel;
+
+    const allData = this.hierarchyService.getHierarchyData();
+
+    if (this.isEditMode && this.editId !== undefined) {
+      // 🔹 Update existing node
+      const idx = allData.findIndex(i => i.id === this.editId);
+      if (idx !== -1) {
+        allData[idx] = { ...allData[idx], ...formData[0] };
+        this.hierarchyService['hierarchyData'].next([...allData]);
+        this.updateHierarchyData([...allData]);
       }
-      const isTopLevelChecked = this.items.at(0).value.isTopLevel;
-      if (this.isEditMode && this.editId !== undefined) {
-        // Update the item in service
-        const all = this.hierarchyService.getHierarchyData();
-        const idx = all.findIndex(i => i.id === this.editId);
-        if (idx !== -1) {
-          all[idx] = {
-            ...all[idx],
-            ...formData[0]
-          };
-          this.hierarchyService['hierarchyData'].next([...all]);
-          //console.log("11", [...all]);
-          this.updateHierarchyData([...all]);
+    } else {
+      let newItem: HierarchyItem;
+
+      if (this.showTopLevelOption && isTopLevelChecked && this.parentId !== undefined) {
+        // 🔹 Top-level logic
+        const parentIdx = allData.findIndex(item => item.id === this.parentId);
+        if (parentIdx !== -1) {
+          const newId = this.hierarchyService.getNextId();
+          newItem = { ...formData[0], id: newId, parentId: this.parentId, isTopLevel: true };
+
+          // Re-parent existing children under new top-level node
+          allData.forEach(item => {
+            if (item.parentId === this.parentId) item.parentId = newId;
+          });
+
+          // Insert new node after parent
+          allData.splice(parentIdx + 1, 0, newItem);
         }
+      } else {
+        // 🔹 Normal node logic
+        const newId = this.hierarchyService.getNextId();
+        newItem = { ...formData[0], id: newId, parentId: this.parentId, isTreeItem: this.isTreeForm };
+        allData.push(newItem);
       }
-      else {
-        if (this.showTopLevelOption && isTopLevelChecked && this.parentId !== undefined) {
-          //console.log(formData[0].department, " formData[0].department")
-          // Insert as sibling right after the parent, and move all parent's children under the new item
-          const data = this.hierarchyService.getHierarchyData();
-          //console.log(data, "data");
-          const parentIdx = data.findIndex(item => item.id === this.parentId);
-          if (parentIdx !== -1) {
-            // Find all children of the parent
-            const children = data.filter(item => item.parentId === this.parentId);
-            // Add new item after parent
-            const newId = this.hierarchyService['getNextId']();
-            //console.log(newId, "newId")
-            //console.log('Before Top Level logic:', JSON.stringify(data, null, 2));
-            const newItem = {
-              ...formData[0],
-              id: newId,
-              parentId: this.parentId,
-              isTopLevel: true
-            };
-            // Move all direct children (except the new one) to be children of the new item
-            // Re-parent all current direct children to the new node (except the new node itself)
-            for (let i = 0; i < data.length; i++) {
-              if (data[i].parentId === this.parentId) {
-                data[i].parentId = newId;
-              }
-            }
-            // Insert the new child as the only direct child of the parent
-            data.splice(parentIdx + 1, 0, newItem);
-            //console.log('After Top Level logic:', JSON.stringify(data, null, 2));
-            this.hierarchyService['hierarchyData'].next([...data]);
-          }
-        }
-        else {
-          this.hierarchyService.clearHierarchyData();
-          this.hierarchyService.setHierarchyData(formData, this.isTreeForm, this.parentId);
-          // //console.log(formData,this.isTreeForm, this.parentId,'formdata',newId);
-          // let array = [];
-          // array=formData;
-          // array.push({
-          //   "isTreeItem":this.isTreeForm,"dta":this.parentId
-          // })
-        }
-        let array = [];
-        array = this.hierarchyService.getHierarchyData()
-        //console.log("array value ", array)
-        this.createHierarchy(array);
-      }
+
+      // Update the BehaviorSubject
+      this.hierarchyService['hierarchyData'].next([...allData]);
+
+      // Send to backend
+      this.createHierarchy([...allData]);
     }
   }
 

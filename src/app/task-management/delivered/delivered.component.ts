@@ -7,6 +7,7 @@ import { Component } from '@angular/core';
 import { LocalStorageService } from '../../auth-services/local-storage.service';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { Observable } from 'rxjs';
 
 @Component({
   selector: 'app-delivered',
@@ -129,6 +130,20 @@ export class DeliveredComponent {
   // Newly added for find
   member_id: any;
   customerType: any;
+  hotelId: any;
+  memberId: any;
+  // Newly added - Menu
+  isMenuModalOpen: boolean = false;
+  selectedMenuItems: any[] = [];
+  selectedTotalAmount: number = 0;
+  selectedMenuRoom: string = '';
+  // Newly added - invoice
+  invoice: any;
+  isInvoiceModalOpen: boolean = false;
+  // Newly added - Help Service
+  isHelpServiceModalOpen: boolean = false;
+  selectedHelpServiceTask: any = null;
+  searchRoomNo: string = '';
 
   constructor(
     private localService: LocalStorageService,
@@ -137,10 +152,19 @@ export class DeliveredComponent {
     private router: Router,
     private hotelListService: HotelListService) { }
 
-  ngOnInit(): void {
-    this.member_id = this.localService.get('MemberId');
+  async ngOnInit() {
+    // this.member_id = this.localService.get('MemberId');
     // Newly added
     // To load inital all tasks
+    this.customerType = this.localService.get('CustomerType');
+    this.hotelId = Number(this.localService.get('UserId'));
+    console.log('Hotel Id:', this.hotelId);
+    if (this.customerType == 'Customer') {
+      await this.getCustomerMemberId(this.hotelId);
+    }
+    else {
+      this.member_id = this.localService.get('MemberId');
+    }
     this.getAllDeliveredTask();
     // Escalation timer for tasks(from hierarchy)
     this.escalationHierarchy = this.localService.get('hierarchy');
@@ -244,10 +268,37 @@ export class DeliveredComponent {
   // }
 
   // Newly added for getting room number based on label
+  getCustomerMemberId(hotelId: any): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const requestBody = {
+        domain_name: DOMAIN_NAME,
+        user_id: USER_ID,
+        extras: {
+          find: { id: hotelId }
+        }
+      };
+      this.hotelListService.getSignupAllCustomers(requestBody).subscribe({
+        next: (res: any) => {
+          if (res && res.result.data.length > 0) {
+            const customer = res.result.data[0];
+            console.log('Customer Data:', customer);
+            this.member_id = customer.customer_member_id;
+            resolve(this.memberId); // resolves with memberId
+          } else {
+            reject('No customer found');
+          }
+        },
+        error: (err: any) => {
+          reject(err); // handle API error
+        }
+      });
+    });
+  }
+
   // Hits task api
   getAllDeliveredTask() {
     this.customerType = this.localService.get('CustomerType');
-    let memberId = this.localService.get('MemberId');
+    let memberId = this.member_id;
     if (this.customerType === 'Customer') {
       this.callDeliveredTaskApi({
         status: 'Delivered',
@@ -320,6 +371,82 @@ export class DeliveredComponent {
       }
     }
     console.log('Base Staff Ids:', baseStaffIds);
+    // Convert labelRoomArray into a final room list
+    // Newly added 
+    // this.labelRoomArray = ['1-100'];
+    let roomList: string[] = [];
+    const expandAlphaRange = (start: string, end: string): string[] => {
+      const result: string[] = [];
+      const toNumber = (str: string) => {
+        let n = 0;
+        for (let i = 0; i < str.length; i++) {
+          n = n * 26 + (str.charCodeAt(i) - 65 + 1);
+        }
+        return n;
+      };
+      const toLetters = (num: number) => {
+        let s = '';
+        while (num > 0) {
+          let rem = (num - 1) % 26;
+          s = String.fromCharCode(65 + rem) + s;
+          num = Math.floor((num - 1) / 26);
+        }
+        return s;
+      };
+      const startNum = toNumber(start.toUpperCase());
+      const endNum = toNumber(end.toUpperCase());
+      for (let i = startNum; i <= endNum; i++) {
+        result.push(toLetters(i));
+      }
+      return result;
+    };
+    this.labelRoomArray.forEach((room: any) => {
+      const value = String(room).trim();
+      const alphaNumericRange = value.match(/^([A-Za-z0-9]+)-([A-Za-z0-9]+)$/);
+      if (alphaNumericRange) {
+        const start = alphaNumericRange[1];
+        const end = alphaNumericRange[2];
+        // Numeric range: "1-100"
+        if (!isNaN(Number(start)) && !isNaN(Number(end))) {
+          for (let i = Number(start); i <= Number(end); i++) {
+            roomList.push(String(i));
+          }
+        }
+        // Numeric prefix + single-letter suffix: "1A-1Z"
+        else if (/^\d+[A-Z]+$/i.test(start) && /^\d+[A-Z]+$/i.test(end)) {
+          const prefix = start.match(/^\d+/)![0];
+          const startSuffix = start.slice(prefix.length);
+          const endSuffix = end.slice(prefix.length);
+          roomList.push(
+            ...expandAlphaRange(startSuffix.toUpperCase(), endSuffix.toUpperCase()).map(
+              suffix => `${prefix}${suffix}`
+            )
+          );
+        }
+        // Letter prefix + numeric suffix: "A1-A5"
+        else if (/^[A-Z]+\d+$/i.test(start) && /^[A-Z]+\d+$/i.test(end)) {
+          const prefix = start.match(/^[A-Z]+/i)![0];
+          const startNum = parseInt(start.slice(prefix.length));
+          const endNum = parseInt(end.slice(prefix.length));
+          for (let i = startNum; i <= endNum; i++) {
+            roomList.push(`${prefix}${i}`);
+          }
+        }
+        // Pure alphabetic range: "AA-AZ"
+        else if (/^[A-Z]+$/i.test(start) && /^[A-Z]+$/i.test(end)) {
+          roomList.push(...expandAlphaRange(start.toUpperCase(), end.toUpperCase()));
+        }
+        // Fallback: treat as single string
+        else {
+          roomList.push(value);
+        }
+      } else {
+        roomList.push(value); // single room
+      }
+    });
+    this.labelRoomArray = roomList;
+    console.log('Room Number:', this.labelRoomArray);
+    // Ended
     if (this.at_desk) {
       object = {
         status: "Delivered",
@@ -348,7 +475,59 @@ export class DeliveredComponent {
         };
       }
     }
-    this.callDeliveredTaskApi(object);
+    // this.callDeliveredTaskApi(object);
+    // If FO department, add the desk staff ID dynamically
+    if (department === "FO" || department === 'Select') {
+      this.getFoDeskStaff(department).subscribe({
+        next: (deskStaffId: number | null) => {
+          if (deskStaffId) {
+            baseStaffIds.push(deskStaffId);
+            object.assigned_staff_id = [...new Set(baseStaffIds)]; // avoid duplicates
+          }
+          this.callDeliveredTaskApi(object);
+        },
+        error: () => {
+          // fallback even if FO desk fetch fails
+          this.callDeliveredTaskApi(object);
+        }
+      });
+    } else {
+      this.callDeliveredTaskApi(object);
+    }
+  }
+
+  getFoDeskStaff(department: string): Observable<number | null> {
+    return new Observable((observer) => {
+      const findObject = {
+        "hierarchy.department": department,
+        "at_desk": true,
+        "member_id": this.member_id,
+        // "higher_level_officer.id": ,
+        // "room_no": this.labelRoomArray,
+      };
+      const requestBody = {
+        domain_name: DOMAIN_NAME,
+        user_id: USER_ID,
+        extras: { find: findObject }
+      };
+
+      this.taskManagementService.getAllStaves(requestBody).subscribe({
+        next: (resp: any) => {
+          if (resp?.success === 1 && resp.status_code === 200 && resp.result.data.length > 0) {
+            const deskStaff = resp.result.data[0];
+            observer.next(deskStaff.id);
+          } else {
+            observer.next(null);
+          }
+          observer.complete();
+        },
+        error: (err) => {
+          console.error("Error fetching FO desk staff:", err);
+          observer.next(null);
+          observer.complete();
+        }
+      });
+    });
   }
 
   // Final call for api
@@ -459,11 +638,22 @@ export class DeliveredComponent {
     });
   }
 
+  // updatePaginatedDeliveredTasks() {
+  //   const startIndex = (this.currentPage - 1) * this.pageSize;
+  //   const endIndex = startIndex + this.pageSize;
+  //   this.allDeliveredTasks = this.deliveredTasks.slice(startIndex, endIndex);
+  // }
 
   updatePaginatedDeliveredTasks() {
+    const searchTerm = (this.searchRoomNo || '').trim().toLowerCase();
+    const filtered = searchTerm
+      ? this.deliveredTasks.filter((task: any) =>
+        task.room_no?.toString().toLowerCase().includes(searchTerm)
+      )
+      : this.deliveredTasks;
     const startIndex = (this.currentPage - 1) * this.pageSize;
     const endIndex = startIndex + this.pageSize;
-    this.allDeliveredTasks = this.deliveredTasks.slice(startIndex, endIndex);
+    this.allDeliveredTasks = filtered.slice(startIndex, endIndex);
   }
 
   nextPage() {
@@ -492,4 +682,109 @@ export class DeliveredComponent {
   navigateToTimeline(taskId: any) {
     this.router.navigate(['/timeline', taskId]);
   }
+
+  // Newly added - Menu
+  viewMenu(task: any) {
+    if (task && task.pms_order_summary?.items) {
+      this.selectedMenuItems = task.pms_order_summary.items;
+      this.selectedTotalAmount = task.pms_order_summary.totalAmount;
+      this.selectedMenuRoom = task.room_no;
+      this.isMenuModalOpen = true;
+    } else {
+      console.warn('No menu items found for this task.');
+      this.selectedMenuItems = [];
+      this.selectedTotalAmount = 0;
+      this.selectedMenuRoom = task.room_no || 'N/A';
+      this.isMenuModalOpen = true;
+    }
+  }
+
+  closeMenuModal() {
+    this.isMenuModalOpen = false;
+    this.selectedMenuItems = [];
+    this.selectedTotalAmount = 0;
+    this.selectedMenuRoom = '';
+  }
+
+  viewInvoice(task: any) {
+    const requestBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: {
+        find: {
+          "invoiceDetails.Reserve_No": task.Reserve_No
+        }
+      }
+    };
+    this.taskManagementService.getCheckOut(requestBody).subscribe({
+      next: (res: any) => {
+        if (res && res.result.data.length > 0) {
+          this.invoice = res.result.data[0];
+          this.isInvoiceModalOpen = true;
+          console.log('Invoice Data:', this.invoice);
+        } else {
+          this.invoice = null;
+          this.isInvoiceModalOpen = false;
+          console.log('No invoice found');
+        }
+      },
+      error: (err: any) => {
+        console.error('Invoice API Error:', err);
+        this.isInvoiceModalOpen = false;
+      }
+    });
+  }
+
+  closeInvoiceModal() {
+    this.isInvoiceModalOpen = false;
+  }
+
+  getInvoiceTotal(): number {
+    if (this.invoice?.invoiceDetails?.Bill_Amt) {
+      return Number(this.invoice.invoiceDetails.Bill_Amt);
+    }
+    if (this.invoice?.invoiceDetails?.items?.length) {
+      return this.invoice.invoiceDetails.items.reduce(
+        (sum: number, item: any) => sum + (parseFloat(item.totalAmount) || 0),
+        0
+      );
+    }
+    return 0;
+  }
+
+  // Newly added - Help Service
+  openHelpServiceModal(task: any) {
+    this.selectedHelpServiceTask = task;
+    this.isHelpServiceModalOpen = true;
+  }
+
+  closeHelpServiceModal() {
+    this.isHelpServiceModalOpen = false;
+    this.selectedHelpServiceTask = null;
+  }
+
+  filterByRoomNumber(term: string) {
+    this.searchRoomNo = term.trim().toLowerCase();
+    if (!term || term.trim() === '') {
+      // Reset to full escalated task list with pagination
+      const startIndex = (this.currentPage - 1) * this.pageSize;
+      const endIndex = startIndex + this.pageSize;
+      this.allDeliveredTasks = this.deliveredTasks.slice(startIndex, endIndex);
+      this.totalDeliveredTasks = this.deliveredTasks.length;
+      this.totalPages = Math.ceil(this.totalDeliveredTasks / this.pageSize);
+    } else {
+      const searchTerm = term.trim().toLowerCase();
+      const filtered = this.deliveredTasks.filter((task: any) => {
+        console.log('Room Number in task:', task.room_no);
+        return task.room_no?.toString().toLowerCase().includes(searchTerm);
+      }
+      );
+      const startIndex = (this.currentPage - 1) * this.pageSize;
+      const endIndex = startIndex + this.pageSize;
+      this.allDeliveredTasks = filtered.slice(startIndex, endIndex);
+      this.totalDeliveredTasks = filtered.length;
+      this.totalPages = Math.ceil(filtered.length / this.pageSize);
+    }
+  }
+
 }

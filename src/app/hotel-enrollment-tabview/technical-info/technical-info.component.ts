@@ -16,6 +16,9 @@ import { EditTechnicalInfoComponent } from './edit-technical-info/edit-technical
 // Newly added for payment
 import { Subscription } from 'rxjs';
 declare var $: any;
+// import * as bootstrap from 'bootstrap';
+declare var bootstrap: any;
+import { ElementRef, ViewChild } from '@angular/core';
 
 @Component({
   selector: 'app-technical-info',
@@ -68,6 +71,11 @@ export class TechnicalInfoComponent implements OnInit {
   // Newly added for payment
   orderdata: any;
   private payNowSub!: Subscription;
+  activeSubscription: any; // Holds the active subscription plan
+  // Newly added for payment modal
+  @ViewChild('paymentModal') paymentModal!: ElementRef;
+  modalInstance: any;
+  customerStatus: any;
 
   constructor(
     private localService: LocalStorageService,
@@ -79,8 +87,6 @@ export class TechnicalInfoComponent implements OnInit {
     private activatedRoute: ActivatedRoute,
     private checkoutApiService: CheckoutApiService,
     private technicalInfoService: TechnicalInfoService) {
-
-
   }
 
   async ngOnInit(): Promise<void> {
@@ -98,7 +104,16 @@ export class TechnicalInfoComponent implements OnInit {
     }
     // Nelwy added for Payment
     // Subscribe to "Pay Now" events from header
-    this.payNowSub = this.technicalInfoService.payNow$.subscribe(() => {
+    // this.payNowSub = this.technicalInfoService.payNow$.subscribe(() => {
+    //   this.payNow();
+    // });
+    this.payNowSub = this.technicalInfoService.payNow$.subscribe((index) => {
+      console.log('Received payNow trigger. Index:', index);
+      if (index !== null && index !== undefined) {
+        // Got index from Header modal
+        console.log('Triggered from Header with index:', index);
+        this.selectedIndex = index;
+      }
       this.payNow();
     });
     this.technicalInfoService.modalTrigger$.subscribe(() => {
@@ -108,7 +123,7 @@ export class TechnicalInfoComponent implements OnInit {
 
   // Nelwy added for Payment
   ngOnDestroy() {
-    this.payNowSub.unsubscribe();
+    this.payNowSub?.unsubscribe();
   }
 
 
@@ -491,53 +506,198 @@ export class TechnicalInfoComponent implements OnInit {
   //   );
   // }
 
-  getCustomerById(): Promise<void> {
+  // getCustomerById(): Promise<void> {
+  //   return new Promise((resolve, reject) => {
+  //     let requestBody = {
+  //       domain_name: DOMAIN_NAME,
+  //       user_id: USER_ID,
+  //       extras: {
+  //         find: {
+  //           id: this.hotelId
+  //         }
+  //       }
+  //     };
+  //     this.hotelenrollmentservice.getLoginCustomerById(requestBody).subscribe(
+  //       resp => {
+  //         this.loaderService.emitComplete();
+  //         if (resp) {
+  //           this.customerdata = resp.result.data[0];
+  //           this.status = this.customerdata.status;
+  //           this.isMemberid = this.customerdata.status == 'Order Confirmed' ? true : false;
+  //           this.Memberid = this.customerdata.customer_member_id;
+  //           console.log(this.Memberid, "Member id");
+  //           ////console.log('Status:', this.status)
+  //           ////console.log(this.customerdata, "RESPDATA");
+  //           ////console.log(Array.isArray(this.customerdata));
+  //           resolve();  // Resolve promise when data is set
+  //         }
+  //       },
+  //       err => {
+  //         this.loaderService.emitComplete();
+  //         if (err.error.statusCode === 403) {
+  //           this.alertsService.error('Session Time Out! Please login Again', this.options);
+  //           this.router.navigate([`/login`], { skipLocationChange: false });
+  //         } else if (err.error.message) {
+  //           this.alertsService.error(err.error.message, this.options);
+  //         } else {
+  //           this.alertsService.error('Something bad happened. Please try again!', this.options);
+  //         }
+  //         reject(err);  // Reject promise if there is an error
+  //       }
+  //     );
+  //   });
+  // }
+
+  async getCustomerById(): Promise<void> {
+    console.log('Hotel ID:', this.hotelId);
     return new Promise((resolve, reject) => {
-      let requestBody = {
+      const requestBody = {
         domain_name: DOMAIN_NAME,
         user_id: USER_ID,
         extras: {
-          find: {
-            id: this.hotelId
-          }
+          find: { id: this.hotelId }
         }
       };
       this.hotelenrollmentservice.getLoginCustomerById(requestBody).subscribe(
-        resp => {
+        async resp => {
           this.loaderService.emitComplete();
-          if (resp) {
+          if (resp?.result?.data?.length) {
             this.customerdata = resp.result.data[0];
+            console.log('Customer Data:', this.customerdata);
             this.status = this.customerdata.status;
-            this.isMemberid = this.customerdata.status == 'Order Confirmed' ? true : false;
+            this.isMemberid = this.customerdata.status === 'Order Confirmed';
             this.Memberid = this.customerdata.customer_member_id;
-            console.log(this.Memberid, "Member id");
-            ////console.log('Status:', this.status)
-            ////console.log(this.customerdata, "RESPDATA");
-            ////console.log(Array.isArray(this.customerdata));
-            resolve();  // Resolve promise when data is set
+            console.log('Member ID:', this.Memberid);
+            // Newly added for disabling form on payment done to approving the customer
+            this.customerStatus = this.customerdata.status;
+            console.log('Customer status:', this.customerStatus);
+            // Newly added & commented 
+            // Step 1: Check for customer-specific subscription
+            // if (this.customerdata?.subscription_detail) {
+            //   this.activeSubscription = this.customerdata.subscription_detail;
+            //   console.log('Using Customer Subscription:', this.activeSubscription);
+            //   resolve();
+            // }
+            // // Step 2: Else fetch general subscription as fallback
+            // else {
+            //   console.log('Customer has no specific plan, fetching general...');
+            //   try {
+            //     const generalReq = {
+            //       domain_name: DOMAIN_NAME,
+            //       user_id: USER_ID,
+            //       extras: {
+            //         find: {
+            //           name: "SingleRoomPricing"
+            //         },
+            //         pagination: true,
+            //         paginationDetails: { limit: 0, pageSize: 10 },
+            //         sorting: true,
+            //         sortingDetails: { email: -1 }
+            //       }
+            //     };
+            //     const generalResp: any = await new Promise((res, rej) => {
+            //       this.hotelenrollmentservice.getAllSubscriptionDetails(generalReq).subscribe(
+            //         result => res(result),
+            //         error => rej(error)
+            //       );
+            //     });
+            //     if (generalResp?.result?.data?.length) {
+            //       this.activeSubscription = generalResp.result.data[0];
+            //       console.log('Using General Subscription:', this.activeSubscription);
+            //     }
+            //     resolve();
+            //   } catch (err) {
+            //     console.error('Failed to fetch general subscription:', err);
+            //     // this.activeSubscription = { per_room_cost: 450 };
+            //     resolve();
+            //   }
+            // }
+            // await this.getActiveSubscription();
+            try {
+              // Await subscription call properly
+              await this.getActiveSubscription();
+              resolve();  // Resolve here
+            } catch (subErr) {
+              console.error('Failed to fetch subscription', subErr);
+              resolve(); // Resolve anyway, you can choose reject(subErr) if needed
+            }
+          } else {
+            reject(' No customer data found.');
           }
+          // Ended
         },
         err => {
           this.loaderService.emitComplete();
-          if (err.error.statusCode === 403) {
+          if (err.error?.statusCode === 403) {
             this.alertsService.error('Session Time Out! Please login Again', this.options);
-            this.router.navigate([`/login`], { skipLocationChange: false });
-          } else if (err.error.message) {
+            this.router.navigate(['/login'], { skipLocationChange: false });
+          } else if (err.error?.message) {
             this.alertsService.error(err.error.message, this.options);
           } else {
             this.alertsService.error('Something bad happened. Please try again!', this.options);
           }
-          reject(err);  // Reject promise if there is an error
+          reject(err);
         }
       );
     });
   }
 
+  async getActiveSubscription(): Promise<void> {
+    console.log('Getting active subscription...');
+    return new Promise(async (resolve, reject) => {
+      try {
+        const propertySize = this.customerdata?.property_details.property_address.property_size;
+        const customerSub = this.customerdata?.subscription_detail;
+        if (customerSub) {
+          console.log('Using customer’s subscription detail directly');
+          this.activeSubscription = customerSub;
+          console.log('Using Customer Subscription:', this.activeSubscription);
+          return resolve();
+        }
+        console.log('No customer-specific subscription, fetching general subscription list...');
+        const reqBody = {
+          domain_name: DOMAIN_NAME,
+          user_id: USER_ID,
+          extras: {
+            find: {},
+            pagination: true,
+            paginationDetails: { limit: 0, pageSize: 100 },
+            sorting: true,
+            sortingDetails: { name: 1 }
+          }
+        };
+        const generalResp: any = await new Promise((res, rej) => {
+          this.hotelenrollmentservice.getAllSubscriptionDetails(reqBody).subscribe(
+            result => res(result),
+            error => rej(error)
+          );
+        });
+        if (generalResp?.result?.data?.length) {
+          const allSubs = generalResp.result.data;
+          let matched = allSubs.find((sub: any) => sub.name === propertySize);
+          if (!matched) {
+            console.warn(`No plan found matching "${propertySize}". Using first plan as default.`);
+            matched = allSubs[0];
+          }
+          this.activeSubscription = matched;
+          console.log('Using General Subscription:', this.activeSubscription);
+          resolve();
+        } else {
+          reject('No general subscription plans found.');
+        }
+      } catch (err) {
+        console.error('Error in getActiveSubscription:', err);
+        reject(err);
+      }
+    });
+  }
+
 
   async executePayment() {
-    await this.getCustomerById();
+    // await this.getCustomerById();
     await this.payNow();
   }
+
   // // Newly added
   getAllTechnicalInfo() {
     let checkExistingTechnicalInfoAvailbility = {
@@ -614,7 +774,7 @@ export class TechnicalInfoComponent implements OnInit {
                     this.technicalInfos = resp.result.data.filter((technicaalInfo: any) => technicaalInfo.customer_id == undefined);
                     this.allinfoData = this.technicalInfos;
                     ////console.log('Common Technical Info(without customer_id):', this.technicalInfos)
-                    this.generalTechInfoData = this.technicalInfos.filter((item: any) => item.type == this.selectedTab);
+                    this.generalTechInfoData = this.technicalInfos?.filter((item: any) => item.type == this.selectedTab);
                     // ////console.log(this.technicalInfos, 'Common Technical Info Data(with customer id checking)');
                   }
                 }
@@ -689,7 +849,7 @@ export class TechnicalInfoComponent implements OnInit {
               ////console.log("Property size:", this.customerdata.property_details.property_address.property_size);
               this.isTechnicalInfoExists = true;
               this.updateCustomer();
-              this.customerdata();
+              // this.customerdata();
               ////console.log("TechnicalInfoExists", this.isTechnicalInfoExists);
               // this.payNow();
               this.localService.set('maxTabReached', 4);
@@ -766,8 +926,7 @@ export class TechnicalInfoComponent implements OnInit {
         if (resp?.success === 1 && resp?.status_code === 200) {
           this.alertsService.success(resp.message, this.options);
           this.updateCustomer();
-          this.customerdata();
-
+          // this.customerdata();
           // this.payNow();
           this.localService.set('maxTabReached', 4);
         } else {
@@ -782,6 +941,7 @@ export class TechnicalInfoComponent implements OnInit {
   }
 
   save() {
+    this.openModal();
     ////console.log("111", this.isTechnicalInfoExists)
     if (this.isTechnicalInfoExists) {
       ////console.log('Called')
@@ -800,15 +960,22 @@ export class TechnicalInfoComponent implements OnInit {
 
   selectTab(tab: string) {
     this.selectedTab = tab;
-    const uniqueInfos = this.technicalInfos.filter(
+    const uniqueInfos = this.technicalInfos?.filter(
       (item: any, index: any, self: any) => index === self?.findIndex((t: any) => t.id === item.id)
     );
-    this.generalTechInfoData = uniqueInfos.filter((item: any) => item.type === this.selectedTab);
+    this.generalTechInfoData = uniqueInfos?.filter((item: any) => item.type === this.selectedTab);
     // Optional: update allinfoData with deduplicated latest data
+    // this.allinfoData = [
+    //   ...this.allinfoData?.filter((existing: any) => !this.generalTechInfoData.some((newItem: any) => newItem.id === existing.id)),
+    //   ...this.generalTechInfoData,
+    // ];
     this.allinfoData = [
-      ...this.allinfoData.filter((existing: any) => !this.generalTechInfoData.some((newItem: any) => newItem.id === existing.id)),
-      ...this.generalTechInfoData,
+      ...(this.allinfoData?.filter((existing: any) =>
+        !this.generalTechInfoData?.some((newItem: any) => newItem.id === existing.id)
+      ) || []), // fallback to empty array
+      ...(this.generalTechInfoData || []), // fallback to empty array
     ];
+
   }
 
   onCustomerToggleSwitch(event: any, technicalInfo: any): void {
@@ -1231,6 +1398,45 @@ export class TechnicalInfoComponent implements OnInit {
 
 
   // Newly added for payment
+  // getLastOrderForCustomer(): Promise<any> {
+  //   return new Promise((resolve, reject) => {
+  //     const req = {
+  //       domain_name: DOMAIN_NAME,
+  //       user_id: USER_ID,
+  //       extras: {
+  //         find: { customer_id: this.customerdata.id }
+  //       }
+  //     };
+  //     this.hotelenrollmentservice.orderDetailsGetById(req).subscribe({
+  //       next: (res: any) => {
+  //         // this.orderdata = res?.result?.data?.[0] || null;
+  //         // console.log('Latest order data of customer:', this.orderdata);
+  //         // resolve(this.orderdata);/
+  //         console.log('res', res);
+  //         const orders = res?.result?.data || [];
+  //         console.log('All customer orders:', orders);
+  //         // Filter only confirmed orders
+  //         const confirmedOrders = orders.filter((order: any) => order.status === 'Order Confirmed');
+  //         console.log('Confirmed orders:', confirmedOrders);
+  //         // Sort by creation date (descending) to get the most recent one
+  //         const sortedConfirmed = confirmedOrders.sort((a: any, b: any) => {
+  //           const dateA = new Date(a.created_on);
+  //           const dateB = new Date(b.created_on);
+  //           return dateB.getTime() - dateA.getTime(); // latest first
+  //         });
+  //         // Take the latest confirmed order (if any)
+  //         this.orderdata = sortedConfirmed.length > 0 ? sortedConfirmed[0] : null;
+  //         console.log('Latest confirmed order of customer:', this.orderdata);
+  //         resolve(this.orderdata);
+  //       },
+  //       error: (err: any) => {
+  //         console.error('Error fetching last order:', err);
+  //         reject(err);
+  //       }
+  //     });
+  //   });
+  // }
+
   getLastOrderForCustomer(): Promise<any> {
     return new Promise((resolve, reject) => {
       const req = {
@@ -1240,19 +1446,30 @@ export class TechnicalInfoComponent implements OnInit {
           find: { customer_id: this.customerdata.id }
         }
       };
-      this.hotelenrollmentservice.orderDetailsGetById(req).subscribe({
-        next: (res: any) => {
-          this.orderdata = res?.result?.data?.[0] || null;
-          console.log('Latest order data of customer:', this.orderdata);
+      this.hotelenrollmentservice.orderDetailsGetById(req).subscribe(
+        (res: any) => {
+          console.log('Fetching last order of customer...');
+          const orders = res?.result?.data || [];
+          console.log('All customer orders:', orders);
+          const confirmedOrders = orders.filter((order: any) => order.status === 'Order Confirmed');
+          console.log('Confirmed orders:', confirmedOrders);
+          const sortedConfirmed = confirmedOrders.sort((a: any, b: any) => {
+            const dateA = new Date(a.created_on);
+            const dateB = new Date(b.created_on);
+            return dateB.getTime() - dateA.getTime(); // latest first
+          });
+          this.orderdata = sortedConfirmed.length > 0 ? sortedConfirmed[0] : null;
+          console.log('Latest confirmed order of customer:', this.orderdata);
           resolve(this.orderdata);
         },
-        error: (err: any) => {
+        (err: any) => {
           console.error('Error fetching last order:', err);
           reject(err);
         }
-      });
+      );
     });
   }
+
 
   // async payNow() {
   //   // 1.Determine order amount based on property size
@@ -1916,72 +2133,143 @@ export class TechnicalInfoComponent implements OnInit {
   //   });
   // }
 
-  openModal() {
-    $('#paymentType').modal('show');  // or use Angular modal if implemented
-  }
-
-
   async payNow() {
-    // 1️⃣ Fetch last order
+    console.log('Pay now');
+    await this.getCustomerById();
+    // await this.getActiveSubscription();
+    console.log('Customer Data(doing payment):', this.customerdata);
+    // 1 Fetch last order
     await this.getLastOrderForCustomer();
     const lastOrder = this.orderdata || null;
     console.log('Last Order:', lastOrder);
-
     let payment_split: any[] = [];
     let paymentType = "";
     let installments = 1;
     let orderAmount = 1;
-    // 2️⃣ Determine if we have previous cycles
+    // 2 Determine if we have previous cycles
     if (!lastOrder) {
       payment_split = [];
     } else {
       payment_split = lastOrder.payment_split.map((cycle: any) => ({ ...cycle }));
     }
-    // 3️⃣ Check if all cycles are fully paid
+    // 3 Check if all cycles are fully paid
     const allPaid = payment_split.length === 0 || payment_split.every(cycle =>
       cycle.installments.every((inst: any) => inst.status === "Paid")
     );
     if (allPaid) {
-      // 🔹 Create a new cycle based on selected payment type
-      const sizeMap: any = {
-        "01-50 Rooms": 4,
-        "51-101 Rooms": 5,
-        "101-150 Rooms": 6,
-        "50 and above Rooms": 7
-      };
-      orderAmount = sizeMap[this.customerdata.property_details.property_address.property_size] || 1;
+      //  Newly added & commented 
+      // const perRoomCost = this.activeSubscription?.perRoomCost
+      // ended
+      // Create a new cycle based on selected payment type
+      // const sizeMap: any = {
+      //   "01-50 Rooms": 50,
+      //   "51-100 Rooms": 100,
+      //   "101-150 Rooms": 150,
+      //   "50 and above Rooms": 200
+      // };
+      // // Newly added & commented 
+      // const propertySize = this.customerdata?.property_details?.property_address?.property_size;
+      // const totalRooms = sizeMap[propertySize] || 50;
+      // console.log('perRoomCost:', perRoomCost);
+      // console.log('totalRooms:', totalRooms);
+      // Calculate total yearly cost = perRoomCost × rooms × 12 months
+      // const yearlyCost = perRoomCost * totalRooms * 12;
+      // console.log('yearlyCost:', yearlyCost);
+      // // ended
+      // orderAmount = sizeMap[this.customerdata?.property_details?.property_address?.property_size] || 1;
+      // --- Calculate discounted per-room cost ---
+      // const perRoomCost = Number(this.activeSubscription?.perRoomCost).toFixed(2);
+      // const discountType = this.activeSubscription?.discountType|| "";
+      // const discountValue = Number(this.activeSubscription?.discountValue).toFixed(2);
+      // const numberOfRooms = Number(this.customerdata?.property_details?.property_address?.number_of_rooms);
+      // let discountedCost = perRoomCost.toFixed(2);
+      // if (discountType.toLowerCase() === "percentage") {
+      //   discountedCost = perRoomCost - (perRoomCost * discountValue / 100);
+      // } else if (discountType.toLowerCase() === "flat") {
+      //   discountedCost = perRoomCost - discountValue;
+      // }
+      // console.log('Gst per room:', (discountedCost * 0.18).toFixed(2));
+      // // --- Compute yearly cost ---
+      // const yearlyCost = discountedCost * numberOfRooms * 12;
+      // console.log('perRoomCost:', perRoomCost);
+      // console.log('discountType:', discountType);
+      // console.log('discountValue:', discountValue);
+      // console.log('discountedCost:', discountedCost.toFixed(2));
+      // console.log('numberOfRooms:', numberOfRooms);
+      // console.log('yearlyCost:', yearlyCost.toFixed(2));
+      // if (this.selectedIndex === 0) { paymentType = "quarterly"; installments = 4; }
+      // if (this.selectedIndex === 1) { paymentType = "half-yearly"; installments = 2; }
+      // if (this.selectedIndex === 2) { paymentType = "full"; installments = 1; }
+      // // Newly added & commented 
+      // // const subTotalPerInstallment = orderAmount / installments;
+      // const subTotalPerInstallment = yearlyCost / installments;
+      // console.log('subTotalPerInstallment:', subTotalPerInstallment);
+      // // ended
+      // const taxPerInstallment = subTotalPerInstallment * 0.18;
+      // console.log('taxPerInstallment:', taxPerInstallment);
+      // const totalPerInstallment = subTotalPerInstallment + taxPerInstallment;
+      // console.log('totalPerInstallment:', totalPerInstallment);
+      const perRoomCost = Number(this.activeSubscription?.perRoomCost || 0);
+      const discountType = (this.activeSubscription?.discountType || "").toLowerCase();
+      const discountValue = Number(this.activeSubscription?.discountValue || 0);
+      const numberOfRooms = Number(this.customerdata?.property_details?.property_address?.number_of_rooms || 0);
+      let discountedCost = perRoomCost;
+      if (discountType === "percentage") {
+        discountedCost = perRoomCost - (perRoomCost * discountValue / 100);
+      } else if (discountType === "flat") {
+        discountedCost = perRoomCost - discountValue;
+      }
+      discountedCost = Number(discountedCost.toFixed(2));
+      // GST per room (based on discounted cost)
+      const gstPerRoom = Number((discountedCost * 0.18).toFixed(2));
+      //  yearly cost (base only, no GST) ---
+      const yearlyCost = Number((discountedCost * numberOfRooms * 12).toFixed(2));
+      // Compute yearly GST separately ---
+      const yearlyGst = Number((gstPerRoom * numberOfRooms * 12).toFixed(2));
+      // Compute total yearly amount (base + tax) ---
+      const totalYearlyAmount = Number((yearlyCost + yearlyGst).toFixed(2));
+      console.log('Discounted Cost per Room:', discountedCost);
+      console.log('GST per Room:', gstPerRoom);
+      console.log('Yearly Base Cost:', yearlyCost);
+      console.log('Yearly GST:', yearlyGst);
+      console.log('Total Yearly Amount:', totalYearlyAmount);
+      let paymentType = '';
+      let installments = 1;
       if (this.selectedIndex === 0) { paymentType = "quarterly"; installments = 4; }
       if (this.selectedIndex === 1) { paymentType = "half-yearly"; installments = 2; }
       if (this.selectedIndex === 2) { paymentType = "full"; installments = 1; }
-      const subTotalPerInstallment = orderAmount / installments;
-      const taxPerInstallment = subTotalPerInstallment * 0.18;
-      const totalPerInstallment = subTotalPerInstallment + taxPerInstallment;
+      // --- Divide for installment ---
+      const subTotalPerInstallment = Number((yearlyCost / installments).toFixed(2));
+      const taxPerInstallment = Number((yearlyGst / installments).toFixed(2));
+      const totalPerInstallment = Number((subTotalPerInstallment + taxPerInstallment).toFixed(2));
+      console.log('SubTotal (Base) per Installment:', subTotalPerInstallment);
+      console.log('Tax (GST) per Installment:', taxPerInstallment);
+      console.log('Total per Installment:', totalPerInstallment);
       let baseDate = new Date();
       const installmentArr = [];
-
       for (let i = 0; i < installments; i++) {
         let tempDate = new Date(baseDate);
         if (paymentType === "quarterly") tempDate.setMonth(tempDate.getMonth() + (3 * (i + 1)));
         if (paymentType === "half-yearly") tempDate.setMonth(tempDate.getMonth() + (6 * (i + 1)));
         if (paymentType === "full") tempDate.setFullYear(tempDate.getFullYear() + 1);
-
         const subscription_end_date = `${String(tempDate.getDate()).padStart(2, '0')}-${String(tempDate.getMonth() + 1).padStart(2, '0')}-${tempDate.getFullYear()}`;
-
         installmentArr.push({
           status: "Not Paid",
-          sub_total: 0.70,
-          tax: 0.30,
-          order_total_amount: 1.00,
+          // sub_total: 0.70,
+          // tax: 0.30,
+          // order_total_amount: 1.00,
+          sub_total: subTotalPerInstallment,
+          tax: taxPerInstallment,
+          order_total_amount: totalPerInstallment,
           subscription_end_date
         });
       }
-
       payment_split.push({
         name: paymentType,
         installments: installmentArr
       });
     } else {
-      // 🔹 If not all paid, reuse last order's next unpaid installment
+      // If not all paid, reuse last order's next unpaid installment
       const nextUnpaidCycleIndex = payment_split.findIndex(cycle =>
         cycle.installments.some((inst: any) => inst.status === "Not Paid")
       );
@@ -1991,11 +2279,9 @@ export class TechnicalInfoComponent implements OnInit {
       }
       paymentType = payment_split[nextUnpaidCycleIndex].name;
     }
-
     console.log('Payment Split:', payment_split);
     console.log('Payment Type:', paymentType);
-
-    // 4️⃣ Find next unpaid installment
+    // 4 Find next unpaid installment
     let nextUnpaid;
     for (let cycle of payment_split) {
       nextUnpaid = cycle.installments.find((inst: any) => inst.status === "Not Paid");
@@ -2005,34 +2291,38 @@ export class TechnicalInfoComponent implements OnInit {
       console.log("All installments are already paid!");
       return;
     }
-
-    // 5️⃣ Prepare order_review
+    // 5 Prepare order_review
     const order_review = {
       order_summary: {
-        sub_total: nextUnpaid.sub_total,
-        tax: nextUnpaid.tax,
-        order_total_amount: nextUnpaid.order_total_amount
+        // sub_total: nextUnpaid.sub_total,
+        // tax: nextUnpaid.tax,
+        // order_total_amount: nextUnpaid.order_total_amount
+        sub_total: Number(nextUnpaid.sub_total.toFixed(2)),
+        tax: Number(nextUnpaid.tax.toFixed(2)),
+        order_total_amount: Number(nextUnpaid.order_total_amount.toFixed(2))
+        // order_total_amount: 1
       }
     };
-
-    // 6️⃣ Prepare orderData (kept exactly as you provided)
+    console.log('Brand error', this.customerdata);
+    console.log('Amount to be paid:', Number(nextUnpaid.order_total_amount.toFixed(2)));
+    // 6 Prepare orderData (kept exactly as you provided)
     const orderData = {
-      customer_id: this.customerdata.id,
+      customer_id: this.customerdata?.id,
       status: "Awaiting Payment",
       status_id: "1",
       system_label: "Pending",
       orderConfirmDate: new Date(),
       subscription_end_date: nextUnpaid.subscription_end_date,
       customer: {
-        customer_id: this.customerdata.id,
-        customer_name: this.customerdata.first_name,
-        email: this.customerdata.email,
+        customer_id: this.customerdata?.id,
+        customer_name: this.customerdata?.first_name,
+        email: this.customerdata?.email,
         customer_type: "business customer",
-        phone_number: this.customerdata.phone_number,
-        address: this.customerdata.property_details.property_address.property_address,
-        brand: this.customerdata.property_details.contact_details.brand,
-        hotel_name: this.customerdata.property_details.contact_details.hotel_name,
-        property_size: this.customerdata.property_details.property_address.property_size,
+        phone_number: this.customerdata?.phone_number,
+        address: this.customerdata?.property_details?.property_address?.property_address,
+        brand: this.customerdata?.property_details?.contact_details?.brand,
+        hotel_name: this.customerdata?.property_details?.contact_details?.hotel_name,
+        property_size: this.customerdata?.property_details?.property_address?.property_size,
         is_email_opt_in: false
       },
       "shipping": {
@@ -2046,14 +2336,14 @@ export class TechnicalInfoComponent implements OnInit {
         "items_total_quantity": "",
         "shipping_addresses": [
           {
-            "customer_id": this.customerdata.id,
+            "customer_id": this.customerdata?.id,
             "alias": "",
-            "first_name": this.customerdata.first_name,
+            "first_name": this.customerdata?.first_name,
             "gst_number": "",
             "last_name": "",
             "company_name": "",
-            "entire_location": this.customerdata.email,
-            "address1": this.customerdata.property_details.property_address.property_address,
+            "entire_location": this.customerdata?.email,
+            "address1": this.customerdata?.property_details?.property_address?.property_address,
             "landmark": "",
             "city": "",
             "state": "",
@@ -2209,36 +2499,36 @@ export class TechnicalInfoComponent implements OnInit {
       "delivery": {
         "outlet_id": "1",
         "outlet_name": "guest ezee",
-        "email": this.customerdata.property_details.contact_details.email,
-        "phone_number": this.customerdata.property_details.contact_details.primary_phone_number,
-        "address": this.customerdata.property_details.property_address.property_address,
+        "email": this.customerdata?.property_details?.contact_details?.email,
+        "phone_number": this.customerdata?.property_details?.contact_details?.primary_phone_number,
+        "address": this.customerdata?.property_details?.property_address?.property_address,
         "is_email_opt_in": false
       },
       payment_type: paymentType,
       payment_split,
       order_review,
+      customer_member_id: this.customerdata?.customer_member_id,
       organization_id: 46,
       store_id: 1,
       created_by: this.localService.get('UserId'),
       is_deleted: false,
       is_active: true,
-      modified_by: 16
+      modified_by: 16,
+      // Newly added
+      is_registration: true,
+      send_sms: true
     };
-
     console.log('Order Data:', orderData);
-
-    // 7️⃣ Upsert order and generate payment link
+    //  Upsert order and generate payment link
     const requestData = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
       payload: { order_creation: orderData },
       extras: { find: { id: "" } }
     };
-
     this.hotelenrollmentservice.orderUpsert(requestData).subscribe(resp => {
       if (!resp.success) return console.error("Order creation failed");
       this.upsertData = resp.result.data;
-
       const hdfcData = {
         domain_name: DOMAIN_NAME,
         oid: this.upsertData[0].id,
@@ -2270,6 +2560,34 @@ export class TechnicalInfoComponent implements OnInit {
     });
   }
 
+  //  Newly added & commented for Payment modal 
+  // openModal() {
+  //   console.log('opening Modal');
+  //   $('#paymentType').modal('show');
+  // }
+
+  openModal() {
+    this.modalInstance.show();
+  }
+
+  ngAfterViewInit(): void {
+    this.modalInstance = new bootstrap.Modal(this.paymentModal.nativeElement);
+  }
+
+  closeModal() {
+    console.log('Close button clicked');  // Will now work
+    this.modalInstance.hide();
+  }
+
+  // closeModal() {
+  //   console.log('closing Modal');
+  //   const modalEl: any = document.getElementById('paymentType');
+  //   console.log('modalEl', modalEl);
+  //   const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+  //   console.log('modal', modal);
+  //   modal.hide();
+  // 
+  // }
 
 
 }

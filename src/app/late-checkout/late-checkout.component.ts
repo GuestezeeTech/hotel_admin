@@ -154,7 +154,8 @@ export class LateCheckoutComponent {
           this.guestData = resp.result.data[0];
           console.log(this.guestData, "Guest Booking");
           this.getBookingStatus(this.guestData.Reserve_No);
-          this.getAllTask(this.guestData.Guest_detail[0].Guest_Id)
+          // this.getAllTask(this.guestData.Guest_detail[0].Guest_Id)
+          this.getAllTask(this.guestData.id)
         }
       },
       err => {

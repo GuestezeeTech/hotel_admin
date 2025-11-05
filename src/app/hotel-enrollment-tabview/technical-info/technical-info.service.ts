@@ -87,11 +87,19 @@ export class TechnicalInfoService {
 
   // Newly added for payment 
   // For caaling payNow function
-  private payNowSubject = new Subject<void>();
+  // private payNowSubject = new Subject<void>();
+  // payNow$ = this.payNowSubject.asObservable();
+
+  // triggerPayNow() {
+  //   this.payNowSubject.next();
+  // }
+
+  private payNowSubject = new Subject<number | null>();
   payNow$ = this.payNowSubject.asObservable();
 
-  triggerPayNow() {
-    this.payNowSubject.next();
+  triggerPayNow(index: number | null = null) {
+    console.log('triggerPayNow called with index:', index);
+    this.payNowSubject.next(index);
   }
 
   // For calling payment type modal
@@ -99,6 +107,7 @@ export class TechnicalInfoService {
   modalTrigger$ = this.modalTrigger.asObservable();
 
   openModal() {
+    console.log('open modal');
     this.modalTrigger.next();
   }
 

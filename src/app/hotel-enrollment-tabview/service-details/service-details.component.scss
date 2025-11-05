@@ -145,7 +145,16 @@ img {
 }
 
 // Newly added the appearance of disabled sections
+// .disabled-section {
+//   pointer-events: none;
+//   opacity: 0.7;
+// }
 .disabled-section {
-  pointer-events: none;
   opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.disabled-section * {
+  pointer-events: none;  /* disable all interactions inside */
+  cursor: not-allowed;   /* show the not-allowed cursor everywhere */
 }

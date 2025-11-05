@@ -184,7 +184,8 @@
       </div>
       <div class="form-group form1_div">
         <label>Pincode</label>
-        <input class="input_box" type="text" formControlName="property_pincode"  (keypress)="onlyAllowSixDigits($event)" (paste)="handlePaste($event)" />
+        <input class="input_box" type="text" formControlName="property_pincode" (keypress)="onlyAllowSixDigits($event)"
+          (paste)="handlePaste($event)" />
         <span
           *ngIf="customerProprtyDetailsForm.controls['property_pincode'].invalid && customerProprtyDetailsForm.controls['property_pincode'].touched">
           Pincode is required
@@ -226,8 +227,8 @@
       </div>
     </div>
   </div>
-  <div class="section">
-    <h3 style="font-size: 20px;font-weight: 600;">Property Size<a style="font-size: 13px;color: #A0A0A0;"> - All fields
+  <!-- <div class="section">
+    <h3 style="font-size: 20px;font-weight: 600;">Property Size<a style="font-size: 13px;color: #A0A0A0;">– Each room is charged ₹450 per month - All fields
         are required </a></h3>
     <div style="display: grid;grid-template-columns: repeat(4, 1fr);row-gap: 3%;">
       <div class="form-group form2_div">
@@ -259,7 +260,147 @@
         </div>
       </div>
     </div>
+  </div> -->
+  <div class="section">
+    <h3 style="font-size: 20px;font-weight: 600;">
+      Property Size
+      <a style="font-size: 13px;color: #A0A0A0;">
+        – Each room is charged ₹{{ singleRoomFinalPrice }} per month - All fields are required
+      </a>
+    </h3>
+    <div style="display: grid;grid-template-columns: repeat(4, 1fr);row-gap: 3%;">
+      <div class="form-group form2_div">
+        <div class="form-check">
+          <input type="radio" class="form-check-input" id="radio1" name="property_size" value="01-50 Rooms"
+            formControlName="property_size" [checked]="selectedPropertySize === '01-50 Rooms'"
+            (change)="onPropertySizeChange('01-50 Rooms')">
+          <small style="white-space: nowrap;">01-50 Rooms (Rs. {{ getTotalCostForOption('01-50 Rooms') | number:'1.0-0'
+            }})</small>
+          <label class="form-check-label" for="radio1"></label>
+        </div>
+      </div>
+      <div class="form-group form2_div">
+        <div class="form-check">
+          <input type="radio" class="form-check-input" id="radio2" name="property_size" value="51-100 Rooms"
+            formControlName="property_size" [checked]="selectedPropertySize === '51-100 Rooms'"
+            (change)="onPropertySizeChange('51-100 Rooms')">
+          <small style="white-space: nowrap;">51-100 Rooms (Rs. {{ getTotalCostForOption('51-100 Rooms') |
+            number:'1.0-0' }})</small>
+          <label class="form-check-label" for="radio2"></label>
+        </div>
+      </div>
+      <div class="form-group form2_div">
+        <div class="form-check">
+          <input type="radio" class="form-check-input" id="radio3" name="property_size" value="101-150 Rooms"
+            formControlName="property_size" [checked]="selectedPropertySize === '101-150 Rooms'"
+            (change)="onPropertySizeChange('101-150 Rooms')">
+          <small style="white-space: nowrap;">101-150 Rooms (Rs. {{ getTotalCostForOption('101-150 Rooms') |
+            number:'1.0-0' }})</small>
+          <label class="form-check-label" for="radio3"></label>
+        </div>
+      </div>
+      <div class="form-group form2_div">
+        <div class="form-check">
+          <input type="radio" class="form-check-input" id="radio4" name="property_size" value="150 and above Rooms"
+            formControlName="property_size" [checked]="selectedPropertySize === '150 and above Rooms'"
+            (change)="onPropertySizeChange('150 and above Rooms')">
+          <small style="white-space: nowrap;">150 and above Rooms (Rs. {{ getTotalCostForOption('150 and above Rooms') |
+            number:'1.0-0' }})</small>
+          <label class="form-check-label" for="radio4"></label>
+        </div>
+      </div>
+    </div>
   </div>
+
+  <div class="section">
+    <h3 style="font-size: 20px; font-weight: 600;">
+      Number of Rooms
+      <a style="font-size: 13px; color: #A0A0A0;">– Enter total number of rooms <span style="color: red">*</span></a>
+    </h3>
+    <div class="form-group form2_div" style="max-width: 500px; display: flex; align-items: center; gap: 10px;">
+      <input type="number" class="form-control" formControlName="number_of_rooms" placeholder="Enter number of rooms"
+        style="background-color: white; width: 250px;" min="1" (keypress)="allowOnlyNumbers($event)"
+        (input)="onRoomNumberChange()" />
+      <!-- <span *ngIf="customerProprtyDetailsForm.get('number_of_rooms')?.value > 0"
+        style="color: #800020; font-size: 14px;" class="fw-bold">
+        Total Cost: ₹{{ totalCost | number:'1.0-0' }}
+      </span> -->
+    </div>
+    <div
+      *ngIf="customerProprtyDetailsForm.get('number_of_rooms')?.errors && customerProprtyDetailsForm.get('number_of_rooms')?.touched"
+      style="color: red; font-size: 13px; margin-top: 5px;">
+      <span *ngIf="customerProprtyDetailsForm.get('number_of_rooms')?.errors?.['required']">
+        Room number is required.
+      </span>
+      <span *ngIf="customerProprtyDetailsForm.get('number_of_rooms')?.errors?.['min']">
+        Must be greater than 0.
+      </span>
+      <span *ngIf="customerProprtyDetailsForm.get('number_of_rooms')?.errors?.['maxExceeded']">
+        Number of rooms exceeds the limit for selected property size (Max: {{ propertySizeLimits[selectedPropertySize]
+        }}).
+      </span>
+    </div>
+  </div>
+
+  <!-- Newly added for company logo upload -->
+  <div class="section pt-0">
+    <h3 style="font-size: 20px; font-weight: 600;">
+      Company Logo
+      <span style="font-size: 13px; color: #A0A0A0;">
+        - Upload one logo image <span style="color: red;">*</span> (This is mandatory. Please upload a logo before
+        submitting)
+      </span>
+    </h3>
+    <div class="row align-items-center mt-3">
+      <!-- Upload Area -->
+      <div class="col-md-6">
+        <div class="upload-box text-center">
+          <div class="upload-content">
+            <div class="d-flex flex-column"> <i class="bi bi-upload" style="font-size: 22px; color: #8b0000"></i>
+              <!-- Hidden file input --> <input type="file" #logoInput class="d-none" (change)="onLogoChange($event)"
+                accept=".jpg,.jpeg,.png" /> <!-- Upload button --> <button class="btn btn-maroon upload-btn mt-2"
+                (click)="logoInput.click()" [disabled]="logoUploading || this.status === 'approved'"> {{ hotelLogoUrl ? 'Replace Logo'
+                : 'Upload Logo'
+                }}
+              </button> </div>
+            <p class="text-muted small mt-1">Allowed formats: JPG, JPEG, PNG • Max size: 2MB</p>
+          </div>
+        </div>
+      </div>
+      <!-- Preview Area -->
+      <div class="col-md-6">
+        <div class="border rounded text-center"
+          style="background-color: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.1); padding: 16px; transition: box-shadow 0.3s ease; display: flex; flex-direction: column; align-items: center;">
+          <h6 style="font-weight: 600; color: #555; margin-bottom: 16px;">Logo Preview</h6>
+          <div class="d-flex flex-column align-items-center justify-content-center rounded"
+            style="height: 160px; width: 130px; padding: 0;">
+            <!-- Show logo if uploaded -->
+            <ng-container *ngIf="hotelLogoUrl; else noLogo">
+              <img [src]="hotelLogoUrl" alt="Hotel Logo"
+                style="width: 100%; height: 100%; object-fit: cover; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); margin-bottom: 10px;" />
+            </ng-container>
+            <!-- Placeholder when no logo -->
+            <ng-template #noLogo>
+              <div class="d-flex align-items-center justify-content-center"
+                style="width: 100%; height: 100%; color: #888; font-size: 14px; text-align: center;background-color: #f8f8f8;">
+                No Logo Uploaded
+              </div>
+            </ng-template>
+            <!-- <img [src]="hotelLogoUrl" alt="Hotel Logo"
+              style="width: 100%; height: 100%; object-fit: cover; border-radius: 6px; border: 1px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.08); margin-bottom: 10px;" /> -->
+            <div class="d-flex align-items-center gap-3" style="gap: 16px; margin-top: 4px;">
+              <i class="bi bi-eye cursor-pointer" (click)="previewLogo()"></i>
+              <i class="bi bi-trash3 cursor-pointer" (click)="removeLogo()" [class.disabled-icon]="this.status === 'approved'"></i>
+              <span class="badge text-white" [ngClass]="hotelLogoUrl ? 'bg-success' : 'bg-secondary'">
+                {{ hotelLogoUrl ? 'Uploaded' : 'No Logo Uploaded' }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- <div class="section">
     <h3 style="font-size: 20px;font-weight: 600;">Company Status (KYC)</h3>
     <div style="display: flex; flex-wrap: wrap; gap: 10%">
@@ -302,8 +443,10 @@
       </div>
     </div>
   </div> -->
+
   <div class="section">
-    <h3>Company Status (KYC)<a style="font-size: 13px;color: #A0A0A0;"> - All fields are required </a></h3>
+    <h3 style="font-size: 20px;font-weight: 600;">Company Status (KYC)<a style="font-size: 13px;color: #A0A0A0;"> - All
+        fields are required </a></h3>
     <div style="display: flex; flex-wrap: wrap; gap: 10%">
       <div class="form-group form2_div" *ngFor="let option of companyStatusOptions">
         <div class="form-check">
@@ -378,7 +521,7 @@
               </div>
               <!-- Dynamic Upload Button -->
               <button class="btn btn-maroon upload-btn mt-2" (click)="fileInput.click()"
-                [disabled]="!nextPendingDocument">
+                [disabled]="!nextPendingDocument || this.status === 'approved'">
                 {{ nextPendingDocument ? 'Upload ' + nextPendingDocument : 'All Documents Uploaded' }}
               </button>
             </div>
@@ -401,10 +544,10 @@
             </div>
           </div>
           <div class="action-icons d-flex align-items-center gap-3">
-            <i class="bi bi-trash3 cursor-pointer" (click)="removeDocument(doc.name)"></i>
+            <i class="bi bi-trash3 cursor-pointer" (click)="removeDocument(doc.name)" [class.disabled-icon]="this.status === 'approved'"></i>
             <i class="bi bi-eye cursor-pointer" (click)="previewDocument(doc.name)"></i>
             <i class="bi bi-upload cursor-pointer" *ngIf="!uploadedDocuments[doc.name]" (click)="fileInput.click()"></i>
-            <span *ngIf="uploadedDocuments[doc.name]" class="badge bg-success text-white">Uploaded</span>
+            <span *ngIf="uploadedDocuments[doc.name] || this.status === 'approved'" class="badge bg-success text-white">Uploaded</span>
           </div>
         </div>
       </div>
@@ -426,7 +569,7 @@
               </div>
               <!-- Dynamic Upload Button -->
               <button class="btn btn-maroon upload-btn mt-2" (click)="fileInput.click()"
-                [disabled]="!hasPendingDocument || paymentDone">
+                [disabled]="!hasPendingDocument || this.status === 'approved'">
                 {{ hasPendingDocument ? 'Upload ' + nextApiPendingDocument : 'All Documents Uploaded' }}
               </button>
             </div>
@@ -449,9 +592,10 @@
             </div>
           </div>
           <div class="action-icons d-flex align-items-center gap-3">
+            {{this.customerStatus}}
             <!-- Newly added - paymentDone for button disable view -->
             <i class="bi bi-trash3 cursor-pointer" (click)="removeDocumentApi(doc)"
-              [class.disabled-icon]="paymentDone"></i>
+              [class.disabled-icon]="this.customerStatus === 'approved'"></i>
             <i class="bi bi-eye cursor-pointer" (click)="previewApiDocument(doc.document_url)">
             </i>
             <i class="bi bi-upload cursor-pointer" *ngIf="(doc.document_url == '')" (click)="fileInput.click()"></i>
@@ -463,15 +607,23 @@
   </div>
   <div style="display: flex;justify-content: flex-end;">
     <button type="submit" class="cancel_bt" (click)="back()">Back</button>&nbsp;&nbsp;
-    <button type="submit" class="save_bt" *ngIf="this.customerdata.property_details?.kyc_documents == undefined"
-      (click)="onSubmit()" [disabled]="(customerProprtyDetailsForm.invalid || (!isAllDocumentsUploaded()))">Save &
+    <button type="submit" class="save_bt" *ngIf="this.customerdata.property_details?.kyc_documents == undefined "
+      (click)="onSubmit()"
+      [disabled]="(customerProprtyDetailsForm.invalid || (!isAllDocumentsUploaded()) || !hotelLogoUrl)">Save &
       Continue</button>
-    <button type="submit" class="save_bt"
+    <!-- <button type="submit" class="save_bt"
       *ngIf="this.customerdata.property_details?.kyc_documents?.uploaded_documents.length > 0 && !paymentDone"
-      (click)="onSubmit()" [disabled]="(customerProprtyDetailsForm.invalid || (!isAllApiDocumentsUploaded()))">Save
+      (click)="onSubmit()"
+      [disabled]="(customerProprtyDetailsForm.invalid || (!isAllApiDocumentsUploaded()) || !hotelLogoUrl)">Save
+      &
+      Continue</button> -->
+      <button type="submit" class="save_bt"
+      *ngIf="this.customerdata.property_details?.kyc_documents?.uploaded_documents.length > 0 && this.status !== 'approved'"
+      (click)="onSubmit()"
+      [disabled]="(customerProprtyDetailsForm.invalid || (!isAllApiDocumentsUploaded()) || !hotelLogoUrl)">Save
       &
       Continue</button>
-      <!-- <button type="submit" class="save_bt"
+    <!-- <button type="submit" class="save_bt"
       *ngIf="this.customerdata.property_details?.kyc_documents?.uploaded_documents.length > 0"
       (click)="onSubmit()" [disabled]="(customerProprtyDetailsForm.invalid || (!isAllApiDocumentsUploaded()))">Save
       &

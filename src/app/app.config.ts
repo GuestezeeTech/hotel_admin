@@ -10,6 +10,8 @@ export const appConfig: ApplicationConfig = {
 
 export const API_URL = environment.devURL
 export const API_URL1 = "https://www.guestezee.com"
+export const API_URL2 = "http://www.guestezee.com"
+export const API_URL3 = "http://164.52.214.114"
 
 export const DOMAIN_NAME = "https://www.guestezee.com"
 export const USER_ID = 16
@@ -63,7 +65,7 @@ export const ENDPOINTS = {
   POSTGETALL: API_URL + ':6527/announcement/getall',
   NEWSGETALL: API_URL + ':6528/news/getall',
   CLEMEMBERSGETALL: API_URL1 + ':9422/product/getall',
-   DELETE_PRODUCT: API_URL1 + ':9666/product/delete',
+  DELETE_PRODUCT: API_URL1 + ':9666/product/delete',
   STANDARDEMAILTEMPLATEEDIT: API_URL + ':5411/emailtemplate/update',
   STANDARDEMAILTEMPLATEDELETE: API_URL + ':5411/emailtemplate/delete',
   STANDARDEMAILTEMPLATEGETALL: API_URL + ':9428/emailtemplate/getall',
@@ -222,9 +224,9 @@ export const ENDPOINTS = {
   SEARCH_PRODUCT: API_URL + ":9471/autocomplete/product",
 
   SEARCH_LOYALTY_PRPGRAM_MEMBER: API_URL + ":9489/loyalityprogrammember/getbyname",
-  OUTLET_CREATE:API_URL1 + ":5464/outlet/create",
-  OUTLET_UPDATE: API_URL1 + ":5464/outlet/update",
-  OUTLET_DELETE: API_URL1+ ":5464/outlet/delete",
+  OUTLET_CREATE: API_URL1 + ":6570/outlet/create",
+  OUTLET_UPDATE: API_URL1 + ":6570/outlet/update",
+  OUTLET_DELETE: API_URL1 + ":6570/outlet/delete",
   OUTLET_GETALL: API_URL1 + ":9454/outlet/getall",
   OUTLET_GETBYID: API_URL1 + ":9454/outlet/getbyid",
   GET_ORDERDELIVERIES_BY_ID: API_URL + ":9464/orderdeliverylogs/getbyid",
@@ -528,5 +530,10 @@ export const ENDPOINTS = {
   GET_ALL_REPORTS: API_URL + ':1218/report/getall',
   GET_TASK_RATINGS: API_URL + ':9545/productreviews/getall',
   GET_ALL_BOOKING_STATUS: API_URL + ':1219/booking/getall',
+  GET_CHECKOUT_BY_ID: API_URL + ':1220/checkout/getbyid',
+  GENERATE_SMS_PHONE: API_URL + ':5622/sms/GenerateSMS',
+  GET_ALL_SUBSCRIPTION: API_URL + ':1250/paymentsubscription/getall',
+  GENERRATE_NAME_PASSWORD: API_URL + ':5622/sms/SendUserDataSms',
+  STAFF_LOGIN: API_URL + ':1215/login',
 }
 

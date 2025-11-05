@@ -15,23 +15,28 @@
         ? 'Enter OTP' : 'Create New Password'}}</h4>
       <div class="login_content_container">
         <p style="width: 70%;color: #878E96;font-size: 15px">
-          {{ this.login ? 'We kindly request that you provide your Email address and password in order to gain access to
+          {{ this.login ? 'We kindly request that you provide your Email address / Employee ID and password in order to
+          gain access to
           our incredible platform' : this.signup ? 'We kindly request that you provide your Email address and Phone
           Number in order to create an access to our incredible platform' : this.otp ? 'We kindly request that you
           provide your OTP which you received via SMS in order to create an access to our incredible platform' : 'We
           kindly request that you to enter your new Password in order to create an access to our incredible platform'}}
         </p>
       </div>
-
       <!-- Login Form -->
       <div class="login_form_container" *ngIf="login">
         <form [formGroup]="loginForm" style="width: 80%;margin-top: 4%;">
           <div class="form-group">
-            <input type="text" class="form-control login_content_color" id="usr" name="username" placeholder="Email"
-              formControlName="email">
-            <div *ngIf="loginForm.controls['email'].invalid && loginForm.controls['email'].touched"
-              class="error-message" style="color: red;">
-              Please enter a valid email address.
+            <input type="text" class="form-control login_content_color" id="usr" name="username"
+              placeholder="Email or Employee ID Number" formControlName="email">
+            <div class="mt-1" style="color: red;"
+              *ngIf="loginForm.controls['email'].touched && loginForm.controls['email'].errors">
+              <div *ngIf="loginForm.controls['email'].errors?.['required']">
+                Email or Employee ID is required.
+              </div>
+              <div *ngIf="loginForm.controls['email'].errors?.['invalid']">
+                Invalid Email or Employee ID.
+              </div>
             </div>
           </div>
           <div class="form-group mb-0">

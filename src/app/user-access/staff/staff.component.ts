@@ -90,6 +90,7 @@ export class StaffComponent implements OnInit {
     keepAfterRouteChange: false
   };
   memberId: any;
+  memberIdDisplay: any;
 
   constructor(
     private formBuilder: FormBuilder,
@@ -102,7 +103,7 @@ export class StaffComponent implements OnInit {
     private hierarchyService: HierarchyDetailService,
     private staffListingService: StaffListingService,
     private hierarchyLowestService: HierarchyService,
-    private hotelenrollmentservice: HotelEnrollmentTabviewService
+    private hotelenrollmentservice: HotelEnrollmentTabviewService,
   ) { }
 
   async ngOnInit(): Promise<void> {
@@ -112,10 +113,10 @@ export class StaffComponent implements OnInit {
       full_name: this.formBuilder.control('', [Validators.required, Validators.maxLength(30),]),
       phone_number: this.formBuilder.control('', [Validators.required, Validators.maxLength(10), Validators.pattern(/^[0-9]{10}$/)]),
       // employee_id: this.formBuilder.control('', [Validators.required]),
-      // higher_level_hierarchy: this.formBuilder.control('', [Validators.required]),
-      higher_level_hierarchy: this.formBuilder.control(''),
+      higher_level_hierarchy: this.formBuilder.control('', [Validators.required]),
+      // higher_level_hierarchy: this.formBuilder.control(''),
       // higher_level_officer: this.formBuilder.control('', [Validators.required]),
-      higher_level_officer: this.formBuilder.control(''),
+      higher_level_officer: this.formBuilder.control(null),
       hierarchy: this.formBuilder.control('', [Validators.required]),
       shift_time: this.formBuilder.control('', [Validators.required]),
       room_no: this.formBuilder.control('', [Validators.required]),
@@ -123,6 +124,8 @@ export class StaffComponent implements OnInit {
       at_desk: this.formBuilder.control('', [Validators.required]),
       password: this.formBuilder.control('', [Validators.required, Validators.minLength(6), Validators.maxLength(30),]),
     })
+    // Apply conditional validator for higher_level_officer
+    this.updateHigherLevelOfficerValidator();
     // For gettting time slots & room range from settings module
     // const slots = this.localStorageService.get('selectedSlots');
     // this.selectedSlots = slots ? JSON.parse(slots) : [];
@@ -172,6 +175,17 @@ export class StaffComponent implements OnInit {
   // For throwing error
   get f() { return this.staffForm.controls; }
 
+  updateHigherLevelOfficerValidator() {
+    const officerControl = this.staffForm.get('higher_level_officer');
+    if (!this.isFirstStaff && this.showHigherLevelOfficer && this.showLowestHigherLevelOfficer) {
+      officerControl?.setValidators([Validators.required]);
+    } else {
+      officerControl?.clearValidators();
+    }
+    officerControl?.updateValueAndValidity();
+  }
+
+
   getCustomerById(): Promise<void> {
     const memberId = this.localStorageService.get('MemberId');
     console.log('getCustomerById called with hotelId:', memberId, this.hotelId);
@@ -203,6 +217,10 @@ export class StaffComponent implements OnInit {
             const room_ranges = this.localStorageService.get('roomRange');
             this.roomRanges = room_ranges ? JSON.parse(room_ranges) : [];
             console.log('Selected Room Range:', this.roomRanges);
+            // Newly added for placeholder member id
+            const memberIdForDisplay = this.memberId.substring(1) + 'XXX';
+            this.memberIdDisplay = memberIdForDisplay;
+            console.log('Member Id Display:', this.memberIdDisplay);
             resolve();
           }
         },
@@ -258,6 +276,16 @@ export class StaffComponent implements OnInit {
         };
       }
       console.log('Selected Officer Details:', this.officersData.length);
+      // Newly added for is_available
+      // Determine is_available based on hierarchy structure
+      let isAvailable = false;
+      const selectedHierarchy = formValues.hierarchy; // from form selection
+      if (selectedHierarchy && this.customerHierarchy?.hierarchy?.length > 0) {
+        const lowerHierarchy = this.customerHierarchy.hierarchy.find(
+          (item: any) => item.parentId === selectedHierarchy.id
+        );
+        isAvailable = !!lowerHierarchy; // true if any lower hierarchy exists
+      }
       // Check phone number against existing staff
       const requestBody = {
         domain_name: DOMAIN_NAME,
@@ -292,13 +320,15 @@ export class StaffComponent implements OnInit {
             is_staff_active: formValues.is_staff_active,
             member_id: this.memberId,
             higher_level_officer: officerDetails,
-            password: formValues.password
+            password: formValues.password,
+            is_available: isAvailable
           };
           const requestData: any = {
             domain_name: DOMAIN_NAME,
             user_id: USER_ID,
             payload: { staff_creation: payloadData }
           };
+          console.log('Payload Data:', requestData);
           this.staffService.addStaff(requestData).subscribe({
             next: (resp) => {
               this.loaderService.emitComplete();
@@ -342,7 +372,6 @@ export class StaffComponent implements OnInit {
 
   // For saving the existing staff form
   saveFormChanges() {
-    console.log('Clicked');
     this.editScreen = this.enableEdit;
     // if (this.officersData.length == 0) {
     //   this.alertService.error('No officer available for this hierarchy. Cannot create staff.', this.alertOptions);
@@ -351,7 +380,17 @@ export class StaffComponent implements OnInit {
     this.showalertmsg = true;
     // this.staffForm.get('room_no')?.setValue(this.selectedRooms.length ? this.selectedRooms : null);
     // this.staffForm.get('shift_time')?.setValue(this.selectedShiftTimes.length ? this.selectedShiftTimes : null);
+    // this.staffForm.updateValueAndValidity();
+    // Sync custom dropdowns with form controls
+    this.staffForm.get('shift_time')?.setValue(
+      this.selectedShiftTimes.length ? this.selectedShiftTimes.map(st => ({ label: st.label })) : null
+    );
+    this.staffForm.get('room_no')?.setValue(
+      this.selectedRooms.length ? this.selectedRooms.map(r => ({ label: r.label })) : null
+    );
     this.staffForm.updateValueAndValidity();
+    // Update dynamic validator for higher_level_officer
+    this.updateHigherLevelOfficerValidator();
     const selectedOfficer = this.staffForm.get('higher_level_officer')?.value;
     let officerDetails = null;
     if (selectedOfficer) {
@@ -413,7 +452,11 @@ export class StaffComponent implements OnInit {
           payloadData.password = formValues.password;
         }
         // Add higher_level_officer only if condition true
-        if (this.showHigherLevelOfficer) {
+        // if (this.showHigherLevelOfficer) {
+        //   payloadData.higher_level_officer = officerDetails;
+        // }
+        // Include higher_level_officer only if visible and selected
+        if (!this.isFirstStaff && this.showHigherLevelOfficer && this.showLowestHigherLevelOfficer && officerDetails) {
           payloadData.higher_level_officer = officerDetails;
         }
         const formatJson = {
@@ -510,6 +553,8 @@ export class StaffComponent implements OnInit {
                     higher_level_officer: null
                   });
                 }
+                // Update the validator dynamically
+                this.updateHigherLevelOfficerValidator();
               }
             })
           this.password = respData.password;

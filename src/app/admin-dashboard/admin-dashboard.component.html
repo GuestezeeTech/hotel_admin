@@ -123,7 +123,7 @@
                                     </ng-container>
                                     <!-- Show numeric rating -->
                                     <span class="ms-2 fw-bold" style="font-size: 14px; color: #252525;">
-                                        {{ review.avg_rating }}
+                                        {{ review.avg_rating.toFixed(2) }}
                                     </span>
                                     <img src="../../assets/images/guestezee/girl.png" alt="Star illustration"
                                         class="img-fluid mt-2" />
@@ -190,7 +190,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                 <tr *ngIf="allBookings.length === 0">
+                                 <tr *ngIf="allBookings.length == 0">
                                     <td colspan="6" style="text-align: center; color: #888;">
                                         No guests available
                                     </td>

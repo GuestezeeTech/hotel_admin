@@ -151,6 +151,17 @@ export class ScheduledComponent {
   totalPages: number = 0; // Total number of pages
   allTasks: any[] = [];
   customerType: any;
+  hotelId: any;
+  memberId: any;
+  // Newly added - Menu
+  isMenuModalOpen: boolean = false;
+  selectedMenuItems: any[] = [];
+  selectedTotalAmount: number = 0;
+  selectedMenuRoom: string = '';
+  // Newly added - Help Service
+  isHelpServiceModalOpen: boolean = false;
+  selectedHelpServiceTask: any = null;
+  searchRoomNo: string = '';
 
   constructor(
     private router: Router,
@@ -159,9 +170,18 @@ export class ScheduledComponent {
     private alertService: AlertsService,
     private hotelListService: HotelListService) { }
 
-  ngOnInit() {
-    this.member_id = this.localService.get('MemberId');
+  async ngOnInit() {
+    this.customerType = this.localService.get('CustomerType');
+    this.hotelId = Number(this.localService.get('UserId'));
+    console.log('Hotel Id:', this.hotelId);
+    // this.member_id = this.localService.get('MemberId');
     // To load inital all tasks
+    if (this.customerType == 'Customer') {
+      await this.getCustomerMemberId(this.hotelId);
+    }
+    else {
+      this.member_id = this.localService.get('MemberId');
+    }
     this.getAllScheduledTask();
     // Escalation timer for tasks(from hierarchy)
     this.escalationHierarchy = this.localService.get('hierarchy');
@@ -269,9 +289,36 @@ export class ScheduledComponent {
   //   });
   // }
 
+  getCustomerMemberId(hotelId: any): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const requestBody = {
+        domain_name: DOMAIN_NAME,
+        user_id: USER_ID,
+        extras: {
+          find: { id: hotelId }
+        }
+      };
+      this.hotelListService.getSignupAllCustomers(requestBody).subscribe({
+        next: (res: any) => {
+          if (res && res.result.data.length > 0) {
+            const customer = res.result.data[0];
+            console.log('Customer Data:', customer);
+            this.member_id = customer.customer_member_id;
+            resolve(this.memberId); // resolves with memberId
+          } else {
+            reject('No customer found');
+          }
+        },
+        error: (err: any) => {
+          reject(err); // handle API error
+        }
+      });
+    });
+  }
+
   getAllScheduledTask() {
     this.customerType = this.localService.get('CustomerType');
-    let memberId = this.localService.get('MemberId');
+    let memberId = this.member_id;
     if (this.customerType === 'Customer') {
       this.callScheduledTaskApi({
         status: ['Scheduled', "Assigned", "Acknowledged"],
@@ -331,10 +378,86 @@ export class ScheduledComponent {
     let staffDataParse = JSON.parse(staffData);
     this.at_desk = staffDataParse?.at_desk;
     let object: any = { status: ['Scheduled', "Assigned", "Acknowledged"] };
+    // Convert labelRoomArray into a final room list
+    // Newly added 
+    // this.labelRoomArray = ['1-100'];
+    let roomList: string[] = [];
+    const expandAlphaRange = (start: string, end: string): string[] => {
+      const result: string[] = [];
+      const toNumber = (str: string) => {
+        let n = 0;
+        for (let i = 0; i < str.length; i++) {
+          n = n * 26 + (str.charCodeAt(i) - 65 + 1);
+        }
+        return n;
+      };
+      const toLetters = (num: number) => {
+        let s = '';
+        while (num > 0) {
+          let rem = (num - 1) % 26;
+          s = String.fromCharCode(65 + rem) + s;
+          num = Math.floor((num - 1) / 26);
+        }
+        return s;
+      };
+      const startNum = toNumber(start.toUpperCase());
+      const endNum = toNumber(end.toUpperCase());
+      for (let i = startNum; i <= endNum; i++) {
+        result.push(toLetters(i));
+      }
+      return result;
+    };
+    this.labelRoomArray.forEach((room: any) => {
+      const value = String(room).trim();
+      const alphaNumericRange = value.match(/^([A-Za-z0-9]+)-([A-Za-z0-9]+)$/);
+      if (alphaNumericRange) {
+        const start = alphaNumericRange[1];
+        const end = alphaNumericRange[2];
+        // Numeric range: "1-100"
+        if (!isNaN(Number(start)) && !isNaN(Number(end))) {
+          for (let i = Number(start); i <= Number(end); i++) {
+            roomList.push(String(i));
+          }
+        }
+        // Numeric prefix + single-letter suffix: "1A-1Z"
+        else if (/^\d+[A-Z]+$/i.test(start) && /^\d+[A-Z]+$/i.test(end)) {
+          const prefix = start.match(/^\d+/)![0];
+          const startSuffix = start.slice(prefix.length);
+          const endSuffix = end.slice(prefix.length);
+          roomList.push(
+            ...expandAlphaRange(startSuffix.toUpperCase(), endSuffix.toUpperCase()).map(
+              suffix => `${prefix}${suffix}`
+            )
+          );
+        }
+        // Letter prefix + numeric suffix: "A1-A5"
+        else if (/^[A-Z]+\d+$/i.test(start) && /^[A-Z]+\d+$/i.test(end)) {
+          const prefix = start.match(/^[A-Z]+/i)![0];
+          const startNum = parseInt(start.slice(prefix.length));
+          const endNum = parseInt(end.slice(prefix.length));
+          for (let i = startNum; i <= endNum; i++) {
+            roomList.push(`${prefix}${i}`);
+          }
+        }
+        // Pure alphabetic range: "AA-AZ"
+        else if (/^[A-Z]+$/i.test(start) && /^[A-Z]+$/i.test(end)) {
+          roomList.push(...expandAlphaRange(start.toUpperCase(), end.toUpperCase()));
+        }
+        // Fallback: treat as single string
+        else {
+          roomList.push(value);
+        }
+      } else {
+        roomList.push(value); // single room
+      }
+    });
+    this.labelRoomArray = roomList;
+    console.log('Room Number:', this.labelRoomArray);
+    // Ended
     if (this.at_desk) {
       object = {
         status: ['Scheduled', "Assigned", "Acknowledged"],
-        "service.category": department,
+        // "service.category": department,
         room_no: this.labelRoomArray,
         member_id: this.member_id
       };
@@ -342,7 +465,7 @@ export class ScheduledComponent {
       if (this.labelRoomArray.length > 0) {
         object = {
           status: ['Scheduled', "Assigned", "Acknowledged"],
-          "service.category": department,
+          // "service.category": department,
           room_no: this.labelRoomArray,
           staff_id: Number(this.localService.get('UserId')),
           member_id: this.member_id
@@ -350,11 +473,14 @@ export class ScheduledComponent {
       } else {
         object = {
           status: ['Scheduled', "Assigned", "Acknowledged"],
-          "service.category": department,
+          // "service.category": department,
           staff_id: Number(this.localService.get('UserId')),
           member_id: this.member_id
         };
       }
+    }
+    if (department && department !== 'Select') {
+      object["service.category"] = department;
     }
     this.callScheduledTaskApi(object);
   }
@@ -399,10 +525,22 @@ export class ScheduledComponent {
     });
   }
 
+  // updatePaginatedTasks() {
+  //   const startIndex = (this.currentPage - 1) * this.pageSize;
+  //   const endIndex = startIndex + this.pageSize;
+  //   this.allTasks = this.scheduledTasks.slice(startIndex, endIndex);
+  // }
+
   updatePaginatedTasks() {
+    const searchTerm = (this.searchRoomNo || '').trim().toLowerCase();
+    const filtered = searchTerm
+      ? this.scheduledTasks.filter((task: any) =>
+        task.room_no?.toString().toLowerCase().includes(searchTerm)
+      )
+      : this.scheduledTasks;
     const startIndex = (this.currentPage - 1) * this.pageSize;
     const endIndex = startIndex + this.pageSize;
-    this.allTasks = this.scheduledTasks.slice(startIndex, endIndex);
+    this.allTasks = filtered.slice(startIndex, endIndex);
   }
 
   nextPage() {
@@ -513,57 +651,57 @@ export class ScheduledComponent {
     return `${hours}:${minutes}:${seconds}`;
   }
 
-  updateEscalatedTaskStatusFromDesk(task: any): void {
-    // const { remainingSeconds, ...taskWithoutRemaining } = task;
-    // const updatedTask = {
-    //   ...taskWithoutRemaining,
-    //   status: 'Escalated'
-    // };
-    // Newly added - parentId
-    const department = task?.service?.category;
-    const roomNo = task?.room_no;
-    this.getDeskDepartment(roomNo, department);
-    const requestBody = {
-      domain_name: DOMAIN_NAME,
-      user_id: USER_ID,
-      payload: {
-        update_task: {
-          // status: "Escalated",
-          // at_desk: task.at_desk,
-          // Newly added - parentId
-          // "sequence": 1,
-          // "staff_id": this.deskStavesIds,
-          // "logged_in_user_id": Number(this.localService.get('UserId'))
-          // Newly added - parentId
-          "hierarchy.department": department,
-          "at_desk": true,
-          "member_id": this.member_id,
-          "room_no": roomNo,
-          "status": "Escalated",
-          "task_id": task.id
-        }
-      },
-      extras: {
-        find: {
-          id: task.id
-        }
-      }
-    };
-    console.log("Final payload for task update:", requestBody);
-    this.taskManagementService.updateTaskStatus(requestBody).subscribe(
-      (resp: any) => {
-        if (resp?.success === 1 && resp?.status_code === 200) {
-          this.alertService.success('Task status updated to Escalated.', this.options);
-          this.refreshData();
-        } else {
-          this.alertService.error(resp?.message || 'Update failed', this.options);
-        }
-      },
-      (err: any) => {
-        this.alertService.error(err?.error?.message || 'Something went wrong!', this.options);
-      }
-    );
-  }
+  // updateEscalatedTaskStatusFromDesk(task: any): void {
+  //   // const { remainingSeconds, ...taskWithoutRemaining } = task;
+  //   // const updatedTask = {
+  //   //   ...taskWithoutRemaining,
+  //   //   status: 'Escalated'
+  //   // };
+  //   // Newly added - parentId
+  //   const department = task?.service?.category;
+  //   const roomNo = task?.room_no;
+  //   this.getDeskDepartment(roomNo, department);
+  //   const requestBody = {
+  //     domain_name: DOMAIN_NAME,
+  //     user_id: USER_ID,
+  //     payload: {
+  //       update_task: {
+  //         // status: "Escalated",
+  //         // at_desk: task.at_desk,
+  //         // Newly added - parentId
+  //         // "sequence": 1,
+  //         // "staff_id": this.deskStavesIds,
+  //         // "logged_in_user_id": Number(this.localService.get('UserId'))
+  //         // Newly added - parentId
+  //         "hierarchy.department": department,
+  //         "at_desk": true,
+  //         "member_id": this.member_id,
+  //         "room_no": roomNo,
+  //         "status": "Escalated",
+  //         "task_id": task.id
+  //       }
+  //     },
+  //     extras: {
+  //       find: {
+  //         id: task.id
+  //       }
+  //     }
+  //   };
+  //   console.log("Final payload for task update:", requestBody);
+  //   this.taskManagementService.updateTaskStatus(requestBody).subscribe(
+  //     (resp: any) => {
+  //       if (resp?.success === 1 && resp?.status_code === 200) {
+  //         this.alertService.success('Task status updated to Escalated.', this.options);
+  //         this.refreshData();
+  //       } else {
+  //         this.alertService.error(resp?.message || 'Update failed', this.options);
+  //       }
+  //     },
+  //     (err: any) => {
+  //       this.alertService.error(err?.error?.message || 'Something went wrong!', this.options);
+  //     }
+  //   );
+  // }
 
   // Newly added - parentId
   getDeskDepartment(roomNo: any, department: any) {
@@ -620,4 +758,63 @@ export class ScheduledComponent {
   navigateToTimeline(taskId: any) {
     this.router.navigate(['/timeline', taskId]);
   }
+
+  // Newly added - Menu
+  viewMenu(task: any) {
+    if (task && task.pms_order_summary?.items) {
+      this.selectedMenuItems = task.pms_order_summary.items;
+      this.selectedTotalAmount = task.pms_order_summary.totalAmount;
+      this.selectedMenuRoom = task.room_no;
+      this.isMenuModalOpen = true;
+    } else {
+      console.warn('No menu items found for this task.');
+      this.selectedMenuItems = [];
+      this.selectedTotalAmount = 0;
+      this.selectedMenuRoom = task.room_no || 'N/A';
+      this.isMenuModalOpen = true;
+    }
+  }
+
+  closeMenuModal() {
+    this.isMenuModalOpen = false;
+    this.selectedMenuItems = [];
+    this.selectedTotalAmount = 0;
+    this.selectedMenuRoom = '';
+  }
+
+  // Newly added - Help Service
+  openHelpServiceModal(task: any) {
+    this.selectedHelpServiceTask = task;
+    this.isHelpServiceModalOpen = true;
+  }
+
+  closeHelpServiceModal() {
+    this.isHelpServiceModalOpen = false;
+    this.selectedHelpServiceTask = null;
+  }
+
+  filterByRoomNumber(term: string) {
+    this.searchRoomNo = term.trim().toLowerCase();
+    if (!term || term.trim() === '') {
+      // Reset to show all scheduled tasks
+      const startIndex = (this.currentPage - 1) * this.pageSize;
+      const endIndex = startIndex + this.pageSize;
+      this.allTasks = this.scheduledTasks.slice(startIndex, endIndex);
+      this.totalTasks = this.scheduledTasks.length;
+      this.totalPages = Math.ceil(this.totalTasks / this.pageSize);
+    } else {
+      const searchTerm = term.trim().toLowerCase();
+      const filtered = this.scheduledTasks.filter((task: any) => {
+        console.log('Room Number in task:', task.room_no);
+        return task.room_no?.toString().toLowerCase().includes(searchTerm);
+      }
+      );
+      const startIndex = (this.currentPage - 1) * this.pageSize;
+      const endIndex = startIndex + this.pageSize;
+      this.allTasks = filtered.slice(startIndex, endIndex);
+      this.totalTasks = filtered.length;
+      this.totalPages = Math.ceil(filtered.length / this.pageSize);
+    }
+  }
+
 }

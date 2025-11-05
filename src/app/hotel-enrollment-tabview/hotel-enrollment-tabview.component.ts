@@ -1,3 +1,4 @@
+import { LoginService } from './../login/login.service';
 import { USER_ID } from './../app.config';
 import { LocalStorageService } from './../auth-services/local-storage.service';
 import { Component, OnInit, ChangeDetectorRef, Input, ViewChild } from '@angular/core';
@@ -235,7 +236,8 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
     private localService: LocalStorageService,
     private technicalInfoService: TechnicalInfoService,
     private hierarchyService: HierarchyService,
-    private serviceDetails: ServiceDetailService
+    private serviceDetails: ServiceDetailService,
+    private loginService: LoginService
   ) {
     this.router.events.subscribe(event => {
       if (event instanceof NavigationEnd) {
@@ -568,20 +570,67 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
       resp => {
         this.loaderService.emitComplete();
         if (resp && resp.result.data.length > 0) {
-          this.orderdata = resp.result.data[0];
-          console.log('hi')
-          if (this.orderdata.status == "Order Confirmed" || this.orderdata.status == 'Confirmed') {
-            this.isOrderExist = true;
+          // this.orderdata = resp.result.data[0];
+          // Newly added & commented for calling sms only on first confirmed order
+          // const confirmedOrder = resp.result.data.find(
+          //   (order: any) => order.status === 'Order Confirmed' || order.status === 'Confirmed'
+          // );
+          // this.orderdata = confirmedOrder || resp.result.data[0];
+          // console.log('Confirmed Order Data:', this.orderdata);
+          // if (this.orderdata.status == "Order Confirmed" || this.orderdata.status == 'Confirmed') {
+          //   this.isOrderExist = true;
+          // }
+          // Get all confirmed orders
+          const confirmedOrders = resp.result.data.filter(
+            (order: any) => order.status === 'Order Confirmed' || order.status === 'Confirmed'
+          );
+          // Assign first confirmed order or fallback
+          this.orderdata = confirmedOrders[0] || resp.result.data[0];
+          console.log('Confirmed Order Data:', this.orderdata);
+          // Flag for order existence
+          this.isOrderExist = confirmedOrders.length > 0;
+          // Payment done flag
+          this.paymentDone = this.isOrderExist;
+          this.localService.set('paymentDone', this.paymentDone);
+          console.log('Payment done:', this.paymentDone);
+          // exactly one confirmed order
+          if (confirmedOrders.length === 1 && confirmedOrders[0].send_sms === true) {
+            this.sendMessage(this.customerdata);
+            this.sendStatusMessage(this.customerdata);
+            // Update send_sms to false after sending the SMS
+            const updatedOrder = { ...this.orderdata, send_sms: false };
+            delete updatedOrder._id;
+            delete updatedOrder.id;
+            const orderUpdateData = {
+              domain_name: DOMAIN_NAME,
+              user_id: USER_ID,
+              payload: { order_creation: updatedOrder },
+              extras: { find: { id: this.orderdata.id } }
+            };
+            this.hotelenrollmentservice.orderUpsert(orderUpdateData).subscribe(
+              (orderResp: any) => {
+                if (orderResp.success === 1) {
+                  console.log('Order send_sms updated to false', orderResp);
+                  // Also update local orderdata object to reflect this change
+                  this.orderdata.send_sms = false;
+                } else {
+                  console.error('Failed to update send_sms', orderResp.message);
+                }
+              },
+              err => {
+                console.error('Error updating send_sms', err);
+              }
+            );
           }
           const memberId = this.orderdata.customer_member_id;
           this.localService.set('MemberId', memberId);
           //console.log(memberId, "MEMBERID");
           //console.log(this.orderdata, "RESPDATA");
           // Check if payment is done based on presence of status value
-          this.paymentDone = (this.orderdata.status == 'Order Confirmed' || this.orderdata.status == 'Confirmed');
-          this.localService.set('paymentDone', this.paymentDone);
+          // this.paymentDone = (this.orderdata.status == 'Order Confirmed' || this.orderdata.status == 'Confirmed');
+          // this.localService.set('paymentDone', this.paymentDone);
           console.log('Status:', this.orderdata?.status);
-          console.log('Payment done:', this.paymentDone);
+          // console.log('Payment done:', this.paymentDone);
           // Newly added for payment and order update
           // --- Only trigger update logic if URL contains confirmation and params ---
           // const queryParams = this.route.snapshot.queryParams;
@@ -697,19 +746,25 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
               nextUnpaidInstallment = futureCycle?.installments.find((inst: any) => inst.status === "Not Paid") || nextInstallment;
             }
             this.orderdata.order_review.order_summary = {
-              sub_total: nextUnpaidInstallment.sub_total,
-              tax: nextUnpaidInstallment.tax,
-              order_total_amount: nextUnpaidInstallment.order_total_amount
+              // sub_total: nextUnpaidInstallment.sub_total,
+              // tax: nextUnpaidInstallment.tax,
+              // order_total_amount: nextUnpaidInstallment.order_total_amount
+              sub_total: Number(nextUnpaidInstallment.sub_total.toFixed(2)),
+              tax: Number(nextUnpaidInstallment.tax.toFixed(2)),
+              order_total_amount: Number(nextUnpaidInstallment.order_total_amount.toFixed(2))
             };
             // Prepare payload
             const orderPayload = { ...this.orderdata };
             console.log('Order payload', orderPayload);
             delete orderPayload._id;
             delete orderPayload.id;
+            orderPayload.payment_split?.forEach((cycle: any) =>
+              cycle.installments?.forEach((inst: any) => delete inst._id)
+            );
             const orderUpdateData = {
               domain_name: DOMAIN_NAME,
               user_id: USER_ID,
-              payload: { order_creation: orderPayload },
+              payload: { order_creation: orderPayload},
               extras: { find: { id: this.orderdata.id } }
             };
             this.hotelenrollmentservice.orderUpsert(orderUpdateData).subscribe(orderResp => {
@@ -795,52 +850,169 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
   //   this.technicalInfoService.updatePayNowButton(showButton, enabled, installmentText);
   // }
 
+  // updateHeaderPayNowButton() {
+  //   if (!this.orderdata || !this.orderdata.payment_split) {
+  //     this.technicalInfoService.updatePayNowButton(false, false);
+  //     return;
+  //   }
+  //   const allCycles: any[] = this.orderdata.payment_split;
+  //   let nextUnpaidCycleIndex = allCycles.findIndex(cycle =>
+  //     cycle.installments.some((inst: any) => inst.status === "Not Paid")
+  //   );
+  //   console.log('nextUnpaidCycleIndex', nextUnpaidCycleIndex);
+  //   if (nextUnpaidCycleIndex === -1) {
+  //     // All paid
+  //     this.technicalInfoService.updatePayNowButton(false, false);
+  //     this.localService.remove('payNowButtonState');
+  //     return;
+  //   }
+  //   const nextCycle = allCycles[nextUnpaidCycleIndex];
+  //   console.log('nextCycle', nextCycle);
+  //   const nextUnpaidIndex = nextCycle.installments.findIndex((inst: any) => inst.status === "Not Paid");
+  //   console.log('nextUnpaidIndex', nextUnpaidIndex);
+  //   const totalInstallments = nextCycle.installments.length;
+  //   console.log('totalInstallments', totalInstallments);
+  //   if (nextUnpaidIndex <= 0) {
+  //     this.technicalInfoService.updatePayNowButton(false, false);
+  //     return;
+  //   }
+  //   // Enable button 1 week before previous installment's end date
+  //   const prevInstallment = nextCycle.installments[nextUnpaidIndex - 1];
+  //   const [day, month, year] = prevInstallment.subscription_end_date.split('-').map(Number);
+  //   const subEndDate = new Date(year, month - 1, day);
+  //   const today = new Date();
+  //   // const enableDate = new Date(subEndDate);
+  //   // enableDate.setDate(enableDate.getDate() - 7);
+  //   const enableDate = new Date(2025, 9, 3);
+  //   console.log('enableDate', enableDate);
+  //   const showButton = true;
+  //   const enabled = today >= enableDate;
+  //   //  Added cycle name for clarity
+  //   const cycleName = nextCycle.name ? this.capitalizeFirstLetter(nextCycle.name) : 'Installment';
+  //   const installmentText = `${cycleName} - Installment ${nextUnpaidIndex + 1} of ${totalInstallments}`;
+  //   // const installmentText = `Pay Installment ${nextUnpaidIndex + 1} of ${totalInstallments}`;
+  //   console.log('installmentText', installmentText);
+  //   this.localService.set('payNowButtonState', JSON.stringify({ show: showButton, enabled, installmentText }));
+  //   console.log('payNowButtonState', this.localService.get('payNowButtonState'));
+  //   this.technicalInfoService.updatePayNowButton(showButton, enabled, installmentText);
+  // }
+
+  // updateHeaderPayNowButton() {
+  //   if (!this.orderdata || !this.orderdata.payment_split) {
+  //     this.technicalInfoService.updatePayNowButton(false, false);
+  //     return;
+  //   }
+  //   const allCycles: any[] = this.orderdata.payment_split;
+  //   // Find first unpaid cycle
+  //   let nextUnpaidCycleIndex = allCycles.findIndex(cycle =>
+  //     cycle.installments.some((inst: any) => inst.status === "Not Paid")
+  //   );
+  //   console.log('nextUnpaidCycleIndex', nextUnpaidCycleIndex);
+  //   // CASE 1: All installments paid — allow new payment cycle creation
+  //   if (nextUnpaidCycleIndex === -1) {
+  //     const showButton = true;
+  //     const enabled = true;
+  //     const installmentText = "Start New Payment Cycle";
+  //     this.localService.set('payNowButtonState', JSON.stringify({ show: showButton, enabled, installmentText }));
+  //     this.technicalInfoService.updatePayNowButton(showButton, enabled, installmentText);
+  //     console.log("All installments paid. Showing 'Start New Payment Cycle' button.");
+  //     return;
+  //   }
+  //   // CASE 2: Some installments unpaid — continue normal flow
+  //   const nextCycle = allCycles[nextUnpaidCycleIndex];
+  //   console.log('nextCycle', nextCycle);
+  //   const nextUnpaidIndex = nextCycle.installments.findIndex(
+  //     (inst: any) => inst.status === "Not Paid"
+  //   );
+  //   console.log('nextUnpaidIndex', nextUnpaidIndex);
+  //   const totalInstallments = nextCycle.installments.length;
+  //   console.log('totalInstallments', totalInstallments);
+  //   if (nextUnpaidIndex <= 0) {
+  //     this.technicalInfoService.updatePayNowButton(false, false);
+  //     return;
+  //   }
+  //   // Enable button 1 week before previous installment end date
+  //   const prevInstallment = nextCycle.installments[nextUnpaidIndex - 1];
+  //   console.log('prev Installment:', prevInstallment);
+  //   const [day, month, year] = prevInstallment.subscription_end_date.split('-').map(Number);
+  //   console.log('day, month, year', day, month, year);
+  //   const subEndDate = new Date(year, month - 1, day);
+  //   console.log('Sub end Date', subEndDate);
+  //   const today = new Date();
+  //   const enableDate = new Date(subEndDate);
+  //   console.log('enableDate before format', enableDate);
+  //   enableDate.setDate(enableDate.getDate() - 7); // 7 days before due date
+  //   // const enableDate = new Date(2025, 9, 3);
+  //   console.log('enableDate', enableDate);
+  //   const showButton = true;
+  //   const enabled = today >= enableDate;
+  //   const cycleName = nextCycle.name
+  //     ? this.capitalizeFirstLetter(nextCycle.name)
+  //     : 'Installment';
+  //   const installmentText = `${cycleName} - Installment ${nextUnpaidIndex + 1} of ${totalInstallments}`;
+  //   const buttonState = { show: showButton, enabled, installmentText };
+  //   this.localService.set('payNowButtonState', JSON.stringify(buttonState));
+  //   this.technicalInfoService.updatePayNowButton(showButton, enabled, installmentText);
+  //   console.log('Pay Now Button:', buttonState);
+  // }
+
   updateHeaderPayNowButton() {
     if (!this.orderdata || !this.orderdata.payment_split) {
       this.technicalInfoService.updatePayNowButton(false, false);
       return;
     }
     const allCycles: any[] = this.orderdata.payment_split;
+    // Find first unpaid cycle
     let nextUnpaidCycleIndex = allCycles.findIndex(cycle =>
       cycle.installments.some((inst: any) => inst.status === "Not Paid")
     );
-    console.log('nextUnpaidCycleIndex', nextUnpaidCycleIndex);
+    console.log('Next Unpaid Cycle Index', nextUnpaidCycleIndex);
+    let lastRelevantInstallment: any;
     if (nextUnpaidCycleIndex === -1) {
-      // All paid
+      console.log('All Installments Paid');
+      // CASE: All installments paid
+      // Pick the last paid installment
+      const lastCycle = allCycles[allCycles.length - 1];
+      lastRelevantInstallment = lastCycle.installments[lastCycle.installments.length - 1];
+    } else {
+      console.log('Some Installments Unpaid');
+      // CASE: Some unpaid installments
+      const nextCycle = allCycles[nextUnpaidCycleIndex];
+      const nextUnpaidIndex = nextCycle.installments.findIndex((inst: any) => inst.status === "Not Paid");
+      lastRelevantInstallment = nextUnpaidIndex > 0
+        ? nextCycle.installments[nextUnpaidIndex - 1]
+        : null;
+    }
+    if (!lastRelevantInstallment) {
       this.technicalInfoService.updatePayNowButton(false, false);
-      this.localService.remove('payNowButtonState');
       return;
     }
-    const nextCycle = allCycles[nextUnpaidCycleIndex];
-    console.log('nextCycle', nextCycle);
-    const nextUnpaidIndex = nextCycle.installments.findIndex((inst: any) => inst.status === "Not Paid");
-    console.log('nextUnpaidIndex', nextUnpaidIndex);
-    const totalInstallments = nextCycle.installments.length;
-    console.log('totalInstallments', totalInstallments);
-    if (nextUnpaidIndex <= 0) {
-      this.technicalInfoService.updatePayNowButton(false, false);
-      return;
-    }
-    // Enable button 1 week before previous installment's end date
-    const prevInstallment = nextCycle.installments[nextUnpaidIndex - 1];
-    const [day, month, year] = prevInstallment.subscription_end_date.split('-').map(Number);
+    // Enable button 7 days before subscription_end_date of lastRelevantInstallment
+    const [day, month, year] = lastRelevantInstallment.subscription_end_date.split('-').map(Number);
+    console.log('day, month, year', day, month, year);
     const subEndDate = new Date(year, month - 1, day);
+    console.log('Sub end Date', subEndDate);
+    const enableDate = new Date(subEndDate);
+    console.log('enableDate before format', enableDate);
+    enableDate.setDate(enableDate.getDate() - 7);
     const today = new Date();
-    // const enableDate = new Date(subEndDate);
-    // enableDate.setDate(enableDate.getDate() - 7);
-    const enableDate = new Date(2025, 9, 3);
-    console.log('enableDate', enableDate);
-    const showButton = true;
+    console.log('enableDate due date', enableDate);
     const enabled = today >= enableDate;
-    //  Added cycle name for clarity
-    const cycleName = nextCycle.name ? this.capitalizeFirstLetter(nextCycle.name) : 'Installment';
-    const installmentText = `${cycleName} - Installment ${nextUnpaidIndex + 1} of ${totalInstallments}`;
-    // const installmentText = `Pay Installment ${nextUnpaidIndex + 1} of ${totalInstallments}`;
-    console.log('installmentText', installmentText);
+    console.log('Enable date', enabled);
+    // Prepare button text
+    let installmentText = 'Start New Payment Cycle';
+    if (nextUnpaidCycleIndex !== -1) {
+      const totalInstallments = allCycles[nextUnpaidCycleIndex].installments.length;
+      const nextUnpaidIndex = allCycles[nextUnpaidCycleIndex].installments.findIndex((inst: any) => inst.status === "Not Paid");
+      const cycleName = allCycles[nextUnpaidCycleIndex].name || 'Installment';
+      installmentText = `${this.capitalizeFirstLetter(cycleName)} - Installment ${nextUnpaidIndex + 1} of ${totalInstallments}`;
+    }
+    const showButton = true;
     this.localService.set('payNowButtonState', JSON.stringify({ show: showButton, enabled, installmentText }));
-    console.log('payNowButtonState', this.localService.get('payNowButtonState'));
     this.technicalInfoService.updatePayNowButton(showButton, enabled, installmentText);
+    console.log('Pay Now Button:', { showButton, enabled, installmentText });
   }
+
 
   capitalizeFirstLetter(str: string) {
     return str.charAt(0).toUpperCase() + str.slice(1);
@@ -1067,7 +1239,8 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
           if (resp) {
             this.customerdata = resp.result.data[0];
             this.getCustomerData = resp.result.data[0];
-            this.hotelId = this.customerdata.id;
+            // this.hotelId = this.customerdata.id;
+            this.hotelId = resp.result.data[0].id;
             this.localService.set('CustomerType', 'Customer');
             resolve();
           }
@@ -1301,6 +1474,43 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
     } finally {
       this.hideLoader();
     }
+  }
+
+  sendMessage(customerData: any) {
+    const payload = {
+      domain_name: 'https://www.guestezee.com',
+      OrganizationId: 30,
+      Mobile: customerData.phone_number
+    };
+    this.hotelenrollmentservice.sendSMS(payload).subscribe({
+      next: (res) => {
+        console.log('Email API response:', res);
+      },
+      error: (err) => {
+        console.error('Email API error:', err);
+      }
+    });
+  }
+
+  sendStatusMessage(customerData: any) {
+    const payload = {
+      "domain_name": "https://www.guestezee.com",
+      "data": {
+        "otp": {
+          "countrycode": "+91",
+          "mobile": customerData.phone_number,
+          "otppurpose": "Pending"
+        }
+      }
+    };
+    this.hotelenrollmentservice.sendPendingSMS(payload).subscribe({
+      next: (res) => {
+        console.log('Email API response:', res);
+      },
+      error: (err) => {
+        console.error('Email API error:', err);
+      }
+    });
   }
 
 }

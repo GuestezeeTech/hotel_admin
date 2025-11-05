@@ -306,4 +306,34 @@ export class HotelEnrollmentTabviewService {
     }
   }
 
+  getAllSubscriptionDetails(orderData: any): Observable<any> {
+    if (this.authTokenService.isTokenExpired()) {
+      this.router.navigate([`/login`], { skipLocationChange: false });
+      return new Observable();
+    }
+    else {
+      return this.http.post(ENDPOINTS.GET_ALL_SUBSCRIPTION, orderData, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) })
+    }
+  }
+
+  sendSMS(tokenObj: any): Observable<any> {
+    if (this.authTokenService.isTokenExpired()) {
+      this.router.navigate([`/login`], { skipLocationChange: false });
+      return new Observable();
+    }
+    else {
+      return this.http.post(ENDPOINTS.GENERRATE_NAME_PASSWORD, tokenObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) })
+    }
+  }
+
+  sendPendingSMS(tokenObj: any): Observable<any> {
+    if (this.authTokenService.isTokenExpired()) {
+      this.router.navigate([`/login`], { skipLocationChange: false });
+      return new Observable();
+    }
+    else {
+      return this.http.post(ENDPOINTS.GENERATE_SMS_PHONE, tokenObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) })
+    }
+  }
+
 }

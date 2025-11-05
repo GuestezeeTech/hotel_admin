@@ -8,7 +8,8 @@
             <form [formGroup]="staffForm">
                 <div class="row">
                     <div class="col-md-4 form-group">
-                        <label class="fw-semibold" style="font-size: 15px">Email<span class="required">*</span></label>
+                        <label class="fw-semibold" style="font-size: 15px">Email<span
+                                class="text-danger">*</span></label>
                         <input type="email" class="form-control shadow-none" formControlName="email"
                             [class.is-invalid]="validateForm && f['email'].errors"
                             style="background-color: white !important;">
@@ -19,7 +20,7 @@
                     </div>
                     <div class="col-md-4 form-group">
                         <label class="fw-semibold" style="font-size: 14px" placeholder="Elakkiya">Full
-                            Name</label>
+                            Name<span class="text-danger">*</span></label>
                         <input type="text" class="form-control shadow-none" formControlName="full_name"
                             [class.is-invalid]="validateForm && f['full_name'].errors"
                             style="background-color: white !important;">
@@ -30,7 +31,8 @@
                         </div>
                     </div>
                     <div class="col-md-4 form-group">
-                        <label class="fw-semibold" style="font-size: 14px">Phone Number</label>
+                        <label class="fw-semibold" style="font-size: 14px">Phone Number<span
+                                class="text-danger">*</span></label>
                         <input type="tel" class="form-control shadow-none" placeholder="+91"
                             (keypress)="allowOnlyNumbers($event)"
                             [class.is-invalid]="validateForm && f['phone_number'].errors" formControlName="phone_number"
@@ -42,17 +44,23 @@
                     </div>
                 </div>
                 <div class="row mt-3">
-                    <div class="col-md-4 form-group">
-                        <label class="fw-semibold" style="font-size: 14px" placeholder="EMP-1923">Employee ID
-                            Number</label>
-                        <input type="text" class="form-control shadow-none" readonly value={{this.staff_member_id}}
-                            style="background-color: white !important;">
-                        <div class="invalid-feedback" *ngIf="!this.matchedStaff">
-                            <div>No officer found under this hierarchy</div>
-                        </div>
+                    <!-- Newly added for placeholder member id -->
+                    <!-- Show this only while creating -->
+                    <div class="col-md-4 form-group" *ngIf="!staff_member_id">
+                        <label class="fw-semibold" style="font-size: 14px">Employee ID Number</label>
+                        <input type="text" class="form-control shadow-none" readonly [value]="memberIdDisplay"
+                            style="background-color: white !important;cursor: not-allowed;" />
                     </div>
+                    <!-- Show this only after creation -->
+                    <div class="col-md-4 form-group" *ngIf="staff_member_id">
+                        <label class="fw-semibold" style="font-size: 14px">Employee ID Number</label>
+                        <input type="text" class="form-control shadow-none" readonly [value]="staff_member_id"
+                            style="background-color: white !important;cursor: not-allowed;" />
+                    </div>
+
                     <div class="col-md-4 mb-4 form-group pb-3">
-                        <label class="fw-semibold" style="font-size: 14px">Higher Level Hierarchy</label>
+                        <label class="fw-semibold" style="font-size: 14px">Higher Level Hierarchy<span
+                                class="text-danger">*</span></label>
                         <select class="form-control shadow-none" formControlName="higher_level_hierarchy"
                             [class.is-invalid]="validateForm && f['higher_level_hierarchy'].errors"
                             (click)="getChildHierarchy(staffForm.get('higher_level_hierarchy')?.value?.id)"
@@ -70,22 +78,8 @@
                         </div>
                     </div>
                     <div class="col-md-4 mb-4 form-group pb-3">
-                        <label class="fw-semibold" style="font-size: 14px">Desk</label>
-                        <select class="form-control shadow-none" formControlName="at_desk" (change)="onDeskChange()"
-                            [class.is-invalid]="validateForm && f['at_desk'].errors"
-                            style="appearance: auto; background-color: white !important;">
-                            <option value="" style="font-size: 14px;">Please select</option>
-                            <option [ngValue]="true">true</option>
-                            <option [ngValue]="false">false</option>
-                        </select>
-                        <div class="invalid-feedback" *ngIf="f['at_desk'].errors">
-                            <div *ngIf="f['at_desk'].errors['at_desk']">please select</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-4 mb-4 form-group pb-3">
-                        <label class="fw-semibold" style="font-size: 14px">Hierarchy</label>
+                        <label class="fw-semibold" style="font-size: 14px">Staff Hierarchy<span
+                                class="text-danger">*</span></label>
                         <select class="form-control shadow-none" formControlName="hierarchy"
                             [class.is-invalid]="validateForm && f['hierarchy'].errors"
                             style="appearance: auto; background-color: white !important;">
@@ -99,9 +93,26 @@
                             <div *ngIf="f['hierarchy'].errors['required']">please select your hierarchy</div>
                         </div>
                     </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-4 form-group pb-3">
+                        <label class="fw-semibold" style="font-size: 14px">Desk<span
+                                class="text-danger">*</span></label>
+                        <select class="form-control shadow-none" formControlName="at_desk" (change)="onDeskChange()"
+                            [class.is-invalid]="validateForm && f['at_desk'].errors"
+                            style="appearance: auto; background-color: white !important;">
+                            <option value="" style="font-size: 14px;">Please select</option>
+                            <option [ngValue]="true">true</option>
+                            <option [ngValue]="false">false</option>
+                        </select>
+                        <div class="invalid-feedback" *ngIf="f['at_desk'].errors">
+                            <div *ngIf="f['at_desk'].errors['at_desk']">please select</div>
+                        </div>
+                    </div>
                     <div class="col-md-4 mb-4 form-group pb-3"
                         *ngIf="!isFirstStaff && showHigherLevelOfficer && showLowestHigherLevelOfficer">
-                        <label class="fw-semibold" style="font-size: 14px">Higher Level Officer</label>
+                        <label class="fw-semibold" style="font-size: 14px">Higher Level Officer<span
+                                class="text-danger">*</span></label>
                         <select class="form-control shadow-none" formControlName="higher_level_officer"
                             [class.is-invalid]="validateForm && f['higher_level_officer'].errors"
                             (ngModelChange)="onOfficerChange($event)"
@@ -111,9 +122,15 @@
                                 {{ officer.full_name + "-" + officer.phone_number }}
                             </option>
                         </select>
-                        <div class="invalid-feedback" *ngIf="f['higher_level_officer'].errors">
-                            <div *ngIf="f['higher_level_officer'].errors['required']">please select your hierarchy</div>
+                        <!-- <div class="invalid-feedback" *ngIf="f['higher_level_officer'].errors">
+                            // <div *ngIf="f['higher_level_officer'].errors['required']">please select your hierarchy
+                            </div>
+                            // </div> -->
+                        <div class="invalid-feedback"
+                            *ngIf="showHigherLevelOfficer && validateForm && f['higher_level_officer'].errors">
+                            <div *ngIf="f['higher_level_officer'].errors['required']">please select your officer</div>
                         </div>
+
                     </div>
                     <div style="position: relative;" class="col-md-4 mb-4 form-group pb-3">
                         <label class="fw-semibold" style="font-size: 14px">Room No<span
@@ -176,7 +193,7 @@
                     </div>
                     <div class="col-md-4 form-group">
                         <label class="fw-semibold" style="font-size: 14px">Password<span
-                                class="required">*</span></label>
+                                class="text-danger">*</span><small class="fw-medium text-muted">(Minimum 6 characters long)</small></label>
                         <div class="input-group">
                             <input type="text" placeholder="********" class="form-control shadow-none "
                                 formControlName="password" [class.is-invalid]="validateForm && f['password'].errors"

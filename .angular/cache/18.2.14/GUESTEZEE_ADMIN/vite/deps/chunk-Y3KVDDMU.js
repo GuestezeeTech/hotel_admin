@@ -2,6 +2,28 @@ import {
   isWindowSupported
 } from "./chunk-7V5PYSAS.js";
 import {
+  Component,
+  ErrorFactory,
+  FirebaseError,
+  LogLevel,
+  Logger,
+  SDK_VERSION,
+  _registerComponent,
+  areCookiesEnabled,
+  calculateBackoffMillis,
+  deleteApp,
+  getApp,
+  getApps,
+  getModularInstance,
+  initializeApp,
+  isBrowserExtension,
+  isIndexedDBAvailable,
+  onLog,
+  registerVersion,
+  setLogLevel,
+  validateIndexedDBOpenable
+} from "./chunk-5VLU5WO7.js";
+import {
   Inject,
   Injectable,
   InjectionToken,
@@ -32,28 +54,6 @@ import {
   tap,
   timer
 } from "./chunk-NBIKOIY3.js";
-import {
-  Component,
-  ErrorFactory,
-  FirebaseError,
-  LogLevel,
-  Logger,
-  SDK_VERSION,
-  _registerComponent,
-  areCookiesEnabled,
-  calculateBackoffMillis,
-  deleteApp,
-  getApp,
-  getApps,
-  getModularInstance,
-  initializeApp,
-  isBrowserExtension,
-  isIndexedDBAvailable,
-  onLog,
-  registerVersion,
-  setLogLevel,
-  validateIndexedDBOpenable
-} from "./chunk-5VLU5WO7.js";
 import {
   __async
 } from "./chunk-RXHPGQPJ.js";
@@ -1777,4 +1777,4 @@ export {
    * limitations under the License.
    *)
 */
-//# sourceMappingURL=chunk-H47R74PK.js.map
+//# sourceMappingURL=chunk-Y3KVDDMU.js.map

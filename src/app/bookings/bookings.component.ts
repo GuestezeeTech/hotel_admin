@@ -279,12 +279,14 @@ export class BookingsComponent {
   }
 
   getAllBookings(memberId: any) {
+    console.log('All Bookings:', memberId);
     let requestBody = {
       "domain_name": DOMAIN_NAME,
       "user_id": USER_ID,
       "extras": {
         "find": {
-          "member_id": "BINM00071"
+          // "member_id": "BINM00071"
+          "member_id": memberId
         },
         "pagination": true,
         "paginationDetails": {
@@ -300,7 +302,20 @@ export class BookingsComponent {
     this.bookingService.getAllBookings(requestBody).subscribe(
       resp => {
         if (resp) {
-          this.allBookings = resp.result.data;
+          const rawBookings = resp.result.data;
+          // Map to store the most recent record for each Guest_Id
+          const bookingMap = new Map<string, any>();
+          rawBookings.forEach((booking: any) => {
+            const guestId = booking.Guest_detail?.[0]?.Guest_Id;
+            if (!guestId) return;
+            // Keep only the first occurrence (assuming array is sorted most recent first)
+            if (!bookingMap.has(guestId)) {
+              bookingMap.set(guestId, booking);
+            }
+          });
+          // Convert map values back to array
+          this.allBookings = Array.from(bookingMap.values());
+          // this.allBookings = resp.result.data;
           console.log(this.allBookings, "Bookings List");
           this.bookings = this.allBookings;
           this.totalTasks = this.allBookings.length;
@@ -322,6 +337,24 @@ export class BookingsComponent {
       }
     )
   }
+
+  // Newly added - function to get event status
+  getEventStatus(event: string): string {
+    if (event === 'Reserved' || event === 'Reserved(Amend)') {
+      return 'Reserved';
+    }
+    if (event === 'Check-in' || event === 'In-house(Amend)') {
+      return 'Checked-in';
+    }
+    if (event === 'Checked-out') {
+      return 'Checked-out';
+    }
+    if (event === 'Cancelled') {
+      return 'Cancelled';
+    }
+    return event; // fallback in case of unknown value
+  }
+
 
   updatePaginatedTasks() {
     const startIndex = (this.currentPage - 1) * this.pageSize;

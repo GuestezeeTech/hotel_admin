@@ -8,6 +8,7 @@ import { ActivatedRoute } from '@angular/router';
 import { TaskManagementService } from '../task-management.service';
 import { AlertsService } from '../../shared/alerts/alerts.service';
 import { LoaderService } from '../../shared/loader/loader.service';
+import { HotelEnrollmentTabviewService } from '../../hotel-enrollment-tabview/hotel-enrollment-tabview.service';
 
 @Component({
   selector: 'app-timeline',
@@ -20,6 +21,8 @@ import { LoaderService } from '../../shared/loader/loader.service';
 export class TimelineComponent {
   timelineData: any;
   member_id: any;
+  timely_delivered: boolean = true;
+  hotelLogoUrl: string | null = null;
 
   constructor(
     private router: Router,
@@ -28,13 +31,15 @@ export class TimelineComponent {
     private alertService: AlertsService,
     private loaderService: LoaderService,
     private hotelListService: HotelListService,
-    private localService: LocalStorageService) { }
+    private localService: LocalStorageService,
+    private hotelenrollmentservice: HotelEnrollmentTabviewService) { }
 
   ngOnInit(): void {
     this.member_id = this.localService.get('MemberId');
     const taskId = Number(this.route.snapshot.paramMap.get('id'));
     //console.log('Received Task ID:', taskId);
     this.getTaskById(taskId);
+    this.getCustomerLogo();
   }
 
   getRoomType(memberId: string): string {
@@ -48,60 +53,6 @@ export class TimelineComponent {
       default: return '';
     }
   }
-
-  // Timeline - Order details array
-  // orderDetails = {
-  //   productName: 'Baby Powder',
-  //   quantity: 2,
-  //   roomNo: 400,
-  //   customerName: 'Aswin',
-  //   roomType: 'Gold',
-  //   department: 'Housekeeping',
-  //   orderPlacedTime: '11:54am',
-  //   expectedDeliveryTime: '12:15pm',
-  //   deliveredTime: '12:20pm',
-  //   productImage: '../../assets/images/guestezee/Powder.png'
-  // };
-
-  // Timeline data
-  // timelineDatas = [
-  //   {
-  //     title: 'Order Received (Room No:400)',
-  //     details: 'Desk in person - Sam 11:54am',
-  //     status: 'scheduled',
-  //     escalated: false
-  //   },
-  //   {
-  //     title: 'Task Processed',
-  //     details: 'Desk arranged new assignee - Siva 11:55am',
-  //     status: 'processing',
-  //     escalated: false
-  //   },
-  //   {
-  //     title: 'Escalated',
-  //     details: "Service person didn't accept order - Siva 11:58am",
-  //     status: 'processing',
-  //     escalated: true
-  //   },
-  //   {
-  //     title: 'Re-Assigned',
-  //     details: 'Supervisor arranged new assignee - Vijay 11:59am',
-  //     status: 'reassigned',
-  //     escalated: false
-  //   },
-  // ];
-
-  // Timeline review data
-  // reviews = [
-  //   {
-  //     name: 'Aswin ',
-  //     profileImage: '../../assets/images/guestezee/profile.png', // replace with actual path
-  //     timeAgo: '30 min ago',
-  //     rating: 4,
-  //     comment: `Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.`,
-  //     liked: true
-  //   }
-  // ];
 
   // getTaskById(taskId: any) {
   //   let requestBody = {
@@ -179,6 +130,10 @@ export class TimelineComponent {
                 task.created_on = null;
               }
               this.timelineData = task; // attach everything to timelineData
+              console.log('Timeline Data Status:', this.timelineData.status);
+              // this.timely_delivered = task.timely_delivered;
+              this.timely_delivered = task.hasOwnProperty('timely_delivered') ? task.timely_delivered : true;
+              console.log('Timeline Data:', this.timelineData);
             },
             error: (err) => {
               console.error('Rating API Error:', err);
@@ -237,4 +192,37 @@ export class TimelineComponent {
   navigateToCart() {
     this.router.navigate(['/task-management']);
   }
+
+  getCustomerLogo() {
+    const requestBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: {
+        find: {
+          customer_member_id: this.member_id
+        },
+        pagination: false,
+        sorting: true,
+        sortingDetails: { id: -1 }
+      }
+    };
+    this.hotelenrollmentservice.getLoginCustomerById(requestBody).subscribe({
+      next: (response: any) => {
+        if (response?.success && response.result?.data?.length > 0) {
+          const customerData = response.result.data[0];
+          console.log('Customer Data:', customerData);
+          this.hotelLogoUrl = customerData.property_details.hotel_logo || null;
+          console.log('Customer logo fetched:', this.hotelLogoUrl);
+        } else {
+          console.warn('No customer logo found.');
+          this.hotelLogoUrl = null;
+        }
+      },
+      error: (err) => {
+        console.error('Error fetching customer logo:', err);
+        this.hotelLogoUrl = null;
+      }
+    });
+  }
+
 }
