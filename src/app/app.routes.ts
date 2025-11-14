@@ -100,5 +100,24 @@ export const routes: Routes = [
   {
     path: '',
     loadChildren: () => import('./payment-details/payment-details.module').then(m => m.PaymentDetailsModule),
+  },
+  // Newly added for terms and conditions & privacy policy
+  {
+    path: '',
+    loadChildren: () => import('./privacy-policy/privacy-policy.module').then(m => m.PrivacyPolicyModule),
+  },
+  {
+    path: '',
+    loadChildren: () => import('./terms-conditions/terms-conditions.module').then(m => m.TermsConditionsModule),
+  },
+  // Newly added for department list
+  {
+    path: '',
+    loadChildren: () => import('./department-list/department-list.module').then(m => m.DepartmentListModule),
+  },
+  // Newly added for service settings
+  {
+    path: '',
+    loadChildren: () => import('./service-settings/service-settings.module').then(m => m.ServiceSettingsModule),
   }
 ];

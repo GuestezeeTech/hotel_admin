@@ -35,9 +35,9 @@
                         <h5 class="mb-1 fw-bold" style="color: #1A1A1A; font-size: 16px;">{{
                             timelineData.service.service_name }}
                         </h5>
-                        <div style="color: #BBBBBB; font-size: 14px;">
+                        <!-- <div style="color: #BBBBBB; font-size: 14px;">
                             Qty: <span class="fw-medium" style="color: #1A1A1A">1</span>
-                        </div>
+                        </div> -->
                         <div style="color: #BBBBBB; font-size: 14px;">
                             Room No: <span class="fw-medium" style="color: #1A1A1A">{{ timelineData.room_no }}</span>
                         </div>
@@ -70,7 +70,7 @@
                         *ngFor="let item of timelineData.time_line; let i = index">
                         <!-- <div class="tag tag-blue" *ngIf="item.status === 'Completed'">Delivered on: {{ timelineData.completed_time | date:'HH:mm:ss' }}
                         </div> -->
-                        <div class="tag tag-blue" *ngIf="item.status === 'Completed'">Delivered on: {{ item.time  }}
+                        <div class="tag tag-blue" *ngIf="item.status === 'Completed'">Delivered on: {{ item.time }}
                         </div>
                     </div>
                 </div>
@@ -83,17 +83,93 @@
                 <div class="position-absolute top-0 start-50 translate-middle-x"
                     style="width: 2px; bottom: 0; background-image: repeating-linear-gradient(to bottom, #28a745, #28a745 2px, transparent 2px, transparent 6px);">
                 </div>
-                <div *ngFor="let item of timelineData.time_line; let i = index" class="row align-items-center py-2">
-                    <!-- Left aligned -->
-                    <ng-container *ngIf="i % 2 === 0">
+                <!-- Newly added for department - started -->
+                <ng-container *ngFor="let item of timelineData.time_line; let i = index">
+                    <div *ngIf="item.status && item.status.trim() !== ''" class="row align-items-center py-2">
+                        <ng-container *ngIf="i % 2 === 0">
+                            <div class="col-5 text-end">
+                                <div class="pe-3">
+                                    <h6 class="fw-bold mb-0" style="font-size: 15px;">
+                                        {{ i === 0 ? item.status + ' - (Room No:' + timelineData.room_no + ')' :
+                                        item.status }}
+                                    </h6>
+                                    <span class='mb-0' *ngIf="item.status === 'Assigned' || item.status === 'Escalated'"
+                                        style="font-size: 13px;">
+                                        <span class="fw-medium">{{ item.status === 'Assigned' ? 'Staff' : 'Escalated
+                                            from' }} : </span>
+                                        {{ item.status === 'Assigned' ? item.assigned_staff_name :
+                                        item.escalated_from_name }}
+                                    </span>
+                                    <br *ngIf="item.status === 'Escalated'">
+                                    <span class='mb-0' *ngIf="item.status === 'ASAP' && timelineData.task_description"
+                                        style="font-size: 13px;">
+                                        <span class="fw-medium">Notes: </span>{{ timelineData.task_description }}
+                                    </span>
+                                    <span class='mb-0'
+                                        *ngIf="timelineData.status === 'Cancelled' && item.status === 'Cancelled'"
+                                        style="font-size: 13px;">
+                                        <span class="fw-medium">Cancellation reason: </span>{{
+                                        timelineData.cancel_remark }}
+                                    </span>
+                                    <span class='mb-0' *ngIf="item.status === 'Escalated'" style="font-size: 13px;">
+                                        <span class="fw-medium">Escalated to: </span>{{ item.escalated_to_name }}
+                                    </span>
+                                    <p class="mb-0" style="color: #444; font-size: 13px;">
+                                        ({{ item.date }} : {{ item.time }})
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="col-2 d-flex justify-content-center">
+                                <img [src]="getStatusIcon(item.status)" [alt]="item.status + ' icon'"
+                                    style="width: 15px; height: 15px;" />
+                            </div>
+                            <div class="col-5"></div>
+                        </ng-container>
+                        <ng-container *ngIf="i % 2 !== 0">
+                            <div class="col-5"></div>
+                            <div class="col-2 d-flex justify-content-center">
+                                <img [src]="getStatusIcon(item.status)" [alt]="item.status + ' icon'"
+                                    style="width: 15px; height: 15px;" />
+                            </div>
+                            <div class="col-5 text-start">
+                                <div class="ps-3">
+                                    <h6 class="fw-bold mb-0" style="font-size: 15px;">
+                                        {{ i === 0 ? item.status + ' - (Room No:' + timelineData.room_no + ')' :
+                                        item.status }}
+                                    </h6>
+                                    <span class='mb-0' *ngIf="item.status === 'Assigned' || item.status === 'Escalated'"
+                                        style="font-size: 13px;">
+                                        <span class="fw-medium">{{ item.status === 'Assigned' ? 'Staff' : 'Escalated
+                                            from' }} : </span>
+                                        {{ item.status === 'Assigned' ? item.assigned_staff_name :
+                                        item.escalated_from_name }}
+                                    </span>
+                                    <br *ngIf="item.status === 'Escalated'">
+                                    <span class='mb-0' *ngIf="item.status === 'ASAP' && timelineData.task_description"
+                                        style="font-size: 13px;">
+                                        <span class="fw-medium">Notes: </span>{{ timelineData.task_description }}
+                                    </span>
+                                    <span class='mb-0'
+                                        *ngIf="timelineData.status === 'Cancelled' && item.status === 'Cancelled'"
+                                        style="font-size: 13px;">
+                                        <span class="fw-medium">Cancellation reason: </span>{{
+                                        timelineData.cancel_remark }}
+                                    </span>
+                                    <span class='mb-0' *ngIf="item.status === 'Escalated'" style="font-size: 13px;">
+                                        <span class="fw-medium">Escalated to: </span>{{ item.escalated_to_name }}
+                                    </span>
+                                    <p class="mb-0" style="color: #444; font-size: 13px;">
+                                        ({{ item.date }} : {{ item.time }})
+                                    </p>
+                                </div>
+                            </div>
+                        </ng-container>
+                    </div>
+                </ng-container>
+                <!-- <div *ngFor="let item of timelineData.time_line; let i = index" class="row align-items-center py-2">
+                    <ng-container *ngIf="i % 2 === 0 && item.status">
                         <div class="col-5 text-end">
                             <div class="pe-3">
-                                <!-- <h6 class="fw-bold mb-0" style="font-size: 15px;">{{ i === 0 ? item.status + ' - (Room
-                                    No:' + timelineData.room_no + ')': item.status }}
-                                    <span *ngIf="item.remarks">{{item.remarks}}</span>
-                                </h6> 
-                                <span class='mb-0' *ngIf="item.remarks" style="font-size: 14px;">{{timelineData.assigned_staff_name}}</span>
-                                -->
                                 <h6 class="fw-bold mb-0" style="font-size: 15px;">{{ i === 0 ? item.status + ' - (Room
                                     No:' + timelineData.room_no + ')': item.status }} </h6>
                                 <span class='mb-0' *ngIf="item.status === 'Assigned' || item.status === 'Escalated'"
@@ -101,16 +177,16 @@
                                         'Staff' : 'Escalated from' }} : </span> {{ item.status
                                     === 'Assigned' ? item.assigned_staff_name : item.escalated_from_name }}</span>
                                 <br *ngIf="item.status === 'Escalated'">
-                                <span class='mb-0' *ngIf="item.status === 'ASAP' && timelineData.task_description" style="font-size: 13px;"><span
-                                        class="fw-medium">Notes: </span><span>{{
+                                <span class='mb-0' *ngIf="item.status === 'ASAP' && timelineData.task_description"
+                                    style="font-size: 13px;"><span class="fw-medium">Notes: </span><span>{{
                                         timelineData.task_description
                                         }}</span> </span>
                                 <span class='mb-0'
                                     *ngIf="timelineData.status === 'Cancelled' && item.status === 'Cancelled'"
-                                    style="font-size: 13px;"><span class="fw-medium">Cancellation reason: </span><span>{{
+                                    style="font-size: 13px;"><span class="fw-medium">Cancellation reason:
+                                    </span><span>{{
                                         timelineData.cancel_remark
                                         }}</span> </span>
-                                <!-- <span class='mb-0' *ngIf="item.status === 'Assigned' || item.status === 'Escalated'" -->
                                 <span class='mb-0' *ngIf="item.status === 'Escalated'" style="font-size: 13px;"><span
                                         class="fw-medium">{{ item.status === 'Assigned' ?
                                         'Staff' : 'Escalated to' }} : </span> {{ item.status
@@ -126,8 +202,7 @@
                         </div>
                         <div class="col-5"></div>
                     </ng-container>
-                    <!-- Right aligned -->
-                    <ng-container *ngIf="i % 2 !== 0">
+                    <ng-container *ngIf="i % 2 !== 0 && item.status">
                         <div class="col-5"></div>
                         <div class="col-2 d-flex justify-content-center">
                             <img [src]="getStatusIcon(item.status)" [alt]="item.status + ' icon'"
@@ -142,8 +217,8 @@
                                         'Staff' : 'Escalated from' }} : </span> {{ item.status
                                     === 'Assigned' ? item.assigned_staff_name : item.escalated_from_name }}</span>
                                 <br *ngIf="item.status === 'Escalated'">
-                                <span class='mb-0' *ngIf="item.status === 'ASAP' && timelineData.task_description" style="font-size: 13px;"><span
-                                        class="fw-medium">Notes: </span><span>{{
+                                <span class='mb-0' *ngIf="item.status === 'ASAP' && timelineData.task_description"
+                                    style="font-size: 13px;"><span class="fw-medium">Notes: </span><span>{{
                                         timelineData.task_description
                                         }}</span> </span>
                                 <span class='mb-0'
@@ -162,7 +237,8 @@
                             </div>
                         </div>
                     </ng-container>
-                </div>
+                </div> -->
+                <!-- Ended -->
             </div>
             <!-- Reviews -->
             <div

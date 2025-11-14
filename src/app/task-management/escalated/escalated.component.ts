@@ -274,7 +274,7 @@ export class EscalatedComponent {
           //     return null;
           //   })
           //   .filter((t: any) => t !== null);
-          // console.log('Escalated Tasks:', this.escalatedTasks);
+          console.log('Escalated Tasks(Before):', this.escalatedTasks);
           this.escalatedTasks = (response?.result?.data || [])
             .flatMap((task: any) => {
               // Get all matches, not just first
@@ -322,7 +322,9 @@ export class EscalatedComponent {
     const searchTerm = (this.searchRoomNo || '').trim().toLowerCase();
     const filtered = searchTerm
       ? this.escalatedTasks.filter((task: any) =>
-        task.room_no?.toString().toLowerCase().includes(searchTerm)
+        // task.room_no?.toString().toLowerCase().includes(searchTerm)
+        task.room_no?.toString().toLowerCase().startsWith(searchTerm) ||
+        task.guest_name?.toString().toLowerCase().startsWith(searchTerm)
       )
       : this.escalatedTasks;
     const startIndex = (this.currentPage - 1) * this.pageSize;
@@ -387,7 +389,7 @@ export class EscalatedComponent {
     this.selectedHelpServiceTask = null;
   }
 
-  filterByRoomNumber(term: string) {
+  filterByValue(term: string) {
     this.searchRoomNo = term.trim().toLowerCase();
     if (!term || term.trim() === '') {
       // Reset to full escalated task list with pagination
@@ -399,8 +401,13 @@ export class EscalatedComponent {
     } else {
       const searchTerm = term.trim().toLowerCase();
       const filtered = this.escalatedTasks.filter((task: any) => {
-        console.log('Room Number in task:', task.room_no);
-        return task.room_no?.toString().toLowerCase().includes(searchTerm);
+        // console.log('Room Number in task:', task.room_no);
+        // return task.room_no?.toString().toLowerCase().includes(searchTerm);
+        const roomValue = task.room_no?.toString().trim().toLowerCase();
+        const guestValue = task.guest_name?.toString().trim().toLowerCase();
+        const roomMatch = roomValue?.startsWith(searchTerm);
+        const guestMatch = guestValue?.startsWith(searchTerm);
+        return roomMatch || guestMatch;
       }
       );
       const startIndex = (this.currentPage - 1) * this.pageSize;

@@ -161,6 +161,7 @@ export class ReportComponent implements AfterViewInit {
               const guest = this.guestData[i];
               const guestId = guest.id;
               const tasksForGuest = resultData.task_data.filter((task: any) => task.guest_id === guestId);
+              console.log('Guest tasks:', tasksForGuest);
               if (tasksForGuest.length > 0) {
                 const ratingRequests = tasksForGuest.map((task: any) => {
                   const ratingRequestBody = {
@@ -186,8 +187,8 @@ export class ReportComponent implements AfterViewInit {
                       }
                       guest.requestedServices.push({
                         serviceName: tasksForGuest[j].service.service_name,
-                        rating: ratingValue,     
-                        serviceIcon: tasksForGuest[j].service.icon              
+                        rating: ratingValue,
+                        serviceIcon: tasksForGuest[j].service.icon
                       });
                     }
                     // Calculate average rating
@@ -195,7 +196,9 @@ export class ReportComponent implements AfterViewInit {
                     const totalRatings = guest.requestedServices.reduce((sum: any, s: any) => sum + s.rating, 0);
                     guest.averageRating = guest.requestedServices.length > 0 ? totalRatings / guest.requestedServices.length : 0;
                     // Match review ratings
-                    guest.guestRatings = resultData.review_data?.filter((r: any) => r.guest_id === guestId && r.checkout_feedback === true)   || [];
+                    console.log('Guest all reviews', resultData.review_data);
+                    guest.guestRatings = resultData.review_data?.filter((r: any) => r.guest_id === guestId && r.checkout_feedback === true) || [];
+                    console.log('Guest checkout rveiew', guest.guestRatings);
                     guestsProcessed++;
                     // If all guests processed, hide loading and trigger PDF/Print
                     if (guestsProcessed === this.guestData.length) {
@@ -253,7 +256,6 @@ export class ReportComponent implements AfterViewInit {
       this.printReport();
     }, 2000)
   }
-
 
   getStarArray(rating: number): ('full' | 'half' | 'empty')[] {
     const stars: ('full' | 'half' | 'empty')[] = [];
@@ -319,7 +321,7 @@ export class ReportComponent implements AfterViewInit {
     html2pdf().set(options).from(element).save();
   }
 
-  
+
   goBack() {
     this.router.navigate(['/dashboard']);
   }

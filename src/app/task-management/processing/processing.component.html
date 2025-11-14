@@ -13,6 +13,9 @@
         </tr>
     </thead>
     <tbody>
+        <tr *ngIf="!allProcessedTasks || allProcessedTasks.length === 0">
+            <td colspan="9" class="text-center text-muted">No guest tasks found</td>
+        </tr>
         <tr *ngFor="let task of allProcessedTasks">
             <td (click)="navigateToTimeline(task.id)" style="cursor: pointer;">{{ task.guest_name }}</td>
             <td>{{ task.room_no }}</td>

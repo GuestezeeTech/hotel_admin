@@ -960,6 +960,8 @@ export class OfficeDetailsComponent implements OnInit, OnChanges {
     this.localService.remove('roomRange');
     this.localService.remove('USERACCESS');
     this.localService.remove('payNowButtonState');
+    this.localService.remove('isFirstStaff');
+    this.localService.remove('defaultHierarchy');
     this.router.navigate([''], { skipLocationChange: false });
     this.userAccessService.removeUserAccess();
     // this.localService.remove('accessToken');

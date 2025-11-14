@@ -35,14 +35,20 @@
                         <td style="text-align: center;">
                             <input type="checkbox" [id]="staff.full_name" [name]="staff.full_name"
                                 [value]="staff.full_name" (change)="toggleSelection($event, staff.id)"
-                                style="cursor: pointer" [checked]="selectedStaffIds.includes(staff.id)" >
+                                style="cursor: pointer" [checked]="selectedStaffIds.includes(staff.id)">
                         </td>
                         <td style="text-align: center;">{{ staff.staff_employee_number }}</td>
                         <td style="text-align: center;">{{ staff.full_name }}</td>
                         <td style="text-align: center;">{{ staff.phone_number }}</td>
                         <td style="text-align: center;">{{ getRoomLabels(staff) }}</td>
-                        <td style="text-align: center;">{{ staff.hierarchy.designation + '-' +
-                            staff.hierarchy.department }}</td>
+                        <!-- <td style="text-align: center;">{{ staff.hierarchy.designation + '-' +
+                            staff.hierarchy.department }}</td> -->
+                        <td style="text-align: center;"> {{
+                            staff.hierarchy?.length
+                            ? (staff.hierarchy[0]?.designation + ' - ' + staff.hierarchy[0]?.department) +
+                            (staff.hierarchy.length > 1 ? ', ...' : '')
+                            : 'N/A'
+                            }}</td>
                         <td style="text-align: center;">
                             <i class="fa fa-pen-to-square" style="color: #800020; cursor: pointer;"
                                 (click)="setInitialValues(staff.id)"></i>

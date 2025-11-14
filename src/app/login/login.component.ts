@@ -520,7 +520,9 @@ export class LoginComponent implements OnInit {
                     this.localService.set('MemberId', userData.member_id);
                     // Newly added for processing / delivered
                     const member = userData.member_id;
-                    const department = userData.hierarchy.department;
+                    // const department = userData.hierarchy.department;
+                    const department = userData?.hierarchy?.map((item: any) => item.department);
+                    console.log('Login - department:', department)
                     this.getAllStaffIds(userData.staff_id, department, member)
                     this.router.navigate(['/task-management']);
                     // handles FCM token for Staff
@@ -1805,16 +1807,22 @@ export class LoginComponent implements OnInit {
         this.loaderService.emitComplete();
         if (resp?.success === 1 && resp.status_code === 200) {
           const allStaff = resp.result.data;
-          console.log("All Staff in Dept:", allStaff);
+          console.log("All staff in logged in staff department:", allStaff);
           const collectedIds: number[] = [];   // existing behavior (leaf with at_desk=false)
           const allLowerIds: number[] = [];    // new array (all lower ids irrespective of at_desk)
           // recursive helper
           const traverse = (currentId: number) => {
+            // Newly added & commented for combine - started
             // find all direct children of currentId
-            const children = allStaff.filter(
-              (s: any) => s.higher_level_officer?.id === currentId
+            // const children = allStaff.filter(
+            //   (s: any) => s.higher_level_officer?.id === currentId
+            // );
+            const children = allStaff.filter((s: any) =>
+              Array.isArray(s.higher_level_officer) &&
+              s.higher_level_officer.some((officer: any) => officer?.id === currentId)
             );
-            console.log(`Current ID: ${currentId}, Children:`, children);
+            console.log('Logged in children staff:', children)
+            // Ended
             if (children.length === 0) {
               // leaf → check at_desk
               const currentStaff = allStaff.find((s: any) => s.id === currentId);

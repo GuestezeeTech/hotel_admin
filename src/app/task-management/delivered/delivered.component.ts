@@ -19,98 +19,6 @@ import { Observable } from 'rxjs';
 
 export class DeliveredComponent {
   // Delivered orders data
-  // deliveredOrders = [
-  //   {
-  //     name: 'John Doe',
-  //     roomNo: '101',
-  //     service: 'Room Cleaning',
-  //     orderTime: '10:30 AM',
-  //     deliveredTime: '10:40 AM',
-  //     assignedStaff: 'Alice',
-  //     rating: 5
-  //   },
-  //   {
-  //     name: 'Emily Smith',
-  //     roomNo: '203',
-  //     service: 'Laundry',
-  //     orderTime: '11:15 AM',
-  //     deliveredTime: '11:25 AM',
-  //     assignedStaff: 'Bob',
-  //     rating: 4
-  //   },
-  //   {
-  //     name: 'Michael Johnson',
-  //     roomNo: '305',
-  //     service: 'Food Delivery',
-  //     orderTime: '12:00 PM',
-  //     deliveredTime: '12:10 PM',
-  //     assignedStaff: 'Charlie',
-  //     rating: 3
-  //   },
-  //   {
-  //     name: 'Sarah Williams',
-  //     roomNo: '110',
-  //     service: 'Towel Replacement',
-  //     orderTime: '09:45 AM',
-  //     deliveredTime: '09:55 AM',
-  //     assignedStaff: 'Diana',
-  //     rating: 4
-  //   },
-  //   {
-  //     name: 'David Brown',
-  //     roomNo: '409',
-  //     service: 'Room Cleaning',
-  //     orderTime: '01:10 PM',
-  //     deliveredTime: '01:25 PM',
-  //     assignedStaff: 'Ethan',
-  //     rating: 2
-  //   },
-  //   {
-  //     name: 'Laura Garcia',
-  //     roomNo: '512',
-  //     service: 'Mini Bar Restock',
-  //     orderTime: '02:30 PM',
-  //     deliveredTime: '02:40 PM',
-  //     assignedStaff: 'Fiona',
-  //     rating: 3
-  //   },
-  //   {
-  //     name: 'James Martinez',
-  //     roomNo: '603',
-  //     service: 'Food Delivery',
-  //     orderTime: '03:00 PM',
-  //     deliveredTime: '03:10 PM',
-  //     assignedStaff: 'George',
-  //     rating: 1
-  //   },
-  //   {
-  //     name: 'Olivia Davis',
-  //     roomNo: '707',
-  //     service: 'Laundry',
-  //     orderTime: '04:25 PM',
-  //     deliveredTime: '04:35 PM',
-  //     assignedStaff: 'Hannah',
-  //     rating: 5
-  //   },
-  //   {
-  //     name: 'William Wilson',
-  //     roomNo: '808',
-  //     service: 'Towel Replacement',
-  //     orderTime: '05:15 PM',
-  //     deliveredTime: '05:25 PM',
-  //     assignedStaff: 'Ian',
-  //     rating: 4
-  //   },
-  //   {
-  //     name: 'Sophia Taylor',
-  //     roomNo: '909',
-  //     service: 'Room Cleaning',
-  //     orderTime: '06:05 PM',
-  //     deliveredTime: '06:15 PM',
-  //     assignedStaff: 'Julia',
-  //     rating: 3
-  //   }
-  // ];
   escalationTime: any;
   escalationHierarchy: any;
   deliveredTasks: any;
@@ -166,16 +74,25 @@ export class DeliveredComponent {
       this.member_id = this.localService.get('MemberId');
     }
     this.getAllDeliveredTask();
+    // Newly added & commented for combined - started
     // Escalation timer for tasks(from hierarchy)
-    this.escalationHierarchy = this.localService.get('hierarchy');
-    if (this.escalationHierarchy !== null) {
-      this.escalationHierarchy = JSON.parse(this.escalationHierarchy);
-      //console.log('Escalation Hierarchy:', this.escalationHierarchy);
-      this.escalationTime = this.escalationHierarchy.escalationTime;
-      //console.log('Escalation Time:', this.escalationTime);
+    // this.escalationHierarchy = this.localService.get('hierarchy');
+    // if (this.escalationHierarchy !== null) {
+    //   this.escalationHierarchy = JSON.parse(this.escalationHierarchy);
+    //   //console.log('Escalation Hierarchy:', this.escalationHierarchy);
+    //   this.escalationTime = this.escalationHierarchy.escalationTime;
+    //   //console.log('Escalation Time:', this.escalationTime);
+    // } else {
+    //   //console.warn('Hierarchy data not found in localStorage');
+    // }
+    const hierarchyString = this.localService.get('hierarchy');
+    if (hierarchyString) {
+      this.escalationHierarchy = JSON.parse(hierarchyString);
+      console.log('Escalation Hierarchy(Cancelled):', this.escalationHierarchy);
     } else {
-      //console.warn('Hierarchy data not found in localStorage');
+      this.escalationHierarchy = [];
     }
+    // Ended
   }
 
   // getAllDeliveredTask() {
@@ -353,7 +270,11 @@ export class DeliveredComponent {
   prepareAndCallDeliveredTaskApi() {
     let hierarchy: any = this.localService.get('hierarchy');
     let hierarchyParse = JSON.parse(hierarchy);
-    let department = hierarchyParse?.department;
+    // Newly added & commented for combine - started
+    // let department = hierarchyParse?.department;
+    let department = hierarchyParse?.map((item: any) => item.department);
+    console.log('Staff department(Staff delivered):', department);
+    // Ended
     let staffData: any = this.localService.get('StaffData');
     let staffDataParse = JSON.parse(staffData);
     this.at_desk = staffDataParse?.at_desk;
@@ -476,13 +397,32 @@ export class DeliveredComponent {
       }
     }
     // this.callDeliveredTaskApi(object);
+    // Newly added & commented for combine - started
     // If FO department, add the desk staff ID dynamically
-    if (department === "FO" || department === 'Select') {
+    // if (department === "FO" || department === 'Select') {
+    //   this.getFoDeskStaff(department).subscribe({
+    //     next: (deskStaffId: number | null) => {
+    //       if (deskStaffId) {
+    //         baseStaffIds.push(deskStaffId);
+    //         object.assigned_staff_id = [...new Set(baseStaffIds)]; // avoid duplicates
+    //       }
+    //       this.callDeliveredTaskApi(object);
+    //     },
+    //     error: () => {
+    //       // fallback even if FO desk fetch fails
+    //       this.callDeliveredTaskApi(object);
+    //     }
+    //   });
+    // } 
+    if (Array.isArray(department) && (department.includes('FO') || department.includes('Select'))) {
+      // If 'FO' or 'Select' exists in the array
       this.getFoDeskStaff(department).subscribe({
-        next: (deskStaffId: number | null) => {
-          if (deskStaffId) {
-            baseStaffIds.push(deskStaffId);
-            object.assigned_staff_id = [...new Set(baseStaffIds)]; // avoid duplicates
+        next: (deskStaffIds: number[]) => {
+          if (deskStaffIds) {
+            // baseStaffIds.push(deskStaffId);
+            // object.assigned_staff_id = [...new Set(baseStaffIds)]; // avoid duplicates
+            baseStaffIds.push(...deskStaffIds);
+            baseStaffIds = [...new Set(baseStaffIds)];
           }
           this.callDeliveredTaskApi(object);
         },
@@ -491,12 +431,14 @@ export class DeliveredComponent {
           this.callDeliveredTaskApi(object);
         }
       });
-    } else {
+    }
+    // Ended
+    else {
       this.callDeliveredTaskApi(object);
     }
   }
 
-  getFoDeskStaff(department: string): Observable<number | null> {
+  getFoDeskStaff(department: string[]): Observable<number[]> {
     return new Observable((observer) => {
       const findObject = {
         "hierarchy.department": department,
@@ -514,16 +456,21 @@ export class DeliveredComponent {
       this.taskManagementService.getAllStaves(requestBody).subscribe({
         next: (resp: any) => {
           if (resp?.success === 1 && resp.status_code === 200 && resp.result.data.length > 0) {
-            const deskStaff = resp.result.data[0];
-            observer.next(deskStaff.id);
+            // Newly added & commented for combine - started
+            // const deskStaff = resp.result.data[0];
+            // observer.next(deskStaff.id);
+            const deskStaffIds = resp.result.data.map((staff: any) => staff.id);
+            console.log('Desk staff id(s) (Cancelled):', deskStaffIds)
+            observer.next(deskStaffIds);
+            // Ended
           } else {
-            observer.next(null);
+            observer.next([]);
           }
           observer.complete();
         },
         error: (err) => {
           console.error("Error fetching FO desk staff:", err);
-          observer.next(null);
+          observer.next([]);
           observer.complete();
         }
       });
@@ -648,7 +595,9 @@ export class DeliveredComponent {
     const searchTerm = (this.searchRoomNo || '').trim().toLowerCase();
     const filtered = searchTerm
       ? this.deliveredTasks.filter((task: any) =>
-        task.room_no?.toString().toLowerCase().includes(searchTerm)
+        // task.room_no?.toString().toLowerCase().includes(searchTerm)
+        task.room_no?.toString().toLowerCase().startsWith(searchTerm) ||
+        task.guest_name?.toString().toLowerCase().startsWith(searchTerm)
       )
       : this.deliveredTasks;
     const startIndex = (this.currentPage - 1) * this.pageSize;
@@ -763,7 +712,7 @@ export class DeliveredComponent {
     this.selectedHelpServiceTask = null;
   }
 
-  filterByRoomNumber(term: string) {
+  filterByValue(term: string) {
     this.searchRoomNo = term.trim().toLowerCase();
     if (!term || term.trim() === '') {
       // Reset to full escalated task list with pagination
@@ -775,8 +724,13 @@ export class DeliveredComponent {
     } else {
       const searchTerm = term.trim().toLowerCase();
       const filtered = this.deliveredTasks.filter((task: any) => {
-        console.log('Room Number in task:', task.room_no);
-        return task.room_no?.toString().toLowerCase().includes(searchTerm);
+        // console.log('Room Number in task:', task.room_no);
+        // return task.room_no?.toString().toLowerCase().includes(searchTerm);
+        const roomValue = task.room_no?.toString().trim().toLowerCase();
+        const guestValue = task.guest_name?.toString().trim().toLowerCase();
+        const roomMatch = roomValue?.startsWith(searchTerm);
+        const guestMatch = guestValue?.startsWith(searchTerm);
+        return roomMatch || guestMatch;
       }
       );
       const startIndex = (this.currentPage - 1) * this.pageSize;

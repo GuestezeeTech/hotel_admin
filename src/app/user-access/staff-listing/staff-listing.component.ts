@@ -131,6 +131,7 @@ export class StaffListingComponent implements OnInit {
         if (response?.success) {
           this.staves = response.result.data;
           this.allStaves = response.result.data; //For pagination
+          console.log('All staves:', this.staves);
           this.totalStaves = this.staves.length;
           //console.log('Total Staves:', this.totalStaves);
           this.totalPages = Math.ceil(this.totalStaves / this.pageSize);
@@ -176,6 +177,7 @@ export class StaffListingComponent implements OnInit {
 
   // To navigate to role page with id
   setInitialValues(staffId: any) {
+    this.localStorageService.set('isFirstStaff', false);
     this.routeUrl.navigate(['/staff', staffId]);
   }
 
@@ -272,10 +274,13 @@ export class StaffListingComponent implements OnInit {
     if (!this.allStaves || this.allStaves.length === 0) {
       // first staff flow — fetch and store default hierarchy in service
       await this.staffService.getDefaultHierarchyForFirstStaff();
+      // console.log('Contacting staff service...');
     } else {
       // clear first-staff flags
       this.staffService.defaultHierarchy = null;
       this.staffService.isFirstStaff = false;
+      this.localStorageService.set('isFirstStaff', this.staffService.isFirstStaff);
+      console.log('Is first staff while listing staff', this.localStorageService.get('isFirstStaff'));
     }
     // navigate (no query params)
     this.routeUrl.navigate(['/staff']);

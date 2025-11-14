@@ -507,7 +507,7 @@ export const ENDPOINTS = {
   UPDATE_LOGIN_CUSTOMER_FCM: API_URL + ':5447/customer/updatecustomer',
   CHANGE_PASSWORD: API_URL + ':5447/customer/updatepassword',
   RESET_PASSWORD: API_URL + ':5447/customer/resetpassword',
-  CREATE_SERVICE: API_URL + ':7780/services/create',
+  // CREATE_SERVICE: API_URL + ':7780/services/create',
   GET_ALL_SERVICES: API_URL + ':9979/services/getall',
   UPDATE_SERVICES: API_URL + ':7780/services/update',
   GET_HIERARCHY: API_URL + ':3390/hierarchy/getall',
@@ -535,5 +535,14 @@ export const ENDPOINTS = {
   GET_ALL_SUBSCRIPTION: API_URL + ':1250/paymentsubscription/getall',
   GENERRATE_NAME_PASSWORD: API_URL + ':5622/sms/SendUserDataSms',
   STAFF_LOGIN: API_URL + ':1215/login',
+  CREATE_SERVICE: API_URL1 + ':7780/services/create',
+  UPDATE_SERVICE: API_URL1 + ':7780/services/update',
+  DELETE_SERVICE: API_URL1 + ':7780/services/delete',
+  GETALL_SERVICE: API_URL1 + ':9979/services/getall',
+  GETBYID_SERVICE: API_URL1 + ':9979/services/getbyid',
+  GET_ALL_DEPARTMENT: API_URL + ':1235/department/getall',
+  CREATE_DEPARTMENT: API_URL + ':1225/department/create',
+  UPDATE_DEPARTMENT: API_URL + ':1225/department/update',
+  DELETE_DEPARTMENT: API_URL + ':1225/department/delete',
 }
 

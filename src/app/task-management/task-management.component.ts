@@ -190,7 +190,7 @@ export class TaskManagementComponent implements OnInit {
   customerType: any;
   // Newly added for room filter
   roomSearchTerm: string = '';
-  userDepartment: string = '';
+  userDepartment: string[] = [];
 
   constructor(
     private alertService: AlertsService,
@@ -217,8 +217,12 @@ export class TaskManagementComponent implements OnInit {
       let userDataParse = JSON.parse(userData);
       console.log('User Data:', userDataParse);
       this.at_desk = userDataParse?.at_desk;
-      this.userDepartment = userDataParse?.hierarchy?.department;
-      console.log('User Department:', this.userDepartment);
+      console.log('Desk value of staff:', this.at_desk);
+      // Newly added & commented for combined- started
+      // this.userDepartment = userDataParse?.hierarchy?.department;
+      this.userDepartment = userDataParse?.hierarchy.map((item: any) => item.department);
+      console.log('User Department(Task Management):', this.userDepartment);
+      // Ended
       if (!this.at_desk) {
         console.log('Not at desk - selecting Staff Escalation tab');
         this.selectedTab = this.tabs[1];
@@ -241,7 +245,6 @@ export class TaskManagementComponent implements OnInit {
     const savedPriorityCount = this.localService.get('priorityEscalatedCount');
     this.priorityEscalatedCount = savedPriorityCount ? +savedPriorityCount : 0;
     console.log('Escalated Count on init:', this.escalatedCount, this.staffEscalatedCount, this.priorityEscalatedCount);
-    console.log('Task:', this.at_desk)
     // Listen to changes from notification click
     this.taskManagementService.selectedTab$.subscribe(tab => {
       console.log('Notification Tab Clicked:', tab);
@@ -512,11 +515,14 @@ export class TaskManagementComponent implements OnInit {
       "member_id": this.member_id,
       // "room_no": this.labelRoomArray
     };
-    if (this.userDepartment === 'Select') {
+    // Newly added & commented - started
+    // if (this.userDepartment === 'Select') {
+    if (!this.userDepartment.includes('Select')) {
       object['hierarchy.department'] = 'Select'
     }
+    // Ended
     else {
-       object['hierarchy.department'] = task.service.category
+      object['hierarchy.department'] = task.service.category
     }
     console.log('Object:', object);
     const requestBody = {
@@ -633,7 +639,7 @@ export class TaskManagementComponent implements OnInit {
     //   // this.pushKot =true;
     //   this.callPosApi(task.pms_order_summary);
     // }
-    if ((task.status == "ASAP" && task.service.service_name == "Menu Ordering") &&   (!task.time_line?.some((t: any) => t.status === "Assigned"))) {
+    if ((task.status == "ASAP" && task.service.service_name == "Menu Ordering") && (!task.time_line?.some((t: any) => t.status === "Assigned"))) {
       console.log('task.status == "ASAP" && task.service.service_name == "Menu Ordering"');
       // this.pushKot =true;
       this.callPosApi(task.pms_order_summary);
@@ -651,7 +657,8 @@ export class TaskManagementComponent implements OnInit {
           "status": "Assigned",
           "assigned_staff_id": this.selectedStaff.id,
           "assigned_staff_name": this.selectedStaff.full_name,
-          "assigned_staff_employee_number": this.selectedStaff.staff_employee_number
+          "assigned_staff_employee_number": this.selectedStaff.staff_employee_number,
+          "department": task.service.category
         }
       },
       extras: {
@@ -816,28 +823,31 @@ export class TaskManagementComponent implements OnInit {
     console.log('Room Search Term:', term);
     switch (this.selectedTab) {
       case 'ASAP':
-        this.asapCartComponent?.filterByRoomNumber(term);
+        this.asapCartComponent?.filterByValue(term);
         break;
       case 'Schedule':
-        this.scheduledComponent?.filterByRoomNumber(term);
+        this.scheduledComponent?.filterByValue(term);
         break;
       case 'Delivered':
-        this.deliveredComponent?.filterByRoomNumber(term);
+        this.deliveredComponent?.filterByValue(term);
         break;
       case 'Processing':
-        this.processingComponent?.filterByRoomNumber(term);
+        this.processingComponent?.filterByValue(term);
         break;
       case 'Staff Delivered':
-        this.staffDeliveredComponent?.filterByRoomNumber(term);
+        this.staffDeliveredComponent?.filterByValue(term);
         break;
       case 'My Escalation':
-        this.escalatedComponent?.filterByRoomNumber(term);
+        this.escalatedComponent?.filterByValue(term);
         break;
       case 'Staff Escalation':
-        this.staffEscalatedComponent?.filterByRoomNumber(term);
+        this.staffEscalatedComponent?.filterByValue(term);
         break;
       case 'Priority':
-        this.highPriorityComponent?.filterByRoomNumber(term);
+        this.highPriorityComponent?.filterByValue(term);
+        break;
+      case 'Cancelled':
+        this.cancelledComponent?.filterByValue(term);
         break;
     }
   }

@@ -322,6 +322,8 @@ export class HeaderComponent implements OnInit {
     this.localService.remove('roomRange');
     this.localService.remove('USERACCESS');
     this.localService.remove('payNowButtonState');
+    this.localService.remove('isFirstStaff');
+    this.localService.remove('defaultHierarchy');
     this.router.navigate([''], { skipLocationChange: false });
     this.userAccessService.removeUserAccess();
   }
@@ -556,109 +558,109 @@ export class HeaderComponent implements OnInit {
   // }
 
   async updateHeaderPayNowButton() {
-    await this.getLastestOrderOfCustomer();
-    if (!this.orderdata || !this.orderdata.payment_split) {
-      this.paymentEventService.updatePayNowButton(false, false);
-      return;
-    }
-    const allCycles: any[] = this.orderdata.payment_split;
-    // Find first unpaid cycle
-    let nextUnpaidCycleIndex = allCycles.findIndex(cycle =>
-      cycle.installments.some((inst: any) => inst.status === "Not Paid")
-    );
-    console.log('Next Unpaid Cycle Index', nextUnpaidCycleIndex);
-    let lastRelevantInstallment: any;
-    if (nextUnpaidCycleIndex === -1) {
-      console.log('All Installments Paid');
-      // CASE: All installments paid
-      // Pick the last paid installment
-      const lastCycle = allCycles[allCycles.length - 1];
-      lastRelevantInstallment = lastCycle.installments[lastCycle.installments.length - 1];
-    } else {
-      console.log('Some Installments Unpaid');
-      // CASE: Some unpaid installments
-      const nextCycle = allCycles[nextUnpaidCycleIndex];
-      const nextUnpaidIndex = nextCycle.installments.findIndex((inst: any) => inst.status === "Not Paid");
-      lastRelevantInstallment = nextUnpaidIndex > 0
-        ? nextCycle.installments[nextUnpaidIndex - 1]
-        : null;
-    }
-    if (!lastRelevantInstallment) {
-      this.paymentEventService.updatePayNowButton(false, false);
-      return;
-    }
-    console.log('lastRelevantInstallment', lastRelevantInstallment);
-    // Enable button 7 days before subscription_end_date of lastRelevantInstallment
-    const [day, month, year] = lastRelevantInstallment.subscription_end_date.split('-').map(Number);
-    console.log('day, month, year', day, month, year);
-    const subEndDate = new Date(year, month - 1, day);
-    console.log('Sub end Date', subEndDate);
-    const enableDate = new Date(subEndDate);
-    console.log('enableDate before format', enableDate);
-    enableDate.setDate(enableDate.getDate() - 7);
-    const today = new Date();
-    console.log('enableDate due date', enableDate);
-    const enabled = today >= enableDate;
-    console.log('Enable date', enabled);
-    // Prepare button text
-    let installmentText = 'Start New Payment Cycle';
-    if (nextUnpaidCycleIndex !== -1) {
-      const totalInstallments = allCycles[nextUnpaidCycleIndex].installments.length;
-      const nextUnpaidIndex = allCycles[nextUnpaidCycleIndex].installments.findIndex((inst: any) => inst.status === "Not Paid");
-      const cycleName = allCycles[nextUnpaidCycleIndex].name || 'Installment';
-      installmentText = `${this.capitalizeFirstLetter(cycleName)} - Installment ${nextUnpaidIndex + 1} of ${totalInstallments}`;
-    }
-    const showButton = true;
-    this.localService.set('payNowButtonState', JSON.stringify({ show: showButton, enabled, installmentText }));
-    this.paymentEventService.updatePayNowButton(showButton, enabled, installmentText);
-    console.log('Pay Now Button:', { showButton, enabled, installmentText });
+  await this.getLastestOrderOfCustomer();
+  if (!this.orderdata || !this.orderdata.payment_split) {
+    this.paymentEventService.updatePayNowButton(false, false);
+    return;
   }
+  const allCycles: any[] = this.orderdata.payment_split;
+  // Find first unpaid cycle
+  let nextUnpaidCycleIndex = allCycles.findIndex(cycle =>
+    cycle.installments.some((inst: any) => inst.status === "Not Paid")
+  );
+  console.log('Next Unpaid Cycle Index', nextUnpaidCycleIndex);
+  let lastRelevantInstallment: any;
+  if (nextUnpaidCycleIndex === -1) {
+    console.log('All Installments Paid');
+    // CASE: All installments paid
+    // Pick the last paid installment
+    const lastCycle = allCycles[allCycles.length - 1];
+    lastRelevantInstallment = lastCycle.installments[lastCycle.installments.length - 1];
+  } else {
+    console.log('Some Installments Unpaid');
+    // CASE: Some unpaid installments
+    const nextCycle = allCycles[nextUnpaidCycleIndex];
+    const nextUnpaidIndex = nextCycle.installments.findIndex((inst: any) => inst.status === "Not Paid");
+    lastRelevantInstallment = nextUnpaidIndex > 0
+      ? nextCycle.installments[nextUnpaidIndex - 1]
+      : null;
+  }
+  if (!lastRelevantInstallment) {
+    this.paymentEventService.updatePayNowButton(false, false);
+    return;
+  }
+  console.log('lastRelevantInstallment', lastRelevantInstallment);
+  // Enable button 7 days before subscription_end_date of lastRelevantInstallment
+  const [day, month, year] = lastRelevantInstallment.subscription_end_date.split('-').map(Number);
+  console.log('day, month, year', day, month, year);
+  const subEndDate = new Date(year, month - 1, day);
+  console.log('Sub end Date', subEndDate);
+  const enableDate = new Date(subEndDate);
+  console.log('enableDate before format', enableDate);
+  enableDate.setDate(enableDate.getDate() - 7);
+  const today = new Date();
+  console.log('enableDate due date', enableDate);
+  const enabled = today >= enableDate;
+  console.log('Enable date', enabled);
+  // Prepare button text
+  let installmentText = 'Start New Payment Cycle';
+  if (nextUnpaidCycleIndex !== -1) {
+    const totalInstallments = allCycles[nextUnpaidCycleIndex].installments.length;
+    const nextUnpaidIndex = allCycles[nextUnpaidCycleIndex].installments.findIndex((inst: any) => inst.status === "Not Paid");
+    const cycleName = allCycles[nextUnpaidCycleIndex].name || 'Installment';
+    installmentText = `${this.capitalizeFirstLetter(cycleName)} - Installment ${nextUnpaidIndex + 1} of ${totalInstallments}`;
+  }
+  const showButton = true;
+  this.localService.set('payNowButtonState', JSON.stringify({ show: showButton, enabled, installmentText }));
+  this.paymentEventService.updatePayNowButton(showButton, enabled, installmentText);
+  console.log('Pay Now Button:', { showButton, enabled, installmentText });
+}
 
-  capitalizeFirstLetter(str: string) {
-    return str.charAt(0).toUpperCase() + str.slice(1);
-  }
+capitalizeFirstLetter(str: string) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
 
   private groupNotificationsByDay(flatList: any[]): any[] {
-    const todayStr = new Date().toDateString();
-    const yesterdayStr = new Date(Date.now() - 86400000).toDateString();
-    const todayGroup = { day: 'Today', list: [] as any[] };
-    const yesterdayGroup = { day: 'Yesterday', list: [] as any[] };
-    const olderGroup = { day: 'Earlier', list: [] as any[] };
-    console.log('Flat list of notifications:', flatList);
-    flatList.forEach((n: any) => {
-      const notifDate = new Date(n.time).toDateString();
-      if (notifDate === todayStr) todayGroup.list.push(n);
-      else if (notifDate === yesterdayStr) yesterdayGroup.list.push(n);
-      else olderGroup.list.push(n);
-    });
+  const todayStr = new Date().toDateString();
+  const yesterdayStr = new Date(Date.now() - 86400000).toDateString();
+  const todayGroup = { day: 'Today', list: [] as any[] };
+  const yesterdayGroup = { day: 'Yesterday', list: [] as any[] };
+  const olderGroup = { day: 'Earlier', list: [] as any[] };
+  console.log('Flat list of notifications:', flatList);
+  flatList.forEach((n: any) => {
+    const notifDate = new Date(n.time).toDateString();
+    if (notifDate === todayStr) todayGroup.list.push(n);
+    else if (notifDate === yesterdayStr) yesterdayGroup.list.push(n);
+    else olderGroup.list.push(n);
+  });
 
-    const grouped: any[] = [];
-    if (todayGroup.list.length) grouped.push(todayGroup);
-    if (yesterdayGroup.list.length) grouped.push(yesterdayGroup);
-    if (olderGroup.list.length) grouped.push(olderGroup);
+  const grouped: any[] = [];
+  if (todayGroup.list.length) grouped.push(todayGroup);
+  if (yesterdayGroup.list.length) grouped.push(yesterdayGroup);
+  if (olderGroup.list.length) grouped.push(olderGroup);
 
-    return grouped;
-  }
+  return grouped;
+}
 
-  // Newly added & commented for Payment modal
-  ngAfterViewInit(): void {
-    this.modalInstance = new bootstrap.Modal(this.paymentModal.nativeElement);
-  }
+// Newly added & commented for Payment modal
+ngAfterViewInit(): void {
+  this.modalInstance = new bootstrap.Modal(this.paymentModal.nativeElement);
+}
 
-  // openPaymentModal() {
-  //   console.log('Opening payment type modal...');
-  //   this.paymentTypeModal?.show();
-  // }
+// openPaymentModal() {
+//   console.log('Opening payment type modal...');
+//   this.paymentTypeModal?.show();
+// }
 
-  openPaymentModal() {
-    console.log('Opening payment type modal...');
-    this.modalInstance.show();
-  }
+openPaymentModal() {
+  console.log('Opening payment type modal...');
+  this.modalInstance.show();
+}
 
-  closeModal() {
-    console.log('Close button clicked');  // Will now work
-    this.modalInstance.hide();
-  }
+closeModal() {
+  console.log('Close button clicked');  // Will now work
+  this.modalInstance.hide();
+}
 
 }
 

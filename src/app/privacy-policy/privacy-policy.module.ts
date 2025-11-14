@@ -1,13 +1,13 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { TimelineRoutingModule } from './timeline-routing.module';
-
+import { PrivacyPolicyRoutingModule } from './privacy-policy-routing.module';
 
 @NgModule({
   declarations: [],
   imports: [
     CommonModule,
-    TimelineRoutingModule
+    PrivacyPolicyRoutingModule
   ]
 })
-export class TimelineModule { }
+
+export class PrivacyPolicyModule { }

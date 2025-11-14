@@ -1,0 +1,70 @@
+<div class="main">
+    <app-alerts></app-alerts>
+    <div class="centered-container">
+        <div class="header-section">
+            <div>
+                <h4 class="title mb-0">Department Management</h4>
+                <p class="intro">
+                    Manage your departments — add, edit, or remove existing ones easily.
+                </p>
+            </div>
+            <!-- Add Department -->
+            <div class="add-department-section">
+                <button class="add-btn" (click)="openAddModal()">+ Add Department</button>
+            </div>
+        </div>
+        <!-- Department List -->
+        <div class="department-list" *ngIf="departments.length > 0">
+            <p class="sub-title">Existing Departments</p>
+            <div *ngIf="departments.length > 0; else noDept" class="dept-grid">
+                <div class="dept-card" *ngFor="let dept of departments; let i = index">
+                    <div class="dept-info">
+                        <span class="dept-name">{{ dept.name }}</span>
+                        <!-- <small *ngIf="dept.description" class="dept-desc">{{ dept.description }}</small> -->
+                    </div>
+                    <div class="actions">
+                        <button class="edit-btn" (click)="openEditModal(dept, dept.id)">Edit</button>
+                        <button class="delete-btn" (click)="openDeleteModal(dept, dept.id)"><i
+                                class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>
+            </div>
+            <ng-template #noDept>
+                <p class="no-dept">No departments added yet.</p>
+            </ng-template>
+        </div>
+    </div>
+</div>
+
+<!-- ADD/EDIT MODAL -->
+<div *ngIf="isModalOpen" class="modal-wrapper">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content" (click)="$event.stopPropagation()">
+        <h4 class="modal-title">{{ isEditMode ? 'Edit Department' : 'Add Department' }}</h4>
+        <!-- Department Name -->
+        <input type="text" placeholder="Enter department name" [(ngModel)]="newDepartmentName"
+            (input)="onNameInputChange()" class="dept-input" />
+        <p *ngIf="nameError" class="error-text">Department name is required.</p>
+        <!-- Department Description (optional) -->
+        <textarea placeholder="Enter description (optional)" [(ngModel)]="newDepartmentDescription" class="dept-input"
+            rows="3"></textarea>
+        <div class="modal-actions">
+            <button class="save-btn" (click)="saveDepartment()">
+                {{ isEditMode ? 'Update' : 'Add' }}
+            </button>
+            <button class="cancel-btn" (click)="closeModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+<!-- DELETE CONFIRMATION MODAL -->
+<div *ngIf="isDeleteModalOpen" class="modal-wrapper">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content" (click)="$event.stopPropagation()">
+        <h4 class="modal-title">Confirm Delete</h4>
+        <p>Are you sure you want to delete <b>{{ selectedDepartment?.name }}</b>?</p>
+        <div class="modal-actions">
+            <button class="save-btn" (click)="confirmDelete()">Yes, Delete</button>
+            <button class="cancel-btn" (click)="closeDeleteModal()">Cancel</button>
+        </div>
+    </div>
+</div>

@@ -204,6 +204,13 @@ export class NotificationComponent {
     else if (title === 'Completed') {
       targetTab = 'Staff Delivered';
     }
+    // Newly added for cancel tab navigation
+    else if (title === 'Cancelled') {
+      targetTab = 'Cancelled';
+    }
+    else if (title === 'Assigned' && body === 'Please accept the task') {
+      targetTab = 'ASAP';
+    }
     console.log('Highlighting tab:', targetTab);
     this.taskManagementService.setSelectedTab(targetTab);
     this.router.navigate(['/task-management']);
@@ -225,6 +232,13 @@ export class NotificationComponent {
     }
     else if (notify.title === 'Completed') {
       targetTab = 'Staff Delivered';
+    }
+    // Newly added for cancel tab navigation
+    else if (notify.title === 'Cancelled') {
+      targetTab = 'Cancelled';
+    }
+    else if (notify.title === 'Assigned' && notify.body === 'Please accept the task') {
+      targetTab = 'ASAP';
     }
     this.taskManagementService.setSelectedTab(targetTab);
     this.router.navigate(['/task-management']);

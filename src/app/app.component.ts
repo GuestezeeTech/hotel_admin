@@ -36,7 +36,15 @@ export class AppComponent implements OnInit {
     this.router.events.subscribe(event => {
       if (event instanceof NavigationEnd) {
         this.showSidebar = this.routesWithoutSidebar.some(route => route === event.url);
+        console.log('Current URL:', event.url);
         if (event.url == '/hotel-list' || event.url == '/add-new-hotel') this.selectedMenuItem = "Hotels";
+        // Newly added for terms and conditions & privacy policy
+        else if (event.url == '/privacy-policy') this.selectedMenuItem = "Privacy Policy";
+        else if (event.url == '/terms-conditions') this.selectedMenuItem = "Terms & Conditions";
+        // Newly added for dynamic department and service
+        else if (event.url == '/department-list') this.selectedMenuItem = "Department";
+        else if (event.url == '/service-list') this.selectedMenuItem = "Service";
+        // Ended
         else if (event.url == '/role-list' || event.url == '/role') this.selectedMenuItem = "Roles";
         else if (event.url == '/user-list' || event.url == '/user') this.selectedMenuItem = "Users";
         else if (event.url == '/staff-list' || event.url == '/staff') this.selectedMenuItem = "Staff";
@@ -44,11 +52,11 @@ export class AppComponent implements OnInit {
         else if (event.url == '/bookings-management') this.selectedMenuItem = "Bookings & Guest Management";
         else if (event.url == '/late-checkout') this.selectedMenuItem = "Late Checkout";
         else if (event.url == '/settings') this.selectedMenuItem = "Settings";
-
         if (event.url.startsWith('/view-hierarchy') || event.url.startsWith('/view-customer-hierarchy')) {
           this.showSidebar = true;
         }
       }
+      console.log('Selected menu item:', this.selectedMenuItem);
     });
   }
 

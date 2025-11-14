@@ -183,16 +183,25 @@ export class ScheduledComponent {
       this.member_id = this.localService.get('MemberId');
     }
     this.getAllScheduledTask();
+    // Newly added & commented for combined - started
     // Escalation timer for tasks(from hierarchy)
-    this.escalationHierarchy = this.localService.get('hierarchy');
-    if (this.escalationHierarchy !== null) {
-      this.escalationHierarchy = JSON.parse(this.escalationHierarchy);
+    // this.escalationHierarchy = this.localService.get('hierarchy');
+    // if (this.escalationHierarchy !== null) {
+    //   this.escalationHierarchy = JSON.parse(this.escalationHierarchy);
+    //   console.log('Escalation Hierarchy:', this.escalationHierarchy);
+    //   this.escalationTime = this.escalationHierarchy.escalationTime;
+    //   console.log('Escalation Time:', this.escalationTime);
+    // } else {
+    //   console.warn('Hierarchy data not found in localStorage');
+    // }
+    const hierarchyString = this.localService.get('hierarchy');
+    if (hierarchyString) {
+      this.escalationHierarchy = JSON.parse(hierarchyString);
       console.log('Escalation Hierarchy:', this.escalationHierarchy);
-      this.escalationTime = this.escalationHierarchy.escalationTime;
-      console.log('Escalation Time:', this.escalationTime);
     } else {
-      console.warn('Hierarchy data not found in localStorage');
+      this.escalationHierarchy = [];
     }
+    // Ended
   }
 
   // getAllScheduledTask() {
@@ -373,7 +382,11 @@ export class ScheduledComponent {
   prepareAndCallScheduledTaskApi() {
     let hierarchy: any = this.localService.get('hierarchy');
     let hierarchyParse = JSON.parse(hierarchy);
-    let department = hierarchyParse?.department;
+    // Newly added & commented for combined - started
+    // let department = hierarchyParse?.department;
+    let department = hierarchyParse?.map((item: any) => item.department);
+    console.log('Staff department:', department);
+    // Ended
     let staffData: any = this.localService.get('StaffData');
     let staffDataParse = JSON.parse(staffData);
     this.at_desk = staffDataParse?.at_desk;
@@ -482,11 +495,15 @@ export class ScheduledComponent {
     if (department && department !== 'Select') {
       object["service.category"] = department;
     }
+    // if (department && department === 'Select') {
+    //   object["service.category"] = 'Select';
+    // }
     this.callScheduledTaskApi(object);
   }
 
   // Final call for api
   callScheduledTaskApi(findObject: any) {
+    console.log('Find object(Scheduled):', findObject)
     let requestBody = {
       "domain_name": DOMAIN_NAME,
       "user_id": USER_ID,
@@ -504,13 +521,30 @@ export class ScheduledComponent {
           //   ...task,
           //   remainingSeconds: undefined
           // }));
+          // Newly added & commented for combined - started
           // Filter only tasks having scheduled_date & scheduled_time
+          // this.scheduledTasks = (response.result.data || [])
+          //   .filter((task: any) => task.scheduled_date && task.scheduled_time)
+          //   .map((task: any) => ({
+          //     ...task,
+          //     remainingSeconds: undefined
+          //   }));
           this.scheduledTasks = (response.result.data || [])
             .filter((task: any) => task.scheduled_date && task.scheduled_time)
-            .map((task: any) => ({
-              ...task,
-              remainingSeconds: undefined
-            }));
+            .map((task: any) => {
+              // Match escalation time based on service.category
+              const matchedHierarchy = this.escalationHierarchy.find(
+                (h: any) => h.department?.toLowerCase() === task.service?.category?.toLowerCase()
+              );
+              const escalationTime = matchedHierarchy ? matchedHierarchy.escalationTime : 0; // fallback if not found
+              return {
+                ...task,
+                remainingSeconds: undefined,
+                escalationTime
+              };
+            });
+          console.log("Tasks with Escalation Time(Scheduled):", this.scheduledTasks);
+          // Ended
           this.scheduledTasks.forEach((task: any) => this.initializeTimer(task));
           this.totalTasks = this.scheduledTasks.length;
           this.totalPages = Math.ceil(this.totalTasks / this.pageSize);
@@ -535,7 +569,9 @@ export class ScheduledComponent {
     const searchTerm = (this.searchRoomNo || '').trim().toLowerCase();
     const filtered = searchTerm
       ? this.scheduledTasks.filter((task: any) =>
-        task.room_no?.toString().toLowerCase().includes(searchTerm)
+        // task.room_no?.toString().toLowerCase().includes(searchTerm)
+        task.room_no?.toString().toLowerCase().startsWith(searchTerm) ||
+        task.guest_name?.toString().toLowerCase().startsWith(searchTerm)
       )
       : this.scheduledTasks;
     const startIndex = (this.currentPage - 1) * this.pageSize;
@@ -571,7 +607,10 @@ export class ScheduledComponent {
 
     console.log('Initializing timer for task:', task);
     const orderDateTime = new Date(`${task.order_date}T${task.order_time}`);
-    const escalationDurationInSeconds = this.escalationHierarchy?.escalationTime * 60;
+    // Newly added & commented for combined - started
+    // const escalationDurationInSeconds = this.escalationHierarchy?.escalationTime * 60;
+    const escalationDurationInSeconds = task.escalationTime * 60;
+    // Ended
     // const escalationTime = this.escalationHierarchy?.escalationTime || 0;
     // const escalationDurationInSeconds = Math.floor(escalationTime * 60);
     let interval: any; //  Declaring interval before using it
@@ -793,7 +832,7 @@ export class ScheduledComponent {
     this.selectedHelpServiceTask = null;
   }
 
-  filterByRoomNumber(term: string) {
+  filterByValue(term: string) {
     this.searchRoomNo = term.trim().toLowerCase();
     if (!term || term.trim() === '') {
       // Reset to show all scheduled tasks
@@ -805,8 +844,13 @@ export class ScheduledComponent {
     } else {
       const searchTerm = term.trim().toLowerCase();
       const filtered = this.scheduledTasks.filter((task: any) => {
-        console.log('Room Number in task:', task.room_no);
-        return task.room_no?.toString().toLowerCase().includes(searchTerm);
+        // console.log('Room Number in task:', task.room_no);
+        // return task.room_no?.toString().toLowerCase().includes(searchTerm);
+        const roomValue = task.room_no?.toString().trim().toLowerCase();
+        const guestValue = task.guest_name?.toString().trim().toLowerCase();
+        const roomMatch = roomValue?.startsWith(searchTerm);
+        const guestMatch = guestValue?.startsWith(searchTerm);
+        return roomMatch || guestMatch;
       }
       );
       const startIndex = (this.currentPage - 1) * this.pageSize;

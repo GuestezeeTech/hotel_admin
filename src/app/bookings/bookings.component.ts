@@ -174,14 +174,20 @@ export class BookingsComponent {
   // For showing filter
   showFilterDropdown: boolean = false;
   searchTerm: string = '';
-  allBookings: any[] = [];
+  // allBookings: any[] = [];
   hotelId: any;
   memberId: any;
   currentPage: number = 1;
   pageSize: number = 10; // Show 10 per page
   totalTasks: number = 0; // Total number of roles
   totalPages: number = 0; // Total number of pages
-  bookings: any[] = [];
+  // bookings: any[] = [];
+  // Newly added for room filter
+  roomSearchTerm: string = '';
+  masterBookings: any[] = []; // all records (complete)
+  bookings: any[] = [];       // filtered data for pagination
+  allBookings: any[] = [];    // current page data for table
+
 
   constructor(
     private alertService: AlertsService,
@@ -314,11 +320,17 @@ export class BookingsComponent {
             }
           });
           // Convert map values back to array
-          this.allBookings = Array.from(bookingMap.values());
+          // Newly added & commented for room filter
+          // this.allBookings = Array.from(bookingMap.values());
           // this.allBookings = resp.result.data;
-          console.log(this.allBookings, "Bookings List");
-          this.bookings = this.allBookings;
-          this.totalTasks = this.allBookings.length;
+          // console.log(this.allBookings, "Bookings List");
+          // this.bookings = this.allBookings;
+          this.masterBookings = Array.from(bookingMap.values()); // full data
+          this.bookings = [...this.masterBookings];               // filtered copy
+          console.log(this.masterBookings, "Bookings List");
+          // this.totalTasks = this.allBookings.length;
+          this.totalTasks = this.bookings.length;
+          // Ended
           this.totalPages = Math.ceil(this.totalTasks / this.pageSize);
           this.updatePaginatedTasks();
         }
@@ -374,6 +386,30 @@ export class BookingsComponent {
       this.currentPage--;
       this.updatePaginatedTasks();
     }
+  }
+
+  // Newly added for room filter
+  onRoomSearchChange() {
+    const searchValue = this.roomSearchTerm.trim().toLowerCase();
+    console.log('Search Value:', searchValue);
+    if (!searchValue) {
+      // Reset to full list
+      this.bookings = [...this.masterBookings];
+    } else {
+      // Filter the full data, not paginated
+      this.bookings = this.masterBookings.filter(booking => {
+        // booking.Room_No?.toString().toLowerCase().startsWith(searchValue) 
+        const roomMatch = booking.Room_No?.toString().trim().toLowerCase().startsWith(searchValue);
+        const nameMatch = booking.Guest_detail[0].First_Name?.toString().trim().toLowerCase().startsWith(searchValue);
+        return roomMatch || nameMatch;
+      });
+    }
+    // Recalculate pagination
+    this.totalTasks = this.bookings.length;
+    this.totalPages = Math.ceil(this.totalTasks / this.pageSize);
+    this.currentPage = 1;
+    this.updatePaginatedTasks(); // updates allBookings (your table source)
+    console.log('Filtered Bookings:', this.allBookings);
   }
 
 }

@@ -166,16 +166,25 @@ export class CancelledComponent {
       this.member_id = this.localService.get('MemberId');
     }
     this.getAllCancelledTask();
+    // Newly added & commented for combined - started
     // Escalation timer for tasks(from hierarchy)
-    this.escalationHierarchy = this.localService.get('hierarchy');
-    if (this.escalationHierarchy !== null) {
-      this.escalationHierarchy = JSON.parse(this.escalationHierarchy);
-      //console.log('Escalation Hierarchy:', this.escalationHierarchy);
-      this.escalationTime = this.escalationHierarchy.escalationTime;
-      //console.log('Escalation Time:', this.escalationTime);
+    // this.escalationHierarchy = this.localService.get('hierarchy');
+    // if (this.escalationHierarchy !== null) {
+    //   this.escalationHierarchy = JSON.parse(this.escalationHierarchy);
+    //   //console.log('Escalation Hierarchy:', this.escalationHierarchy);
+    //   this.escalationTime = this.escalationHierarchy.escalationTime;
+    //   //console.log('Escalation Time:', this.escalationTime);
+    // } else {
+    //   //console.warn('Hierarchy data not found in localStorage');
+    // }
+    const hierarchyString = this.localService.get('hierarchy');
+    if (hierarchyString) {
+      this.escalationHierarchy = JSON.parse(hierarchyString);
+      console.log('Escalation Hierarchy(Cancelled):', this.escalationHierarchy);
     } else {
-      //console.warn('Hierarchy data not found in localStorage');
+      this.escalationHierarchy = [];
     }
+    // Ended
   }
 
   // getAllCancelledTask() {
@@ -353,7 +362,11 @@ export class CancelledComponent {
   prepareAndCallCancelledTaskApi() {
     let hierarchy: any = this.localService.get('hierarchy');
     let hierarchyParse = JSON.parse(hierarchy);
-    let department = hierarchyParse?.department;
+    // Newly added & commented for combine - started
+    // let department = hierarchyParse?.department;
+    let department = hierarchyParse?.map((item: any) => item.department);
+    console.log('Staff department(Cancelled):', department);
+    // Ended
     let staffData: any = this.localService.get('StaffData');
     let staffDataParse = JSON.parse(staffData);
     this.at_desk = staffDataParse?.at_desk;
@@ -476,13 +489,40 @@ export class CancelledComponent {
       }
     }
     // this.callCancelledTaskApi(object);
+    // Newly added & commented for combine - started
     //  If FO department, add the desk staff ID dynamically
-    if (department === "FO" || department === 'Select') {
+    // if (department === "FO" || department === 'Select') {
+    //   this.getFoDeskStaff(department).subscribe({
+    //     next: (deskStaffId: number | null) => {
+    //       if (deskStaffId) {
+    //         baseStaffIds.push(deskStaffId);
+    //         // object.assigned_staff_id = [...new Set(baseStaffIds)]; // avoid duplicates
+    //       }
+    //       this.callCancelledTaskApi(object);
+    //     },
+    //     error: () => {
+    //       // fallback even if FO desk fetch fails
+    //       this.callCancelledTaskApi(object);
+    //     }
+    //   });
+    // } 
+    // Newly added for department - started
+    if (department && department !== 'Select') {
+      object["service.category"] = department;
+    }
+    // if (department && department === 'Select') {
+    //   object["service.category"] = 'Select';
+    // }
+    // Ended
+    if (Array.isArray(department) && (department.includes('FO') || department.includes('Select'))) {
+      // If 'FO' or 'Select' exists in the array
       this.getFoDeskStaff(department).subscribe({
-        next: (deskStaffId: number | null) => {
-          if (deskStaffId) {
-            baseStaffIds.push(deskStaffId);
+        next: (deskStaffIds: number[]) => {
+          if (deskStaffIds) {
+            // baseStaffIds.push(deskStaffId);
             // object.assigned_staff_id = [...new Set(baseStaffIds)]; // avoid duplicates
+            baseStaffIds.push(...deskStaffIds);
+            baseStaffIds = [...new Set(baseStaffIds)];
           }
           this.callCancelledTaskApi(object);
         },
@@ -491,12 +531,14 @@ export class CancelledComponent {
           this.callCancelledTaskApi(object);
         }
       });
-    } else {
+    }
+    // Ended
+    else {
       this.callCancelledTaskApi(object);
     }
   }
 
-  getFoDeskStaff(department: string): Observable<number | null> {
+  getFoDeskStaff(department: string[]): Observable<number[]> {
     return new Observable((observer) => {
       const findObject = {
         "hierarchy.department": department,
@@ -514,16 +556,21 @@ export class CancelledComponent {
       this.taskManagementService.getAllStaves(requestBody).subscribe({
         next: (resp: any) => {
           if (resp?.success === 1 && resp.status_code === 200 && resp.result.data.length > 0) {
-            const deskStaff = resp.result.data[0];
-            observer.next(deskStaff.id);
+            // Newly added & commented for combine - started
+            // const deskStaff = resp.result.data[0];
+            // observer.next(deskStaff.id);
+            const deskStaffIds = resp.result.data.map((staff: any) => staff.id);
+            console.log('Desk staff id(s) (Cancelled):', deskStaffIds)
+            observer.next(deskStaffIds);
+            // Ended
           } else {
-            observer.next(null);
+            observer.next([]);
           }
           observer.complete();
         },
         error: (err) => {
           console.error("Error fetching FO desk staff:", err);
-          observer.next(null);
+          observer.next([]);
           observer.complete();
         }
       });
@@ -603,7 +650,9 @@ export class CancelledComponent {
     const searchTerm = (this.searchRoomNo || '').trim().toLowerCase();
     const filtered = searchTerm
       ? this.cancelledTasks.filter((task: any) =>
-        task.room_no?.toString().toLowerCase().includes(searchTerm)
+        // task.room_no?.toString().toLowerCase().includes(searchTerm)
+        task.room_no?.toString().toLowerCase().startsWith(searchTerm) ||
+        task.guest_name?.toString().toLowerCase().startsWith(searchTerm)
       )
       : this.cancelledTasks;
     const startIndex = (this.currentPage - 1) * this.pageSize;
@@ -718,7 +767,7 @@ export class CancelledComponent {
     this.selectedHelpServiceTask = null;
   }
 
-  filterByRoomNumber(term: string) {
+  filterByValue(term: string) {
     this.searchRoomNo = term.trim().toLowerCase();
     if (!term || term.trim() === '') {
       // Reset to full escalated task list with pagination
@@ -730,8 +779,13 @@ export class CancelledComponent {
     } else {
       const searchTerm = term.trim().toLowerCase();
       const filtered = this.cancelledTasks.filter((task: any) => {
-        console.log('Room Number in task:', task.room_no);
-        return task.room_no?.toString().toLowerCase().includes(searchTerm);
+        // console.log('Room Number in task:', task.room_no);
+        // return task.room_no?.toString().toLowerCase().includes(searchTerm);
+        const roomValue = task.room_no?.toString().trim().toLowerCase();
+        const guestValue = task.guest_name?.toString().trim().toLowerCase();
+        const roomMatch = roomValue?.startsWith(searchTerm);
+        const guestMatch = guestValue?.startsWith(searchTerm);
+        return roomMatch || guestMatch;
       }
       );
       const startIndex = (this.currentPage - 1) * this.pageSize;

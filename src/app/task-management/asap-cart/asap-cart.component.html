@@ -13,6 +13,9 @@
         </tr>
     </thead>
     <tbody>
+        <tr *ngIf="!allTasks || allTasks.length === 0">
+            <td colspan="9" class="text-center text-muted">No guest tasks found</td>
+        </tr>
         <tr *ngFor="let task of allTasks">
             <td (click)="navigateToTimeline(task.id)" style="cursor: pointer;">{{ task.guest_name }}</td>
             <td>{{ task.room_no }}</td>
@@ -80,9 +83,17 @@
                     style="color: #545460; border: none !important; cursor: pointer;">
                     Not Assigned
                 </button>
-                <button *ngIf="task.assigned_staff_name!=undefined && task?.service?.service_name !== 'Late checkout'"
+                <button
+                    *ngIf="task.assigned_staff_name!=undefined && task?.service?.service_name !== 'Late checkout' && (task?.service?.service_name === 'Checkout' && task.assigned_staff_id !== this.selfStaffId)"
                     style="color: #545460; border: none !important; cursor: pointer;">
                     {{task.assigned_staff_name}}
+                </button>
+                <!-- Newly added for initiate checkout -->
+                <button
+                    *ngIf="task.status==='Assigned' && task.assigned_staff_name!=undefined && task?.service?.service_name === 'Checkout' && task.assigned_staff_id === this.selfStaffId"
+                    style="color: #545460; border: none !important; cursor: pointer; text-decoration: underline;"
+                    (click)="initiateCheckout(task)">
+                    Initiate Checkout
                 </button>
                 <!-- Late checkout -->
                 <!-- Newly added & commented for all department -->

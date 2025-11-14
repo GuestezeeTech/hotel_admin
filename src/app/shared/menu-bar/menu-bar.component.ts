@@ -97,7 +97,7 @@ export class MenuBarComponent implements OnInit {
       this.activeMenu = 'hotel';
       this.isHotelSubmenuOpen = true;
 
-    } else if (url.includes('/settings')) {
+    } else if (url.includes('/settings') ||url.includes('/privacy-policy') || url.includes('/terms-conditions')) {
       this.activeMenu = 'settings-page';
       this.isSettingsSubmenuOpen = true;
 
@@ -117,6 +117,15 @@ export class MenuBarComponent implements OnInit {
       this.activeMenu = 'outlet';
 
     }
+    // Newly added for dynamic department and service
+    else if (url.includes('/department')) {
+      this.activeMenu = 'department';
+      this.isSettingsSubmenuOpen = true;
+    } 
+    else if (url.includes('/service')) {
+      this.activeMenu = 'service';
+      this.isSettingsSubmenuOpen = true;
+    } 
     //  else {
     //   // Default: no recognizable route — highlight Hotels by default (as requested)
     //   this.activeMenu = 'hotel';
@@ -200,7 +209,6 @@ export class MenuBarComponent implements OnInit {
    */
   setActiveMenu(menu: string) {
     this.activeMenu = menu;
-
     if (menu.startsWith('hotel')) {
       this.isHotelSubmenuOpen = true;
       this.isUserAccessSubmenuOpen = false;
@@ -209,7 +217,7 @@ export class MenuBarComponent implements OnInit {
       this.isUserAccessSubmenuOpen = true;
       this.isHotelSubmenuOpen = false;
       this.isSettingsSubmenuOpen = false;
-    } else if (menu.startsWith('settings')) {
+    } else if ((menu.startsWith('settings')) || (menu.startsWith('department')) || (menu.startsWith('service'))) {
       this.isSettingsSubmenuOpen = true;
       this.isHotelSubmenuOpen = false;
       this.isUserAccessSubmenuOpen = false;

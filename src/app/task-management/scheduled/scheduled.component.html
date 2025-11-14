@@ -15,6 +15,9 @@
         </tr>
     </thead>
     <tbody>
+        <tr *ngIf="!scheduledTasks || scheduledTasks.length === 0">
+            <td colspan="9" class="text-center text-muted">No guest tasks found</td>
+        </tr>
         <tr *ngFor="let task of scheduledTasks">
             <td (click)="navigateToTimeline(task)" style="cursor: pointer;">{{ task.guest_name }}</td>
             <td>{{ task.room_no }}</td>

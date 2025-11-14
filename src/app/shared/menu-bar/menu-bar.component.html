@@ -3,76 +3,65 @@
   <ul style="padding: 6px 6px 6px 10px;">
 
     <!-- Dashboard -->
-    <li class="list_container"
-        [class.active]="isActive('dashboard')"
-        (click)="setActiveMenu('dashboard'); sendValue('Dashboard')"
-        *ngIf="customerdata?.status == 'approved'">
+    <li class="list_container" [class.active]="isActive('dashboard')"
+      (click)="setActiveMenu('dashboard'); sendValue('Dashboard')" *ngIf="customerdata?.status == 'approved'">
       <img src="../../assets/images/guestezee/layout.png" alt="Dashboard">
       <a routerLink="/dashboard">Dashboard</a>
     </li>
 
     <!-- Task Management -->
-    <li class="list_container"
-        [class.active]="isActive('task')"
-        (click)="setActiveMenu('task'); sendValue('Task Management')"
-        *ngIf="(customerdata?.status=='approved') || (customerType=='Staff')">
+    <li class="list_container" [class.active]="isActive('task')"
+      (click)="setActiveMenu('task'); sendValue('Task Management')"
+      *ngIf="(customerdata?.status=='approved') || (customerType=='Staff')">
       <img src="../../assets/images/guestezee/taskManagement.png" alt="Task Management">
       <a routerLink="/task-management">Task Management</a>
     </li>
 
     <!-- Hotels -->
-    <li class="list_container"
-        [class.active]="isActive('hotel')"
-        *ngIf="customerType === 'Customer'"
-        (click)="toggleSubmenu('Hotels')">
+    <li class="list_container" [class.active]="isActive('hotel')" *ngIf="customerType === 'Customer'"
+      (click)="toggleSubmenu('Hotels')">
       <div class="list-content">
         <div class="left-content">
           <img src="../../assets/images/guestezee/hotel (2).png" alt="Hotels">
           <a [routerLink]="['/edit-new-hotel', hotelId]">Hotels</a>
         </div>
-        <i class="fas fa-chevron-down dropdown-icon"
-           [ngClass]="{ 'rotate': isHotelSubmenuOpen }"
-           *ngIf="customerdata?.status=='approved'"></i>
+        <i class="fas fa-chevron-down dropdown-icon" [ngClass]="{ 'rotate': isHotelSubmenuOpen }"
+          *ngIf="customerdata?.status=='approved'"></i>
       </div>
     </li>
 
     <!-- Hotel submenu -->
-    <li class="sub-menu" *ngIf="isHotelSubmenuOpen">
+    <li class="sub-menu" *ngIf="isHotelSubmenuOpen && customerdata?.status == 'approved'">
       <div class="submenu">
         <span class="submenu-item" [class.active]="isActive('hotel-0')"
-              (click)="setActiveMenu('hotel-0'); goToTab('Registered Office Details')">Office Details</span>
+          (click)="setActiveMenu('hotel-0'); goToTab('Registered Office Details')">Office Details</span>
         <span class="submenu-item" [class.active]="isActive('hotel-1')"
-              (click)="setActiveMenu('hotel-1'); goToTab('Property Details')">Property Details</span>
+          (click)="setActiveMenu('hotel-1'); goToTab('Property Details')">Property Details</span>
         <span class="submenu-item" [class.active]="isActive('hotel-2')"
-              (click)="setActiveMenu('hotel-2'); goToTab('Services')">Services</span>
+          (click)="setActiveMenu('hotel-2'); goToTab('Services')">Services</span>
         <span class="submenu-item" [class.active]="isActive('hotel-3')"
-              (click)="setActiveMenu('hotel-3'); goToTab('Hierarchy')">Hierarchy</span>
+          (click)="setActiveMenu('hotel-3'); goToTab('Hierarchy')">Hierarchy</span>
         <span class="submenu-item" [class.active]="isActive('hotel-4')"
-              (click)="setActiveMenu('hotel-4'); goToTab('Technical Info')">Technical Info</span>
+          (click)="setActiveMenu('hotel-4'); goToTab('Technical Info')">Technical Info</span>
       </div>
     </li>
 
     <!-- Bookings -->
-    <li class="list_container"
-        [class.active]="isActive('bookings')"
-        (click)="setActiveMenu('bookings'); sendValue('Bookings')"
-        *ngIf="customerdata?.status=='approved'">
+    <li class="list_container" [class.active]="isActive('bookings')"
+      (click)="setActiveMenu('bookings'); sendValue('Bookings')" *ngIf="customerdata?.status=='approved'">
       <img src="../../assets/images/guestezee/bookings.png" alt="Bookings">
       <a routerLink="/bookings">Bookings</a>
     </li>
 
     <!-- User Access -->
-    <li class="list_container"
-        [class.active]="isActive('user-access')"
-        (click)="toggleSubmenu('User Access')"
-        *ngIf="customerdata?.status=='approved'">
+    <li class="list_container" [class.active]="isActive('user-access')" (click)="toggleSubmenu('User Access')"
+      *ngIf="customerdata?.status=='approved'">
       <div class="list-content">
         <div class="left-content">
           <img src="../../assets/images/guestezee/secure-access (1).png" alt="User Access" />
           <a>User Access</a>
         </div>
-        <i class="fas fa-chevron-down dropdown-icon"
-           [ngClass]="{ 'rotate': isUserAccessSubmenuOpen }"></i>
+        <i class="fas fa-chevron-down dropdown-icon" [ngClass]="{ 'rotate': isUserAccessSubmenuOpen }"></i>
       </div>
     </li>
 
@@ -80,52 +69,52 @@
     <li class="sub-menu" *ngIf="isUserAccessSubmenuOpen">
       <div class="submenu">
         <a class="submenu-item" routerLink="/role-list" [class.active]="isActive('role')"
-           (click)="setActiveMenu('role'); sendValue('Roles')">Roles</a>
+          (click)="setActiveMenu('role'); sendValue('Roles')">Roles</a>
 
         <a class="submenu-item" routerLink="/user-list" [class.active]="isActive('user')"
-           (click)="setActiveMenu('user'); sendValue('Users')">Users</a>
+          (click)="setActiveMenu('user'); sendValue('Users')">Users</a>
 
         <a class="submenu-item" routerLink="/staff-list" [class.active]="isActive('staff')"
-           (click)="setActiveMenu('staff'); sendValue('Staff')">Staff</a>
+          (click)="setActiveMenu('staff'); sendValue('Staff')">Staff</a>
       </div>
     </li>
 
     <!-- Settings -->
-    <li class="list_container"
-        [class.active]="isActive('settings-main')"
-        (click)="toggleSubmenu('Settings')"
-        *ngIf="(customerType === 'Staff' || customerdata?.status=='approved')">
+    <li class="list_container" [class.active]="isActive('settings-main')" (click)="toggleSubmenu('Settings')"
+      *ngIf="(customerType === 'Staff' || customerdata?.status=='approved')">
       <div class="list-content">
         <div class="left-content">
           <img src="../../assets/images/guestezee/setting.png" alt="Settings" />
           <a>System Settings</a>
         </div>
-        <i class="fas fa-chevron-down dropdown-icon"
-           [ngClass]="{ 'rotate': isSettingsSubmenuOpen }"></i>
+        <i class="fas fa-chevron-down dropdown-icon" [ngClass]="{ 'rotate': isSettingsSubmenuOpen }"></i>
       </div>
     </li>
 
     <li class="sub-menu" *ngIf="isSettingsSubmenuOpen">
       <div class="submenu">
         <a class="submenu-item" routerLink="/settings" [class.active]="isActive('settings-page')"
-           (click)="setActiveMenu('settings-page'); sendValue('Service Settings')">Settings</a>
+          (click)="setActiveMenu('settings-page'); sendValue('Settings')">Settings</a>
+        <!-- Newly added for dynamic department -->
+        <a class="submenu-item" routerLink="/department-list" [class.active]="isActive('department')"
+          (click)="setActiveMenu('department'); sendValue('Department')">Department</a>
+          <!-- Newly added for service -->
+        <a class="submenu-item" routerLink="/service-list" [class.active]="isActive('service')"
+          (click)="setActiveMenu('service'); sendValue('Service')">Service</a>
       </div>
     </li>
 
     <!-- Payment -->
-    <li class="list_container"
-        [class.active]="isActive('payment')"
-        (click)="setActiveMenu('payment'); sendValue('Payment')"
-        *ngIf="(customerType === 'Customer' || customerdata?.status=='approved')">
+    <li class="list_container" [class.active]="isActive('payment')"
+      (click)="setActiveMenu('payment'); sendValue('Payment')"
+      *ngIf="(customerType === 'Customer' || customerdata?.status=='approved')">
       <img src="../../assets/images/guestezee/check.png" alt="Payment">
       <a routerLink="/payment-details">Payment</a>
     </li>
 
     <!-- Outlet -->
-    <li class="list_container"
-        [class.active]="isActive('outlet')"
-        (click)="setActiveMenu('outlet'); sendValue('Outlet')"
-        *ngIf="customerdata?.status=='approved'">
+    <li class="list_container" [class.active]="isActive('outlet')"
+      (click)="setActiveMenu('outlet'); sendValue('Outlet')" *ngIf="customerdata?.status=='approved'">
       <div class="list-content">
         <div class="left-content">
           <i class="fas fa-store" style="color: white;"></i>

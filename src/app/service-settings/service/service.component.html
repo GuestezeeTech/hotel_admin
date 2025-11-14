@@ -1,176 +1,167 @@
 <div class="main">
-  <app-alerts></app-alerts>
-  <!-- <app-header></app-header> -->
   <div class="centered-container">
-    <form [formGroup]="serviceForm" (ngSubmit)="onSubmit()">
-      <div class="section">
-        <h3 style="font-size: 20px;font-weight: 600;">Create Services </h3>
-        <div style="display: grid;grid-template-columns: repeat(2, 1fr);row-gap: 3%;">
-          <div class="form-group form1_div">
-            <label>Service Name</label>
-            <input class="input_box" type="text" formControlName="service_name" placeholder="service name" />
-            <span *ngIf="serviceForm.get('service_name')?.invalid && serviceForm.get('service_name')?.touched">
-              service name is required.
-            </span>
-          </div>
-          <div class="form-group form1_div">
-            <label>Department</label>
-            <select class="input_box" formControlName="department">
-              <option *ngFor="let dept of departments" [value]="dept"> {{ dept }}</option>
-            </select>
-            <!-- <input class="input_box" type="text" formControlName="last_name" placeholder="last_name" /> -->
-            <span *ngIf="serviceForm.controls['department'].invalid && serviceForm.controls['department'].touched">
-              Department is required.
-            </span>
-          </div>
+    <form [formGroup]="serviceForm">
+      <h3 class="form-title">
+        {{ isViewMode ? 'View Service' : (service_id ? 'Edit Service' : 'Create Service') }}
+      </h3>
+      <!-- Basic Info -->
+      <div class="form-grid">
+        <div class="form-group form1_div">
+          <label>Service Name</label>
+          <input class="input_box" type="text" formControlName="service_name" [disabled]="isViewMode" />
         </div>
         <div class="form-group form1_div">
-          <label>Description</label>
-          <textarea class="form-control" id="exampleTextarea" formControlName="description" rows="4"
-            placeholder="Enter your message here" style="background-color:white ;"></textarea>
-          <span *ngIf="serviceForm.controls['description'].invalid && serviceForm.controls['description'].touched">
-            description is required.
-          </span>
+          <label>Department</label>
+          <select class="input_box" formControlName="department" [disabled]="isViewMode">
+            <option *ngFor="let dept of departments" [value]="dept">{{ dept }}</option>
+          </select>
+        </div>
+      </div>
+      <!-- Service Type + Belongs To -->
+      <div class="form-grid">
+        <div class="form-group form1_div">
+          <label>Service Type</label>
+          <select class="input_box" formControlName="service_type" [disabled]="isViewMode"
+            (change)="selectedServiceType($event)">
+            <option *ngFor="let type of serviceTypes" [value]="type">{{ type }}</option>
+          </select>
         </div>
         <div class="form-group form1_div">
-          <div style="    border: 1px solid #E1E2EB;
-        width: 11%;
-        padding: 8px;
-        border-radius: 5px;">
-            <label>Active</label>&nbsp;&nbsp;&nbsp;
-            <label class="switch">
-              <input type="checkbox" formControlName="is_active" checked>
-              <span class="slider round"></span>
+          <label>Belongs To</label>
+          <input class="input_box" type="text" formControlName="belongs_to" [disabled]="isViewMode" />
+        </div>
+      </div>
+      <!-- Description -->
+      <div class="form-group form1_div">
+        <label>Description</label>
+        <textarea class="form-control input_box" formControlName="description" rows="4" [disabled]="isViewMode"
+          placeholder="Enter description" style="font-size: 14px;"></textarea>
+      </div>
+      <!-- Upload Sections -->
+      <div class="form-grid">
+        <!-- ICON Upload -->
+        <div class="form-group form1_div">
+          <div class="custom-file-upload" [ngClass]="{ 'disabled-upload': isViewMode }">
+            <input type="file" #iconInput formControlName="icon" accept="image/*" (change)="logoupload($event)"
+              [disabled]="isViewMode" />
+            <label class="upload-label">
+              <div class="file-preview">
+                <div class="icon-tag">ICON</div>
+                <div>
+                  <div class="file-name" *ngIf="!logo_image" [class.disabled-text]="isViewMode">Choose file...</div>
+                  <div class="file-name" *ngIf="logo_image" [class.disabled-text]="isViewMode">Uploaded</div>
+                </div>
+              </div>
+              <div class="upload-actions">
+                <i class="fas fa-trash-alt" [class.disabled-icon]="isViewMode"
+                  (click)="!isViewMode && deleteIcon()"></i>
+                <a [href]="logo_image" target="_blank" [class.disabled-icon]="isViewMode">
+                  <i class="fas fa-eye" [class.disabled-icon]="isViewMode"></i>
+                </a>
+                <i class="fas fa-upload" [class.disabled-icon]="isViewMode" (click)="!isViewMode && openLogofile()"></i>
+              </div>
             </label>
           </div>
-          <!-- <input class="input_box" type="number" formControlName="phone_number" /> -->
-          <!-- <span *ngIf="serviceForm.controls['phone_number'].invalid && serviceForm.controls['phone_number'].touched">
-          Phone Number is required.
-        </span>
-        <div *ngIf="serviceForm.get('phone_number')?.hasError('invalidPhone') && serviceForm.get('phone_number')?.touched" class="error">
-          ❌ Invalid Phone Number (must be 10 digits & start with 6-9)
-        </div> -->
         </div>
-        <div style="display: grid;grid-template-columns: repeat(2, 1fr);row-gap: 3%;">
-          <div class="form-group form1_div">
-            <label>Service Type</label>
-            <select class="input_box" formControlName="service_type" (change)="selectedServiceType($event)">
-              <option *ngFor="let type of serviceTypes" [value]="type">{{type}}</option>
-            </select>
-            <span *ngIf="serviceForm.controls['service_type'].invalid && serviceForm.controls['service_type'].touched">
-              service type is required.
-            </span>
-          </div>
-          <div class="form-group form1_div" *ngIf="showHoursBefore">
-            <label>Hours Before</label>
-            <input class="input_box" type="text" formControlName="hours_before" />
-            <span *ngIf="serviceForm.controls['hours_before'].invalid && serviceForm.controls['hours_before'].touched">
-              is required.
-            </span>
-          </div>
-        </div>
-        <div style="display: grid;grid-template-columns: repeat(2, 1fr);row-gap: 3%;">
-          <div class="form-group form1_div">
-            <label>Time Bound</label>&nbsp;&nbsp;
-            <label class="switch">
-              <input type="checkbox" formControlName="is_time_bound" (change)="toggleTimeBound($event)">
-              <span class="slider round"></span>
+        <!-- IMAGE Upload -->
+        <div class="form-group form1_div">
+          <div class="custom-file-upload" [ngClass]="{ 'disabled-upload': isViewMode }">
+            <input type="file" #imageInput formControlName="image" accept="image/*" (change)="imageupload($event)"
+              [disabled]="isViewMode" />
+            <label class="upload-label">
+              <div class="file-preview">
+                <div class="icon-tag">IMAGE</div>
+                <div>
+                  <div class="file-name" *ngIf="!service_image" [class.disabled-text]="isViewMode">Choose file...</div>
+                  <div class="file-name" *ngIf="service_image" [class.disabled-text]="isViewMode">Uploaded</div>
+                </div>
+              </div>
+              <div class="upload-actions">
+                <i class="fas fa-trash-alt" [class.disabled-icon]="isViewMode"
+                  (click)="!isViewMode && deleteImage()"></i>
+                <a [href]="service_image" target="_blank" [class.disabled-icon]="isViewMode">
+                  <i class="fas fa-eye" [class.disabled-icon]="isViewMode"></i>
+                </a>
+                <i class="fas fa-upload" [class.disabled-icon]="isViewMode" (click)="!isViewMode && openImagefile()"></i>
+              </div>
             </label>
-            <span
-              *ngIf="serviceForm.controls['is_time_bound'].invalid && serviceForm.controls['is_time_bound'].touched">
-              service type is required.
-            </span>
           </div>
-          <div class="form-group form1_div" *ngIf="timeBoundEnabled">
+        </div>
+      </div>
+      <!-- Quantity Section -->
+      <div class="toggle-section">
+        <h5>Quantity</h5>
+        <label class="switch">
+          <input type="checkbox" formControlName="quantity" (change)="toggleChanged($event)" [disabled]="isViewMode" />
+          <span class="slider round"></span>
+        </label>
+        <div class="form-grid" *ngIf="quantityEnabled">
+          <div class="form-group form1_div">
+            <label>Minimum Quantity</label>
+            <input class="input_box" type="text" formControlName="minimum_quantity" [disabled]="isViewMode" />
+          </div>
+          <div class="form-group form1_div">
+            <label>Maximum Quantity</label>
+            <input class="input_box" type="text" formControlName="maximum_quantity" [disabled]="isViewMode" />
+          </div>
+        </div>
+      </div>
+      <!-- Time Bound Section -->
+      <div class="toggle-section">
+        <h5>Time Bound</h5>
+        <label class="switch">
+          <input type="checkbox" formControlName="is_time_bound" (change)="toggleTimeBound($event)"
+            [disabled]="isViewMode" />
+          <span class="slider round"></span>
+        </label>
+        <div class="form-grid" *ngIf="timeBoundEnabled">
+          <div class="form-group form1_div">
             <label>Minutes</label>
-            <input class="input_box" type="text" formControlName="time_bound_value" />
-            <span
-              *ngIf="serviceForm.controls['time_bound_value'].invalid && serviceForm.controls['time_bound_value'].touched">
-              is required.
-            </span>
+            <input class="input_box" type="text" formControlName="time_bound_value" [disabled]="isViewMode" />
           </div>
         </div>
-        <div class="form-group form1_div">
-          <div style="    border: 1px solid #E1E2EB;
-        width: 14%;
-        padding: 8px;
-        border-radius: 5px;">
-            <label>Quantity</label>&nbsp;&nbsp;&nbsp;
-            <label class="switch">
-              <input type="checkbox" formControlName="quantity" (change)="toggleChanged($event)">
-              <span class="slider round"></span>
-            </label>
-          </div>
+      </div>
+      <!-- Active Toggle -->
+      <div class="form-grid">
+        <div class="toggle-section">
+          <h5>Active</h5>
+          <label class="switch">
+            <input type="checkbox" formControlName="is_active" [disabled]="isViewMode" />
+            <span class="slider round"></span>
+          </label>
         </div>
-        <div style="display: grid;grid-template-columns: repeat(2, 1fr);row-gap: 3%;" *ngIf="quantityEnabled">
-          <div class="form-group form1_div">
-            <label>Minimum:</label>
-            <input class="input_box" type="text" formControlName="minimum_quantity"
-              placeholder="enter minimum quantity" />
-            <span *ngIf="serviceForm.get('minimum_quantity')?.invalid && serviceForm.get('minimum_quantity')?.touched">
-              enter minimum quantity
-            </span>
-          </div>
-          <div class="form-group form1_div">
-            <label>Maximum:</label>
-            <input class="input_box" type="text" formControlName="maximum_quantity"
-              placeholder="enter maxiimum quantity" />
-            <span *ngIf="serviceForm.get('maximum_quantity')?.invalid && serviceForm.get('maximum_quantity')?.touched">
-              enter maxiimum quantity
-            </span>
-          </div>
-        </div>
-        <div style="display: grid;grid-template-columns: repeat(2, 1fr);row-gap: 3%;">
-          <div class="form-group form1_div">
-            <div class="custom-file-upload">
-              <input type="file" formControlName="icon" class="input_box" id="iconUpload"
-                (change)="imageupload($event)" />
-              <label for="iconUpload" class="upload-label">
-                <div class="file-preview">
-                  <div class="icon-tag">ICON</div>
-                  <div>
-                    <div class="file-name">Choose file...</div>
-                    <div class="file-info">Maximum File size • 2Mb</div>
-                  </div>
-                </div>
-                <div class="upload-actions">
-                  <i class="fas fa-trash-alt"></i>
-                  <i class="fas fa-eye"></i>
-                  <i class="fas fa-upload"></i>
-                </div>
-              </label>
-            </div>
-            <span *ngIf="serviceForm.get('icon')?.invalid && serviceForm.get('icon')?.touched">
-              upload icon
-            </span>
-          </div>
-          <div class="form-group form1_div">
-            <div class="custom-file-upload">
-              <input type="file" formControlName="image" class="input_box" id="iconUpload"
-                (change)="imageupload($event)" />
-              <label for="iconUpload" class="upload-label">
-                <div class="file-preview">
-                  <div class="icon-tag">Image</div>
-                  <div>
-                    <div class="file-name">Choose file...</div>
-                    <div class="file-info">Maximum File size • 2Mb</div>
-                  </div>
-                </div>
-                <div class="upload-actions">
-                  <i class="fas fa-trash-alt"></i>
-                  <i class="fas fa-eye"></i>
-                  <i class="fas fa-upload"></i>
-                </div>
-              </label>
-            </div>
-            <span *ngIf="serviceForm.get('image')?.invalid && serviceForm.get('image')?.touched">
-              upload icon
-            </span>
-          </div>
-        </div>
-        <button class="btn  ms-2 fw-semibold"
-          style="color: white; background-color: #800020;float: right;">Save</button>
+      </div>
+      <!-- Buttons -->
+      <div class="form-actions">
+        <button type="button" class="back_bt" (click)="openBackModal()">
+          Back
+        </button>
+        <button type="button" class="save_bt" (click)="saveDta()" [disabled]="isViewMode">
+          Save
+        </button>
       </div>
     </form>
+  </div>
+  <!-- Custom Confirmation Modal -->
+  <div *ngIf="showBackModal"
+    style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center;">
+    <div
+      style="background: white; padding: 30px; border-radius: 15px; width: 350px; text-align: center; box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);">
+      <!-- Confirmation Text -->
+      <h2 style="margin-bottom: 8%; font-size: 20px; font-weight: bold;">Are you sure you want to exit?</h2>
+      <!-- Buttons: Cancel and Confirm -->
+      <div style="display: flex; justify-content: space-around;">
+        <button
+          style="padding: 10px; background: #E1E2EB; color: black; border: none; cursor: pointer; width: 40%; border-radius: 8px;"
+          (click)="closeBackModal()">
+          Cancel
+        </button>
+        <button
+          style="padding: 10px; background: #800020; color: white; border: none; cursor: pointer; width: 40%; border-radius: 8px;"
+          (click)="navigateBack()">
+          Exit
+        </button>
+      </div>
+    </div>
   </div>
 </div>

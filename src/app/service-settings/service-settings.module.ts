@@ -14,6 +14,8 @@ import { OnInit } from '@angular/core';
     RouterModule
   ]
 })
-export class ServiceSettingsModule {
-
-}
+export class ServiceSettingsModule implements OnInit {
+  ngOnInit(): void {
+    
+  }
+ }

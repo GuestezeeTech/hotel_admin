@@ -76,7 +76,7 @@ export class EscalatedFromComponent {
   isHelpServiceModalOpen: boolean = false;
   selectedHelpServiceTask: any = null;
   searchRoomNo: string = '';
-  userDepartment: string = '';  
+  userDepartment: string = '';
 
   constructor(
     private taskManagementService: TaskManagementService,
@@ -91,15 +91,24 @@ export class EscalatedFromComponent {
     this.hotelId = Number(this.localService.get('UserId'));
     console.log('Hotel Id:', this.hotelId);
     // this.member_id = this.localService.get('MemberId');
-    this.escalationHierarchy = this.localService.get('hierarchy');
-    if (this.escalationHierarchy !== null) {
-      this.escalationHierarchy = JSON.parse(this.escalationHierarchy);
-      //console.log('Escalation Hierarchy:', this.escalationHierarchy);
-      this.escalationTime = this.escalationHierarchy.escalationTime;
-      //console.log('Escalation Time:', this.escalationTime);
+    // Newly added & commented for combined - started
+    // this.escalationHierarchy = this.localService.get('hierarchy');
+    // if (this.escalationHierarchy !== null) {
+    //   this.escalationHierarchy = JSON.parse(this.escalationHierarchy);
+    //   //console.log('Escalation Hierarchy:', this.escalationHierarchy);
+    //   this.escalationTime = this.escalationHierarchy.escalationTime;
+    //   //console.log('Escalation Time:', this.escalationTime);
+    // } else {
+    //   //console.warn('Hierarchy data not found in localStorage');
+    // }
+    const hierarchyString = this.localService.get('hierarchy');
+    if (hierarchyString) {
+      this.escalationHierarchy = JSON.parse(hierarchyString);
+      console.log('Escalation Hierarchy:', this.escalationHierarchy);
     } else {
-      //console.warn('Hierarchy data not found in localStorage');
+      this.escalationHierarchy = [];
     }
+    // Ended
     if (this.customerType == 'Customer') {
       await this.getCustomerMemberId(this.hotelId);
     }
@@ -112,8 +121,13 @@ export class EscalatedFromComponent {
     let userData: any = this.localService.get('StaffData');
     let userDataParse = JSON.parse(userData);
     console.log('User Data:', userDataParse);
-    this.userDepartment = userDataParse?.hierarchy?.department;
-    console.log('User Department:', this.userDepartment);
+    // Newly added & commented for combined- started
+    // this.userDepartment = userDataParse?.hierarchy?.department;
+    this.userDepartment = userDataParse?.hierarchy.map((item: any) => item.department);
+    console.log('User Department(Priority):', this.userDepartment);
+    // Ended
+    this.selfStaffId = Number(this.localService.get('UserId'));
+    console.log('Staff id', this.selfStaffId);
   }
 
   onAddAssignee(order: any) {
@@ -156,8 +170,9 @@ export class EscalatedFromComponent {
       let hierarchy: any = this.localService.get('hierarchy');
       let hierarchyParse = JSON.parse(hierarchy);
       this.at_desk = staffDataParse?.at_desk;
-      department = hierarchyParse?.department;
-      console.log('Department:', hierarchyParse?.department);
+      // department = hierarchyParse?.department;
+      department = hierarchyParse.map((item: any) => item.department);
+      console.log('Department(Priority):', department);
     }
     const userId = Number(this.localService.get('UserId'));
     // Directly match current_escalated_id with logged-in user
@@ -182,6 +197,9 @@ export class EscalatedFromComponent {
     if (department && department !== 'Select') {
       object['service.category'] = department
     }
+    // if (department && department === 'Select') {
+    //   object["service.category"] = 'Select';
+    // }
     let requestBody = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
@@ -229,7 +247,7 @@ export class EscalatedFromComponent {
               };
             });
           }
-          console.log('Escalated Task(High Priority):', this.escalatedTasks);
+          console.log('Escalated Task(Priority):', this.escalatedTasks);
           // initialize timers for all escalated tasks
           this.escalatedTasks.forEach(task => this.initializeTimer(task));
           this.allEscalatedTasks = this.escalatedTasks;
@@ -254,7 +272,9 @@ export class EscalatedFromComponent {
     const searchTerm = (this.searchRoomNo || '').trim().toLowerCase();
     const filtered = searchTerm
       ? this.escalatedTasks.filter((task: any) =>
-        task.room_no?.toString().toLowerCase().includes(searchTerm)
+        // task.room_no?.toString().toLowerCase().includes(searchTerm)
+        task.room_no?.toString().toLowerCase().startsWith(searchTerm) ||
+        task.guest_name?.toString().toLowerCase().startsWith(searchTerm)
       )
       : this.escalatedTasks;
     const startIndex = (this.currentPage - 1) * this.pageSize;
@@ -600,7 +620,8 @@ export class EscalatedFromComponent {
           assigned_staff_name: staffData.full_name,
           asigned_staff_employee_number: staffData.staff_employee_number,
           status: 'Completed',
-          completed_time: completed_time
+          completed_time: completed_time,
+          department: task.service.category
         }
       },
       extras: {
@@ -886,9 +907,12 @@ export class EscalatedFromComponent {
       // "at_desk": false,
       "member_id": this.member_id,
     };
-     if (this.userDepartment === 'Select') {
+    // Newly added & commented - started
+    // if (this.userDepartment === 'Select') {
+    if (this.userDepartment.includes('Select')) {
       object['hierarchy.department'] = 'Select'
     }
+    // Ended
     else {
       object['hierarchy.department'] = task.service.category
     }
@@ -901,10 +925,22 @@ export class EscalatedFromComponent {
       (resp: any) => {
         if (resp?.success === 1 && resp.status_code === 200) {
           const allStaves = resp.result.data;
+          // Newly added & commented - started
           // Keep only staff where either higher_level_officer.id OR id matches current user
-          const userRelatedStaves = allStaves.filter((staff: any) =>
-            staff.higher_level_officer?.id === currentUserId || staff.id === currentUserId
-          );
+          // const userRelatedStaves = allStaves.filter((staff: any) =>
+          //   staff.higher_level_officer?.id === currentUserId || staff.id === currentUserId
+          // );
+          const userRelatedStaves = allStaves.filter((staff: any) => {
+            const higherOfficers = Array.isArray(staff.higher_level_officer)
+              ? staff.higher_level_officer
+              : [];
+            // Check if the current user is a higher-level officer for this staff
+            const isHigherOfficer = higherOfficers.some(
+              (officer: any) => officer?.id === currentUserId
+            );
+            return isHigherOfficer || staff.id === currentUserId;
+          });
+          // Ended
           this.staves = userRelatedStaves;
           // Continue with your existing filtering
           // const higherLevelIds = userRelatedStaves
@@ -979,7 +1015,8 @@ export class EscalatedFromComponent {
           "status": "Assigned",
           "assigned_staff_id": this.selectedStaff.id,
           "assigned_staff_name": this.selectedStaff.full_name,
-          "assigned_staff_employee_number": this.selectedStaff.staff_employee_number
+          "assigned_staff_employee_number": this.selectedStaff.staff_employee_number,
+          "department": task.service.category
         }
       },
       extras: {
@@ -993,6 +1030,7 @@ export class EscalatedFromComponent {
       (resp: any) => {
         if (resp?.success === 1 && resp?.status_code === 200) {
           this.alertsService.success('Task status updated with staff details.', this.options);
+          this.closeModal();
           this.refreshData();
         } else {
           this.alertsService.error(resp?.message || 'Update failed', this.options);
@@ -1157,7 +1195,8 @@ export class EscalatedFromComponent {
       assigned_staff_name: staffData?.full_name,
       assigned_staff_employee_number: staffData?.staff_employee_number,
       status: 'Completed',
-      completed_time: completed_time
+      completed_time: completed_time,
+      department: task.service.category
     };
     // Add late_checkout_amount only if status is Approved
     if (status === 'Price Updated') {
@@ -1240,7 +1279,7 @@ export class EscalatedFromComponent {
     this.selectedHelpServiceTask = null;
   }
 
-  filterByRoomNumber(term: string) {
+  filterByValue(term: string) {
     this.searchRoomNo = term.trim().toLowerCase();
     console.log('Room Search Term in tab:', this.searchRoomNo);
     if (!term || term.trim() === '') {
@@ -1253,8 +1292,13 @@ export class EscalatedFromComponent {
     } else {
       const searchTerm = term.trim().toLowerCase();
       const filtered = this.escalatedTasks.filter((task: any) => {
-        console.log('Room Number in task:', task.room_no);
-        return task.room_no?.toString().toLowerCase().includes(searchTerm);
+        // console.log('Room Number in task:', task.room_no);
+        // return task.room_no?.toString().toLowerCase().includes(searchTerm);
+        const roomValue = task.room_no?.toString().trim().toLowerCase();
+        const guestValue = task.guest_name?.toString().trim().toLowerCase();
+        const roomMatch = roomValue?.startsWith(searchTerm);
+        const guestMatch = guestValue?.startsWith(searchTerm);
+        return roomMatch || guestMatch;
       });
       console.log('Filtered tasks with term:', filtered)
       this.allEscalatedTasks = filtered.slice(

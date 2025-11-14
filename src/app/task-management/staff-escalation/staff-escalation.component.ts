@@ -16,78 +16,6 @@ import { FormsModule } from '@angular/forms';
 })
 
 export class StaffEscalatedComponent {
-  // escalatedOrders = [
-  //   {
-  //     name: 'Sophia Blake',
-  //     roomNo: '120',
-  //     service: 'Room Cleaning',
-  //     orderTime: '08:00 AM',
-  //     assignedStaff: 'Liam'
-  //   },
-  //   {
-  //     name: 'Jackson Miller',
-  //     roomNo: '305',
-  //     service: 'Food Delivery',
-  //     orderTime: '08:10 AM',
-  //     assignedStaff: 'Emma'
-  //   },
-  //   {
-  //     name: 'Grace Parker',
-  //     roomNo: '412',
-  //     service: 'Laundry',
-  //     orderTime: '08:25 AM',
-  //     assignedStaff: 'Noah'
-  //   },
-  //   {
-  //     name: 'Mason Rivera',
-  //     roomNo: '510',
-  //     service: 'Towel Replacement',
-  //     orderTime: '08:40 AM',
-  //     assignedStaff: 'Ava'
-  //   },
-  //   {
-  //     name: 'Ella Bennett',
-  //     roomNo: '621',
-  //     service: 'Mini Bar Restock',
-  //     orderTime: '08:50 AM',
-  //     assignedStaff: 'Oliver'
-  //   },
-  //   {
-  //     name: 'Lucas Hayes',
-  //     roomNo: '708',
-  //     service: 'Room Cleaning',
-  //     orderTime: '09:00 AM',
-  //     assignedStaff: 'Mia'
-  //   },
-  //   {
-  //     name: 'Harper Scott',
-  //     roomNo: '803',
-  //     service: 'Food Delivery',
-  //     orderTime: '09:15 AM',
-  //     assignedStaff: 'Ethan'
-  //   },
-  //   {
-  //     name: 'Benjamin Reed',
-  //     roomNo: '914',
-  //     service: 'Laundry',
-  //     orderTime: '09:25 AM',
-  //     assignedStaff: 'Isabella'
-  //   },
-  //   {
-  //     name: 'Lily Walker',
-  //     roomNo: '1005',
-  //     service: 'Mini Bar Restock',
-  //     orderTime: '09:30 AM',
-  //     assignedStaff: 'James'
-  //   },
-  //   {
-  //     name: 'Alexander Brooks',
-  //     roomNo: '1112',
-  //     service: 'Towel Replacement',
-  //     orderTime: '09:45 AM',
-  //     assignedStaff: 'Zoe'
-  //   }
-  // ];
   escalatedTasks: any[] = [];
   allEscalatedTasks: any[] = [];
   sequence: any;
@@ -125,7 +53,7 @@ export class StaffEscalatedComponent {
     console.log('Hotel Id:', this.hotelId);
     // this.member_id = this.localService.get('MemberId');
     const storedIds = this.localService.get('allLowerStaffIds');
-    console.log('Stored Lower Staff Ids:', storedIds);
+    console.log('Stored Lower Staff Ids(Staff escalation):', storedIds);
     if (storedIds) {
       try {
         this.lowerStaffIds = JSON.parse(storedIds);  // works if stored properly
@@ -258,7 +186,9 @@ export class StaffEscalatedComponent {
     const searchTerm = (this.searchRoomNo || '').trim().toLowerCase();
     const filtered = searchTerm
       ? this.escalatedTasks.filter((task: any) =>
-        task.room_no?.toString().toLowerCase().includes(searchTerm)
+        // task.room_no?.toString().toLowerCase().includes(searchTerm)
+        task.room_no?.toString().toLowerCase().startsWith(searchTerm) ||
+        task.guest_name?.toString().toLowerCase().startsWith(searchTerm)
       )
       : this.escalatedTasks;
     const startIndex = (this.currentPage - 1) * this.pageSize;
@@ -323,7 +253,7 @@ export class StaffEscalatedComponent {
     this.selectedHelpServiceTask = null;
   }
 
-  filterByRoomNumber(term: string) {
+  filterByValue(term: string) {
     this.searchRoomNo = term.trim().toLowerCase();
     if (!term || term.trim() === '') {
       // Reset to full escalated task list with pagination
@@ -335,8 +265,13 @@ export class StaffEscalatedComponent {
     } else {
       const searchTerm = term.trim().toLowerCase();
       const filtered = this.escalatedTasks.filter((task: any) => {
-        console.log('Room Number in task:', task.room_no);
-        return task.room_no?.toString().toLowerCase().includes(searchTerm);
+        // console.log('Room Number in task:', task.room_no);
+        // return task.room_no?.toString().toLowerCase().includes(searchTerm);
+        const roomValue = task.room_no?.toString().trim().toLowerCase();
+        const guestValue = task.guest_name?.toString().trim().toLowerCase();
+        const roomMatch = roomValue?.startsWith(searchTerm);
+        const guestMatch = guestValue?.startsWith(searchTerm);
+        return roomMatch || guestMatch;
       }
       );
       const startIndex = (this.currentPage - 1) * this.pageSize;

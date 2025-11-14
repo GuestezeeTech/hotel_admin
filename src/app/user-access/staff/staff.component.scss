@@ -57,6 +57,9 @@ input::placeholder {
     opacity: 0.6;
 }
 
-
+.disabled-dropdown {
+    cursor: not-allowed !important;
+    opacity: 0.6;
+}
 // <button class="btn ms-2 fw-semibold save_bt" style="color: white; background-color: #800020;"
 // [disabled]="!this.matchedStaff || this.staffForm.valid"(click)="saveFormChanges()">Save Changes</button>

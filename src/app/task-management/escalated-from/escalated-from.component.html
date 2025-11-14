@@ -14,6 +14,9 @@
         </tr>
     </thead>
     <tbody>
+        <tr *ngIf="!allEscalatedTasks || allEscalatedTasks.length === 0">
+            <td colspan="8" class="text-center text-muted">No guest tasks found</td>
+        </tr>
         <tr *ngFor="let task of allEscalatedTasks">
             <td (click)="navigateToTimeline(task.id)" style="cursor: pointer;"
                 [ngClass]=" task.countingUp ? 'escalated' : ''">{{ task.guest_name }}</td>
@@ -168,7 +171,7 @@
             <!-- Show staff list if available -->
             <span *ngFor="let staff of staves" class="px-2 py-1 rounded" style="font-size: 13px"
                 (click)="selectStaff(staff)" [ngStyle]="getCompleteStaffStyle(staff)">
-                {{ staff.id == selfStaffId ? 'Self Assign': staff.full_name }}
+                {{ staff.id == selfStaffId ? 'Self Assign' : staff.full_name }}
             </span>
         </div>
         <!-- Buttons -->

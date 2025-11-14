@@ -157,16 +157,25 @@ export class ProcessingComponent {
       this.member_id = this.localService.get('MemberId');
     }
     this.getAllProcessedTask();
+    // Newly added & commented for combined - started
     // Escalation timer for tasks(from hierarchy)
-    this.escalationHierarchy = this.localService.get('hierarchy');
-    if (this.escalationHierarchy !== null) {
-      this.escalationHierarchy = JSON.parse(this.escalationHierarchy);
-      //console.log('Escalation Hierarchy:', this.escalationHierarchy);
-      this.escalationTime = this.escalationHierarchy.escalationTime;
-      //console.log('Escalation Time:', this.escalationTime);
+    // this.escalationHierarchy = this.localService.get('hierarchy');
+    // if (this.escalationHierarchy !== null) {
+    //   this.escalationHierarchy = JSON.parse(this.escalationHierarchy);
+    //   //console.log('Escalation Hierarchy:', this.escalationHierarchy);
+    //   this.escalationTime = this.escalationHierarchy.escalationTime;
+    //   //console.log('Escalation Time:', this.escalationTime);
+    // } else {
+    //   //console.warn('Hierarchy data not found in localStorage');
+    // }
+    const hierarchyString = this.localService.get('hierarchy');
+    if (hierarchyString) {
+      this.escalationHierarchy = JSON.parse(hierarchyString);
+      console.log('Escalation Hierarchy(Processing):', this.escalationHierarchy);
     } else {
-      //console.warn('Hierarchy data not found in localStorage');
+      this.escalationHierarchy = [];
     }
+    // Ended
   }
 
   // getAllProcessedTask() {
@@ -450,9 +459,9 @@ export class ProcessingComponent {
 
   // Prepares object and hits task api
   prepareAndCallProcessedTaskApi() {
-    let hierarchy: any = this.localService.get('hierarchy');
-    let hierarchyParse = JSON.parse(hierarchy);
-    let department = hierarchyParse?.department;
+    // let hierarchy: any = this.localService.get('hierarchy');
+    // let hierarchyParse = JSON.parse(hierarchy);
+    // let department = hierarchyParse?.department;
     let staffData: any = this.localService.get('StaffData');
     let staffDataParse = JSON.parse(staffData);
     this.at_desk = staffDataParse?.at_desk;
@@ -469,6 +478,13 @@ export class ProcessingComponent {
         baseStaffIds = storedIds.split(',').map((id: string) => Number(id.trim()));
       }
     }
+    // Newly added for initiate checkout 
+    const deskStaffId = Number(this.localService.get('UserId'));
+    // If at_desk is true, also push deskStaffId (avoid duplicates)
+    if (this.at_desk && !baseStaffIds.includes(deskStaffId)) {
+      baseStaffIds.push(deskStaffId);
+    }
+    // Ended
     console.log('Base Staff Ids:', baseStaffIds);
     // Convert labelRoomArray into a final room list
     // Newly added 
@@ -630,7 +646,9 @@ export class ProcessingComponent {
     const searchTerm = (this.searchRoomNo || '').trim().toLowerCase();
     const filtered = searchTerm
       ? this.processedTasks.filter((task: any) =>
-        task.room_no?.toString().toLowerCase().includes(searchTerm)
+        // task.room_no?.toString().toLowerCase().includes(searchTerm)
+        task.room_no?.toString().toLowerCase().startsWith(searchTerm) ||
+        task.guest_name?.toString().toLowerCase().startsWith(searchTerm)
       )
       : this.processedTasks;
     const startIndex = (this.currentPage - 1) * this.pageSize;
@@ -671,11 +689,16 @@ export class ProcessingComponent {
         this.loaderService.emitComplete();
         if (resp?.success === 1 && resp.status_code === 200) {
           const staff = resp.result.data[0];
-          const escalationMinutes = staff?.hierarchy?.escalationTime || 0;
-          //console.log('Escalation Minutes:', escalationMinutes);
-          //console.log('Service Time:', task.order_time);
+          // const escalationMinutes = staff?.hierarchy?.escalationTime || 0;
+          // Newly added & commented for combine - started
+          const matchedHierarchy = this.escalationHierarchy.find(
+            (h: any) => h.department?.toLowerCase() === task.service?.category?.toLowerCase()
+          );
+          const escalationMinutes = matchedHierarchy ? Number(matchedHierarchy.escalationTime) : 0;
+          console.log('Escalation Minutes (based on category - Processing):', escalationMinutes);
           if (task?.order_time) {
-            const escalationMinutes = Number(staff?.hierarchy?.escalationTime || 0);
+            // const escalationMinutes = Number(staff?.hierarchy?.escalationTime || 0);
+            // Ended
             if (!isNaN(escalationMinutes)) {
               // Step 1: Create a Date for today using the time string
               const today = new Date();
@@ -746,7 +769,7 @@ export class ProcessingComponent {
     this.selectedHelpServiceTask = null;
   }
 
-  filterByRoomNumber(term: string) {
+  filterByValue(term: string) {
     this.searchRoomNo = term.trim().toLowerCase();
     if (!term || term.trim() === '') {
       // Reset to all processed tasks with pagination
@@ -758,11 +781,15 @@ export class ProcessingComponent {
     } else {
       const searchTerm = term.trim().toLowerCase();
       const filtered = this.processedTasks.filter((task: any) => {
-        console.log('Room Number in task:', task.room_no);
-        return task.room_no?.toString().toLowerCase().includes(searchTerm);
+        // console.log('Room Number in task:', task.room_no);
+        // return task.room_no?.toString().toLowerCase().includes(searchTerm);
+        const roomValue = task.room_no?.toString().trim().toLowerCase();
+        const guestValue = task.guest_name?.toString().trim().toLowerCase();
+        const roomMatch = roomValue?.startsWith(searchTerm);
+        const guestMatch = guestValue?.startsWith(searchTerm);
+        return roomMatch || guestMatch;
       }
       );
-
       const startIndex = (this.currentPage - 1) * this.pageSize;
       const endIndex = startIndex + this.pageSize;
       this.allProcessedTasks = filtered.slice(startIndex, endIndex);

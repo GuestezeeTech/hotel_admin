@@ -61,7 +61,7 @@ export class SettingsComponent implements OnInit {
     private localService: LocalStorageService,
     private profileService: ProfileService,
     private routerUrl: Router,
-    private hotelEnrollmentTabviewService: HotelEnrollmentTabviewService
+    private hotelEnrollmentTabviewService: HotelEnrollmentTabviewService,
   ) { }
 
   ngOnInit(): void {
@@ -1022,7 +1022,12 @@ export class SettingsComponent implements OnInit {
   //   this.selectedSlots = [];
   // }
 
+  navigateToPrivacy() {
+    this.routerUrl.navigate(['/privacy-policy']);
+  }
 
-
+  navigateToTerms() {
+    this.routerUrl.navigate(['/terms-conditions']); 
+  }
 
 }

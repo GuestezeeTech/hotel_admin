@@ -14,6 +14,9 @@
         </tr>
     </thead>
     <tbody>
+        <tr *ngIf="!allDeliveredTasks || allDeliveredTasks.length === 0">
+            <td colspan="9" class="text-center text-muted">No guest tasks found</td>
+        </tr>
         <tr *ngFor="let task of allDeliveredTasks">
             <td (click)="navigateToTimeline(task.id)" style="cursor: pointer;">{{ task.guest_name }}</td>
             <td>{{ task.room_no }}</td>
@@ -22,8 +25,7 @@
                     *ngIf="task.service.service_name === 'Late checkout' && task.service.category === 'FO'">({{
                     task?.checkout_status}})</span>
             </td> -->
-             <td>{{ task.service.service_name }}<span
-                    *ngIf="task.service.service_name === 'Late checkout'">({{
+            <td>{{ task.service.service_name }}<span *ngIf="task.service.service_name === 'Late checkout'">({{
                     task?.checkout_status}})</span>
             </td>
             <td>{{ task.order_date | date:'dd-MM-yyyy'}}</td>
