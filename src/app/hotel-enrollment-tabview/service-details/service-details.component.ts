@@ -59,9 +59,14 @@ export class ServiceDetailsComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     this.hotelId = Number(this.localService.get('UserId'));
+    const memberId = this.localService.get('MemberId');
     ////console.log('Hotel ID:', this.hotelId);
-    this.getCustomerById();
-    this.getAllServices();
+    // Only call methods once memberId is available
+    if (memberId && memberId !== 'undefined' && memberId !== 'null' && memberId !== '' && memberId !== undefined && memberId !== null) {
+      this.member_id = memberId;
+      this.getCustomerById();
+      this.getAllServices();
+    }
   }
 
   getCustomerById(): Promise<void> {
@@ -72,7 +77,9 @@ export class ServiceDetailsComponent implements OnInit {
         user_id: USER_ID,
         extras: {
           find: {
-            id: this.hotelId
+            // Newly added for getting member id for customer type
+            // id: this.hotelId
+            customer_member_id: this.member_id
           }
         }
       };
@@ -81,12 +88,12 @@ export class ServiceDetailsComponent implements OnInit {
           this.loaderService.emitComplete();
           if (resp) {
             this.customerdata = resp.result.data[0];
-            console.log(this.customerdata.customer_member_id, "Member id");
+            // console.log(this.customerdata.customer_member_id, "Member id");
             this.member_id = this.customerdata.customer_member_id;
             this.hotelName = this.customerdata.property_details?.contact_details?.hotel_name;
              // Newly added for disabling form on payment done to approving the customer
             this.customerStatus = this.customerdata.status;
-            console.log('Customer status:', this.customerStatus);
+            // console.log('Customer status:', this.customerStatus);
             resolve();  // Resolve promise when data is set
           }
         },
@@ -188,7 +195,9 @@ export class ServiceDetailsComponent implements OnInit {
       user_id: USER_ID, //Default user id
       "extras": {
         "find": {
-          "customer_id": this.hotelId
+          // Newly added for getting member id for customer type
+          // "customer_id": this.hotelId
+          "member_id": this.member_id
         }
       }
     }
@@ -227,7 +236,9 @@ export class ServiceDetailsComponent implements OnInit {
       user_id: USER_ID, //Default user id
       "extras": {
         "find": {
-          "customer_id": this.hotelId
+          // Newly added for getting member id for customer type
+          // "customer_id": this.hotelId 
+          "member_id": this.member_id
         }
       }
     }
@@ -256,7 +267,10 @@ export class ServiceDetailsComponent implements OnInit {
                 if (resp.success === 1 && resp.status_code === 200) {
                   ////console.log('All Services:', resp.result.data);
                   if (resp.result.data.length > 0) {
-                    this.services = resp.result.data.filter((service: any) => service.customer_id === undefined);
+                    // Newly added for getting member id for customer type
+                    // this.services = resp.result.data.filter((service: any) => service.customer_id === undefined);
+                    this.services = resp.result.data.filter((service: any) => service.member_id === undefined);
+                    // Ended for getting member id for customer type
                     ////console.log(this.services, 'Common Services');
                   }
                 }
@@ -309,7 +323,9 @@ export class ServiceDetailsComponent implements OnInit {
       user_id: USER_ID, //Default user id
       "extras": {
         "find": {
-          "customer_id": this.hotelId
+          // Newly added for getting member id for customer type
+          // "customer_id": this.hotelId
+          "member_id": this.member_id 
         }
       }
     }
@@ -338,7 +354,10 @@ export class ServiceDetailsComponent implements OnInit {
                 if (resp.success === 1 && resp.status_code === 200) {
                   ////console.log('All Services:', resp.result.data);
                   if (resp.result.data.length > 0) {
-                    this.services = resp.result.data.filter((service: any) => service.customer_id === undefined);
+                    // Newly added for getting member id for customer type
+                    // this.services = resp.result.data.filter((service: any) => service.customer_id === undefined);
+                    this.services = resp.result.data.filter((service: any) => service.member_id === undefined);
+                    // Ended for getting member id for customer type
                     ////console.log(this.services, 'Common Services');
                   }
                 }
@@ -530,7 +549,10 @@ export class ServiceDetailsComponent implements OnInit {
       },
       extras: {
         find: {
-          "customer_id": this.hotelId
+          // Newly added for getting member id for customer type
+          // "customer_id": this.hotelId
+          "member_id": this.member_id
+          // Ended for getting member id for customer type
         }
       }
     };

@@ -40,6 +40,8 @@ export class StaffEscalatedComponent {
   isHelpServiceModalOpen: boolean = false;
   selectedHelpServiceTask: any = null;
   searchRoomNo: string = '';
+  // Newly added for loader
+  isLoading: boolean = false;
 
   constructor(
     private taskManagementService: TaskManagementService,
@@ -49,11 +51,11 @@ export class StaffEscalatedComponent {
 
   async ngOnInit() {
     this.customerType = this.localService.get('CustomerType');
-    this.hotelId = Number(this.localService.get('UserId'));
-    console.log('Hotel Id:', this.hotelId);
+    
+    // console.log('Hotel Id:', this.hotelId);
     // this.member_id = this.localService.get('MemberId');
     const storedIds = this.localService.get('allLowerStaffIds');
-    console.log('Stored Lower Staff Ids(Staff escalation):', storedIds);
+    // console.log('Stored Lower Staff Ids(Staff escalation):', storedIds);
     if (storedIds) {
       try {
         this.lowerStaffIds = JSON.parse(storedIds);  // works if stored properly
@@ -62,14 +64,43 @@ export class StaffEscalatedComponent {
         this.lowerStaffIds = storedIds.split(',').map((id: string) => Number(id.trim()));
       }
     }
-    console.log('Base Staff Ids:', this.lowerStaffIds);
+    // console.log('Base Staff Ids:', this.lowerStaffIds);
+    // Newly added for getting member id for customer type
+    // this.hotelId = Number(this.localService.get('UserId'));
+    this.memberId = this.localService.get('MemberId');
+    // console.log('Member ID from staff escalation component:', this.memberId);
     if (this.customerType == 'Customer') {
-      await this.getCustomerMemberId(this.hotelId);
+      // await this.getCustomerMemberId(this.hotelId);
+      this.member_id = this.memberId;
+      if (this.memberId !== undefined && this.memberId !== null && this.memberId !== '' && this.memberId !== 'undefined' && this.memberId !== 'null') {
+        await this.getCustomerMemberId(this.memberId);
+      }
+      // End of newly added for getting member id for customer type
     }
     else {
       this.member_id = this.localService.get('MemberId');
     }
     this.getAllTask();
+  }
+
+  // Helper function to normalize escalated_from_id (can be array or single value)
+  private normalizeEscalationId(value: any): number[] {
+    if (value === null || value === undefined) {
+      return [];
+    }
+    if (Array.isArray(value)) {
+      return value.map((id: any) => Number(id)).filter((id: any) => !isNaN(id));
+    }
+    const numValue = Number(value);
+    return isNaN(numValue) ? [] : [numValue];
+  }
+
+  // Helper function to check if any lowerStaffId is in escalated_from_id (handles both array and single value)
+  private isAnyLowerStaffIdInEscalatedFrom(escalatedFromId: any, lowerStaffIds: number[]): boolean {
+    // console.log("Escalated From Id's(Staff Escalation):", escalatedFromId);
+    const normalizedIds = this.normalizeEscalationId(escalatedFromId);
+    // console.log('Normalized Escalated From Id(Staff Escalation):', normalizedIds);
+    return normalizedIds.some((id: number) => lowerStaffIds.includes(id));
   }
 
   // For modal in task component
@@ -79,21 +110,25 @@ export class StaffEscalatedComponent {
     this.openAssigneeModal.emit(order);
   }
 
-  getCustomerMemberId(hotelId: any): Promise<any> {
+  // getCustomerMemberId(hotelId: any): Promise<any> {
+  getCustomerMemberId(memberId: any): Promise<any> {
     return new Promise((resolve, reject) => {
       const requestBody = {
         domain_name: DOMAIN_NAME,
         user_id: USER_ID,
         extras: {
-          find: { id: hotelId }
+          find: { 
+            // id: hotelId
+            "customer_member_id": memberId
+           }
         }
       };
       this.hotelListService.getSignupAllCustomers(requestBody).subscribe({
         next: (res: any) => {
           if (res && res.result.data.length > 0) {
             const customer = res.result.data[0];
-            console.log('Customer Data:', customer);
-            this.member_id = customer.customer_member_id;
+            // console.log('Customer Data:', customer);
+            // this.member_id = customer.customer_member_id;
             resolve(this.memberId); // resolves with memberId
           } else {
             reject('No customer found');
@@ -108,6 +143,7 @@ export class StaffEscalatedComponent {
 
   getAllTask() {
     let customerType = this.localService.get('CustomerType');
+    let department: any[] = [];
     if (customerType == 'Staff') {
       let staffData: any = this.localService.get('StaffData');
       let staffDataParse = JSON.parse(staffData);
@@ -115,6 +151,11 @@ export class StaffEscalatedComponent {
       let hierarchyParse = JSON.parse(hierarchy);
       this.sequence = hierarchyParse?.sequence;
       this.at_desk = staffDataParse?.at_desk;
+      // Newly added for department(Not only on id but also on department)
+      // Get department from hierarchy
+      department = hierarchyParse?.map((item: any) => item.department) || [];
+      // console.log('Staff Department (Staff Escalation):', department);
+      // Ended
     }
     const userId = Number(this.localService.get('UserId'));
     // Directly match current_escalated_id with logged-in user
@@ -133,6 +174,7 @@ export class StaffEscalatedComponent {
         }
       }
     };
+    this.isLoading = true;
     this.taskManagementService.getAllTask(requestBody).subscribe({
       next: (response) => {
         if (response?.success) {
@@ -140,16 +182,37 @@ export class StaffEscalatedComponent {
             .reduce((acc: any[], task: any) => {
               let matchedEscalations: any[] = [];
               if (customerType == 'Staff') {
+                // Updated to handle escalated_from_id as array or single value
                 matchedEscalations = (task.time_line || []).filter((t: any) =>
                   t.status === "Escalated" &&
-                  this.lowerStaffIds.includes(Number(t.escalated_from_id))
+                  this.isAnyLowerStaffIdInEscalatedFrom(t.escalated_from_id, this.lowerStaffIds)
                 );
+                // Old code - only handled single value:
+                // this.lowerStaffIds.includes(Number(t.escalated_from_id))
+                // Newly added for department(Not only on id but also on department)
+                // Filter by department matching service category.
+                // Skip this filter entirely if logged-in user's department is "Default".
+                const isDefaultDept = Array.isArray(department)
+                  ? department.includes('Default')
+                  : department === 'Default';
+                if (!isDefaultDept &&
+                  matchedEscalations.length > 0 &&
+                  department.length > 0 &&
+                  task.service?.category) {
+                  const serviceCategory = task.service.category;
+                  const departmentMatches = department.includes(serviceCategory);
+                  if (!departmentMatches) {
+                    // If department doesn't match service category, don't include this task
+                    return acc;
+                  }
+                }
+                // Ended
               } else {
                 matchedEscalations = (task.time_line || []).filter((t: any) =>
                   t.status === "Escalated"
                 );
               }
-              console.log("Matched Escalations:", matchedEscalations);
+              // console.log("Matched Escalations:", matchedEscalations);
               // Push each matched escalation separately - loop from last index
               for (let i = matchedEscalations.length - 1; i >= 0; i--) {
                 const esc = matchedEscalations[i];
@@ -163,15 +226,19 @@ export class StaffEscalatedComponent {
               }
               return acc;
             }, []);
+          // Ensure newest staff-escalation tasks appear first
+          this.sortStaffEscalatedTasksByMostRecent();
           this.allEscalatedTasks = this.escalatedTasks;
-          console.log('Escalated Tasks for Staff Escalation Component:', this.allEscalatedTasks);
+          // console.log('Escalated Tasks for Staff Escalation Component:', this.allEscalatedTasks);
           this.totalEscalatedTasks = this.escalatedTasks.length;
           this.totalPages = Math.ceil(this.totalEscalatedTasks / this.pageSize);
           this.updatePaginatedEscalatedTasks(); // sets first page
         }
+        this.isLoading = false;
       },
       error: (err: any) => {
-        console.log('Error fetching escalated tasks:', err);
+        // console.log('Error fetching escalated tasks:', err);
+        this.isLoading = false;
       }
     });
   }
@@ -188,7 +255,7 @@ export class StaffEscalatedComponent {
       ? this.escalatedTasks.filter((task: any) =>
         // task.room_no?.toString().toLowerCase().includes(searchTerm)
         task.room_no?.toString().toLowerCase().startsWith(searchTerm) ||
-        task.guest_name?.toString().toLowerCase().startsWith(searchTerm)
+        (task.guest_name || task.task_created_by)?.toString().toLowerCase().startsWith(searchTerm)
       )
       : this.escalatedTasks;
     const startIndex = (this.currentPage - 1) * this.pageSize;
@@ -268,7 +335,7 @@ export class StaffEscalatedComponent {
         // console.log('Room Number in task:', task.room_no);
         // return task.room_no?.toString().toLowerCase().includes(searchTerm);
         const roomValue = task.room_no?.toString().trim().toLowerCase();
-        const guestValue = task.guest_name?.toString().trim().toLowerCase();
+        const guestValue = (task.guest_name || task.task_created_by)?.toString().trim().toLowerCase();
         const roomMatch = roomValue?.startsWith(searchTerm);
         const guestMatch = guestValue?.startsWith(searchTerm);
         return roomMatch || guestMatch;
@@ -280,5 +347,15 @@ export class StaffEscalatedComponent {
       this.totalEscalatedTasks = filtered.length;
       this.totalPages = Math.ceil(filtered.length / this.pageSize);
     }
+  }
+
+  // Newest staff-escalation tasks first (based on order_date + escalated_time)
+  private sortStaffEscalatedTasksByMostRecent() {
+    if (!Array.isArray(this.escalatedTasks)) return;
+    this.escalatedTasks.sort((a: any, b: any) => {
+      const aTime = new Date(`${a?.order_date || ''} ${a?.escalated_time || ''}`).getTime();
+      const bTime = new Date(`${b?.order_date || ''} ${b?.escalated_time || ''}`).getTime();
+      return bTime - aTime;
+    });
   }
 }

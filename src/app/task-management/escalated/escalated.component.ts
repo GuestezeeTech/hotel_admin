@@ -112,6 +112,8 @@ export class EscalatedComponent {
   isHelpServiceModalOpen: boolean = false;
   selectedHelpServiceTask: any = null;
   searchRoomNo: string = '';
+  // Newly added for loader
+  isLoading: boolean = false;
 
   @Output() escalatedCountChanged = new EventEmitter<number>();
 
@@ -123,16 +125,44 @@ export class EscalatedComponent {
 
   async ngOnInit() {
     this.customerType = this.localService.get('CustomerType');
-    this.hotelId = Number(this.localService.get('UserId'));
-    console.log('Hotel Id:', this.hotelId);
+    // Newly added for getting member id for customer type
+    // this.hotelId = Number(this.localService.get('UserId'));
+    // console.log('Hotel Id:', this.hotelId);
+    this.memberId = this.localService.get('MemberId');
+    // console.log('Member ID from escalated component:', this.memberId);
     // this.member_id = this.localService.get('MemberId');
     if (this.customerType == 'Customer') {
-      await this.getCustomerMemberId(this.hotelId);
+      // await this.getCustomerMemberId(this.hotelId);
+      this.member_id = this.memberId;
+      if (this.memberId !== undefined && this.memberId !== null && this.memberId !== '' && this.memberId !== 'undefined' && this.memberId !== 'null') {
+        await this.getCustomerMemberId(this.memberId);
+      }
+      // End of newly added for getting member id for customer type
     }
     else {
       this.member_id = this.localService.get('MemberId');
     }
     this.getAllTask();
+  }
+
+  // Helper function to normalize escalated_from_id or escalated_to_id (can be array or single value)
+  private normalizeEscalationId(value: any): number[] {
+    if (value === null || value === undefined) {
+      return [];
+    }
+    if (Array.isArray(value)) {
+      return value.map((id: any) => Number(id)).filter((id: any) => !isNaN(id));
+    }
+    const numValue = Number(value);
+    return isNaN(numValue) ? [] : [numValue];
+  }
+
+  // Helper function to check if userId is in escalated_from_id (handles both array and single value)
+  private isUserIdInEscalatedFrom(escalatedFromId: any, userId: number): boolean {
+    // console.log("Escalated From Id's(My Escalation):", escalatedFromId);
+    const normalizedIds = this.normalizeEscalationId(escalatedFromId);
+    // console.log('Normalized Escalated From Id(My Escalation):', normalizedIds);
+    return normalizedIds.includes(userId);
   }
 
   // For modal in task component
@@ -201,21 +231,25 @@ export class EscalatedComponent {
   //   });
   // }
 
-  getCustomerMemberId(hotelId: any): Promise<any> {
+  // getCustomerMemberId(hotelId: any): Promise<any> {
+  getCustomerMemberId(memberId: any): Promise<any> {
     return new Promise((resolve, reject) => {
       const requestBody = {
         domain_name: DOMAIN_NAME,
         user_id: USER_ID,
         extras: {
-          find: { id: hotelId }
+          find: {
+            // id: hotelId 
+            "customer_member_id": memberId
+          }
         }
       };
       this.hotellistService.getSignupAllCustomers(requestBody).subscribe({
         next: (res: any) => {
           if (res && res.result.data.length > 0) {
             const customer = res.result.data[0];
-            console.log('Customer Data:', customer);
-            this.member_id = customer.customer_member_id;
+            // console.log('Customer Data:', customer);
+            // this.member_id = customer.customer_member_id;
             resolve(this.memberId); // resolves with memberId
           } else {
             reject('No customer found');
@@ -253,6 +287,7 @@ export class EscalatedComponent {
         }
       }
     };
+    this.isLoading = true;
     this.taskManagementService.getAllTask(requestBody).subscribe({
       next: (response) => {
         if (response?.success) {
@@ -274,24 +309,40 @@ export class EscalatedComponent {
           //     return null;
           //   })
           //   .filter((t: any) => t !== null);
-          console.log('Escalated Tasks(Before):', this.escalatedTasks);
+          // console.log('Escalated Tasks(Before):', this.escalatedTasks);
           this.escalatedTasks = (response?.result?.data || [])
             .flatMap((task: any) => {
               // Get all matches, not just first
+              // Updated to handle escalated_from_id as array or single value
               const matches = (task?.time_line || []).filter(
-                (tl: any) => tl.status === "Escalated" && tl.escalated_from_id === userId
+                (tl: any) => tl.status === "Escalated" && this.isUserIdInEscalatedFrom(tl.escalated_from_id, userId)
               );
-              console.log("Matches:", matches);
+              // Old code - only handled single value:
+              // (tl: any) => tl.status === "Escalated" && tl.escalated_from_id === userId
+              // console.log("Matches:", matches);
               // If no matches → return empty array (nothing added for this task)
               if (!matches.length) return [];
               // For each escalation, return a separate enriched task object
-              return matches.map((match: any) => ({
-                ...task,
-                escalated_to_name: match.escalated_to_name,
-                escalated_to_id: match.escalated_to_id
-              }));
+              // Updated to handle escalated_to_id as array or single value
+              return matches.map((match: any) => {
+                // Handle escalated_to_id (can be array or single value)
+                const escalatedToId = match.escalated_to_id;
+                // Normalize to array for consistent handling
+                const normalizedEscalatedToId = this.normalizeEscalationId(escalatedToId);
+                // console.log("Escalated To Id's(My Escalation):", escalatedToId);
+                // console.log('Normalized Escalated To Id(My Escalation):', normalizedEscalatedToId);
+                // Store normalized as array - always array format for consistent handling
+                // Original format (array or single) is normalized to always be an array
+                return {
+                  ...task,
+                  escalated_to_name: match.escalated_to_name,
+                  escalated_to_id: normalizedEscalatedToId // Always stored as array for consistent handling
+                };
+              });
             });
-          console.log("Escalated Tasks:", this.escalatedTasks);
+          // console.log("Escalated Tasks:", this.escalatedTasks);
+          // Ensure newest escalated tasks appear first
+          this.sortEscalatedTasksByMostRecent();
           // Determine new tasks for badge increment
           const newTasks = this.escalatedTasks.filter(task => !this.previousTaskIds.includes(task.id));
           this.previousTaskIds = this.escalatedTasks.map(t => t.id); // update tracker
@@ -305,9 +356,11 @@ export class EscalatedComponent {
           this.totalPages = Math.ceil(this.totalEscalatedTasks / this.pageSize);
           this.updatePaginatedEscalatedTasks();
         }
+        this.isLoading = false;
       },
       error: (err: any) => {
         console.error('API Error:', err);
+        this.isLoading = false;
       }
     });
   }
@@ -324,7 +377,7 @@ export class EscalatedComponent {
       ? this.escalatedTasks.filter((task: any) =>
         // task.room_no?.toString().toLowerCase().includes(searchTerm)
         task.room_no?.toString().toLowerCase().startsWith(searchTerm) ||
-        task.guest_name?.toString().toLowerCase().startsWith(searchTerm)
+        (task.guest_name || task.task_created_by)?.toString().toLowerCase().startsWith(searchTerm)
       )
       : this.escalatedTasks;
     const startIndex = (this.currentPage - 1) * this.pageSize;
@@ -404,7 +457,7 @@ export class EscalatedComponent {
         // console.log('Room Number in task:', task.room_no);
         // return task.room_no?.toString().toLowerCase().includes(searchTerm);
         const roomValue = task.room_no?.toString().trim().toLowerCase();
-        const guestValue = task.guest_name?.toString().trim().toLowerCase();
+        const guestValue = (task.guest_name || task.task_created_by)?.toString().trim().toLowerCase();
         const roomMatch = roomValue?.startsWith(searchTerm);
         const guestMatch = guestValue?.startsWith(searchTerm);
         return roomMatch || guestMatch;
@@ -416,6 +469,16 @@ export class EscalatedComponent {
       this.totalEscalatedTasks = filtered.length;
       this.totalPages = Math.ceil(filtered.length / this.pageSize);
     }
+  }
+
+  // Newest escalated tasks first (based on order_date + escalated_time)
+  private sortEscalatedTasksByMostRecent() {
+    if (!Array.isArray(this.escalatedTasks)) return;
+    this.escalatedTasks.sort((a: any, b: any) => {
+      const aTime = new Date(`${a?.order_date || ''} ${a?.escalated_time || ''}`).getTime();
+      const bTime = new Date(`${b?.order_date || ''} ${b?.escalated_time || ''}`).getTime();
+      return bTime - aTime;
+    });
   }
 
 }

@@ -48,8 +48,17 @@
                     </div> -->
                 </div>
             </div>
+            <!-- Loader -->
+            <div *ngIf="isLoading" class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
+                <div class="text-center">
+                    <div class="spinner-border" role="status" style="color: #800020;">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-3 text-muted">Loading bookings...</p>
+                </div>
+            </div>
             <!-- Guest Table -->
-            <table class="table" style="margin-top: 3%;">
+            <table class="table" style="margin-top: 3%;" *ngIf="!isLoading">
                 <thead>
                     <tr>
                         <!-- <th style="text-align: center;">
@@ -78,8 +87,10 @@
                         <td>{{ guest.Guest_detail[0].First_Name }}</td>
                         <td>{{ guest.Room_No }}</td>
                         <td>{{ guest.Adult_Pax + guest.Child_Pax }}</td>
-                        <td>{{ guest.Arrival_Date }}</td>
-                        <td>{{ guest.Departure_Date }}</td>
+                        <!-- <td>{{ guest.Arrival_Date }}</td> -->
+                        <!-- <td>{{ guest.Departure_Date }}</td> -->
+                        <td>{{ guest.Arrival_Date | date:'dd MMM yyyy, hh:mm a' }}</td>
+                        <td>{{ guest.Departure_Date | date:'dd MMM yyyy, hh:mm a' }}</td>
                         <!-- Newly added - to get event status -->
                         <td
                             [ngStyle]="{ color: ((guest.Event === 'Check-in') || (guest.Event === 'Reserved') || (guest.Event === 'In-house(Amend)') || (guest.Event === 'Reserved(Amend)')) ? '#009F13' : '#FF6E27'}">
@@ -112,7 +123,7 @@
                 </tbody>
             </table>
         </div>
-        <div class="pagination-container">
+        <div class="pagination-container" *ngIf="!isLoading">
             <button (click)="previousPage()" [disabled]="currentPage === 1" class="pagination-btn">
                 Previous
             </button>

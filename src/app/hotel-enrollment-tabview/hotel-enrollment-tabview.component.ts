@@ -38,6 +38,7 @@ export let browserRefresh = false;
 export class HotelEnrollmentTabviewComponent implements OnInit {
   @ViewChild(OfficeDetailsComponent) officeDetailsComp!: OfficeDetailsComponent;
   @ViewChild(PropertyDetails1Component) propertyDetailsComp!: PropertyDetails1Component;
+  @ViewChild(TechnicalInfoComponent) technicalInfoComp!: TechnicalInfoComponent;
   private currentRoute$ = new BehaviorSubject<string>('');
   hotelId: Number | null = null;
   customerdata: any;
@@ -56,12 +57,14 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
   };
   hasCheckedTabs = false;
   isReadyToRender = false;
+  /** True after the full-page Hotels loader overlay is hidden; used so Technical Info doesn't show its loader at the same time. */
+  parentLoaderDone = false;
   // Newly added
   tabTitles = [
     'Registered Office Details',
     'Property Details',
-    'Services',
-    'Hierarchy',
+    // 'Services',
+    // 'Hierarchy',
     'Technical Info',
     'Status',
   ];
@@ -79,16 +82,28 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
   customer: any;
   order: any;
   order_review: any;
-
+  // Newly added for customer status(hint)
+  customerStatus: any = '';
 
   ngOnInit(): void {
-    // Newly added for back navigation
+    this.memberId = this.localService.get('MemberId');
+    // Newly added for payment route id initialization
     this.route.queryParams.subscribe(params => {
-      console.log('queryParams', params);
+      const customerId = params['customer_id'];
+      if (customerId) {
+        this.hotelId = Number(customerId);
+      }
+    });
+    // Handle tab query param from menu (e.g. /edit-new-hotel/:id?tab=1) so submenu navigates to the correct tab
+    // Old: only handled tab == 3: if (!isNaN(tabIndex) && tabIndex == 3) { this.hierarchyTab = true; this.goToTab(tabIndex, true); }
+    this.route.queryParams.subscribe(params => {
       const tabIndex = +params['tab'];
-      if (!isNaN(tabIndex) && tabIndex == 3) {
-        // this.skipAutoTabCheck = true; //  prevent override
-        this.hierarchyTab = true;
+      const validTabIndex = !isNaN(tabIndex) && tabIndex >= 0 && tabIndex <= 3;
+      if (validTabIndex) {
+        if (tabIndex === 3) {
+          this.hierarchyTab = true;
+        }
+        this.isReadyToRender = true; // show tabs immediately when opening via submenu
         this.goToTab(tabIndex, true);
       }
       // Removes tab param from URL
@@ -100,7 +115,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
     });
     const navigationEntries = performance.getEntriesByType("navigation") as PerformanceNavigationTiming[];
     if (navigationEntries.length > 0) {
-      console.log("navigationEntries", navigationEntries);
+      // console.log("navigationEntries", navigationEntries);
       const navType = navigationEntries[0].type;
       const loader = document.getElementById('loader-overlay');
       //  Show loader
@@ -109,15 +124,16 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
         //  Wait for 2 seconds (2000 ms), then hide the loader
         setTimeout(() => {
           loader.classList.add('d-none', 'hide');
-          //console.log("Loader hidden after 2 seconds");
+          this.parentLoaderDone = true;
+          this.cdr.detectChanges();
         }, 2000);
       } else {
-        //console.warn("Loader element not found!");
+        this.parentLoaderDone = true;
       }
       if (navType === "reload" && !this.router.url.includes('confirmation')) {
         //console.log("Page was reloaded");
         setTimeout(() => {
-          console.log("✔️ checkAndActivateInvalidTab ran after 3 seconds");
+          // console.log("✔️ checkAndActivateInvalidTab ran after 3 seconds");
           // console.log('Auto check:', this.skipAutoTabCheck);
           // Newly added for back navigation - skipAutoTabCheck
           if (!this.skipAutoTabCheck) {
@@ -129,12 +145,12 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
       } else if (navType === "navigate" && !this.router.url.includes('confirmation')) {
         //console.log("Page was loaded normally (navigation)");
         setTimeout(() => {
-          console.log("✔️ checkAndActivateInvalidTab ran after 3 seconds from edit");
-          console.log('Auto check:', this.skipAutoTabCheck);
+          // console.log("✔️ checkAndActivateInvalidTab ran after 3 seconds from edit");
+          // console.log('Auto check:', this.skipAutoTabCheck);
           // Newly added for back navigation - skipAutoTabCheck
           if (!this.skipAutoTabCheck) {
             this.checkAndActivateInvalidTabOnLoad();
-            console.log("✔️ checkAndActivateInvalidTab ran after 3 seconds");
+            // console.log("✔️ checkAndActivateInvalidTab ran after 3 seconds");
           }
         }, 2000); // 3000 ms = 3 seconds
       } else if (navType === "back_forward" && !this.router.url.includes('confirmation')) {
@@ -167,22 +183,24 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
     this.router.events
       .pipe(filter(event => event instanceof NavigationEnd))
       .subscribe((event: NavigationEnd) => {
-        console.log('Current Route Updated:', event.urlAfterRedirects);
+        // console.log('Current Route Updated:', event.urlAfterRedirects);
         this.currentRoute$.next(event.urlAfterRedirects);
       });
-    this.hotelId = Number(this.localService.get('UserId'));
+    // Newly commented for getting customer id for customer type
+    /* this.hotelId = Number(this.localService.get('UserId'));
     if (this.hotelId == 0) {
       this.route.queryParams.subscribe(params => {
         this.hotelId = params['customer_id'];
         // console.log('Customer ID:',  this.hotelId);  
       });
-    }
+    } */
+    //  End of newly commented for getting customer id for customer type
     // const customerId = this.route.snapshot.paramMap.get('customer_id');
     // this.hotelId = customerId ? +customerId : Number(this.localService.get('UserId')) || 0;
     // if (this.hotelId !== 0) {
     //   this.getCustomerById()
     //     .then(() => {
-    //       console.log('✅ After getCustomerById -> hotelId =', this.hotelId);
+    //       // console.log('✅ After getCustomerById -> hotelId =', this.hotelId);
     //       this.getOrderById(Number(this.hotelId));
     //     })
     //     .catch(err => console.error('❌ getCustomerById failed', err));
@@ -192,7 +210,6 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
     // console.log('🚀 ngOnInit: this.hotelId =', this.hotelId);
     //console.log('Hotel ID:', this.hotelId);
 
-    this.memberId = this.localService.get('MemberId');
     const currentUrl = this.router.url;
     const searchValue = 'confirmation'; // Replace with your actual value
     // if (currentUrl.includes(searchValue)) {
@@ -223,7 +240,6 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
       //   }
       // }
     });
-
   }
 
   constructor(
@@ -246,9 +262,10 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
         // Enable showSidebar if URL contains "confirmation"
         this.isVisible = currentUrl.includes('confirmation');
         if (this.isVisible == true) {
-          this.currentTab = 5;
+          // this.currentTab = 5;
+          this.currentTab = 3;
           this.localService.set('CustomerType', 'Customer');
-          console.log('Type:', this.localService.get('CustomerType'));
+          // console.log('Type:', this.localService.get('CustomerType'));
           const currentUrl = this.router.url;
           //console.log(currentUrl, "currentUrl");
           this.route.queryParams.subscribe(params => {
@@ -281,7 +298,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
           // Enable showSidebar if URL contains "confirmation"
           this.iscancelVisible = currentUrl.includes('cancellation');
           this.route.queryParams.subscribe(params => {
-            this.hotelId = params['customer_id'];
+            this.hotelId = params['customer_id'] ? Number(params['customer_id']) : this.hotelId;
             //console.log('Customer ID:', this.hotelId);  // → '48'
           });
         }
@@ -358,12 +375,16 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
 
   async goToTab(index: number, force: boolean = false) {
     // Newly added for back navigation - skipAutoTabCheck
-    console.log('Index:', index, 'Force:', force);
+    // console.log('Index:', index, 'Force:', force);
+    // console.log('Current Tab:', this.currentTab);
+
     // Newly added - hotelId missed
     this.hotelId = Number(this.localService.get('UserId'));
+    this.memberId = this.localService.get('MemberId');
+    // console.log('Member id(goToTab):', this.memberId);
     if (force) {
       this.currentTab = index;
-      console.log(`Force-navigated to tab ${index}`);
+      // console.log(`Force-navigated to tab ${index}`);
       return; // Skips validations
     }
     else {
@@ -371,9 +392,9 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
         domain_name: DOMAIN_NAME,
         user_id: USER_ID,
         extras: {
-          find: {
-            id: this.hotelId
-          }
+          find: this.isPaymentRoute()
+            ? { id: Number(this.hotelId) }
+            : { customer_member_id: this.memberId }
         }
       };
       this.hotelenrollmentservice.getLoginCustomerById(requestBody).subscribe(
@@ -385,6 +406,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
             //console.log(this.customerdata, "RESPDATA");
             //console.log(Array.isArray(this.customerdata));
             // //console.log(index, "index", this.getCustomerData.is_property_details_exists)
+            // console.log('Exists:', this.getCustomerData.is_office_details_exists, this.getCustomerData.is_property_details_exists,  this.getCustomerData.is_technical_info_exists, this.paymentDone);
             if (index == 0) {
               this.currentTab = 0;
               setTimeout(() => this.propertyDetailsComp?.refreshData(), 100);
@@ -406,55 +428,55 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
               }
               else if (this.getCustomerData.is_property_details_exists == false || this.getCustomerData.is_property_details_exists == undefined) {
                 this.currentTab = 1;
-                // setTimeout(() => this.propertyDetailsComp?.refreshData(), 100);
                 this.alertService.error('Please fill the Property Details', this.options);
               }
               else {
-                this.currentTab = 2
+                this.currentTab = 2;
+                setTimeout(() => this.technicalInfoComp?.refreshData(), 100);
               }
             }
+            // if (index == 3) {
+            //   if (this.getCustomerData.is_office_details_exists == false || this.getCustomerData.is_office_details_exists == undefined) {
+            //     this.currentTab = 0;
+            //     this.alertService.error('Please fill the Registered Office Details', this.options);
+            //   }
+            //   else if (this.getCustomerData.is_property_details_exists == false || this.getCustomerData.is_property_details_exists == undefined) {
+            //     this.currentTab = 1;
+            //     // setTimeout(() => this.propertyDetailsComp?.refreshData(), 100);
+            //     this.alertService.error('Please fill the Property Details', this.options);
+            //   }
+            //   else if (this.getCustomerData.is_service_exists == false || this.getCustomerData.is_service_exists == undefined) {
+            //     this.currentTab = 2;
+            //     this.alertService.error('select the services you do not want. If you want all services, click "Save and Continue".', this.options);
+            //   }
+            //   else {
+            //     this.currentTab = 3;
+            //   }
+            // }
+            // if (index == 4) {
+            //   if (this.getCustomerData.is_office_details_exists == false || this.getCustomerData.is_office_details_exists == undefined) {
+            //     this.currentTab = 0;
+            //     this.alertService.error('Please fill the Registered Office Details', this.options);
+            //   }
+            //   else if (this.getCustomerData.is_property_details_exists == false || this.getCustomerData.is_property_details_exists == undefined) {
+            //     this.currentTab = 1;
+            //     // setTimeout(() => this.propertyDetailsComp?.refreshData(), 100);
+            //     this.alertService.error('Please fill the Property Details', this.options);
+            //   }
+            //   else if (this.getCustomerData.is_service_exists == false || this.getCustomerData.is_service_exists == undefined) {
+            //     this.currentTab = 2;
+            //     this.alertService.error('select the services you do not want. If you want all services, click "Next Service".', this.options);
+            //   }
+            //   else if (this.getCustomerData.is_hierarchy_exists == false || this.getCustomerData.is_hierarchy_exists == undefined) {
+            //     this.currentTab = 3;
+            //     this.alertService.error('Please choose the Hierarchy', this.options);
+            //   }
+            //   else {
+            //     this.currentTab = 4;
+            //   }
+            // }
+            // console.log('Index:', index);
             if (index == 3) {
-              if (this.getCustomerData.is_office_details_exists == false || this.getCustomerData.is_office_details_exists == undefined) {
-                this.currentTab = 0;
-                this.alertService.error('Please fill the Registered Office Details', this.options);
-              }
-              else if (this.getCustomerData.is_property_details_exists == false || this.getCustomerData.is_property_details_exists == undefined) {
-                this.currentTab = 1;
-                // setTimeout(() => this.propertyDetailsComp?.refreshData(), 100);
-                this.alertService.error('Please fill the Property Details', this.options);
-              }
-              else if (this.getCustomerData.is_service_exists == false || this.getCustomerData.is_service_exists == undefined) {
-                this.currentTab = 2;
-                this.alertService.error('select the services you do not want. If you want all services, click "Save and Continue".', this.options);
-              }
-              else {
-                this.currentTab = 3;
-              }
-            }
-            if (index == 4) {
-              if (this.getCustomerData.is_office_details_exists == false || this.getCustomerData.is_office_details_exists == undefined) {
-                this.currentTab = 0;
-                this.alertService.error('Please fill the Registered Office Details', this.options);
-              }
-              else if (this.getCustomerData.is_property_details_exists == false || this.getCustomerData.is_property_details_exists == undefined) {
-                this.currentTab = 1;
-                // setTimeout(() => this.propertyDetailsComp?.refreshData(), 100);
-                this.alertService.error('Please fill the Property Details', this.options);
-              }
-              else if (this.getCustomerData.is_service_exists == false || this.getCustomerData.is_service_exists == undefined) {
-                this.currentTab = 2;
-                this.alertService.error('select the services you do not want. If you want all services, click "Next Service".', this.options);
-              }
-              else if (this.getCustomerData.is_hierarchy_exists == false || this.getCustomerData.is_hierarchy_exists == undefined) {
-                this.currentTab = 3;
-                this.alertService.error('Please choose the Hierarchy', this.options);
-              }
-              else {
-                this.currentTab = 4;
-              }
-            }
-            console.log('Index:', index);
-            if (index == 5) {
               //console.log("errr", this.getCustomerData.customer_member_id)
               if (this.getCustomerData.is_office_details_exists == false || this.getCustomerData.is_office_details_exists == undefined) {
                 this.currentTab = 0;
@@ -462,24 +484,20 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
               }
               else if (this.getCustomerData.is_property_details_exists == false || this.getCustomerData.is_property_details_exists == undefined) {
                 this.currentTab = 1;
-                //  setTimeout(() => this.propertyDetailsComp?.refreshData(), 100);
                 this.alertService.error('Please fill the Property Details', this.options);
-                //console.log("errr", this.getCustomerData.customer_member_id);
-                //console.log("errr", this.getCustomerData.customer_member_id);
               }
-              else if (this.getCustomerData.is_service_exists == false || this.getCustomerData.is_service_exists == undefined) {
-                this.currentTab = 2;
-                this.alertService.error('select the services you do not want. If you want all services, click "Next Service".', this.options);
-              }
-              else if (this.getCustomerData.is_hierarchy_exists == false || this.getCustomerData.is_hierarchy_exists == undefined) {
-                this.currentTab = 3;
-                this.alertService.error('Please choose the Hierarchy', this.options);
-                //console.log("errr", this.getCustomerData.customer_member_id)
-              }
+              // else if (this.getCustomerData.is_service_exists == false || this.getCustomerData.is_service_exists == undefined) {
+              //   this.currentTab = 2;
+              //   this.alertService.error('select the services you do not want. If you want all services, click "Next Service".', this.options);
+              // }
+              // else if (this.getCustomerData.is_hierarchy_exists == false || this.getCustomerData.is_hierarchy_exists == undefined) {
+              //   this.currentTab = 3;
+              //   this.alertService.error('Please choose the Hierarchy', this.options);
+              //   //console.log("errr", this.getCustomerData.customer_member_id)
+              // }
               else if (this.getCustomerData.is_technical_info_exists == false || this.getCustomerData.is_technical_info_exists == undefined) {
-                this.currentTab = 4;
-                this.alertService.error('Please select the technical Info', this.options);
-                //console.log("errr", this.getCustomerData.customer_member_id)
+                this.currentTab = 2;
+                this.alertService.error('Please save the technical Info', this.options);
               }
               // else if (this.getCustomerData.is_technical_info_exists == true && this.getCustomerData.is_hierarchy_exists == true && this.getCustomerData.is_service_exists == true && this.getCustomerData.is_property_details_exists == true && this.getCustomerData.is_office_details_exists == true && this.getCustomerData.customer_member_id == undefined) {
               //   this.currentTab = 4;
@@ -491,17 +509,22 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
               //console.log("errr", this.getCustomerData.customer_member_id)
               // }
               // Newly added for member id check - removed member id logic bcos member id will be generated at initiailly
-              else if (this.getCustomerData.is_technical_info_exists == true && this.getCustomerData.is_hierarchy_exists == true && this.getCustomerData.is_service_exists == true && this.getCustomerData.is_property_details_exists == true && this.getCustomerData.is_office_details_exists == true && !this.paymentDone) {
-                this.currentTab = 4;
+              // else if (this.getCustomerData.is_technical_info_exists == true && this.getCustomerData.is_hierarchy_exists == true && this.getCustomerData.is_service_exists == true && this.getCustomerData.is_property_details_exists == true && this.getCustomerData.is_office_details_exists == true && !this.paymentDone) {
+              //   this.currentTab = 4;
+              //   this.alertService.error('Please click "Save and Continue" to proceed with payment', this.options);
+              //   console.log("errr");
+              // }
+              // else if (this.getCustomerData.is_technical_info_exists == true && this.getCustomerData.is_hierarchy_exists == true && this.getCustomerData.is_service_exists == true && this.getCustomerData.is_property_details_exists == true && this.getCustomerData.is_office_details_exists == true && this.paymentDone) {
+              //   this.currentTab = 5;
+              //   console.log("errr", this.getCustomerData.customer_member_id)
+              // }
+
+              else if (this.getCustomerData.is_technical_info_exists == true && this.getCustomerData.is_property_details_exists == true && this.getCustomerData.is_office_details_exists == true && !this.paymentDone) {
+                this.currentTab = 2;
                 this.alertService.error('Please click "Save and Continue" to proceed with payment', this.options);
-                console.log("errr");
               }
-              else if (this.getCustomerData.is_technical_info_exists == true && this.getCustomerData.is_hierarchy_exists == true && this.getCustomerData.is_service_exists == true && this.getCustomerData.is_property_details_exists == true && this.getCustomerData.is_office_details_exists == true && this.paymentDone) {
-                this.currentTab = 5;
-                console.log("errr", this.getCustomerData.customer_member_id)
-              }
-              else {
-                //console.log("errr", this.getCustomerData.customer_member_id)
+              else if (this.getCustomerData.is_technical_info_exists == true && this.getCustomerData.is_property_details_exists == true && this.getCustomerData.is_office_details_exists == true && this.paymentDone) {
+                this.currentTab = 3;
               }
             }
           }
@@ -544,16 +567,32 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
     // this.checkAndActivateInvalidTab();
   }
 
+  isPaymentRoute(): boolean {
+    const url = this.router.url.toLowerCase();
+    return url.includes('confirmation') || url.includes('cancellation');
+  }
+
+
   getOrderById() {
+    this.memberId = this.localService.get('MemberId');
+    // let findObj = (this.iscancelVisible || this.isVisible)
+    let findObj = this.isPaymentRoute()
+      ? { customer_id: Number(this.hotelId) }
+      : { customer_member_id: this.memberId };
+    // console.log('Member id(getOrderById):', this.memberId);
     // console.log('🛑 getOrderById called with hotelId:', this.hotelId);
     let formatJson = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
       extras: {
-        find: {
-          customer_id: this.hotelId
+        find:
+          // {
           // id: Number(this.parameters['id'])
-        }
+          // Newly added for getting customer id for customer type
+          // customer_id: this.hotelId
+          // customer_member_id: this.memberId
+          findObj
+        // }
       },
       "pagination": false,
       "paginationDetails": {
@@ -586,126 +625,27 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
           );
           // Assign first confirmed order or fallback
           this.orderdata = confirmedOrders[0] || resp.result.data[0];
-          console.log('Confirmed Order Data:', this.orderdata);
+          // console.log('Confirmed Order Data:', this.orderdata);
           // Flag for order existence
           this.isOrderExist = confirmedOrders.length > 0;
           // Payment done flag
           this.paymentDone = this.isOrderExist;
           this.localService.set('paymentDone', this.paymentDone);
-          console.log('Payment done:', this.paymentDone);
-          // exactly one confirmed order
+          // console.log('Payment done:', this.paymentDone);
+          // Consolidated Update Logic
+          let shouldUpdateOrder = false;
+          let isPaymentProcessed = false;
+          let paymentProcessedInstallment: any = null;
+
+          // SMS Block: Update send_sms flag if exactly one confirmed order needs it
           if (confirmedOrders.length === 1 && confirmedOrders[0].send_sms === true) {
             this.sendMessage(this.customerdata);
             this.sendStatusMessage(this.customerdata);
-            // Update send_sms to false after sending the SMS
-            const updatedOrder = { ...this.orderdata, send_sms: false };
-            delete updatedOrder._id;
-            delete updatedOrder.id;
-            const orderUpdateData = {
-              domain_name: DOMAIN_NAME,
-              user_id: USER_ID,
-              payload: { order_creation: updatedOrder },
-              extras: { find: { id: this.orderdata.id } }
-            };
-            this.hotelenrollmentservice.orderUpsert(orderUpdateData).subscribe(
-              (orderResp: any) => {
-                if (orderResp.success === 1) {
-                  console.log('Order send_sms updated to false', orderResp);
-                  // Also update local orderdata object to reflect this change
-                  this.orderdata.send_sms = false;
-                } else {
-                  console.error('Failed to update send_sms', orderResp.message);
-                }
-              },
-              err => {
-                console.error('Error updating send_sms', err);
-              }
-            );
+            this.orderdata.send_sms = false;
+            shouldUpdateOrder = true;
           }
-          const memberId = this.orderdata.customer_member_id;
-          this.localService.set('MemberId', memberId);
-          //console.log(memberId, "MEMBERID");
-          //console.log(this.orderdata, "RESPDATA");
-          // Check if payment is done based on presence of status value
-          // this.paymentDone = (this.orderdata.status == 'Order Confirmed' || this.orderdata.status == 'Confirmed');
-          // this.localService.set('paymentDone', this.paymentDone);
-          console.log('Status:', this.orderdata?.status);
-          // console.log('Payment done:', this.paymentDone);
-          // Newly added for payment and order update
-          // --- Only trigger update logic if URL contains confirmation and params ---
-          // const queryParams = this.route.snapshot.queryParams;
-          // const orderIdFromUrl = queryParams['id'];
-          // const customerIdFromUrl = queryParams['customer_id'];
-          // if (
-          //   this.router.url.includes('confirmation') &&
-          //   orderIdFromUrl &&
-          //   customerIdFromUrl
-          // ) {
-          //   // Find next unpaid installment
-          //   const nextIndex = this.orderdata.payment_split.findIndex((p: any) => p.status === "Not Paid");
-          //   if (nextIndex === -1) {
-          //     console.log("All installments already paid");
-          //     return; // nothing to update
-          //   }
-          //   // Mark current installment as paid
-          //   const now = new Date().toISOString();
-          //   this.orderdata.payment_split[nextIndex].status = "Paid";
-          //   this.orderdata.payment_split[nextIndex].paid_date_time = now;
-          //   //  Update subscription_end_date to the current installment's end date
-          //   const currentInstallmentEndDate = this.orderdata.payment_split[nextIndex].subscription_end_date;
-          //   this.orderdata.subscription_end_date = currentInstallmentEndDate;
-          //   // Update order_review to the **next unpaid installment**, if it exists
-          //   const nextUnpaid = this.orderdata.payment_split[nextIndex + 1];
-          //   if (nextUnpaid) {
-          //     this.orderdata.order_review.order_summary = {
-          //       sub_total: nextUnpaid.sub_total,
-          //       tax: nextUnpaid.tax,
-          //       order_total_amount: nextUnpaid.order_total_amount
-          //     };
-          //   } else {
-          //     // No more unpaid installments → use current paid installment for review
-          //     this.orderdata.order_review.order_summary = {
-          //       sub_total: this.orderdata.payment_split[nextIndex].sub_total,
-          //       tax: this.orderdata.payment_split[nextIndex].tax,
-          //       order_total_amount: this.orderdata.payment_split[nextIndex].order_total_amount
-          //     };
-          //   }
-          //   console.log('nextUnpaid', nextUnpaid);
-          //   console.log('this.orderdata', this.orderdata);
-          //   // Prepare order update payload
-          //   const orderPayload = { ...this.orderdata };
-          //   delete orderPayload._id;
-          //   delete orderPayload.id;
-          //   const orderUpdateData = {
-          //     domain_name: DOMAIN_NAME,
-          //     user_id: USER_ID,
-          //     payload: { order_creation: orderPayload },
-          //     extras: { find: { id: this.orderdata.id } }
-          //   };
-          //   // Update order
-          //   this.hotelenrollmentservice.orderUpsert(orderUpdateData).subscribe(orderResp => {
-          //     if (orderResp.success === 1) {
-          //       console.log("Order updated after payment", orderResp);
-          //       // Update customer subscription_end_date
-          //       const customerUpdateData = {
-          //         domain_name: DOMAIN_NAME,
-          //         user_id: USER_ID,
-          //         extras: { find: { id: this.customerdata.id } },
-          //         payload: {
-          //           customer_update: {
-          //             payment_split: this.orderdata.payment_split,
-          //             subscription_end_date: currentInstallmentEndDate
-          //           }
-          //         }
-          //       };
-          //       this.hotelenrollmentservice.updateCustomerFcm(customerUpdateData).subscribe(custRes => {
-          //         if (custRes.success === 1) console.log("Customer subscription_end_date updated", custRes);
-          //         else console.error("Failed to update customer", custRes.message);
-          //       });
-          //     } else console.error("Failed to update order", orderResp.message);
-          //   });
-          //   this.updateHeaderPayNowButton();
-          // }
+
+          // Confirmation Block: Update payment split status if on confirmation route
           const queryParams = this.route.snapshot.queryParams;
           const orderIdFromUrl = queryParams['id'];
           const customerIdFromUrl = queryParams['customer_id'];
@@ -714,82 +654,97 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
             orderIdFromUrl &&
             customerIdFromUrl
           ) {
-            // Flatten installments
             const allCycles: any[] = this.orderdata.payment_split || [];
             let nextUnpaidCycleIndex = allCycles.findIndex(cycle =>
               cycle.installments.some((inst: any) => inst.status === "Not Paid")
             );
-            if (nextUnpaidCycleIndex === -1) {
-              console.log("All installments already paid");
-              return; // nothing to update
+
+            if (nextUnpaidCycleIndex !== -1) {
+              const nextCycle = allCycles[nextUnpaidCycleIndex];
+              const nextUnpaidIndex = nextCycle.installments.findIndex((inst: any) => inst.status === "Not Paid");
+              const nextInstallment = nextCycle.installments[nextUnpaidIndex];
+
+              // Mark installment as paid
+              nextInstallment.status = "Paid";
+              nextInstallment.paid_date_time = new Date().toISOString();
+              // Update subscription_end_date
+              this.orderdata.subscription_end_date = nextInstallment.subscription_end_date;
+
+              // Update order_review to the next unpaid installment, or current if none left
+              let nextUnpaidInstallment = nextCycle.installments.find((inst: any) => inst.status === "Not Paid");
+              if (!nextUnpaidInstallment) {
+                const futureCycle = allCycles.slice(nextUnpaidCycleIndex + 1).find(c =>
+                  c.installments.some((inst: any) => inst.status === "Not Paid")
+                );
+                nextUnpaidInstallment = futureCycle?.installments.find((inst: any) => inst.status === "Not Paid") || nextInstallment;
+              }
+
+              this.orderdata.order_review.order_summary = {
+                sub_total: Number(nextUnpaidInstallment.sub_total.toFixed(2)),
+                tax: Number(nextUnpaidInstallment.tax.toFixed(2)),
+                order_total_amount: Number(nextUnpaidInstallment.order_total_amount.toFixed(2))
+              };
+
+              shouldUpdateOrder = true;
+              isPaymentProcessed = true;
+              paymentProcessedInstallment = nextInstallment;
             }
-            const nextCycle = allCycles[nextUnpaidCycleIndex];
-            console.log('nextCycle', nextCycle);
-            const nextUnpaidIndex = nextCycle.installments.findIndex((inst: any) => inst.status === "Not Paid");
-            console.log('nextUnpaidIndex', nextUnpaidIndex);
-            const nextInstallment = nextCycle.installments[nextUnpaidIndex];
-            console.log('nextInstallment', nextInstallment);
-            // Mark installment as paid
-            nextInstallment.status = "Paid";
-            nextInstallment.paid_date_time = new Date().toISOString();
-            // Update subscription_end_date
-            this.orderdata.subscription_end_date = nextInstallment.subscription_end_date;
-            console.log('Orderdata subscription enddate', this.orderdata.subscription_end_date);
-            // Update order_review to the next unpaid installment, or current if none left
-            let nextUnpaidInstallment = nextCycle.installments.find((inst: any) => inst.status === "Not Paid");
-            console.log('nextUnpaidInstallment', nextUnpaidInstallment);
-            if (!nextUnpaidInstallment) {
-              // Check next cycle
-              const futureCycle = allCycles.slice(nextUnpaidCycleIndex + 1).find(c =>
-                c.installments.some((inst: any) => inst.status === "Not Paid")
-              );
-              nextUnpaidInstallment = futureCycle?.installments.find((inst: any) => inst.status === "Not Paid") || nextInstallment;
-            }
-            this.orderdata.order_review.order_summary = {
-              // sub_total: nextUnpaidInstallment.sub_total,
-              // tax: nextUnpaidInstallment.tax,
-              // order_total_amount: nextUnpaidInstallment.order_total_amount
-              sub_total: Number(nextUnpaidInstallment.sub_total.toFixed(2)),
-              tax: Number(nextUnpaidInstallment.tax.toFixed(2)),
-              order_total_amount: Number(nextUnpaidInstallment.order_total_amount.toFixed(2))
-            };
-            // Prepare payload
+          }
+
+          // Execute a single Upsert if any changes were made
+          if (shouldUpdateOrder) {
             const orderPayload = { ...this.orderdata };
-            console.log('Order payload', orderPayload);
             delete orderPayload._id;
             delete orderPayload.id;
-            orderPayload.payment_split?.forEach((cycle: any) =>
-              cycle.installments?.forEach((inst: any) => delete inst._id)
-            );
+
+            // Remove _id from nested objects to avoid backend issues
+            orderPayload.payment_split?.forEach((cycle: any) => {
+              delete cycle._id;
+              cycle.installments?.forEach((inst: any) => delete inst._id);
+            });
+
             const orderUpdateData = {
               domain_name: DOMAIN_NAME,
               user_id: USER_ID,
-              payload: { order_creation: orderPayload},
+              payload: { order_creation: orderPayload },
               extras: { find: { id: this.orderdata.id } }
             };
-            this.hotelenrollmentservice.orderUpsert(orderUpdateData).subscribe(orderResp => {
-              if (orderResp.success === 1) {
-                console.log("Order updated after payment", orderResp);
-                // Update customer subscription_end_date
-                const customerUpdateData = {
-                  domain_name: DOMAIN_NAME,
-                  user_id: USER_ID,
-                  extras: { find: { id: this.customerdata.id } },
-                  payload: {
-                    customer_update: {
-                      payment_split: this.orderdata.payment_split,
-                      subscription_end_date: nextInstallment.subscription_end_date
-                    }
+
+            this.hotelenrollmentservice.orderUpsert(orderUpdateData).subscribe(
+              (orderResp: any) => {
+                if (orderResp.success === 1) {
+                  // console.log('Order consolidated update successful');
+                  if (isPaymentProcessed && paymentProcessedInstallment) {
+                    const customerUpdateData = {
+                      domain_name: DOMAIN_NAME,
+                      user_id: USER_ID,
+                      extras: { find: { id: this.customerdata.id } },
+                      payload: {
+                        customer_update: {
+                          payment_split: this.orderdata.payment_split,
+                          subscription_end_date: paymentProcessedInstallment.subscription_end_date
+                        }
+                      }
+                    };
+                    this.hotelenrollmentservice.updateCustomerFcm(customerUpdateData).subscribe(custRes => {
+                      if (custRes.success === 1) console.log("Customer subscription_end_date updated after payment", custRes);
+                      else console.error("Failed to update customer", custRes.message);
+                    });
+                    this.updateHeaderPayNowButton();
                   }
-                };
-                this.hotelenrollmentservice.updateCustomerFcm(customerUpdateData).subscribe(custRes => {
-                  if (custRes.success === 1) console.log("Customer subscription_end_date updated", custRes);
-                  else console.error("Failed to update customer", custRes.message);
-                });
-              } else console.error("Failed to update order", orderResp.message);
-            });
-            this.updateHeaderPayNowButton();
+                } else {
+                  console.error('Failed to update order in consolidated call', orderResp.message);
+                }
+              },
+              err => {
+                console.error('Error in consolidated order update', err);
+              }
+            );
           }
+
+          // Shared logic after data fetch (always run)
+          const memberId = this.orderdata.customer_member_id;
+          this.localService.set('MemberId', memberId);
         }
       },
       err => {
@@ -915,7 +870,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
   //     const installmentText = "Start New Payment Cycle";
   //     this.localService.set('payNowButtonState', JSON.stringify({ show: showButton, enabled, installmentText }));
   //     this.technicalInfoService.updatePayNowButton(showButton, enabled, installmentText);
-  //     console.log("All installments paid. Showing 'Start New Payment Cycle' button.");
+  //     // console.log("All installments paid. Showing 'Start New Payment Cycle' button.");
   //     return;
   //   }
   //   // CASE 2: Some installments unpaid — continue normal flow
@@ -966,16 +921,16 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
     let nextUnpaidCycleIndex = allCycles.findIndex(cycle =>
       cycle.installments.some((inst: any) => inst.status === "Not Paid")
     );
-    console.log('Next Unpaid Cycle Index', nextUnpaidCycleIndex);
+    // console.log('Next Unpaid Cycle Index', nextUnpaidCycleIndex);
     let lastRelevantInstallment: any;
     if (nextUnpaidCycleIndex === -1) {
-      console.log('All Installments Paid');
+      // console.log('All Installments Paid');
       // CASE: All installments paid
       // Pick the last paid installment
       const lastCycle = allCycles[allCycles.length - 1];
       lastRelevantInstallment = lastCycle.installments[lastCycle.installments.length - 1];
     } else {
-      console.log('Some Installments Unpaid');
+      // console.log('Some Installments Unpaid');
       // CASE: Some unpaid installments
       const nextCycle = allCycles[nextUnpaidCycleIndex];
       const nextUnpaidIndex = nextCycle.installments.findIndex((inst: any) => inst.status === "Not Paid");
@@ -989,16 +944,16 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
     }
     // Enable button 7 days before subscription_end_date of lastRelevantInstallment
     const [day, month, year] = lastRelevantInstallment.subscription_end_date.split('-').map(Number);
-    console.log('day, month, year', day, month, year);
+    // console.log('day, month, year', day, month, year);
     const subEndDate = new Date(year, month - 1, day);
-    console.log('Sub end Date', subEndDate);
+    // console.log('Sub end Date', subEndDate);
     const enableDate = new Date(subEndDate);
-    console.log('enableDate before format', enableDate);
+    // console.log('enableDate before format', enableDate);
     enableDate.setDate(enableDate.getDate() - 7);
     const today = new Date();
-    console.log('enableDate due date', enableDate);
+    // console.log('enableDate due date', enableDate);
     const enabled = today >= enableDate;
-    console.log('Enable date', enabled);
+    // console.log('Enable date', enabled);
     // Prepare button text
     let installmentText = 'Start New Payment Cycle';
     if (nextUnpaidCycleIndex !== -1) {
@@ -1010,7 +965,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
     const showButton = true;
     this.localService.set('payNowButtonState', JSON.stringify({ show: showButton, enabled, installmentText }));
     this.technicalInfoService.updatePayNowButton(showButton, enabled, installmentText);
-    console.log('Pay Now Button:', { showButton, enabled, installmentText });
+    // console.log('Pay Now Button:', { showButton, enabled, installmentText });
   }
 
 
@@ -1020,13 +975,19 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
 
   getOrderByIdAsync(): Promise<boolean> {
     return new Promise((resolve, reject) => {
+      let findObj = this.isPaymentRoute()
+        ? { customer_id: Number(this.hotelId) }
+        : { customer_member_id: this.memberId };
       const formatJson = {
         domain_name: DOMAIN_NAME,
         user_id: USER_ID,
         extras: {
           find: {
-            customer_id: this.hotelId
             // id: Number(this.parameters['id'])
+            // Newly added for getting customer id for customer type
+            // customer_id: this.hotelId
+            // customer_member_id: this.memberId
+            findObj
           }
         },
         pagination: false,
@@ -1091,6 +1052,9 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
     // Save progress to local storage
     this.localService.set('maxTabReached', this.maxTabReached);
     this.localService.set('currentTab', this.currentTab);
+    if (this.currentTab === 2) {
+      setTimeout(() => this.technicalInfoComp?.refreshData(), 100);
+    }
   }
 
   // checkAndActivateInvalidTab() {
@@ -1156,24 +1120,24 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
       this.currentTab = 1;
       this.alertService.error('Please fill the Property Details', this.options);
     }
-    else if (this.getCustomerData.is_service_exists == false || this.getCustomerData.is_service_exists == undefined) {
-      this.currentTab = 2;
-      this.alertService.error('select the services you do not want. If you want all services, click "Save and Continue".', this.options);
-    }
-    else if (this.getCustomerData.is_hierarchy_exists == false || this.getCustomerData.is_hierarchy_exists == undefined) {
-      this.currentTab = 3;
-      this.alertService.error('Please choose the Hierarchy', this.options);
-    }
+    // else if (this.getCustomerData.is_service_exists == false || this.getCustomerData.is_service_exists == undefined) {
+    //   this.currentTab = 2;
+    //   this.alertService.error('select the services you do not want. If you want all services, click "Save and Continue".', this.options);
+    // }
+    // else if (this.getCustomerData.is_hierarchy_exists == false || this.getCustomerData.is_hierarchy_exists == undefined) {
+    //   this.currentTab = 3;
+    //   this.alertService.error('Please choose the Hierarchy', this.options);
+    // }
     else if (this.getCustomerData.is_technical_info_exists == false || this.getCustomerData.is_technical_info_exists == undefined) {
-      this.currentTab = 4
+      this.currentTab = 2;
     }
     else if (this.getCustomerData.is_technical_info_exists == true && this.getCustomerData.is_hierarchy_exists == true && this.getCustomerData.is_service_exists == true && this.getCustomerData.is_property_details_exists == true && this.getCustomerData.is_office_details_exists == true && this.getCustomerData.customer_member_id != undefined) {
-      this.currentTab = 5;
+      this.currentTab = 3;
     }
   }
 
   async checkAndActivateInvalidTabOnLoad() {
-    console.log('Hierarchy Tab', this.hierarchyTab);
+    // console.log('Hierarchy Tab', this.hierarchyTab);
     if (this.getCustomerData.is_office_details_exists == false || this.getCustomerData.is_office_details_exists == undefined) {
       this.currentTab = 0;
       //console.log("checj")
@@ -1183,18 +1147,18 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
       this.currentTab = 1;
       // this.alertService.error('Please fill the Property Details', this.options);
     }
-    else if (this.getCustomerData.is_service_exists == false || this.getCustomerData.is_service_exists == undefined) {
-      this.currentTab = 2;
-      //  this.alertService.error('Deselect the services you do not want. If you want all services, click "Save and Continue".', this.options);
+    // else if (this.getCustomerData.is_service_exists == false || this.getCustomerData.is_service_exists == undefined) {
+    //   this.currentTab = 2;
+    //   //  this.alertService.error('Deselect the services you do not want. If you want all services, click "Save and Continue".', this.options);
 
-    }
+    // }
     // Newly added hierarchyTab for back navigation
-    else if ((this.getCustomerData.is_hierarchy_exists == false || this.getCustomerData.is_hierarchy_exists == undefined) || this.hierarchyTab) {
-      this.currentTab = 3;
-      //  this.alertService.error('Please choose the Hierarchy', this.options);
-    }
+    // else if ((this.getCustomerData.is_hierarchy_exists == false || this.getCustomerData.is_hierarchy_exists == undefined) || this.hierarchyTab) {
+    //   this.currentTab = 3;
+    //   //  this.alertService.error('Please choose the Hierarchy', this.options);
+    // }
     else if (this.getCustomerData.is_technical_info_exists == false || this.getCustomerData.is_technical_info_exists == undefined) {
-      this.currentTab = 4
+      this.currentTab = 2;
 
     }
     // Newly commented & added for member id check & back navigation
@@ -1204,11 +1168,11 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
     // else if (this.getCustomerData.is_technical_info_exists == true && this.getCustomerData.is_hierarchy_exists == true && this.getCustomerData.is_service_exists == true && this.getCustomerData.is_property_details_exists == true && this.getCustomerData.is_office_details_exists == true && this.getCustomerData.customer_member_id == undefined) {
     //   this.currentTab = 4;
     // }
-    else if (this.getCustomerData.is_technical_info_exists == true && this.getCustomerData.is_hierarchy_exists == true && this.getCustomerData.is_service_exists == true && this.getCustomerData.is_property_details_exists == true && this.getCustomerData.is_office_details_exists == true && this.paymentDone) {
-      this.currentTab = 5;
+    else if (this.getCustomerData.is_technical_info_exists == true && this.getCustomerData.is_property_details_exists == true && this.getCustomerData.is_office_details_exists == true && this.paymentDone) {
+      this.currentTab = 3;
     }
-    else if (this.getCustomerData.is_technical_info_exists == true && this.getCustomerData.is_hierarchy_exists == true && this.getCustomerData.is_service_exists == true && this.getCustomerData.is_property_details_exists == true && this.getCustomerData.is_office_details_exists == true) {
-      this.currentTab = 4;
+    else if (this.getCustomerData.is_technical_info_exists == true && this.getCustomerData.is_property_details_exists == true && this.getCustomerData.is_office_details_exists == true) {
+      this.currentTab = 2;
     }
 
 
@@ -1223,14 +1187,25 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
   }
 
   getCustomerById(): Promise<void> {
+    this.memberId = this.localService.get('MemberId');
+    // console.log('Member id(getCustomerById):', this.memberId);
+    // let findObj = (this.iscancelVisible || this.isVisible)
+    let findObj = this.isPaymentRoute()
+      ? { id: Number(this.hotelId) }
+      : { customer_member_id: this.memberId };
+
     return new Promise((resolve, reject) => {
       let requestBody = {
         domain_name: DOMAIN_NAME,
         user_id: USER_ID,
         extras: {
-          find: {
-            id: this.hotelId
-          }
+          find:
+            // {
+            // Newly added for getting customer id for customer type
+            // id: this.hotelId
+            // customer_member_id: this.memberId
+            findObj
+          // }
         }
       };
       this.hotelenrollmentservice.getLoginCustomerById(requestBody).subscribe(
@@ -1242,6 +1217,16 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
             // this.hotelId = this.customerdata.id;
             this.hotelId = resp.result.data[0].id;
             this.localService.set('CustomerType', 'Customer');
+            // Newly added for customer status(hint)
+            this.customerStatus = this.customerdata.status;
+            // Newly added for member id
+            this.memberId = this.customerdata.customer_member_id;
+            this.localService.set('MemberId', this.memberId);
+            // Newly added for refreshing after payment
+            if (this.isPaymentRoute()) {
+              this.localService.set('roleId', this.customerdata.role_id);
+            }
+            // End for refreshing after payment
             resolve();
           }
         },
@@ -1283,7 +1268,9 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
         user_id: USER_ID,
         extras: {
           find: {
-            customer_id: Number(this.localService.get('UserId')) != 0 ? Number(this.localService.get('UserId')) : this.hotelId
+            // Newly added for getting customer id for customer type
+            // customer_id: Number(this.localService.get('UserId')) != 0 ? Number(this.localService.get('UserId')) : this.hotelId
+            member_id: this.memberId
           }
         }
       };
@@ -1307,6 +1294,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
       );
     });
   }
+
   checkIfHierarchyExists(): Promise<boolean> {
     return new Promise((resolve, reject) => {
       const requestBody = {
@@ -1314,7 +1302,9 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
         user_id: USER_ID,
         extras: {
           find: {
-            customer_id: this.hotelId
+            // Newly added for getting customer id for customer type
+            // customer_id: this.hotelId
+            member_id: this.memberId
           }
         }
       };
@@ -1345,7 +1335,9 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
         user_id: USER_ID,
         extras: {
           find: {
-            customer_id: Number(this.localService.get('UserId')) != 0 ? Number(this.localService.get('UserId')) : this.hotelId
+            // Newly added for getting customer id for customer type
+            // customer_id: Number(this.localService.get('UserId')) != 0 ? Number(this.localService.get('UserId')) : this.hotelId
+            member_id: this.memberId
           }
         }
       };
@@ -1484,7 +1476,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
     };
     this.hotelenrollmentservice.sendSMS(payload).subscribe({
       next: (res) => {
-        console.log('Email API response:', res);
+        // console.log('Email API response:', res);
       },
       error: (err) => {
         console.error('Email API error:', err);
@@ -1505,7 +1497,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
     };
     this.hotelenrollmentservice.sendPendingSMS(payload).subscribe({
       next: (res) => {
-        console.log('Email API response:', res);
+        // console.log('Email API response:', res);
       },
       error: (err) => {
         console.error('Email API error:', err);

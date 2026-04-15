@@ -1,0 +1,9 @@
+<router-outlet>
+  @if (!showSidebar) {
+  <app-menu-bar (menuSelected)="updateMenu($event)"></app-menu-bar>
+  }
+  @if (!showSidebar) {
+  <!-- Passes notifications to HeaderComponent via property binding. -->
+  <app-header [selectedMenu]="selectedMenuItem" [notifications]="notifications"></app-header>
+  }
+</router-outlet>

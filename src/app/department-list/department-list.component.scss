@@ -115,6 +115,22 @@ body {
     transition: color 0.2s ease;
 }
 
+.view-btn {
+    background: none;
+    border: none;
+    color: #800020;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.add-btn:disabled,
+.edit-btn:disabled,
+.delete-btn:disabled,
+.view-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 .delete-btn:hover {
     color: #a02740;
 }
@@ -178,6 +194,11 @@ body {
     outline: none;
 }
 
+.dept-input[readonly] {
+    background-color: #f5f5f5;
+    cursor: not-allowed;
+}
+
 .modal-content p {
     font-size: 14px;
     color: #1a1a1a;
@@ -229,5 +250,221 @@ body {
     to {
         opacity: 1;
         transform: translate(-50%, -50%);
+    }
+}
+
+.service-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: #fff6f8;
+    border: 1px dashed #800020;
+    border-radius: 8px;
+    color: #800020;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+/* .dept-assign-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 5px;
+    width: 100%;
+    padding: 10px 16px;
+    background: #fff8e1;
+    border-left: 4px solid #f59e0b;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #7c5c00;
+    font-weight: 500;
+    line-height: 1.6;
+    margin-bottom: 8px;
+    margin-top: 4px;
+    box-sizing: border-box;
+
+    i {
+        color: #f59e0b;
+        font-size: 16px;
+        margin-top: 1px;
+        flex-shrink: 0;
+    }
+
+    b {
+        color: #5a3e00;
+        font-weight: 700;
+    }
+} */
+
+.dept-assign-note {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 16px;
+    background: #fff8e1;
+    border-left: 4px solid #f59e0b;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #7c5c00;
+    font-weight: 500;
+    line-height: 1.6;
+    margin-bottom: 8px;
+    margin-top: 4px;
+    box-sizing: border-box;
+
+    i {
+        color: #f59e0b;
+        font-size: 15px;
+        flex-shrink: 0;
+    }
+
+    b {
+        color: #5a3e00;
+        font-weight: 700;
+    }
+}
+
+
+.dept-select {
+    padding: 6px 8px;
+    border-radius: 6px;
+    font-size: 13px;
+}
+
+/* Assignable Services Table Styling */
+table.table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin-top: 15px;
+    font-size: 14px;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 3px 8px rgba(128, 0, 32, 0.1);
+    background-color: white !important;
+}
+
+table.table thead,
+table.table tbody,
+table.table tbody tr,
+table.table tbody td {
+    background-color: white !important;
+    /* Ensure all parts are white */
+}
+
+table.table th,
+table.table td {
+    text-align: left;
+    padding: 8px 16px;
+}
+
+table.table th {
+    font-weight: 600;
+    color: #800020;
+    font-size: 14px;
+    border-bottom: 1px solid #e0dcdc;
+}
+
+table.table tbody tr {
+    transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+
+table.table tbody td select.dept-select {
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 13px;
+    min-width: 150px;
+}
+
+table.table tbody td select.dept-select:focus {
+    border-color: #800020;
+    box-shadow: 0 0 4px rgba(128, 0, 32, 0.3);
+    outline: none;
+}
+
+.action-icons i {
+    font-size: 18px;
+    cursor: pointer;
+    // transition: transform 0.2s ease, color 0.2s ease;
+    margin-left: 10px;
+}
+
+// .action-icons i:hover {
+//     transform: scale(1.2);
+// }
+
+.confirm-icon,
+.remove-icon {
+    color: #800020;
+}
+
+.confirm-icon.disabled,
+.remove-icon.disabled {
+    opacity: 0.4;
+    cursor: not-allowed !important;
+}
+
+// Dropdown styling for multiple department assignment
+// .custom-multi-select {
+//     position: relative;
+
+    
+//     .dropdown-toggle {
+//         color: #800020;
+//         border-radius: 6px;
+//         padding: 6px 12px;
+
+//         &::after {
+//             float: right;
+//             margin-top: 8px;
+//         }
+//     }
+
+    // .dropdown-menu {
+    //     border-radius: 12px;
+        // animation: fadeIn 0.2s ease-out;
+    // }
+
+    // .accent-maroon {
+    //     accent-color: #800020;
+        /* Matches your theme #800020 */
+//         width: 17px;
+//         height: 17px;
+//         cursor: pointer;
+//     }
+
+//     .cursor-pointer {
+//         cursor: pointer;
+
+//         &:hover {
+//             color: #800020;
+//         }
+//     }
+// }
+
+// Critical for showing the dropdown over table rows
+// .table-responsive,
+// table {
+//     overflow: visible !important;
+// }
+
+// td {
+//     overflow: visible !important;
+//     vertical-align: middle;
+// }
+
+@media (max-width: 768px) {
+
+    table.table th,
+    table.table td {
+        padding: 10px 8px;
+        font-size: 13px;
+    }
+
+    table.table tbody td select.dept-select {
+        min-width: 120px;
     }
 }

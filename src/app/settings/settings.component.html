@@ -31,7 +31,8 @@
                     <i class="bi bi-chevron-right"></i>
                 </div>
             </div> -->
-            <div class="card p-3 mb-1 settings-item" (click)="openRoomModal()" *ngIf="this.customerType == 'Customer'">
+            <div class="card p-3 mb-1 settings-item" (click)="openRoomModal()"
+                *ngIf="this.customerType == 'Customer' && (this.customerStatus == 'approved' || this.customerStatus == 'Approved')">
                 <div class="d-flex align-items-center justify-content-between">
                     <div class="d-flex align-items-center">
                         <i class="fa-solid fa-door-open me-3" style="font-size: 16px; color:#800020"></i>
@@ -40,10 +41,21 @@
                             <p class="mb-0 fw-medium small">Manage room numbers</p>
                         </div>
                     </div>
-                    <i class="bi bi-chevron-right"></i>
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa fa-eye view-icon" (click)="canReadSystemSettings ? viewRoomNumbers() : null"
+                            [style.opacity]="canReadSystemSettings ? 1 : 0.4"
+                            [style.cursor]="canReadSystemSettings ? 'pointer' : 'not-allowed'"
+                            [style.pointer-events]="canReadSystemSettings ? 'auto' : 'auto'" title="View"
+                            style="font-size: 16px; color: #800020; margin-right: 8px;"></i>
+                        <i class="bi bi-chevron-right" (click)="canModifySystemSettings ? openRoomModal() : null"
+                            [style.opacity]="canModifySystemSettings ? 1 : 0.4"
+                            [style.cursor]="canModifySystemSettings ? 'pointer' : 'not-allowed'"
+                            [style.pointer-events]="canModifySystemSettings ? 'auto' : 'auto'"></i>
+                    </div>
                 </div>
             </div>
-            <div class="card p-3 mb-1 settings-item" (click)="openDurationModal()" *ngIf="this.customerType == 'Customer'">
+            <div class="card p-3 mb-1 settings-item" (click)="openDurationModal()"
+                *ngIf="this.customerType == 'Customer' && (this.customerStatus == 'approved' || this.customerStatus == 'Approved')">
                 <div class="d-flex align-items-center justify-content-between">
                     <div class="d-flex align-items-center">
                         <i class="fa-solid fa-clock me-3" style="font-size: 16px; color:#800020"></i>
@@ -52,7 +64,37 @@
                             <p class="mb-0 fw-medium small">Duration of shift</p>
                         </div>
                     </div>
-                    <i class="bi bi-chevron-right"></i>
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa fa-eye view-icon" (click)="canReadSystemSettings ? viewShiftTimings() : null"
+                            [style.opacity]="canReadSystemSettings ? 1 : 0.4"
+                            [style.cursor]="canReadSystemSettings ? 'pointer' : 'not-allowed'"
+                            [style.pointer-events]="canReadSystemSettings ? 'auto' : 'auto'" title="View"
+                            style="font-size: 16px; color: #800020; margin-right: 8px;"></i>
+                        <i class="bi bi-chevron-right" (click)="canModifySystemSettings ? openDurationModal() : null"
+                            [style.opacity]="canModifySystemSettings ? 1 : 0.4"
+                            [style.cursor]="canModifySystemSettings ? 'pointer' : 'not-allowed'"
+                            [style.pointer-events]="canModifySystemSettings ? 'auto' : 'auto'"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card p-3 mb-1 settings-item" 
+                *ngIf="this.customerType == 'Customer'  && (this.customerStatus == 'approved' || this.customerStatus == 'Approved')">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center">
+                        <i class="fa-solid fa-calendar-check me-3" style="font-size: 16px; color:#800020"></i>
+                        <div>
+                            <h6 class="mb-1 fw-bold">Late Checkout</h6>
+                            <p class="mb-0 fw-medium small">Enable late checkout requirement</p>
+                        </div>
+                    </div>
+                    <div class="form-check form-switch"
+                        [style.cursor]="canModifySystemSettings ? 'pointer' : 'not-allowed'">
+                        <input class="form-check-input" type="checkbox" role="switch" id="lateCheckoutToggle"
+                            [(ngModel)]="lateCheckoutRequired" (change)="onLateCheckoutToggle()"
+                            [disabled]="!canModifySystemSettings"
+                            [style.cursor]="canModifySystemSettings ? 'pointer' : 'not-allowed'"
+                            [style.pointer-events]="'auto'">
+                    </div>
                 </div>
             </div>
             <!-- <div class="card p-3 mb-1 settings-item">
@@ -68,7 +110,7 @@
                     <i class="bi bi-chevron-right"></i>
                 </div>
             </div> -->
-            <div class="card p-3 mb-1 settings-item" (click)="openPasswordModal()" >
+            <div class="card p-3 mb-1 settings-item" (click)="openPasswordModal()">
                 <div class="d-flex align-items-center justify-content-between">
                     <div class="d-flex align-items-center">
                         <img src="../../assets/images/guestezee/password.png" alt="Change Password"
@@ -211,15 +253,17 @@
 <!-- Duration Modal -->
 <div *ngIf="isDurationModalOpen" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center;">
-    <div style="background: white; border-radius: 15px; width: 45%; 
-              box-shadow: 0 0 10px rgba(0,0,0,0.2); text-align: center;">
+    <div style="background: white; border-radius: 15px; width: 45%; max-height: 65vh;
+              box-shadow: 0 0 10px rgba(0,0,0,0.2); text-align: center; display: flex; flex-direction: column;">
         <!-- Header -->
         <div class="d-flex justify-content-between align-items-center"
-            style="padding:  10px 20px; background-color: #FFF6F8; border-radius: 15px;">
-            <h2 style="font-size: 19px; font-weight: bold;">Shift Timing</h2>
+            style="padding:  10px 20px; background-color: #FFF6F8; border-radius: 15px; flex-shrink: 0;">
+            <h2 style="font-size: 19px; font-weight: bold;">{{ isShiftViewMode ? 'View Shift Timing' : 'Shift Timing' }}
+            </h2>
             <i class="fa-solid fa-business-time" style="font-size: 16px;"></i>
         </div>
-        <div style="padding: 15px 20px;">
+        <!-- Scrollable Content Area -->
+        <div style="padding: 15px 20px; overflow-y: auto; flex: 1; min-height: 0;">
             <!-- Column Header -->
             <div class="d-flex align-items-center mb-2" style="font-weight: bold; font-size: 14px; color: #333;">
                 <div style="width: 60px; text-align: center;" class="me-2">ID</div>
@@ -231,58 +275,87 @@
                 <div style="width: 50px; text-align: center;">Action</div>
             </div>
             <!-- Shift Rows -->
-            <div *ngFor="let shift of shifts; let i = index" class="d-flex align-items-center mb-2">
-                <!-- ID Field -->
-                <input type="text" class="form-control me-2" placeholder="ID" [(ngModel)]="shift.id"
-                    [readonly]="shift.is_existing" (input)="validateId(i)"
-                    style="max-width: 60px; font-size: 14px; text-align: center;" />
-                <!-- Start Time -->
-                <input type="text" class="form-control me-1" placeholder="HH:MM" [(ngModel)]="shift.startTime"
-                    (input)="validateTime(i, 'start')" (keypress)="restrictTimeInput($event)"
-                    style="max-width: 70px; text-align: center; font-size: 14px; padding: 5px 10px;" />
-                <select class="form-select me-2" style="max-width: 70px; font-size: 14px;"
-                    [(ngModel)]="shift.startMeridian">
-                    <option value="AM">AM</option>
-                    <option value="PM">PM</option>
-                </select>
-                <!-- End Time -->
-                <input type="text" class="form-control me-1" placeholder="HH:MM" [(ngModel)]="shift.endTime"
-                    (input)="validateTime(i, 'end')" (keypress)="restrictTimeInput($event)"
-                    style="max-width: 70px; text-align: center; font-size: 14px; padding: 5px 10px;" />
-                <select class="form-select me-2" style="max-width: 70px; font-size: 14px;"
-                    [(ngModel)]="shift.endMeridian">
-                    <option value="AM">AM</option>
-                    <option value="PM">PM</option>
-                </select>
-                <!-- Label (like Monday, Shift 1, etc.) -->
-                <input type="text" class="form-control me-2" placeholder="Label (e.g., Monday)"
-                    [(ngModel)]="shift.label" style="max-width: 150px; font-size: 14px;" />
-                <!-- Delete Row -->
-                <button class="btn" type="button"
-                    style="background-color:  #800020; color: white; border: none; font-size: 14px;"
-                    (click)="removeShift(i)">
-                    <i class="fa-solid fa-trash"></i>
-                </button>
+            <div *ngFor="let shift of shifts; let i = index" style="margin-bottom: 10px;">
+                <div class="d-flex align-items-center mb-1">
+                    <!-- ID Field -->
+                    <input type="text" class="form-control me-2" placeholder="ID" [(ngModel)]="shift.id"
+                        (input)="validateId(i)" [disabled]="isShiftViewMode" (keypress)="restrictSpecialChars($event)" 
+                        style="max-width: 60px; font-size: 14px; text-align: center;" />
+                    <!-- Start Time -->
+                    <input type="text" class="form-control me-1" placeholder="HH:MM" [(ngModel)]="shift.startTime"
+                        (input)="validateTime(i, 'start')" (keypress)="restrictTimeInput($event)"
+                        [disabled]="isShiftViewMode"
+                        style="max-width: 70px; text-align: center; font-size: 14px; padding: 5px 10px;" />
+                    <select class="form-select me-2" style="max-width: 70px; font-size: 14px;"
+                        [(ngModel)]="shift.startMeridian" (change)="clearShiftRowError(i); checkAtLeastOneShift()"
+                        [disabled]="isShiftViewMode">
+                        <option value="AM">AM</option>
+                        <option value="PM">PM</option>
+                    </select>
+                    <!-- End Time -->
+                    <input type="text" class="form-control me-1" placeholder="HH:MM" [(ngModel)]="shift.endTime"
+                        (input)="validateTime(i, 'end')" (keypress)="restrictTimeInput($event)"
+                        [disabled]="isShiftViewMode"
+                        style="max-width: 70px; text-align: center; font-size: 14px; padding: 5px 10px;" />
+                    <select class="form-select me-2" style="max-width: 70px; font-size: 14px;"
+                        [(ngModel)]="shift.endMeridian" (change)="clearShiftRowError(i); checkAtLeastOneShift()"
+                        [disabled]="isShiftViewMode">
+                        <option value="AM">AM</option>
+                        <option value="PM">PM</option>
+                    </select>
+                    <!-- Label (like Monday, Shift 1, etc.) -->
+                    <input type="text" class="form-control me-2" placeholder="Label (e.g., Monday)"
+                        [(ngModel)]="shift.label" (input)="clearShiftRowError(i); checkAtLeastOneShift()"
+                        [disabled]="isShiftViewMode" style="max-width: 150px; font-size: 14px;" />
+                    <!-- Delete Row -->
+                    <button class="btn" type="button"
+                        style="background-color:  #800020; color: white; border: none; font-size: 14px;"
+                        (click)="removeShift(i)" [disabled]="isShiftViewMode || !canModifySystemSettings"
+                        [style.opacity]="(isShiftViewMode || !canModifySystemSettings) ? 0.5 : 1"
+                        [style.cursor]="(isShiftViewMode || !canModifySystemSettings) ? 'not-allowed' : 'pointer'">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+                <!-- Row-specific errors -->
+                <div *ngIf="shiftRowErrors[i]"
+                    style="color: red; font-size: 12px; text-align: left; margin-left: 0; margin-bottom: 5px;">
+                    • {{ shiftRowErrors[i] }}
+                </div>
             </div>
             <!-- Add New Shift Button -->
-            <div class="d-flex justify-content-start mb-2">
+            <div class="d-flex justify-content-start mb-2" *ngIf="!isShiftViewMode">
                 <button class="btn" type="button" style="background-color: #800020; color: white; border: none"
-                    (click)="addShift()">
+                    (click)="addShift()" [disabled]="!canModifySystemSettings"
+                    [style.opacity]="canModifySystemSettings ? 1 : 0.5"
+                    [style.cursor]="canModifySystemSettings ? 'pointer' : 'not-allowed'">
                     <i class="fa-solid fa-plus"></i> Add Shift
                 </button>
             </div>
             <!-- Validation Error -->
-            <div *ngIf="errorMessage" style="color: red; font-size: 14px; text-align: left; margin-top: 5px;">
-                {{ errorMessage }}
+            <div *ngIf="errorMessage && errorMessage.length > 0"
+                style="color: red; font-size: 14px; text-align: left; margin-top: 5px;">
+                <div *ngFor="let error of errorMessage" style="margin-bottom: 5px;">
+                    • {{ error }}
+                </div>
             </div>
-            <!-- Action Buttons -->
+        </div>
+        <!-- Action Buttons (Fixed at Bottom) -->
+        <div style="padding: 15px 20px; border-top: 1px solid #e0e0e0; flex-shrink: 0;">
+            <!-- Disabled Message -->
+            <div *ngIf="!hasAtLeastOneShift"
+                style="color: #d32f2f; font-size: 13px; text-align: center; margin-bottom: 10px; font-style: italic;">
+                Please fill at least one complete shift (ID, Start Time, End Time, and Label) to enable Save.
+            </div>
             <div class="d-flex justify-content-end">
                 <button type="button" style="padding: 5px; background: #959FA34D; color: #000000B2;
-                       border: none; cursor: pointer; width: 20%; margin-top: 10px;
-                       font-size: 16px; border-radius: 8px; margin-right: 5px"
-                    (click)="closeShiftModal()">Cancel</button>
-                <button type="button" style="padding: 5px; background: #800020; color: white;
-                       border: none; cursor: pointer; width: 20%; margin-top: 10px;
+                       border: none; cursor: pointer; width: 20%;
+                       font-size: 16px; border-radius: 8px; margin-right: 5px" (click)="closeShiftModal()">{{
+                    isShiftViewMode ? 'Close' : 'Cancel' }}</button>
+                <button type="button" *ngIf="!isShiftViewMode"
+                    [disabled]="!hasAtLeastOneShift || !canModifySystemSettings"
+                    [style.background]="(hasAtLeastOneShift && canModifySystemSettings) ? '#800020' : '#cccccc'"
+                    [style.cursor]="(hasAtLeastOneShift && canModifySystemSettings) ? 'pointer' : 'not-allowed'" style="padding: 5px; color: white;
+                       border: none; width: 20%;
                        font-size: 16px; border-radius: 8px;" (click)="saveShifts()">Save</button>
             </div>
         </div>
@@ -291,15 +364,16 @@
 <!-- Room Modal -->
 <div *ngIf="isRoomModalOpen" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center;">
-    <div style="background: white; border-radius: 15px; width: 45%; 
-              box-shadow: 0 0 10px rgba(0,0,0,0.2); text-align: center;">
+    <div style="background: white; border-radius: 15px; width: 45%; max-height: 65vh;
+              box-shadow: 0 0 10px rgba(0,0,0,0.2); text-align: center; display: flex; flex-direction: column;">
         <!-- Header -->
         <div class="d-flex justify-content-between align-items-center"
-            style="padding: 10px 20px; background-color: #FFF6F8; border-radius: 15px;">
-            <h2 style="font-size: 19px; font-weight: bold;">Room Range</h2>
+            style="padding: 10px 20px; background-color: #FFF6F8; border-radius: 15px; flex-shrink: 0;">
+            <h2 style="font-size: 19px; font-weight: bold;">{{ isRoomViewMode ? 'View Room Range' : 'Room Range' }}</h2>
             <i class="fa-solid fa-door-open" style="font-size: 16px;"></i>
         </div>
-        <div style="padding: 15px 20px;">
+        <!-- Scrollable Content Area -->
+        <div style="padding: 15px 20px; overflow-y: auto; flex: 1; min-height: 0;">
             <!-- Header Row -->
             <div class="d-flex align-items-center mb-2" style="font-weight: bold; font-size: 14px; color: #333;">
                 <div style="width: 60px; text-align: center;" class="me-2">ID</div>
@@ -309,51 +383,78 @@
                 <div style="width: 150px; text-align: center;" class="me-2">Label</div>
             </div>
             <!-- Room Rows -->
-            <div *ngFor="let room of rooms; let i = index" class="d-flex align-items-center mb-2">
-                <!-- ID -->
-                <input type="text" class="form-control me-2" placeholder="ID" [(ngModel)]="room.id"
-                    [readonly]="room.is_existing" style="max-width: 60px; font-size: 14px; text-align: center;" />
-                <!-- Start Room -->
-                <input type="text" class="form-control me-2" placeholder="Start Room (max 5 characters)"
-                    [(ngModel)]="room.startRoom" (input)="validateRoom(i, 'start')" maxlength="5"
-                    style="max-width: 100px; font-size: 14px; text-align: center;" />
-                <span style="margin: 0 5px; font-weight: bold;">-</span>
-                <!-- End Room -->
-                <input type="text" class="form-control me-2" placeholder="End Room (max 5 characters)"
-                    [(ngModel)]="room.endRoom" (input)="validateRoom(i, 'end')" maxlength="5"
-                    style="max-width: 100px; font-size: 14px; text-align: center;" />
-                <!-- Label -->
-                <input type="text" class="form-control me-2" placeholder="Label (e.g., Floor 1)"
-                    [(ngModel)]="room.label" style="max-width: 150px; font-size: 14px;" />
-                <!-- Delete Row -->
-                <button class="btn" type="button"
-                    style="background-color: #800020; color: white; border: none; font-size: 14px;"
-                    (click)="removeRoom(i)">
-                    <i class="fa-solid fa-trash"></i>
-                </button>
+            <div *ngFor="let room of rooms; let i = index" style="margin-bottom: 10px;">
+                <div class="d-flex align-items-center mb-1">
+                    <!-- ID -->
+                    <input type="text" class="form-control me-2" placeholder="ID" [(ngModel)]="room.id"
+                        (input)="onRoomFieldChange()" [disabled]="isRoomViewMode" (keypress)="restrictSpecialChars($event)"
+                        style="max-width: 60px; font-size: 14px; text-align: center;" />
+                    <!-- Start Room -->
+                    <input type="text" class="form-control me-2" placeholder="Start Room (max 5 characters)"
+                        [(ngModel)]="room.startRoom" (input)="onRoomFieldChange()" maxlength="5"
+                        [disabled]="isRoomViewMode" style="max-width: 100px; font-size: 14px; text-align: center;" />
+                    <span style="margin: 0 5px; font-weight: bold;">-</span>
+                    <!-- End Room -->
+                    <input type="text" class="form-control me-2" placeholder="End Room (max 5 characters)"
+                        [(ngModel)]="room.endRoom" (input)="onRoomFieldChange()" maxlength="5"
+                        [disabled]="isRoomViewMode" style="max-width: 100px; font-size: 14px; text-align: center;" />
+                    <!-- Label -->
+                    <input type="text" class="form-control me-2" placeholder="Label (e.g., Floor 1)"
+                        [(ngModel)]="room.label" (input)="onRoomFieldChange()" [disabled]="isRoomViewMode"
+                        style="max-width: 150px; font-size: 14px;" />
+                    <!-- Delete Row -->
+                    <button class="btn" type="button"
+                        style="background-color: #800020; color: white; border: none; font-size: 14px;"
+                        (click)="removeRoom(i)" [disabled]="isRoomViewMode || !canModifySystemSettings"
+                        [style.opacity]="(isRoomViewMode || !canModifySystemSettings) ? 0.5 : 1"
+                        [style.cursor]="(isRoomViewMode || !canModifySystemSettings) ? 'not-allowed' : 'pointer'">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+                <!-- Row-specific errors -->
+                <div *ngIf="roomRowErrors[i]"
+                    style="color: red; font-size: 12px; text-align: left; margin-left: 0; margin-bottom: 5px;">
+                    • {{ roomRowErrors[i] }}
+                </div>
             </div>
             <div style="font-size: 13px; color: #555; text-align: left; margin-bottom: 5px;">
                 * Room numbers cannot be more than 5 characters.
             </div>
             <!-- Add New Room Button -->
-            <div class="d-flex justify-content-start mb-2">
+            <div class="d-flex justify-content-start mb-2" *ngIf="!isRoomViewMode">
                 <button class="btn" type="button" style="background-color: #800020; color: white; border: none"
-                    (click)="addRoom()">
+                    (click)="addRoom()" [disabled]="!canModifySystemSettings"
+                    [style.opacity]="canModifySystemSettings ? 1 : 0.5"
+                    [style.cursor]="canModifySystemSettings ? 'pointer' : 'not-allowed'">
                     <i class="fa-solid fa-plus"></i> Add Room
                 </button>
             </div>
             <!-- Validation Error -->
-            <div *ngIf="roomErrorMessage" style="color: red; font-size: 14px; text-align: left; margin-top: 5px;">
-                {{ roomErrorMessage }}
+            <div *ngIf="roomErrorMessage && roomErrorMessage.length > 0"
+                style="color: red; font-size: 14px; text-align: left; margin-top: 5px;">
+                <div *ngFor="let error of roomErrorMessage" style="margin-bottom: 5px;">
+                    • {{ error }}
+                </div>
             </div>
-            <!-- Action Buttons -->
+        </div>
+        <!-- Action Buttons (Fixed at Bottom) -->
+        <div style="padding: 15px 20px; border-top: 1px solid #e0e0e0; flex-shrink: 0;">
+            <!-- Disabled Message -->
+            <div *ngIf="!hasAtLeastOneRoomRange"
+                style="color: #d32f2f; font-size: 13px; text-align: center; margin-bottom: 10px; font-style: italic;">
+                Please fill at least one complete room range (ID, Start Room, End Room, and Label) to enable Save.
+            </div>
             <div class="d-flex justify-content-end">
                 <button type="button" style="padding: 5px; background: #959FA34D; color: #000000B2;
-                       border: none; cursor: pointer; width: 20%; margin-top: 10px;
-                       font-size: 16px; border-radius: 8px; margin-right: 5px"
-                    (click)="closeRoomModal()">Cancel</button>
-                <button type="button" style="padding: 5px; background: #800020; color: white;
-                       border: none; cursor: pointer; width: 20%; margin-top: 10px;
+                       border: none; cursor: pointer; width: 20%;
+                       font-size: 16px; border-radius: 8px; margin-right: 5px" (click)="closeRoomModal()">{{
+                    isRoomViewMode ? 'Close' : 'Cancel' }}</button>
+                <button type="button" *ngIf="!isRoomViewMode"
+                    [disabled]="!hasAtLeastOneRoomRange || !canModifySystemSettings"
+                    [style.background]="(hasAtLeastOneRoomRange && canModifySystemSettings) ? '#800020' : '#cccccc'"
+                    [style.cursor]="(hasAtLeastOneRoomRange && canModifySystemSettings) ? 'pointer' : 'not-allowed'"
+                    style="padding: 5px; color: white;
+                       border: none; width: 20%;
                        font-size: 16px; border-radius: 8px;" (click)="saveRooms()">Save</button>
             </div>
         </div>

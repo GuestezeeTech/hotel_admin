@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { DOMAIN_NAME, USER_ID } from './../../app.config';
+import { DOMAIN_NAME, USER_ID, ENDPOINTS } from './../../app.config';
 import { AlertsService } from './../../shared/alerts/alerts.service';
 import { Component, Output, EventEmitter, AfterViewInit, Input, OnInit } from '@angular/core';
 import { LocalStorageService } from './../../auth-services/local-storage.service';
@@ -8,10 +8,11 @@ import { ProfileService } from '../../profile/profile.service';
 import { LoaderService } from '../../shared/loader/loader.service';
 import { HotelEnrollmentTabviewService } from '../hotel-enrollment-tabview.service';
 import { CheckoutApiService } from '../checkout.service';
-import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormArray, FormControl, AbstractControl } from '@angular/forms';
 import { AlertsComponent } from '../../shared/alerts/alerts.component';
 // Newly added
 import { TechnicalInfoService } from './technical-info.service';
+import { AuthTokenService } from '../../auth-services/auth-token.service';
 import { EditTechnicalInfoComponent } from './edit-technical-info/edit-technical-info.component';
 // Newly added for payment
 import { Subscription } from 'rxjs';
@@ -59,6 +60,8 @@ export class TechnicalInfoComponent implements OnInit {
   isSelectedTechnicalInfoId: any; // Holds the chosen technicalInfo obj
   customerTechnicalInfodata: any;
   isCustomerChoosen: boolean = false;
+  // Track which technical info items are enabled in DB for this customer (by id)
+  enabledCustomerTechnicalInfoIds: Set<number> = new Set<number>();
   iscancelVisible = false;
   // Payment
   paymentoptions = ['Quarterly Payment', 'Half-Yearly Payment', 'Full Payment'];
@@ -76,9 +79,21 @@ export class TechnicalInfoComponent implements OnInit {
   @ViewChild('paymentModal') paymentModal!: ElementRef;
   modalInstance: any;
   customerStatus: any;
+  // Ecom Integration Settings 
+  @ViewChild('ecomIntegrationModal') ecomIntegrationModal!: ElementRef;
+  ecomIntegrationModalInstance: any;
+  selectedEcomIntegrationData: any = null;
+  ecomIntegrationForm: FormGroup;
+  ecomTechnicalInfoForm: FormGroup;
+  // End of Ecom Integration Settings 
+  // Loader flag - show loader until initial data is loaded (same as department / service tab)
+  isLoading: boolean = false;
+  /** When false, parent (Hotels) loader is still showing; don't show Technical Info until true to avoid two loaders at once. */
+  @Input() parentLoaderDone: boolean = true;
 
   constructor(
     private localService: LocalStorageService,
+    private authTokenService: AuthTokenService,
     private router: Router,
     private alertsService: AlertsService,
     private hotelenrollmentservice: HotelEnrollmentTabviewService,
@@ -86,32 +101,33 @@ export class TechnicalInfoComponent implements OnInit {
     private profileSrvice: ProfileService,
     private activatedRoute: ActivatedRoute,
     private checkoutApiService: CheckoutApiService,
-    private technicalInfoService: TechnicalInfoService) {
+    private technicalInfoService: TechnicalInfoService,
+    private fb: FormBuilder) {
+    // Ecom Integration Settings 
+    // Initialize Ecom Integration forms
+    this.ecomIntegrationForm = this.fb.group({
+      name: [{ value: '', disabled: true }],
+      type: [{ value: '', disabled: true }],
+      api_url: ['']
+    });
+    this.ecomTechnicalInfoForm = this.fb.group({
+      technicalInfo: this.fb.array([])
+    });
+    // End of Ecom Integration Settings 
   }
 
   async ngOnInit(): Promise<void> {
-    this.hotelId = Number(this.localService.get('UserId'));
-    if (this.hotelId !== 0) {
-      try {
-        // this.getInfoData();
-        await this.getCustomerById();
-        this.getAllTechnicalInfo();
-        // Newly added for payment
-
-      } catch (err) {
-        ////console.error('Failed to get customer by ID:', err);
-      }
-    }
+    await this.refreshData();
     // Nelwy added for Payment
     // Subscribe to "Pay Now" events from header
     // this.payNowSub = this.technicalInfoService.payNow$.subscribe(() => {
     //   this.payNow();
     // });
     this.payNowSub = this.technicalInfoService.payNow$.subscribe((index) => {
-      console.log('Received payNow trigger. Index:', index);
+      // console.log('Received payNow trigger. Index:', index);
       if (index !== null && index !== undefined) {
         // Got index from Header modal
-        console.log('Triggered from Header with index:', index);
+        // console.log('Triggered from Header with index:', index);
         this.selectedIndex = index;
       }
       this.payNow();
@@ -119,6 +135,21 @@ export class TechnicalInfoComponent implements OnInit {
     this.technicalInfoService.modalTrigger$.subscribe(() => {
       this.openModal();
     });
+  }
+
+  async refreshData(): Promise<void> {
+    this.hotelId = Number(this.localService.get('UserId'));
+    this.memberId = this.localService.get('MemberId');
+    if (this.memberId !== undefined && this.memberId !== null && this.memberId !== '' && this.memberId !== 'undefined' && this.memberId !== 'null') {
+      try {
+        this.isLoading = true;
+        await this.getCustomerById();
+        this.getAllTechnicalInfo();
+      } catch (err) {
+        this.isLoading = false;
+        ////console.error('Failed to get customer by ID:', err);
+      }
+    }
   }
 
   // Nelwy added for Payment
@@ -145,7 +176,8 @@ export class TechnicalInfoComponent implements OnInit {
       },
       extras: {
         find: {
-          id: this.hotelId
+          // id: this.hotelId
+          customer_member_id: this.memberId
         }
       }
     }
@@ -525,7 +557,7 @@ export class TechnicalInfoComponent implements OnInit {
   //           this.status = this.customerdata.status;
   //           this.isMemberid = this.customerdata.status == 'Order Confirmed' ? true : false;
   //           this.Memberid = this.customerdata.customer_member_id;
-  //           console.log(this.Memberid, "Member id");
+  //           // console.log(this.Memberid, "Member id");
   //           ////console.log('Status:', this.status)
   //           ////console.log(this.customerdata, "RESPDATA");
   //           ////console.log(Array.isArray(this.customerdata));
@@ -549,13 +581,16 @@ export class TechnicalInfoComponent implements OnInit {
   // }
 
   async getCustomerById(): Promise<void> {
-    console.log('Hotel ID:', this.hotelId);
+    // console.log('Hotel ID:', this.hotelId);
     return new Promise((resolve, reject) => {
       const requestBody = {
         domain_name: DOMAIN_NAME,
         user_id: USER_ID,
         extras: {
-          find: { id: this.hotelId }
+          find: {
+            // id: this.hotelId
+            customer_member_id: this.memberId
+          }
         }
       };
       this.hotelenrollmentservice.getLoginCustomerById(requestBody).subscribe(
@@ -563,14 +598,16 @@ export class TechnicalInfoComponent implements OnInit {
           this.loaderService.emitComplete();
           if (resp?.result?.data?.length) {
             this.customerdata = resp.result.data[0];
-            console.log('Customer Data:', this.customerdata);
+            // console.log('Customer Data:', this.customerdata);
             this.status = this.customerdata.status;
             this.isMemberid = this.customerdata.status === 'Order Confirmed';
             this.Memberid = this.customerdata.customer_member_id;
-            console.log('Member ID:', this.Memberid);
+            this.localService.set('MemberId', this.Memberid);
+            // console.log(this.memberId, "Member id(In technical info)");
+            // console.log('Member ID:', this.Memberid);
             // Newly added for disabling form on payment done to approving the customer
             this.customerStatus = this.customerdata.status;
-            console.log('Customer status:', this.customerStatus);
+            // console.log('Customer status:', this.customerStatus);
             // Newly added & commented 
             // Step 1: Check for customer-specific subscription
             // if (this.customerdata?.subscription_detail) {
@@ -603,7 +640,7 @@ export class TechnicalInfoComponent implements OnInit {
             //     });
             //     if (generalResp?.result?.data?.length) {
             //       this.activeSubscription = generalResp.result.data[0];
-            //       console.log('Using General Subscription:', this.activeSubscription);
+            //       // console.log('Using General Subscription:', this.activeSubscription);
             //     }
             //     resolve();
             //   } catch (err) {
@@ -627,6 +664,7 @@ export class TechnicalInfoComponent implements OnInit {
           // Ended
         },
         err => {
+          this.isLoading = false;
           this.loaderService.emitComplete();
           if (err.error?.statusCode === 403) {
             this.alertsService.error('Session Time Out! Please login Again', this.options);
@@ -643,18 +681,18 @@ export class TechnicalInfoComponent implements OnInit {
   }
 
   async getActiveSubscription(): Promise<void> {
-    console.log('Getting active subscription...');
+    // console.log('Getting active subscription...');
     return new Promise(async (resolve, reject) => {
       try {
         const propertySize = this.customerdata?.property_details.property_address.property_size;
         const customerSub = this.customerdata?.subscription_detail;
         if (customerSub) {
-          console.log('Using customer’s subscription detail directly');
+          // console.log('Using customer’s subscription detail directly');
           this.activeSubscription = customerSub;
-          console.log('Using Customer Subscription:', this.activeSubscription);
+          // console.log('Using Customer Subscription:', this.activeSubscription);
           return resolve();
         }
-        console.log('No customer-specific subscription, fetching general subscription list...');
+        // console.log('No customer-specific subscription, fetching general subscription list...');
         const reqBody = {
           domain_name: DOMAIN_NAME,
           user_id: USER_ID,
@@ -680,7 +718,7 @@ export class TechnicalInfoComponent implements OnInit {
             matched = allSubs[0];
           }
           this.activeSubscription = matched;
-          console.log('Using General Subscription:', this.activeSubscription);
+          // console.log('Using General Subscription:', this.activeSubscription);
           resolve();
         } else {
           reject('No general subscription plans found.');
@@ -699,34 +737,158 @@ export class TechnicalInfoComponent implements OnInit {
   }
 
   // // Newly added
+  /*  getAllTechnicalInfo() {
+     let checkExistingTechnicalInfoAvailbility = {
+       domain_name: DOMAIN_NAME,
+       user_id: USER_ID, //Default user id
+       "extras": {
+         "find": {
+           "customer_id": this.hotelId
+         }
+       }
+     }
+     this.hotelenrollmentservice.getAllTechnicalInfo(checkExistingTechnicalInfoAvailbility).subscribe(
+       (resp: any) => {
+         this.loaderService.emitComplete();
+         if (resp) {
+           this.technicalInfodatalength = resp.result.data.length;
+           ////console.log('Technical Info Length Based On Customer Id:', this.technicalInfodatalength);
+           if (this.technicalInfodatalength > 0) {
+             const customerData = resp.result.data[0];
+             const customerTechInfo = customerData.customer_technical_info || [];
+             // Step 1: Get only enabled customer-specific technical info
+             const enabledCustomerTechInfo = customerTechInfo.filter((item: any) => item.is_enabled === true);
+             const enabledCustomerIds = new Set(enabledCustomerTechInfo.map((item: any) => item.id));
+             this.generalTechInfoData = customerTechInfo.filter((item: any) => item.type == this.selectedTab);
+             this.technicalInfoData = customerData;
+             this.showEdit = true;
+             this.isTechnicalInfoExists = true;
+             this.isCustomerChoosen = true;
+             // Step 2: Fetch and filter common technical info
+             const commonReq = {
+               domain_name: DOMAIN_NAME,
+               user_id: USER_ID,
+               extras: {
+                 find: {}
+               }
+             };
+             this.hotelenrollmentservice.getAllTechnicalInfo(commonReq).subscribe(
+               (commonResp: any) => {
+                 if (commonResp.success === 1 && commonResp.status_code === 200) {
+                   const allCommonData = commonResp.result.data || [];
+                   const rawCommonTechInfo = allCommonData.filter((item: any) => item.customer_id === undefined);
+                   // Step 3: Filter only those common items where is_enabled is missing or false,
+                   // and not already in customer's enabled info
+                   const filteredCommonTechInfo = rawCommonTechInfo.filter(
+                     (item: any) =>
+                       (!item.hasOwnProperty('is_enabled') || item.is_enabled === false) &&
+                       !enabledCustomerIds.has(item.id)
+                   );
+                   // Step 4: Combine both sets
+                   this.technicalInfos = [...enabledCustomerTechInfo, ...filteredCommonTechInfo];
+                   this.allinfoData = this.technicalInfos;
+                   ////console.log('Final Technical Info List:', this.technicalInfos);
+                 }
+               })
+           }
+           if (this.technicalInfodatalength == 0) {
+             let requestBody = {
+               domain_name: DOMAIN_NAME,
+               user_id: USER_ID,
+               "extras": {
+                 "find": {}
+               }
+             }
+             this.hotelenrollmentservice.getAllTechnicalInfo(requestBody).subscribe(
+               (resp: any) => {
+                 this.loaderService.emitComplete();
+                 ////console.log('All Technical Info Length:', resp.result.data.length);
+                 if (resp.success === 1 && resp.status_code === 200) {
+                   this.showEdit = false;
+                   this.isTechnicalInfoExists = false;
+                   ////console.log('TechnicalInfo Exists:', this.isTechnicalInfoExists);
+                   // ////console.log('All Technical Info(without customer id checking):', resp.result.data);
+                   if (resp.result.data.length > 0) {
+                     this.technicalInfos = resp.result.data.filter((technicaalInfo: any) => technicaalInfo.customer_id == undefined);
+                     this.allinfoData = this.technicalInfos;
+                     ////console.log('Common Technical Info(without customer_id):', this.technicalInfos)
+                     this.generalTechInfoData = this.technicalInfos?.filter((item: any) => item.type == this.selectedTab);
+                     // ////console.log(this.technicalInfos, 'Common Technical Info Data(with customer id checking)');
+                   }
+                 }
+               },
+               (err: any) => {
+                 if (err.error.statusCode === 403) {
+                   this.alertsService.error('Session Time Out! Please login Again', this.options)
+                   this.router.navigate([`/login`], { skipLocationChange: false });
+                 }
+                 else if (err.error.message) {
+                   this.alertsService.error(err.error.message, this.options)
+                 }
+                 else {
+                   this.alertsService.error('Something bad happened. Please try again!', this.options);
+                 }
+               }
+             )
+           }
+         }
+       },
+       (err: any) => {
+         this.loaderService.emitComplete();
+         // ////console.error('getCustomerById error:', err);
+         if (err.error.statusCode === 403) {
+           this.alertsService.error('Session Time Out! Please login Again', this.options);
+           this.router.navigate([`/login`], { skipLocationChange: false });
+         } else if (err.error.message) {
+           this.alertsService.error(err.error.message, this.options);
+         } else {
+           this.alertsService.error('Something bad happened. Please try again!', this.options);
+         }
+       }
+     );
+   } */
+
   getAllTechnicalInfo() {
     let checkExistingTechnicalInfoAvailbility = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID, //Default user id
       "extras": {
         "find": {
-          "customer_id": this.hotelId
+          // "customer_id": this.hotelId
+          member_id: this.memberId
         }
       }
     }
+
     this.hotelenrollmentservice.getAllTechnicalInfo(checkExistingTechnicalInfoAvailbility).subscribe(
       (resp: any) => {
         this.loaderService.emitComplete();
         if (resp) {
           this.technicalInfodatalength = resp.result.data.length;
-          ////console.log('Technical Info Length Based On Customer Id:', this.technicalInfodatalength);
+
+          // ---------------------------
+          // CASE 1: CUSTOMER DATA EXISTS
+          // ---------------------------
           if (this.technicalInfodatalength > 0) {
             const customerData = resp.result.data[0];
             const customerTechInfo = customerData.customer_technical_info || [];
-            // Step 1: Get only enabled customer-specific technical info
+
+            // Step 1: Get enabled customer-specific technical info
             const enabledCustomerTechInfo = customerTechInfo.filter((item: any) => item.is_enabled === true);
             const enabledCustomerIds = new Set(enabledCustomerTechInfo.map((item: any) => item.id));
+            //  Ecom Integration Settings - Refreshes enabled technical-info ids from the data we just saved
+            // Track which technical infos are enabled in DB for this customer
+            this.enabledCustomerTechnicalInfoIds = new Set<number>(
+              Array.from(enabledCustomerIds).map((id: any) => Number(id))
+            );
+            // Ended
             this.generalTechInfoData = customerTechInfo.filter((item: any) => item.type == this.selectedTab);
             this.technicalInfoData = customerData;
             this.showEdit = true;
             this.isTechnicalInfoExists = true;
             this.isCustomerChoosen = true;
-            // Step 2: Fetch and filter common technical info
+
+            // Step 2: Fetch Common Technical Info
             const commonReq = {
               domain_name: DOMAIN_NAME,
               user_id: USER_ID,
@@ -734,25 +896,44 @@ export class TechnicalInfoComponent implements OnInit {
                 find: {}
               }
             };
+
             this.hotelenrollmentservice.getAllTechnicalInfo(commonReq).subscribe(
               (commonResp: any) => {
+                this.isLoading = false;
                 if (commonResp.success === 1 && commonResp.status_code === 200) {
                   const allCommonData = commonResp.result.data || [];
-                  const rawCommonTechInfo = allCommonData.filter((item: any) => item.customer_id === undefined);
-                  // Step 3: Filter only those common items where is_enabled is missing or false,
-                  // and not already in customer's enabled info
+
+                  // REMOVE ITEMS WITH NAMES: "SMS Templates and Header" and "HDFC Gateway"
+                  const rawCommonTechInfo = allCommonData
+                    // Newly added for getting member id for customer type
+                    // .filter((item: any) => item.customer_id === undefined)
+                    .filter((item: any) => item.member_id === undefined && item.customer_id === undefined)
+                    // Ended for getting member id for customer type
+                    .filter((item: any) =>
+                      !["SMS Delivery Template", "HDFC Gateway"].includes(item.name)
+                    );
+
+                  // Step 3: Filter common items (not enabled + not duplicate)
                   const filteredCommonTechInfo = rawCommonTechInfo.filter(
                     (item: any) =>
                       (!item.hasOwnProperty('is_enabled') || item.is_enabled === false) &&
                       !enabledCustomerIds.has(item.id)
                   );
+
                   // Step 4: Combine both sets
                   this.technicalInfos = [...enabledCustomerTechInfo, ...filteredCommonTechInfo];
                   this.allinfoData = this.technicalInfos;
-                  ////console.log('Final Technical Info List:', this.technicalInfos);
                 }
-              })
+              },
+              () => {
+                this.isLoading = false;
+              }
+            );
           }
+
+          // ---------------------------
+          // CASE 2: NO CUSTOMER DATA
+          // ---------------------------
           if (this.technicalInfodatalength == 0) {
             let requestBody = {
               domain_name: DOMAIN_NAME,
@@ -761,44 +942,57 @@ export class TechnicalInfoComponent implements OnInit {
                 "find": {}
               }
             }
+
             this.hotelenrollmentservice.getAllTechnicalInfo(requestBody).subscribe(
               (resp: any) => {
                 this.loaderService.emitComplete();
-                ////console.log('All Technical Info Length:', resp.result.data.length);
+                this.isLoading = false;
+
                 if (resp.success === 1 && resp.status_code === 200) {
                   this.showEdit = false;
                   this.isTechnicalInfoExists = false;
-                  ////console.log('TechnicalInfo Exists:', this.isTechnicalInfoExists);
-                  // ////console.log('All Technical Info(without customer id checking):', resp.result.data);
+
                   if (resp.result.data.length > 0) {
-                    this.technicalInfos = resp.result.data.filter((technicaalInfo: any) => technicaalInfo.customer_id == undefined);
+                    // REMOVE ITEMS WITH NAMES: "SMS Templates and Header" and "HDFC Gateway"
+                    this.technicalInfos = resp.result.data
+                      // Newly added for getting member id for customer type
+                      // .filter((technicaalInfo: any) => technicaalInfo.customer_id == undefined)
+                      .filter((technicaalInfo: any) => technicaalInfo.member_id == undefined && technicaalInfo.customer_id == undefined)
+                      // Ended for getting member id for customer type
+                      .filter((item: any) =>
+                        !["SMS Delivery Template", "HDFC Gateway"].includes(item.name)
+                      );
+
                     this.allinfoData = this.technicalInfos;
-                    ////console.log('Common Technical Info(without customer_id):', this.technicalInfos)
-                    this.generalTechInfoData = this.technicalInfos?.filter((item: any) => item.type == this.selectedTab);
-                    // ////console.log(this.technicalInfos, 'Common Technical Info Data(with customer id checking)');
+
+                    this.generalTechInfoData = this.technicalInfos?.filter(
+                      (item: any) => item.type == this.selectedTab
+                    );
                   }
                 }
               },
               (err: any) => {
-                if (err.error.statusCode === 403) {
+                this.isLoading = false;
+                if (err.error?.statusCode === 403) {
                   this.alertsService.error('Session Time Out! Please login Again', this.options)
                   this.router.navigate([`/login`], { skipLocationChange: false });
                 }
-                else if (err.error.message) {
+                else if (err.error?.message) {
                   this.alertsService.error(err.error.message, this.options)
                 }
                 else {
                   this.alertsService.error('Something bad happened. Please try again!', this.options);
                 }
               }
-            )
+            );
           }
         }
       },
       (err: any) => {
+        this.isLoading = false;
         this.loaderService.emitComplete();
-        // ////console.error('getCustomerById error:', err);
-        if (err.error.statusCode === 403) {
+
+        if (err.error?.statusCode === 403) {
           this.alertsService.error('Session Time Out! Please login Again', this.options);
           this.router.navigate([`/login`], { skipLocationChange: false });
         } else if (err.error.message) {
@@ -822,7 +1016,7 @@ export class TechnicalInfoComponent implements OnInit {
 
   async technicalInfoCreate(selectedTechnicalInfoToCreate: any): Promise<void> {
     const memberId = this.localService.get('MemberId');
-    console.log(memberId, 'Tech member id');
+    // console.log(memberId, 'Tech member id');
     // delete this.selectedTechnicalInfoToCreate._id
     return new Promise((resolve, reject) => {
       let requestBody = {
@@ -914,7 +1108,10 @@ export class TechnicalInfoComponent implements OnInit {
       },
       extras: {
         find: {
-          customer_id: this.hotelId
+          // Newly added for getting member id for customer type
+          // customer_id: this.hotelId
+          "member_id": this.memberId
+          // Ended for getting member id for customer type
         }
       }
     };
@@ -925,6 +1122,16 @@ export class TechnicalInfoComponent implements OnInit {
         this.loaderService.emitComplete();
         if (resp?.success === 1 && resp?.status_code === 200) {
           this.alertsService.success(resp.message, this.options);
+          //  Ecom Integration Settings - Refresh enabled technical-info ids from the data we just saved
+          // Refresh enabled technical-info ids from the data we just saved
+          if (Array.isArray(updatedTechnicalInfo)) {
+            this.enabledCustomerTechnicalInfoIds = new Set<number>(
+              updatedTechnicalInfo
+                .filter((item: any) => item.is_enabled === true)
+                .map((item: any) => Number(item.id))
+            );
+          }
+          // Ended
           this.updateCustomer();
           // this.customerdata();
           // this.payNow();
@@ -984,35 +1191,48 @@ export class TechnicalInfoComponent implements OnInit {
     if (!Array.isArray(this.allinfoData)) {
       this.allinfoData = [];
     }
-    // Remove old entry if it exists
-    this.allinfoData = this.allinfoData.filter((item: any) => item.id !== technicalInfo.id);
-    // Add updated entry with new is_enabled value
-    this.allinfoData.push({
-      ...technicalInfo,
-      is_enabled: isChecked
-    });
-    // Update technicalInfos
-    for (let i = 0; i < this.technicalInfos.length; i++) {
-      if (technicalInfo.id === this.technicalInfos[i].id) {
-        this.technicalInfos[i].is_enabled = isChecked;
-      }
-    }
-    // Update generalTechInfoData
-    for (let i = 0; i < this.generalTechInfoData.length; i++) {
-      if (technicalInfo.id === this.generalTechInfoData[i].id) {
-        this.generalTechInfoData[i].is_enabled = isChecked;
-      }
-    }
-    // Ensure all items in allinfoData have an is_enabled key
-    this.allinfoData = this.allinfoData.map((item: any) => {
-      if (!item.hasOwnProperty('is_enabled')) {
-        return { ...item, is_enabled: false };
-      }
-      return item;
-    });
-    // Force change detection
-    this.generalTechInfoData = [...this.generalTechInfoData];
+
+    const singleSelectTypes = ['lock', 'pos'];
+    const isSingleSelect = isChecked && singleSelectTypes.includes(technicalInfo.type);
+
+    // Helper: returns the updated is_enabled value for any item
+    const getIsEnabled = (item: any): boolean => {
+      if (item.id === technicalInfo.id) return isChecked;
+      // When enabling in single-select mode, disable all others of the same type
+      if (isSingleSelect && item.type === technicalInfo.type) return false;
+      return item.is_enabled === true;
+    };
+
+    // Rebuild generalTechInfoData with new object refs so Angular re-renders every card
+    this.generalTechInfoData = this.generalTechInfoData.map((item: any) => ({
+      ...item,
+      is_enabled: getIsEnabled(item)
+    }));
+
+    // Sync technicalInfos
+    this.technicalInfos = this.technicalInfos?.map((item: any) => ({
+      ...item,
+      is_enabled: getIsEnabled(item)
+    }));
+
+    // Rebuild allinfoData: replace each item that was modified
+    const updatedIds = new Set(this.generalTechInfoData.map((i: any) => i.id));
+    this.allinfoData = [
+      ...this.allinfoData
+        .filter((item: any) => !updatedIds.has(item.id))
+        .map((item: any) => ({
+          ...item,
+          is_enabled: item.hasOwnProperty('is_enabled') ? item.is_enabled : false
+        })),
+      ...this.generalTechInfoData
+    ];
+
     ////console.log('All info data after toggling:', this.allinfoData);
+  }
+
+  // trackBy function for *ngFor on generalTechInfoData cards — prevents checkbox DOM reuse glitch
+  trackById(index: number, item: any): any {
+    return item?.id ?? index;
   }
 
   editKeyValues(id: any) {
@@ -1299,7 +1519,8 @@ export class TechnicalInfoComponent implements OnInit {
       },
       extras: {
         find: {
-          id: this.hotelId
+          // id: this.hotelId
+          customer_member_id: this.memberId
         }
       }
     }
@@ -1360,7 +1581,7 @@ export class TechnicalInfoComponent implements OnInit {
   }
 
   nextTabInfo() {
-    console.log('Before navigation: activeTab =', this.activeTab);
+    // console.log('Before navigation: activeTab =', this.activeTab);
     this.isTechnicalInfoExists
       ? this.updateTechnicalInfo(this.allinfoData)
       : this.technicalInfoCreate(this.allinfoData);
@@ -1374,13 +1595,13 @@ export class TechnicalInfoComponent implements OnInit {
         this.thirdTabCount();
         break;
     }
-    console.log('After navigation: activeTab =', this.activeTab);
+    // console.log('After navigation: activeTab =', this.activeTab);
   }
 
   // Newly added for back
   back() {
     if (this.activeTab == 1) {
-      var back = document.getElementById('Hierarchy');
+      var back = document.getElementById('Property Details');
       if (back) {
         back.click();
         window.scroll(0, 0);
@@ -1412,12 +1633,12 @@ export class TechnicalInfoComponent implements OnInit {
   //         // this.orderdata = res?.result?.data?.[0] || null;
   //         // console.log('Latest order data of customer:', this.orderdata);
   //         // resolve(this.orderdata);/
-  //         console.log('res', res);
+  //         // console.log('res', res);
   //         const orders = res?.result?.data || [];
-  //         console.log('All customer orders:', orders);
+  //         // console.log('All customer orders:', orders);
   //         // Filter only confirmed orders
   //         const confirmedOrders = orders.filter((order: any) => order.status === 'Order Confirmed');
-  //         console.log('Confirmed orders:', confirmedOrders);
+  //         // console.log('Confirmed orders:', confirmedOrders);
   //         // Sort by creation date (descending) to get the most recent one
   //         const sortedConfirmed = confirmedOrders.sort((a: any, b: any) => {
   //           const dateA = new Date(a.created_on);
@@ -1426,7 +1647,7 @@ export class TechnicalInfoComponent implements OnInit {
   //         });
   //         // Take the latest confirmed order (if any)
   //         this.orderdata = sortedConfirmed.length > 0 ? sortedConfirmed[0] : null;
-  //         console.log('Latest confirmed order of customer:', this.orderdata);
+  //         // console.log('Latest confirmed order of customer:', this.orderdata);
   //         resolve(this.orderdata);
   //       },
   //       error: (err: any) => {
@@ -1443,23 +1664,27 @@ export class TechnicalInfoComponent implements OnInit {
         domain_name: DOMAIN_NAME,
         user_id: USER_ID,
         extras: {
-          find: { customer_id: this.customerdata.id }
+          find: {
+            // Newly added for getting member id for customer type
+            // customer_id: this.customerdata.id
+            customer_member_id: this.memberId
+          }
         }
       };
       this.hotelenrollmentservice.orderDetailsGetById(req).subscribe(
         (res: any) => {
-          console.log('Fetching last order of customer...');
+          // console.log('Fetching last order of customer...');
           const orders = res?.result?.data || [];
-          console.log('All customer orders:', orders);
+          // console.log('All customer orders:', orders);
           const confirmedOrders = orders.filter((order: any) => order.status === 'Order Confirmed');
-          console.log('Confirmed orders:', confirmedOrders);
+          // console.log('Confirmed orders:', confirmedOrders);
           const sortedConfirmed = confirmedOrders.sort((a: any, b: any) => {
             const dateA = new Date(a.created_on);
             const dateB = new Date(b.created_on);
             return dateB.getTime() - dateA.getTime(); // latest first
           });
           this.orderdata = sortedConfirmed.length > 0 ? sortedConfirmed[0] : null;
-          console.log('Latest confirmed order of customer:', this.orderdata);
+          // console.log('Latest confirmed order of customer:', this.orderdata);
           resolve(this.orderdata);
         },
         (err: any) => {
@@ -1875,7 +2100,7 @@ export class TechnicalInfoComponent implements OnInit {
   //   // 2️⃣ Find next unpaid installment
   //   const nextUnpaidIndex = payment_split.findIndex(p => p.status === "Not Paid");
   //   if (nextUnpaidIndex === -1) {
-  //     console.log("All installments are already paid!");
+  //     // console.log("All installments are already paid!");
   //     return;
   //   }
   //   const nextUnpaid = payment_split[nextUnpaidIndex];
@@ -2134,14 +2359,14 @@ export class TechnicalInfoComponent implements OnInit {
   // }
 
   async payNow() {
-    console.log('Pay now');
+    // console.log('Pay now');
     await this.getCustomerById();
     // await this.getActiveSubscription();
-    console.log('Customer Data(doing payment):', this.customerdata);
+    // console.log('Customer Data(doing payment):', this.customerdata);
     // 1 Fetch last order
     await this.getLastOrderForCustomer();
     const lastOrder = this.orderdata || null;
-    console.log('Last Order:', lastOrder);
+    // console.log('Last Order:', lastOrder);
     let payment_split: any[] = [];
     let paymentType = "";
     let installments = 1;
@@ -2228,11 +2453,11 @@ export class TechnicalInfoComponent implements OnInit {
       const yearlyGst = Number((gstPerRoom * numberOfRooms * 12).toFixed(2));
       // Compute total yearly amount (base + tax) ---
       const totalYearlyAmount = Number((yearlyCost + yearlyGst).toFixed(2));
-      console.log('Discounted Cost per Room:', discountedCost);
-      console.log('GST per Room:', gstPerRoom);
-      console.log('Yearly Base Cost:', yearlyCost);
-      console.log('Yearly GST:', yearlyGst);
-      console.log('Total Yearly Amount:', totalYearlyAmount);
+      // console.log('Discounted Cost per Room:', discountedCost);
+      // console.log('GST per Room:', gstPerRoom);
+      // console.log('Yearly Base Cost:', yearlyCost);
+      // console.log('Yearly GST:', yearlyGst);
+      // console.log('Total Yearly Amount:', totalYearlyAmount);
       let paymentType = '';
       let installments = 1;
       if (this.selectedIndex === 0) { paymentType = "quarterly"; installments = 4; }
@@ -2242,9 +2467,9 @@ export class TechnicalInfoComponent implements OnInit {
       const subTotalPerInstallment = Number((yearlyCost / installments).toFixed(2));
       const taxPerInstallment = Number((yearlyGst / installments).toFixed(2));
       const totalPerInstallment = Number((subTotalPerInstallment + taxPerInstallment).toFixed(2));
-      console.log('SubTotal (Base) per Installment:', subTotalPerInstallment);
-      console.log('Tax (GST) per Installment:', taxPerInstallment);
-      console.log('Total per Installment:', totalPerInstallment);
+      // console.log('SubTotal (Base) per Installment:', subTotalPerInstallment);
+      // console.log('Tax (GST) per Installment:', taxPerInstallment);
+      // console.log('Total per Installment:', totalPerInstallment);
       let baseDate = new Date();
       const installmentArr = [];
       for (let i = 0; i < installments; i++) {
@@ -2274,13 +2499,13 @@ export class TechnicalInfoComponent implements OnInit {
         cycle.installments.some((inst: any) => inst.status === "Not Paid")
       );
       if (nextUnpaidCycleIndex === -1) {
-        console.log("All installments are already paid!");
+        // console.log("All installments are already paid!");
         return;
       }
       paymentType = payment_split[nextUnpaidCycleIndex].name;
     }
-    console.log('Payment Split:', payment_split);
-    console.log('Payment Type:', paymentType);
+    // console.log('Payment Split:', payment_split);
+    // console.log('Payment Type:', paymentType);
     // 4 Find next unpaid installment
     let nextUnpaid;
     for (let cycle of payment_split) {
@@ -2288,7 +2513,7 @@ export class TechnicalInfoComponent implements OnInit {
       if (nextUnpaid) break;
     }
     if (!nextUnpaid) {
-      console.log("All installments are already paid!");
+      // console.log("All installments are already paid!");
       return;
     }
     // 5 Prepare order_review
@@ -2303,8 +2528,8 @@ export class TechnicalInfoComponent implements OnInit {
         // order_total_amount: 1
       }
     };
-    console.log('Brand error', this.customerdata);
-    console.log('Amount to be paid:', Number(nextUnpaid.order_total_amount.toFixed(2)));
+    // console.log('Brand error', this.customerdata);
+    // console.log('Amount to be paid:', Number(nextUnpaid.order_total_amount.toFixed(2)));
     // 6 Prepare orderData (kept exactly as you provided)
     const orderData = {
       customer_id: this.customerdata?.id,
@@ -2518,7 +2743,7 @@ export class TechnicalInfoComponent implements OnInit {
       is_registration: true,
       send_sms: true
     };
-    console.log('Order Data:', orderData);
+    // console.log('Order Data:', orderData);
     //  Upsert order and generate payment link
     const requestData = {
       domain_name: DOMAIN_NAME,
@@ -2560,24 +2785,352 @@ export class TechnicalInfoComponent implements OnInit {
     });
   }
 
-  //  Newly added & commented for Payment modal 
-  // openModal() {
-  //   console.log('opening Modal');
-  //   $('#paymentType').modal('show');
-  // }
-
   openModal() {
-    this.modalInstance.show();
+    // Lazy‑create the Bootstrap modal instance when first opened
+    if (!this.modalInstance && this.paymentModal) {
+      this.modalInstance = new bootstrap.Modal(this.paymentModal.nativeElement, {
+        backdrop: 'static',
+        keyboard: false
+      });
+    }
+    if (this.modalInstance) {
+      this.modalInstance.show();
+    }
   }
 
   ngAfterViewInit(): void {
-    this.modalInstance = new bootstrap.Modal(this.paymentModal.nativeElement);
+    // Optionally pre‑create instance if element is already in DOM
+    if (this.paymentModal) {
+      this.modalInstance = new bootstrap.Modal(this.paymentModal.nativeElement);
+    }
+    /* //  Ecom Integration Settings - prevent close on outside click
+    this.ecomIntegrationModalInstance = new bootstrap.Modal(this.ecomIntegrationModal.nativeElement, {
+      backdrop: 'static',  // do not close on backdrop click
+      keyboard: false      // optional: also prevent Esc key from closing
+    }); */
   }
 
   closeModal() {
-    console.log('Close button clicked');  // Will now work
+    // console.log('Close button clicked');  // Will now work
     this.modalInstance.hide();
   }
+
+  //Ecom Integration Settings 
+  // Check if Ecom settings are enabled for this technical info (based on DB state)
+  isEcomSettingsEnabled(data: any): boolean {
+    if (!data) return false;
+    const id = Number(data.id);
+    return !!id && this.enabledCustomerTechnicalInfoIds.has(id);
+  }
+
+  // Handle click on Ecom settings icon
+  onEcomSettingsClick(data: any): void {
+    // console.log('Ecom settings clicked', data);
+    if (!this.isEcomSettingsEnabled(data)) {
+      // console.log('Ecom settings not enabled', data);
+      // Disabled state: do nothing
+      return;
+    }
+    this.openEcomIntegrationModal(data);
+  }
+
+  // Open Ecom Integration Settings Modal
+  openEcomIntegrationModal(data: any): void {
+    // console.log('Ecom settings opened', data);
+    this.selectedEcomIntegrationData = data;
+    // Populate form with data
+    this.ecomIntegrationForm.patchValue({
+      name: data.name || '',
+      type: data.type || '',
+      api_url: data.api_url || ''
+    });
+    // Populate technical info form array
+    const techInfoArray = this.ecomTechnicalInfoForm.get('technicalInfo') as FormArray;
+    techInfoArray.clear();
+    if (data.attributes && Array.isArray(data.attributes) && data.attributes.length) {
+      data.attributes.forEach((attr: any) => {
+        techInfoArray.push(this.createEcomAttributeGroup(attr.key || '', attr.value || ''));
+      });
+    } else {
+      // At least one empty row
+      techInfoArray.push(this.createEcomAttributeGroup());
+    }
+    // Ensure modal instance exists and element is present
+    if (!this.ecomIntegrationModalInstance && this.ecomIntegrationModal) {
+      this.ecomIntegrationModalInstance = new bootstrap.Modal(this.ecomIntegrationModal.nativeElement, {
+        backdrop: 'static',
+        keyboard: false
+      });
+    }
+    if (this.ecomIntegrationModalInstance) {
+      // console.log('Ecom integration modal instance', this.ecomIntegrationModalInstance);
+      this.ecomIntegrationModalInstance.show();
+    }
+  }
+
+  // Close Ecom Integration Settings Modal
+  closeEcomIntegrationModal(): void {
+    if (this.ecomIntegrationModalInstance) {
+      this.ecomIntegrationModalInstance.hide();
+    }
+    this.selectedEcomIntegrationData = null;
+    // Reset forms
+    this.ecomIntegrationForm.reset();
+    const techInfoArray = this.ecomTechnicalInfoForm.get('technicalInfo') as FormArray;
+    techInfoArray.clear();
+  }
+
+  // Get technical info form array
+  getEcomTechnicalInfoControls(): FormArray {
+    return this.ecomTechnicalInfoForm.get('technicalInfo') as FormArray;
+  }
+
+  // Add new field to technical info
+  addEcomField(): void {
+    const techInfoArray = this.ecomTechnicalInfoForm.get('technicalInfo') as FormArray;
+    techInfoArray.push(this.createEcomAttributeGroup());
+  }
+
+  // Remove field from technical info
+  removeEcomField(index: number): void {
+    const techInfoArray = this.ecomTechnicalInfoForm.get('technicalInfo') as FormArray;
+    techInfoArray.removeAt(index);
+  }
+
+  // Create a FormGroup for Ecom attribute with conditional validation:
+  // if key is entered, value becomes required.
+  createEcomAttributeGroup(key: string = '', value: string = ''): FormGroup {
+    const group = this.fb.group({
+      key: [key],
+      value: [value]
+    });
+    group.valueChanges.subscribe(() => {
+      this.validateEcomAttributeGroup(group);
+    });
+    // Run once initially to set correct state
+    this.validateEcomAttributeGroup(group);
+    return group;
+  }
+
+  validateEcomAttributeGroup(group: AbstractControl | null): void {
+    if (!group) return;
+    const keyCtrl = group.get('key');
+    const valueCtrl = group.get('value');
+    if (!keyCtrl || !valueCtrl) return;
+    const keyVal = (keyCtrl.value ?? '').toString().trim();
+    const valueVal = (valueCtrl.value ?? '').toString().trim();
+    const errors = { ...(valueCtrl.errors || {}) };
+    if (keyVal && !valueVal) {
+      errors['requiredWhenKey'] = true;
+    } else {
+      delete errors['requiredWhenKey'];
+    }
+    if (Object.keys(errors).length) {
+      valueCtrl.setErrors(errors);
+    } else {
+      valueCtrl.setErrors(null);
+    }
+  }
+
+  // Save Ecom Integration Settings (API Url + Attributes) for selected integration
+  async saveEcomIntegration(): Promise<void> {
+    if (!this.selectedEcomIntegrationData) {
+      return;
+    }
+    const integrationFormValue = this.ecomIntegrationForm.getRawValue();
+    // Re-run validation for all attribute rows before checking validity
+    const techInfoArray = this.getEcomTechnicalInfoControls();
+    techInfoArray.controls.forEach(ctrl => this.validateEcomAttributeGroup(ctrl));
+    this.ecomTechnicalInfoForm.updateValueAndValidity({ onlySelf: false, emitEvent: false });
+    // Validate Ecom technical info fields (Key / Value)
+    if (this.ecomTechnicalInfoForm.invalid) {
+      this.ecomTechnicalInfoForm.markAllAsTouched();
+      return;
+    }
+    const technicalInfoValue = this.ecomTechnicalInfoForm.value.technicalInfo || [];
+    // Update the selected item locally (customer-specific list)
+    this.selectedEcomIntegrationData.api_url = integrationFormValue.api_url;
+    this.selectedEcomIntegrationData.attributes = technicalInfoValue;
+    // Update in generalTechInfoData (cards list)
+    if (this.generalTechInfoData && Array.isArray(this.generalTechInfoData)) {
+      const idx = this.generalTechInfoData.findIndex((item: any) => item.id === this.selectedEcomIntegrationData.id);
+      if (idx > -1) {
+        this.generalTechInfoData[idx] = {
+          ...this.generalTechInfoData[idx],
+          api_url: integrationFormValue.api_url,
+          attributes: technicalInfoValue
+        };
+      }
+    }
+    // Update in allinfoData (full customer_technical_info payload)
+    if (this.allinfoData && Array.isArray(this.allinfoData)) {
+      const idxAll = this.allinfoData.findIndex((item: any) => item.id === this.selectedEcomIntegrationData.id);
+      if (idxAll > -1) {
+        this.allinfoData[idxAll] = {
+          ...this.allinfoData[idxAll],
+          api_url: integrationFormValue.api_url,
+          attributes: technicalInfoValue
+        };
+      }
+    }
+    // Persist only for this customer using dedicated Ecom update function.
+    // Customer (Hotel_Code) will be updated inside this method *after* technical info update succeeds.
+    await this.updateCustomerEcomIntegrationSettings(this.allinfoData, technicalInfoValue);
+    this.closeEcomIntegrationModal();
+  }
+
+  // Update customer.Hotel_Code based on Ecom attributes (Hotel_Code key)
+  async updateCustomerHotelCodeFromEcomAttributes(attributes: any[]): Promise<void> {
+    // Hotel_Code is only relevant for WIN HMS and Oracle Ecom integrations
+    const integrationName = (this.selectedEcomIntegrationData?.name || '').toString().toLowerCase();
+    if (integrationName !== 'win hms'.toLowerCase() && integrationName !== 'oracle'.toLowerCase()) {
+      // For other integrations, don't touch customer.Hotel_Code
+      return;
+    }
+
+    // Determine new Hotel_Code value and whether the key still exists.
+    let hasHotelCodeKey = false;
+    let newHotelCode: string | null = null;
+    if (attributes && attributes.length) {
+      const hotelCodeAttr = attributes.find((attr: any) =>
+        attr &&
+        typeof attr.key === 'string' &&
+        attr.key.trim().toLowerCase() === 'hotel_code'.toLowerCase()
+      );
+      if (hotelCodeAttr) {
+        hasHotelCodeKey = true;
+        if (hotelCodeAttr.value !== undefined && hotelCodeAttr.value !== null) {
+          newHotelCode = String(hotelCodeAttr.value).trim();
+        } else {
+          newHotelCode = '';
+        }
+      }
+    }
+    // Always fetch latest customer data so we compare against the real current Hotel_Code
+    try {
+      await this.getCustomerById();
+    } catch {
+      // If customer data cannot be loaded, silently skip Hotel_Code update
+      return;
+    }
+    const existingHotelCode: string =
+      (this.customerdata && this.customerdata.Hotel_Code)
+        ? String(this.customerdata.Hotel_Code)
+        : '';
+    // Decide whether and what to update on the customer:
+    // 1. If Hotel_Code key exists in technical and its value changed -> update to that value (even empty string).
+    // 2. If Hotel_Code key does NOT exist anymore but customer currently has a Hotel_Code -> set it to empty string.
+    // 3. Otherwise, do nothing.
+    let shouldUpdateCustomer = false;
+    let valueToSend = existingHotelCode;
+    if (hasHotelCodeKey) {
+      const valueForCompare = newHotelCode ?? '';
+      if (valueForCompare !== existingHotelCode) {
+        shouldUpdateCustomer = true;
+        valueToSend = valueForCompare;
+      }
+    } else {
+      // key renamed/removed in technical info
+      if (existingHotelCode) {
+        shouldUpdateCustomer = true;
+        valueToSend = '';
+      }
+    }
+    if (!shouldUpdateCustomer) {
+      return;
+    }
+    try {
+      // Prepare minimal payload: only Hotel_Code field, no need to send full customer object
+      const requestBody = {
+        domain_name: DOMAIN_NAME,
+        user_id: USER_ID,
+        payload: {
+          customer_update: {
+            Hotel_Code: valueToSend
+          }
+        },
+        extras: {
+          find: {
+            // id: this.hotelId
+            customer_member_id: this.memberId
+          }
+        }
+      };
+      await new Promise<void>((resolve) => {
+        this.hotelenrollmentservice.updateCustomer(requestBody).subscribe(
+          (resp: any) => {
+            // Confirm API actually succeeded before treating it as success
+            if (!(resp?.success === 1 && resp?.status_code === 200)) {
+              this.alertsService.error(
+                resp?.message || 'Failed to update customer Hotel_Code',
+                this.options
+              );
+            }
+            resolve();
+          },
+          (err: any) => {
+            this.alertsService.error(
+              err?.error?.message || 'Failed to update customer Hotel_Code',
+              this.options
+            );
+            resolve();
+          }
+        );
+      });
+    } catch (error) {
+      console.error('Failed to update customer Hotel_Code from Ecom attributes', error);
+    }
+  }
+  // Update only current customer's Ecom integration settings (with both customer_id and id in find)
+  updateCustomerEcomIntegrationSettings(updatedCustomerTechnicalInfo: any, attributesForSelected: any[]): Promise<void> {
+    const requestBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      payload: {
+        update_technical_info: {
+          customer_technical_info: updatedCustomerTechnicalInfo
+        }
+      },
+      extras: {
+        find: {
+          id: this.technicalInfoData?.id,
+          // Newly added for getting member id for customer type
+          // customer_id: this.hotelId,
+          "member_id": this.memberId
+          // Ended for getting member id for customer type,
+        }
+      }
+    };
+    return new Promise<void>((resolve) => {
+      this.technicalInfoService.updateTechnicalInfo(requestBody).subscribe(
+        async (resp: any) => {
+          this.loaderService.emitComplete();
+          if (resp?.success === 1 && resp?.status_code === 200) {
+            this.alertsService.success(resp.message, this.options);
+            // Refresh enabled ids from the updated payload (now persisted)
+            if (Array.isArray(updatedCustomerTechnicalInfo)) {
+              this.enabledCustomerTechnicalInfoIds = new Set<number>(
+                updatedCustomerTechnicalInfo
+                  .filter((item: any) => item.is_enabled === true)
+                  .map((item: any) => Number(item.id))
+              );
+            }
+            // Only after technical info is successfully updated, update customer with Hotel_Code if present
+            await this.updateCustomerHotelCodeFromEcomAttributes(attributesForSelected);
+          } else {
+            this.alertsService.error(resp?.message || 'Update failed', this.options);
+          }
+          resolve();
+        },
+        (err: any) => {
+          this.loaderService.emitComplete();
+          this.alertsService.error(err?.error?.message || 'Something went wrong!', this.options);
+          resolve();
+        }
+      );
+    });
+  }
+  // End of Ecom Integration Settings 
 
   // closeModal() {
   //   console.log('closing Modal');

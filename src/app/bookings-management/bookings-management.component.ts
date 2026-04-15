@@ -206,7 +206,11 @@ export class BookingsManagementComponent {
   };
   hotelId: any;
   memberId: any;
-  allGuestTask: any
+  allGuestTask: any;
+  // Newly added for loader
+  isLoading: boolean = false;
+  isLoadingGuestLogs: boolean = false;
+  isLoadingTasks: boolean = false;
 
   constructor(
     private route: ActivatedRoute,
@@ -218,7 +222,7 @@ export class BookingsManagementComponent {
     private taskManagementService: TaskManagementService) { }
 
   async ngOnInit(): Promise<void> {
-    this.hotelId = Number(this.localStorageService.get('UserId'));
+
     // this.getCustomerById(this.hotelId);
     // this.route.paramMap.subscribe(params => {
     //   const id = params.get('id');
@@ -228,9 +232,17 @@ export class BookingsManagementComponent {
     //     this.getBookingsById(this.guestId);
     //   }
     // });
+    // Newly added for getting member id for customer type
+    // this.hotelId = Number(this.localStorageService.get('UserId'));
+    this.memberId = this.localStorageService.get('MemberId');
+    // console.log('Member ID from bookings management component:', this.memberId);
     try {
       // Waits for customer data first
-      await this.getCustomerById(this.hotelId);
+      // await this.getCustomerById(this.hotelId);
+      if (this.memberId !== undefined && this.memberId !== null && this.memberId !== '' && this.memberId !== 'undefined' && this.memberId !== 'null') {
+        const customer = await this.getCustomerById(this.memberId);
+      }
+      // End of newly added for getting member id for customer type
       // Only then proceeds with route param
       this.route.paramMap.subscribe(params => {
         const id = params.get('id');
@@ -253,19 +265,25 @@ export class BookingsManagementComponent {
     this.routeUrl.navigate(['/bookings']);
   }
 
-  getCustomerById(hotelId: any) {
+  // getCustomerById(hotelId: any) {
+  getCustomerById(memberId: any) {
     let requestBody = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
-      extras: { find: { id: hotelId } }
+      extras: {
+        find: {
+          // id: hotelId 
+          "customer_member_id": memberId
+        }
+      }
     };
     return new Promise((resolve, reject) => {
       this.hotellistService.getSignupAllCustomers(requestBody).subscribe({
         next: (resp: any) => {
           if (resp.success === 1 && resp.status_code === 200 && resp.result.data.length > 0) {
             const userData = resp.result.data[0];
-            this.memberId = userData.customer_member_id;
-            console.log('Member id:', this.memberId);
+            // this.memberId = userData.customer_member_id;
+            // console.log('Member id:', this.memberId);
             resolve(userData);
           } else {
             reject('Customer not found');
@@ -277,6 +295,7 @@ export class BookingsManagementComponent {
   }
 
   getBookingsById(guestId: number) {
+    this.isLoading = true;
     let requestBody = {
       "domain_name": DOMAIN_NAME,
       "user_id": USER_ID,
@@ -291,10 +310,15 @@ export class BookingsManagementComponent {
       resp => {
         if (resp.success === 1 && resp.status_code === 200) {
           this.guestData = resp.result.data[0];
-          console.log(this.guestData, "Guest Booking");
+          // console.log(this.guestData, "Guest Booking");
           this.getBookingStatus(this.guestData.Reserve_No);
           // this.getAllTask(this.guestData.Guest_detail[0].Guest_Id)
-          this.getAllTask(this.guestData.id)
+          // this.getAllTask(this.guestData.id);
+          // console.log(this.guestData.guest_ids, "Guest IDs");
+          this.getAllTask(this.guestData.guest_ids)
+          this.isLoading = false;
+        } else {
+          this.isLoading = false;
         }
       },
       err => {
@@ -308,11 +332,13 @@ export class BookingsManagementComponent {
         else {
           this.alerts.error('Something bad happened. Please try again!', this.options);
         }
+        this.isLoading = false;
       }
     )
   }
 
   getBookingStatus(reserveNo: string) {
+    this.isLoadingGuestLogs = true;
     let requestBody = {
       "domain_name": DOMAIN_NAME,
       "user_id": USER_ID,
@@ -326,8 +352,9 @@ export class BookingsManagementComponent {
       resp => {
         if (resp.success === 1 && resp.status_code === 200) {
           this.guestLogs = resp.result.data;
-          console.log(this.guestLogs, "Guest Logs");
+          // console.log(this.guestLogs, "Guest Logs");
         }
+        this.isLoadingGuestLogs = false;
       },
       err => {
         if (err.error.statusCode === 403) {
@@ -340,11 +367,13 @@ export class BookingsManagementComponent {
         else {
           this.alerts.error('Something bad happened. Please try again!', this.options);
         }
+        this.isLoadingGuestLogs = false;
       }
     )
   }
 
   getAllTask(guestid: any) {
+    this.isLoadingTasks = true;
     let object: any = {
       // "member_id": this.memberId,
       "guest_id": guestid
@@ -364,8 +393,9 @@ export class BookingsManagementComponent {
     this.taskManagementService.getAllTask(requestBody).subscribe(resp => {
       if (resp.success === 1 && resp.status_code === 200) {
         this.allGuestTask = resp.result.data;
-        console.log(this.allGuestTask, "Guest Tasks");
+        // console.log(this.allGuestTask, "Guest Tasks");
       }
+      this.isLoadingTasks = false;
     },
       err => {
         if (err.error.statusCode === 403) {
@@ -378,6 +408,7 @@ export class BookingsManagementComponent {
         else {
           this.alerts.error('Something bad happened. Please try again!', this.options);
         }
+        this.isLoadingTasks = false;
       });
   }
 

@@ -1,6 +1,6 @@
 <div class="main">
     <div class="centered-container">
-        <div class="container">
+        <div class="container" *ngIf="timelineData; else loadingTemplate">
             <!-- Back and Title -->
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <div class="d-flex align-items-center gap-2">
@@ -15,9 +15,8 @@
                     </div>
                 </div>
                 <button class="escalated-btn border-0 fw-medium"
-                    style="color: #E70909; font-size: 14px; background-color: #ffe8e8; border-radius: 20px; padding: 6px 16px;">{{timelineData.status}}</button>
+                    style="color: #E70909; font-size: 14px; background-color: #ffe8e8; border-radius: 20px; padding: 6px 16px; cursor: default;">{{timelineData.status}}</button>
             </div>
-
             <!-- Order Card -->
             <div class="order-card d-flex flex-column flex-md-row gap-4">
                 <!-- Product Info -->
@@ -32,9 +31,16 @@
                             alt="Hotel Logo" style="object-fit: contain;">
                     </div>
                     <div>
-                        <h5 class="mb-1 fw-bold" style="color: #1A1A1A; font-size: 16px;">{{
+                        <!-- Newly added for tooltip -->
+                        <!-- <h5 class="mb-1 fw-bold" style="color: #1A1A1A; font-size: 16px;">{{
                             timelineData.service.service_name }}
+                        </h5> -->
+                        <h5 class="mb-1 fw-bold truncate-text" [attr.title]="timelineData.service.service_name"
+                            style="color: #1A1A1A; font-size: 16px;">
+                            {{ timelineData.service.service_name | slice:0:10 }}{{
+                            timelineData.service.service_name.length > 10 ? '...' : '' }}
                         </h5>
+                        <!-- Ended -->
                         <!-- <div style="color: #BBBBBB; font-size: 14px;">
                             Qty: <span class="fw-medium" style="color: #1A1A1A">1</span>
                         </div> -->
@@ -43,12 +49,17 @@
                         </div>
                     </div>
                 </div>
-
                 <!-- Customer Info -->
                 <div class="d-flex flex-column gap-1 flex-grow-1">
                     <div style="color: #BBBBBB; font-size: 14px;">
-                        Customer Name: <span class="fw-medium" style="color: #1A1A1A">{{ timelineData.guest_name
-                            }}</span>
+                        Name:
+                        <!-- Newly added for tooltip -->
+                        <!-- <span class="fw-medium" style="color: #1A1A1A">{{ timelineData.guest_name
+                            }}</span> -->
+                        <span class="fw-medium" [attr.title]="timelineData.guest_name || timelineData.task_created_by" style="color: #1A1A1A">
+                            {{ (timelineData?.guest_name || timelineData?.task_created_by) | slice:0:10 }}{{ (timelineData?.guest_name || timelineData?.task_created_by)?.length > 10 ? '...' : '' }}
+                        </span>
+                        <!-- Ended -->
                     </div>
                     <div style="color: #BBBBBB; font-size: 14px;">
                         Room type: <span class="fw-medium" style="color: #1A1A1A">{{ getRoomType(this.member_id)
@@ -60,11 +71,14 @@
                 </div>
 
                 <!-- Timeline Tags -->
-                <div class="d-flex flex-column flex-grow-1 gap-2 dot-divider-left">
+                    <div class="d-flex flex-column flex-grow-1 gap-2 dot-divider-left">
                     <div class="d-flex flex-wrap gap-2 justify-content-md-end">
                         <div class="tag tag-green">Order Placed on: {{ timelineData.order_time }}</div>
+                        <!-- Previous logic for Expected Delivery (using actual_time_to_close_the_task)
                         <div class="tag tag-gold">Expected Delivery: {{ getExpectedTime(timelineData.order_time,
                             timelineData.actual_time_to_close_the_task) }}</div>
+                        -->
+                        <div class="tag tag-gold">Expected Delivery: {{ expectedDelivery }}</div>
                     </div>
                     <div class="d-flex justify-content-center"
                         *ngFor="let item of timelineData.time_line; let i = index">
@@ -75,7 +89,6 @@
                     </div>
                 </div>
             </div>
-
             <!-- Timeline View -->
             <h5 class="mt-2 mb-3">Timeline View</h5>
             <div class="container position-relative rounded"
@@ -104,6 +117,10 @@
                                     <span class='mb-0' *ngIf="item.status === 'ASAP' && timelineData.task_description"
                                         style="font-size: 13px;">
                                         <span class="fw-medium">Notes: </span>{{ timelineData.task_description }}
+                                    </span>
+                                    <span class='mb-0' *ngIf="item.qty !== null && item.qty !== undefined"
+                                        style="font-size: 13px;">
+                                        <span class="fw-medium">Qty: </span>{{ item.qty }}
                                     </span>
                                     <span class='mb-0'
                                         *ngIf="timelineData.status === 'Cancelled' && item.status === 'Cancelled'"
@@ -148,6 +165,10 @@
                                     <span class='mb-0' *ngIf="item.status === 'ASAP' && timelineData.task_description"
                                         style="font-size: 13px;">
                                         <span class="fw-medium">Notes: </span>{{ timelineData.task_description }}
+                                    </span>
+                                    <span class='mb-0' *ngIf="item.qty !== null && item.qty !== undefined"
+                                        style="font-size: 13px;">
+                                        <span class="fw-medium">Qty: </span>{{ item.qty }}
                                     </span>
                                     <span class='mb-0'
                                         *ngIf="timelineData.status === 'Cancelled' && item.status === 'Cancelled'"
@@ -242,7 +263,7 @@
             </div>
             <!-- Reviews -->
             <div
-                *ngIf="timelineData.feedback_text !== null && timelineData.feedback_text !== '' && timelineData.feedback_text !== undefined">
+                *ngIf="timelineData.ai_feedback !== null && timelineData.ai_feedback !== '' && timelineData.ai_feedback !== undefined">
                 <h5 class="mt-2 mb-3">Review</h5>
                 <div class="border rounded p-3 mb-3">
                     <div class="d-flex justify-content-between align-items-center w-100">
@@ -253,7 +274,7 @@
                             <div class="d-flex justify-content-between w-100">
                                 <div class="d-flex align-items-center mt-1">
                                     <h6 class="mb-0 fw-semibold" style="color: #0B0B12DE; font-size: 15px">{{
-                                        timelineData.guest_name }}
+                                        timelineData.guest_name || timelineData.task_created_by }}
                                     </h6>
                                     <span class="ms-2 mt-1 fw-semibold" style="font-size: 11px; color: #909090;">
                                         {{ timelineData.created_on | date:'HH:mm:ss (dd-MM-yyyy)' }}
@@ -277,9 +298,19 @@
                         delivered on time</span>
                     <span class='mb-0 mt-2 fw-bold' *ngIf="timely_delivered"
                         style="font-size: 13px;color: rgb(8, 181, 8)">Delivered on time</span>
-                    <p class="mb-0 mt-1" style="color: #0C0E10; font-size: 13px;">{{ timelineData.feedback_text }}</p>
+                    <p class="mb-0 mt-1" style="color: #0C0E10; font-size: 13px;">{{ timelineData.ai_feedback }}</p>
                 </div>
             </div>
 
         </div>
+        <ng-template #loadingTemplate>
+            <div class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
+                <div class="text-center">
+                    <div class="spinner-border timeline-loader" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-3 text-muted">Loading timeline...</p>
+                </div>
+            </div>
+        </ng-template>
     </div>

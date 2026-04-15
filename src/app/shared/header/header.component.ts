@@ -25,7 +25,7 @@ import { StaffListingService } from '../../user-access/staff-listing/staff-listi
 import { StaffService } from '../../user-access/staff/staff.service';
 import { firstValueFrom } from 'rxjs';
 declare var bootstrap: any;
-import { ElementRef, ViewChild } from '@angular/core';
+import { ElementRef, ViewChild, HostListener } from '@angular/core';
 
 @Component({
   selector: 'app-header',
@@ -62,6 +62,8 @@ export class HeaderComponent implements OnInit {
   paymentTypeModal: any;
   //  Newly added & commented for Payment modal 
   @ViewChild('paymentModal') paymentModal!: ElementRef;
+  @ViewChild('accountDropdown', { static: false }) accountDropdown!: ElementRef;
+  @ViewChild('accountToggle', { static: false }) accountToggle!: ElementRef;
   modalInstance: any;
   private audioUnlocked = false;
 
@@ -87,7 +89,7 @@ export class HeaderComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     this.customerType = this.localService.get('CustomerType');
-    console.log('Customer Type:', this.customerType);
+    // console.log('Customer Type:', this.customerType);
     this.hotelId = Number(this.localService.get('UserId'));
     // Only call getCustomerById if both values exist
     if (this.customerType && this.hotelId) {
@@ -128,20 +130,20 @@ export class HeaderComponent implements OnInit {
     // Newly added for payment
     // For tracking pay now button state & values
     const savedState = this.localService.get('payNowButtonState');
-    console.log('Saved state:', savedState);
+    // console.log('Saved state:', savedState);
     if (savedState != null || savedState != undefined) {
       const state = JSON.parse(savedState);
       this.paymentEventService.updatePayNowButton(state.show, state.enabled, state.installmentText);
     }
     else {
       // fallback: call API to rebuild state
-      console.log('Fallback');
+      // console.log('Fallback');
       await this.updateHeaderPayNowButton();
     }
     this.paymentEventService.payNowButton$.subscribe(state => {
       this.payNowButtonState = state;
     });
-    console.log('this.payNowButtonState', this.payNowButtonState);
+    // console.log('this.payNowButtonState', this.payNowButtonState);
     // Newly added & commented for Payment modal
     // For storing order data(for payment)
     // const modalEl = document.getElementById('paymentType');
@@ -158,7 +160,7 @@ export class HeaderComponent implements OnInit {
     this.notificationService.showPanel$.subscribe(show => this.showNotification = show);
     // --- Unlock audio context ---
     const unlockAudio = () => {
-      console.log('[App] Attempting to unlock audio...');
+      // console.log('[App] Attempting to unlock audio...');
       if (!this.audioUnlocked) {
         try {
           const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -168,7 +170,7 @@ export class HeaderComponent implements OnInit {
           source.connect(audioCtx.destination);
           source.start(0);
           this.audioUnlocked = true;
-          console.log('[App] Audio unlocked for notifications');
+          // console.log('[App] Audio unlocked for notifications');
           window.removeEventListener('click', unlockAudio);
           window.removeEventListener('keydown', unlockAudio);
           window.removeEventListener('mousemove', unlockAudio);
@@ -184,7 +186,7 @@ export class HeaderComponent implements OnInit {
   }
 
   private groupNotifications(flatList: any[]): any[] {
-    console.log('Flat list of notifications:', flatList);
+    // console.log('Flat list of notifications:', flatList);
     // Optional: format time if needed
     return flatList
     // .map(n => ({
@@ -196,7 +198,7 @@ export class HeaderComponent implements OnInit {
 
   get activeMenu(): string {
     const currentRoute = this.currentRoute$.value;
-    console.log("Report", currentRoute.includes('report'));
+    // console.log("Report", currentRoute.includes('report'));
     if (currentRoute.includes('payment')) {
       return (this.selectedMenu = "Payment");
     }
@@ -227,6 +229,48 @@ export class HeaderComponent implements OnInit {
     else if (currentRoute.includes('profile')) {
       return (this.selectedMenu = "Profile");
     }
+    else if (currentRoute.includes('restaurants-list')) {
+      return (this.selectedMenu = "Features");
+    }
+    else if (currentRoute.includes('bookings')) {
+      return (this.selectedMenu = "Bookings");
+    }
+    else if (currentRoute.includes('payment-details')) {
+      return (this.selectedMenu = "Payment Details");
+    }
+    else if (currentRoute.includes('settings')) {
+      return (this.selectedMenu = "Settings");
+    }
+    else if (currentRoute.includes('privacy-policy')) {
+      return (this.selectedMenu = "Privacy Policy");
+    }
+    else if (currentRoute.includes('terms-conditions')) {
+      return (this.selectedMenu = "Terms and Conditions");
+    }
+    else if (currentRoute.includes('department')) {
+      return (this.selectedMenu = "Department");
+    }
+    /*  else if (currentRoute.includes('service-tab')) {
+       return (this.selectedMenu = "Service Tab");
+     }
+     else if (currentRoute.includes('service-list') || currentRoute.includes('add-new-service') || currentRoute.includes('edit-service') || currentRoute.includes('view-service')) {
+       return (this.selectedMenu = "Service List");
+     }
+     else if (currentRoute.includes('service')) {
+       return (this.selectedMenu = "Service");
+     } */
+    else if (currentRoute.includes('hierarchy')) {
+      return (this.selectedMenu = "Hierarchy");
+    }
+    else if (currentRoute.includes('features')) {
+      return (this.selectedMenu = "Features");
+    }
+    else if (currentRoute.includes('task-management')) {
+      return (this.selectedMenu = "Task Management");
+    }
+    else if (currentRoute.includes('outlet')) {
+      return (this.selectedMenu = "Outlets");
+    }
     else {
       return "set the name here";
     }
@@ -241,10 +285,10 @@ export class HeaderComponent implements OnInit {
     try {
       const userId = Number(this.localService.get('UserId'));
       const customerType = this.localService.get('CustomerType');
-      console.log('Logging out userId:', userId, 'customerType:', customerType);
+      // console.log('Logging out userId:', userId, 'customerType:', customerType);
       if (!userId) return;
       const currentToken = await this.pushService.getCurrentToken();
-      console.log('Current FCM token to remove:', currentToken);
+      // console.log('Current FCM token to remove:', currentToken);
       // Prepare Customer fetch body dynamically based on user type
       const customerFindKey = customerType === 'Staff' ? 'staff_id' : 'id';
       const customerFetchBody = {
@@ -256,7 +300,7 @@ export class HeaderComponent implements OnInit {
       const customerResp: any = await this.hotellistService.getSignupAllCustomers(customerFetchBody).toPromise();
       if (customerResp.success === 1 && customerResp.result.data.length > 0) {
         const customer = customerResp.result.data[0];
-        console.log('Fetched customer for FCM removal:', customer);
+        // console.log('Fetched customer for FCM removal:', customer);
         if (Array.isArray(customer.fcm_token)) {
           customer.fcm_token = customer.fcm_token.filter((t: string) => t !== currentToken);
           const updateBody = {
@@ -266,7 +310,7 @@ export class HeaderComponent implements OnInit {
             extras: { find: { [customerFindKey]: userId } }
           };
           await this.hotelenrollmenttabviewService.updateCustomerFcm(updateBody).toPromise();
-          console.log('FCM token removed for customer:', currentToken);
+          // console.log('FCM token removed for customer:', currentToken);
         }
       }
       // Remove FCM token from Staff table only if user is Staff
@@ -279,7 +323,7 @@ export class HeaderComponent implements OnInit {
         const staffResp: any = await this.taskManagementService.getAllStaves(staffFetchBody).toPromise();
         if (staffResp.success === 1 && staffResp.result.data.length > 0) {
           const staff = staffResp.result.data[0];
-          console.log('Fetched staff for FCM removal:', staff);
+          // console.log('Fetched staff for FCM removal:', staff);
           if (Array.isArray(staff.fcm_token)) {
             staff.fcm_token = staff.fcm_token.filter((t: string) => t !== currentToken);
             const updateBody = {
@@ -289,8 +333,17 @@ export class HeaderComponent implements OnInit {
               extras: { find: { id: userId } }
             };
             await this.staffService.updateStaff(updateBody).toPromise();
-            console.log('FCM token removed for staff:', currentToken);
+            // console.log('FCM token removed for staff:', currentToken);
           }
+          // Newly added is_available to false on staff logout
+          const availableUpdateBody = {
+            domain_name: DOMAIN_NAME,
+            user_id: USER_ID,
+            payload: { staff_updation: { is_available: false } },
+            extras: { find: { id: userId } }
+          };
+          await this.staffService.updateStaff(availableUpdateBody).toPromise();
+          // console.log('Staff is_available set to false on logout');
         }
       }
       // await this.pushService.deleteCurrentToken();
@@ -324,12 +377,46 @@ export class HeaderComponent implements OnInit {
     this.localService.remove('payNowButtonState');
     this.localService.remove('isFirstStaff');
     this.localService.remove('defaultHierarchy');
+    // Newly commented because no need of fo desk 
+    // this.localService.remove('frontOfficeDeskStaff');
+    // End of newly commented code
+    // Newly added for role
+    this.localService.remove('Role');
+    this.localService.remove('roleId');
+    this.localService.remove('roleName');
+    this.localService.remove('roleModules');
+    this.localService.remove('outlet_id');
     this.router.navigate([''], { skipLocationChange: false });
     this.userAccessService.removeUserAccess();
+  
+    localStorage.clear();
+    sessionStorage.clear();
+      // this.router.navigate(['/login'], { replaceUrl: true });
+    // Replace your router.navigate line with this:
+    // window.location.replace('/'); 
+
+    
   }
 
-  toggleLogout() {
+  toggleLogout(event?: Event) {
+    if (event) {
+      event.stopPropagation();
+    }
     this.showAccount = !this.showAccount;
+  }
+
+  // Close account dropdown when clicking outside
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    if (this.showAccount) {
+      const target = event.target as HTMLElement;
+      const clickedInsideDropdown = this.accountDropdown?.nativeElement?.contains(target);
+      const clickedOnToggle = this.accountToggle?.nativeElement?.contains(target);
+
+      if (!clickedInsideDropdown && !clickedOnToggle) {
+        this.showAccount = false;
+      }
+    }
   }
 
   toggleNotification() {
@@ -386,11 +473,11 @@ export class HeaderComponent implements OnInit {
     );
     if (hasUnpaid) {
       // Continue normal installment payment flow
-      console.log("Proceeding with existing installment payment...");
+      // console.log("Proceeding with existing installment payment...");
       this.paymentEventService.triggerPayNow(null);
     } else {
       // All paid → open Payment Type modal
-      console.log("All installments paid → opening modal for new payment type");
+      // console.log("All installments paid → opening modal for new payment type");
       // this.paymentEventService.openModal();
       this.openPaymentModal();
     }
@@ -401,29 +488,33 @@ export class HeaderComponent implements OnInit {
   }
 
   executePayment() {
-    console.log('Executing payment with index:', this.selectedIndex);
+    // console.log('Executing payment with index:', this.selectedIndex);
     this.paymentEventService.triggerPayNow(this.selectedIndex);
     this.paymentTypeModal?.hide();
   }
 
   getLastestOrderOfCustomer(): Promise<any> {
-    console.log('Fetching last order of customer...');
+    // console.log('Fetching last order of customer...');
     return new Promise((resolve, reject) => {
       const req = {
         domain_name: DOMAIN_NAME,
         user_id: USER_ID,
         extras: {
-          find: { customer_id: this.hotelId }
+          find: {
+            // Newly added for getting member id for customer type
+            // customer_id: this.hotelId
+            "customer_member_id": this.localService.get('MemberId')
+          }
         }
       };
-      console.log(req);
+      // console.log(req);
       this.hotelenrollmentservice.orderDetailsGetById(req).subscribe({
         next: (res: any) => {
           // this.orderdata = res?.result?.data?.[0] || null;
           // console.log('Latest order data of customer:', this.orderdata);
           // resolve(this.orderdata);
           const orders = res?.result?.data || [];
-          console.log('All customer orders:', orders);
+          // console.log('All customer orders:', orders);
           // Filter only confirmed orders
           const confirmedOrders = orders.filter((order: any) => order.status === 'Order Confirmed');
           // Sort by creation date (descending) to get the most recent one
@@ -434,7 +525,7 @@ export class HeaderComponent implements OnInit {
           });
           // Take the latest confirmed order (if any)
           this.orderdata = sortedConfirmed.length > 0 ? sortedConfirmed[0] : null;
-          console.log('Latest confirmed order of customer:', this.orderdata);
+          // console.log('Latest confirmed order of customer:', this.orderdata);
           resolve(this.orderdata);
         },
         error: (err: any) => {
@@ -558,109 +649,114 @@ export class HeaderComponent implements OnInit {
   // }
 
   async updateHeaderPayNowButton() {
-  await this.getLastestOrderOfCustomer();
-  if (!this.orderdata || !this.orderdata.payment_split) {
-    this.paymentEventService.updatePayNowButton(false, false);
-    return;
+    await this.getLastestOrderOfCustomer();
+    // console.log('Updating Pay Now button with order data:', this.orderdata);
+    if (!this.orderdata || !this.orderdata.payment_split) {
+      this.paymentEventService.updatePayNowButton(false, false);
+      return;
+    }
+    const allCycles: any[] = this.orderdata.payment_split;
+    // console.log('All Cycles:', allCycles);
+    // Find first unpaid cycle
+    let nextUnpaidCycleIndex = allCycles.findIndex(cycle =>
+      cycle.installments.some((inst: any) => inst.status === "Not Paid")
+    );
+    // console.log('Next Unpaid Cycle Index', nextUnpaidCycleIndex);
+    let lastRelevantInstallment: any;
+    if (nextUnpaidCycleIndex === -1) {
+      // console.log('All Installments Paid');
+      // CASE: All installments paid
+      // Pick the last paid installment
+      const lastCycle = allCycles[allCycles.length - 1];
+      lastRelevantInstallment = lastCycle.installments[lastCycle.installments.length - 1];
+    } else {
+      // console.log('Some Installments Unpaid');
+      // CASE: Some unpaid installments
+      const nextCycle = allCycles[nextUnpaidCycleIndex];
+      // console.log('Next Unpaid Cycle:', nextCycle);
+      const nextUnpaidIndex = nextCycle.installments.findIndex((inst: any) => inst.status === "Not Paid");
+      // console.log('Next Unpaid Index', nextUnpaidIndex);
+      lastRelevantInstallment = nextUnpaidIndex > 0
+        ? nextCycle.installments[nextUnpaidIndex - 1]
+        : null;
+      // console.log('Last Relevant Installment (for enable date)', lastRelevantInstallment);
+    }
+    if (!lastRelevantInstallment) {
+      this.paymentEventService.updatePayNowButton(false, false);
+      return;
+    }
+    // console.log('lastRelevantInstallment', lastRelevantInstallment);
+    // Enable button 7 days before subscription_end_date of lastRelevantInstallment
+    const [day, month, year] = lastRelevantInstallment.subscription_end_date.split('-').map(Number);
+    // console.log('day, month, year', day, month, year);
+    const subEndDate = new Date(year, month - 1, day);
+    // console.log('Sub end Date', subEndDate);
+    const enableDate = new Date(subEndDate);
+    // console.log('enableDate before format', enableDate);
+    enableDate.setDate(enableDate.getDate() - 7);
+    const today = new Date();
+    // console.log('enableDate due date', enableDate);
+    const enabled = today >= enableDate;
+    // console.log('Enable date', enabled);
+    // Prepare button text
+    let installmentText = 'Start New Payment Cycle';
+    if (nextUnpaidCycleIndex !== -1) {
+      const totalInstallments = allCycles[nextUnpaidCycleIndex].installments.length;
+      const nextUnpaidIndex = allCycles[nextUnpaidCycleIndex].installments.findIndex((inst: any) => inst.status === "Not Paid");
+      const cycleName = allCycles[nextUnpaidCycleIndex].name || 'Installment';
+      installmentText = `${this.capitalizeFirstLetter(cycleName)} - Installment ${nextUnpaidIndex + 1} of ${totalInstallments}`;
+    }
+    const showButton = true;
+    this.localService.set('payNowButtonState', JSON.stringify({ show: showButton, enabled, installmentText }));
+    this.paymentEventService.updatePayNowButton(showButton, enabled, installmentText);
+    // console.log('Pay Now Button:', { showButton, enabled, installmentText });
   }
-  const allCycles: any[] = this.orderdata.payment_split;
-  // Find first unpaid cycle
-  let nextUnpaidCycleIndex = allCycles.findIndex(cycle =>
-    cycle.installments.some((inst: any) => inst.status === "Not Paid")
-  );
-  console.log('Next Unpaid Cycle Index', nextUnpaidCycleIndex);
-  let lastRelevantInstallment: any;
-  if (nextUnpaidCycleIndex === -1) {
-    console.log('All Installments Paid');
-    // CASE: All installments paid
-    // Pick the last paid installment
-    const lastCycle = allCycles[allCycles.length - 1];
-    lastRelevantInstallment = lastCycle.installments[lastCycle.installments.length - 1];
-  } else {
-    console.log('Some Installments Unpaid');
-    // CASE: Some unpaid installments
-    const nextCycle = allCycles[nextUnpaidCycleIndex];
-    const nextUnpaidIndex = nextCycle.installments.findIndex((inst: any) => inst.status === "Not Paid");
-    lastRelevantInstallment = nextUnpaidIndex > 0
-      ? nextCycle.installments[nextUnpaidIndex - 1]
-      : null;
-  }
-  if (!lastRelevantInstallment) {
-    this.paymentEventService.updatePayNowButton(false, false);
-    return;
-  }
-  console.log('lastRelevantInstallment', lastRelevantInstallment);
-  // Enable button 7 days before subscription_end_date of lastRelevantInstallment
-  const [day, month, year] = lastRelevantInstallment.subscription_end_date.split('-').map(Number);
-  console.log('day, month, year', day, month, year);
-  const subEndDate = new Date(year, month - 1, day);
-  console.log('Sub end Date', subEndDate);
-  const enableDate = new Date(subEndDate);
-  console.log('enableDate before format', enableDate);
-  enableDate.setDate(enableDate.getDate() - 7);
-  const today = new Date();
-  console.log('enableDate due date', enableDate);
-  const enabled = today >= enableDate;
-  console.log('Enable date', enabled);
-  // Prepare button text
-  let installmentText = 'Start New Payment Cycle';
-  if (nextUnpaidCycleIndex !== -1) {
-    const totalInstallments = allCycles[nextUnpaidCycleIndex].installments.length;
-    const nextUnpaidIndex = allCycles[nextUnpaidCycleIndex].installments.findIndex((inst: any) => inst.status === "Not Paid");
-    const cycleName = allCycles[nextUnpaidCycleIndex].name || 'Installment';
-    installmentText = `${this.capitalizeFirstLetter(cycleName)} - Installment ${nextUnpaidIndex + 1} of ${totalInstallments}`;
-  }
-  const showButton = true;
-  this.localService.set('payNowButtonState', JSON.stringify({ show: showButton, enabled, installmentText }));
-  this.paymentEventService.updatePayNowButton(showButton, enabled, installmentText);
-  console.log('Pay Now Button:', { showButton, enabled, installmentText });
-}
 
-capitalizeFirstLetter(str: string) {
-  return str.charAt(0).toUpperCase() + str.slice(1);
-}
+  capitalizeFirstLetter(str: string) {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  }
 
   private groupNotificationsByDay(flatList: any[]): any[] {
-  const todayStr = new Date().toDateString();
-  const yesterdayStr = new Date(Date.now() - 86400000).toDateString();
-  const todayGroup = { day: 'Today', list: [] as any[] };
-  const yesterdayGroup = { day: 'Yesterday', list: [] as any[] };
-  const olderGroup = { day: 'Earlier', list: [] as any[] };
-  console.log('Flat list of notifications:', flatList);
-  flatList.forEach((n: any) => {
-    const notifDate = new Date(n.time).toDateString();
-    if (notifDate === todayStr) todayGroup.list.push(n);
-    else if (notifDate === yesterdayStr) yesterdayGroup.list.push(n);
-    else olderGroup.list.push(n);
-  });
+    const todayStr = new Date().toDateString();
+    const yesterdayStr = new Date(Date.now() - 86400000).toDateString();
+    const todayGroup = { day: 'Today', list: [] as any[] };
+    const yesterdayGroup = { day: 'Yesterday', list: [] as any[] };
+    const olderGroup = { day: 'Earlier', list: [] as any[] };
+    // console.log('Flat list of notifications:', flatList);
+    flatList.forEach((n: any) => {
+      const notifDate = new Date(n.time).toDateString();
+      if (notifDate === todayStr) todayGroup.list.push(n);
+      else if (notifDate === yesterdayStr) yesterdayGroup.list.push(n);
+      else olderGroup.list.push(n);
+    });
 
-  const grouped: any[] = [];
-  if (todayGroup.list.length) grouped.push(todayGroup);
-  if (yesterdayGroup.list.length) grouped.push(yesterdayGroup);
-  if (olderGroup.list.length) grouped.push(olderGroup);
+    const grouped: any[] = [];
+    if (todayGroup.list.length) grouped.push(todayGroup);
+    if (yesterdayGroup.list.length) grouped.push(yesterdayGroup);
+    if (olderGroup.list.length) grouped.push(olderGroup);
 
-  return grouped;
-}
+    return grouped;
+  }
 
-// Newly added & commented for Payment modal
-ngAfterViewInit(): void {
-  this.modalInstance = new bootstrap.Modal(this.paymentModal.nativeElement);
-}
+  // Newly added & commented for Payment modal
+  ngAfterViewInit(): void {
+    this.modalInstance = new bootstrap.Modal(this.paymentModal.nativeElement);
+  }
 
-// openPaymentModal() {
-//   console.log('Opening payment type modal...');
-//   this.paymentTypeModal?.show();
-// }
+  // openPaymentModal() {
+  //   console.log('Opening payment type modal...');
+  //   this.paymentTypeModal?.show();
+  // }
 
-openPaymentModal() {
-  console.log('Opening payment type modal...');
-  this.modalInstance.show();
-}
+  openPaymentModal() {
+    // console.log('Opening payment type modal...');
+    this.modalInstance.show();
+  }
 
-closeModal() {
-  console.log('Close button clicked');  // Will now work
-  this.modalInstance.hide();
-}
+  closeModal() {
+    // console.log('Close button clicked');  // Will now work
+    this.modalInstance.hide();
+  }
 
 }
 

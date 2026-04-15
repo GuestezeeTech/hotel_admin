@@ -5,16 +5,17 @@ import { HierarchyService, HierarchyItem } from '../hierarchy.service';
 import { CommonModule } from '@angular/common';
 import { AuthTokenService } from '../../auth-services/auth-token.service';
 import { AlertsService } from '../../shared/alerts/alerts.service';
+import { AlertsComponent } from '../../shared/alerts/alerts.component';
 import { ENDPOINTS } from '../../app.config';
-
 // Newly added
 import { LocalStorageService } from '../../auth-services/local-storage.service';
-import { LoaderService } from './../../shared/loader/loader.service';
+import { HotelEnrollmentTabviewService } from '../../hotel-enrollment-tabview/hotel-enrollment-tabview.service';
+import { PermissionService, ModulePermission } from '../../services/permission.service';
 
 @Component({
   selector: 'app-hierarchy-view',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, AlertsComponent],
   templateUrl: './hierarchy-customer-view.component.html',
   styleUrls: ['./hierarchy-customer-view.component.scss']
 })
@@ -32,14 +33,11 @@ export class HierarchyCustomerViewComponent {
   hasTreeItems = false;
   hotelId: any;
   paymentDone: any;
-  // Newly added for payment done
-  // @Input() paymentDone!: boolean;
-
- 
-  getLevelBadge(level: number): string {
-    if (level === 0) return 'ROOT';
-    return `Level ${level}`;
-  }
+  // Newly added for disabling 
+  customerStatus: any;
+  showDeleteModal = false;
+  deleteId: number | null = null;
+  memberId: any;
 
   constructor(
     private hierarchyService: HierarchyService,
@@ -48,22 +46,30 @@ export class HierarchyCustomerViewComponent {
     private alertService: AlertsService,
     private activatedRoute: ActivatedRoute,
     // Newly added
-    private localStorageService: LocalStorageService
+    private localStorageService: LocalStorageService,
+    private hotelenrollmentservice: HotelEnrollmentTabviewService,
+    private permissionService: PermissionService
   ) { }
 
   ngOnInit() {
     const id = this.activatedRoute.snapshot.paramMap.get('id');
     this.hierarchyId = Number(id);
-    //console.log(this.hierarchyId)
-
     // Newly added
     this.hotelId = Number(this.localStorageService.get('UserId'));
+    this.memberId = this.localStorageService.get('MemberId');
     if (this.hierarchyId != 0) {
       //console.log("123")
       this.updateHierarchyById(this.hierarchyId)
     }
-    this.paymentDone = this.localStorageService.get('paymentDone');
-    console.log('Payment Done', this.paymentDone);
+    // Newly added for disabling 
+    if (this.hotelId && this.memberId) {
+      this.getCustomerById();
+    }
+  }
+
+  getLevelBadge(level: number): string {
+    if (level === 0) return 'ROOT';
+    return `Level ${level}`;
   }
 
   getHierarchyData(): HierarchyItem[] {
@@ -83,6 +89,10 @@ export class HierarchyCustomerViewComponent {
   }
 
   onAdd(parentId?: number, department?: string) {
+    // Block add when user has no add permission
+    if (!this.canAddSystemSettings) {
+      return;
+    }
     //console.log("onAdd", parentId, department)
     this.router.navigate(['/edit-hierarchy', this.hierarchyId], {
       state: { parentId, department }
@@ -90,10 +100,18 @@ export class HierarchyCustomerViewComponent {
   }
 
   onAddRoot() {
+    // Block root add when user has no add permission
+    if (!this.canAddSystemSettings) {
+      return;
+    }
     this.router.navigate(['/edit-hierarchy', this.hierarchyId]);
   }
 
   onEdit(id: number) {
+    // Block edit when user has no edit permission
+    if (!this.canEditSystemSettings) {
+      return;
+    }
     this.router.navigate(['/edit-hierarchy', this.hierarchyId], {
       state: { editId: id }
     });
@@ -103,28 +121,56 @@ export class HierarchyCustomerViewComponent {
     return index === items.length - 1;
   }
 
-  onDelete(id: number) {
-    if (confirm('Are you sure you want to delete this item? Only this item will be deleted; its children will be moved up one level.')) {
-      const all = this.hierarchyService.getHierarchyData();
-      // Find the item to delete
-      const itemToDelete = all.find(item => item.id === id);
-      if (!itemToDelete) return;
-      // Re-parent all direct children to the deleted item's parent
-      const updated = all.map(item =>
-        item.parentId === id ? { ...item, parentId: itemToDelete.parentId } : item
-      ).filter(item => item.id !== id);
-      this.hierarchyService['hierarchyData'].next(updated);
-      let tempdata: any;
-      tempdata = updated;
-      //console.log(tempdata, 'tempdata');
-      this.updateHierarchyData(tempdata);
+  deleteHierarchy(id: any) {
+    const all = this.hierarchyService.getHierarchyData();
+    // Find the item to delete
+    const itemToDelete = all.find(item => item.id === id);
+    if (!itemToDelete) return;
+    // Re-parent all direct children to the deleted item's parent
+    const updated = all.map(item =>
+      item.parentId === id ? { ...item, parentId: itemToDelete.parentId } : item
+    ).filter(item => item.id !== id);
+    this.hierarchyService['hierarchyData'].next(updated);
+    let tempdata: any;
+    tempdata = updated;
+    this.updateHierarchyData(tempdata);
+  }
+
+  onDeleteClick(id: number) {
+    // Block delete when user has no delete permission
+    if (!this.canDeleteSystemSettings) {
+      return;
     }
+    this.showDeleteModal = true;
+    this.deleteId = id;
   }
 
   hasTreeChildren(parentId: number | undefined): boolean {
     return this.getChildren(parentId).some(child => child.isTreeItem);
   }
 
+  // -------------
+  // Permission helpers for template bindings
+  // -------------
+  get canReadSystemSettings(): boolean {
+    const permission = this.permissionService.getModulePermission('SYSTEM SETTINGS');
+    return permission?.has_read_permission ?? false;
+  }
+
+  get canAddSystemSettings(): boolean {
+    const permission = this.permissionService.getModulePermission('SYSTEM SETTINGS');
+    return permission?.has_add_permission ?? false;
+  }
+
+  get canEditSystemSettings(): boolean {
+    const permission = this.permissionService.getModulePermission('SYSTEM SETTINGS');
+    return permission?.has_edit_permission ?? false;
+  }
+
+  get canDeleteSystemSettings(): boolean {
+    const permission = this.permissionService.getModulePermission('SYSTEM SETTINGS');
+    return permission?.has_delete_permission ?? false;
+  }
 
   async getHierarchyById(hierarchyId: number): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -197,7 +243,9 @@ export class HierarchyCustomerViewComponent {
         user_id: 16,
         extras: {
           find: {
-            customer_id: this.hotelId
+            // Newly added for getting member id for customer type
+            // customer_id: this.hotelId
+            member_id: this.memberId
           }
         }
       };
@@ -205,30 +253,48 @@ export class HierarchyCustomerViewComponent {
         resp => {
           //console.log("test", "123")
           //console.log(resp.result.data, "resp")
-          if (resp) {
+          if (resp && resp.result && resp.result.data && resp.result.data.length > 0) {
             //console.log(resp.result.data, "resp")
-            this.hierarchyData = resp.result.data[0].hierarchy;
-            console.log(this.hierarchyData, "this.hierarchyData")
-            const hierarchyItems1: HierarchyItem[] = this.hierarchyData.map((item: any) => ({
-              id: item.id,
-              designation: item.designation,
-              escalationTime: item.escalationTime,
-              department: item.department,
-              isTopLevel: item.isTopLevel,
-              isTreeItem: true,
-              parentId: item.parentId
-            }));
-            const hierarchyItems: HierarchyItem[] = hierarchyItems1.map(item =>
-              Object.fromEntries(
-                Object.entries(item).filter(([_, v]) => v !== undefined)
-              ) as HierarchyItem
-            );
-            //console.log(this.parentId, "this.parentid", hierarchyItems);
-            this.hierarchyService.clearHierarchyData();
-            //console.log('Cleared hierarchy data');
-            this.hierarchyService.setHierarchyData(hierarchyItems);
-            //console.log('Set new hierarchy data');
-            //console.log(this.hierarchyService.getHierarchyData())
+            const fullHierarchyData = resp.result.data[0];
+            this.hierarchyData = resp.result.data[0].hierarchy || [];
+            // console.log(this.hierarchyData, "this.hierarchyData")
+            // Check if hierarchy exists but is empty (hierarchy field exists but array length is 0)
+            // If empty, redirect directly to edit-hierarchy page
+            if (fullHierarchyData &&
+              fullHierarchyData.hasOwnProperty('hierarchy') &&
+              Array.isArray(this.hierarchyData) &&
+              this.hierarchyData.length === 0) {
+              // Redirect to edit-hierarchy page if hierarchy is empty
+              this.router.navigate(['/edit-hierarchy', this.hierarchyId]);
+              resolve();
+              return;
+            }
+            // Only map if hierarchy has items
+            if (this.hierarchyData && this.hierarchyData.length > 0) {
+              const hierarchyItems1: HierarchyItem[] = this.hierarchyData.map((item: any) => ({
+                id: item.id,
+                designation: item.designation,
+                escalationTime: item.escalationTime,
+                department: item.department,
+                isTopLevel: item.isTopLevel,
+                isTreeItem: true,
+                parentId: item.parentId
+              }));
+              const hierarchyItems: HierarchyItem[] = hierarchyItems1.map(item =>
+                Object.fromEntries(
+                  Object.entries(item).filter(([_, v]) => v !== undefined)
+                ) as HierarchyItem
+              );
+              //console.log(this.parentId, "this.parentid", hierarchyItems);
+              this.hierarchyService.clearHierarchyData();
+              //console.log('Cleared hierarchy data');
+              this.hierarchyService.setHierarchyData(hierarchyItems);
+              //console.log('Set new hierarchy data');
+              //console.log(this.hierarchyService.getHierarchyData())
+            } else {
+              // Clear hierarchy data if empty
+              this.hierarchyService.clearHierarchyData();
+            }
             resolve();  // Resolve promise when data is set
           }
         },
@@ -269,8 +335,21 @@ export class HierarchyCustomerViewComponent {
         if (resp) {
           if (resp.success === 1 && resp.status_code === 200) {
             this.hierarchyService.clearHierarchyData();
+            this.deleteId = null;
+            // Navigate first, then show success so alert is visible on the target page
             this.router.navigateByUrl('/', { skipLocationChange: true }).then(() => {
-              this.router.navigate(['/view-customer-hierarchy', this.hierarchyId]);
+              this.router.navigate(['/view-customer-hierarchy', this.hierarchyId]).then(() => {
+                setTimeout(() => {
+                  // Newly added for deletion resp message 
+                  // this.alertService.success('Hierarchy item deleted successfully', this.options);
+                  if (resp.message.includes('Record successfully updated')) {
+                    this.alertService.success('Hierarchy item deleted successfully', this.options);
+                  } else {
+                    this.alertService.success(resp.message, this.options);
+                  }
+                  // End of newly added for deletion resp message 
+                }, 100);
+              });
             });
           }
           else if (resp.success === 0) {
@@ -302,9 +381,63 @@ export class HierarchyCustomerViewComponent {
   }
 
   back() {
-    this.router.navigate(['/edit-new-hotel', this.hotelId], {
-      queryParams: { tab: 3 }
+    this.router.navigate(['/member-hierarchy']);
+  }
+
+  async getCustomerById(): Promise<void> {
+    // console.log('Hotel ID:', this.hotelId);
+    return new Promise((resolve, reject) => {
+      const requestBody = {
+        domain_name: DOMAIN_NAME,
+        user_id: USER_ID,
+        extras: {
+          find: {
+            // Newly added for getting member id for customer type
+            // id: this.hotelId
+            member_id: this.memberId
+          }
+        }
+      };
+      this.hotelenrollmentservice.getLoginCustomerById(requestBody).subscribe(
+        async (resp: any) => {
+          if (resp?.result?.data?.length) {
+            const customerdata = resp.result.data[0];
+            // console.log('Customer Data:', customerdata);
+            this.customerStatus = customerdata.status;
+            // console.log('Customer status:', this.customerStatus)
+            resolve();
+          } else {
+            reject(' No customer data found.');
+          }
+        },
+        (err: any) => {
+          if (err.error?.statusCode === 403) {
+            this.alertService.error('Session Time Out! Please login Again', this.options);
+            this.router.navigate(['/login'], { skipLocationChange: false });
+          } else if (err.error?.message) {
+            this.alertService.error(err.error.message, this.options);
+          } else {
+            this.alertService.error('Something bad happened. Please try again!', this.options);
+          }
+          reject(err);
+        }
+      );
     });
   }
+
+  onDelete(id: number) {
+    this.deleteId = id;
+    this.showDeleteModal = true;   // Open custom modal
+  }
+
+  closeDeleteModal() {
+    this.showDeleteModal = false;  // Simply close
+    this.deleteId = null;
+    if (this.hierarchyId) {
+      this.updateHierarchyById(this.hierarchyId);
+    }
+  }
+
+
 }
 

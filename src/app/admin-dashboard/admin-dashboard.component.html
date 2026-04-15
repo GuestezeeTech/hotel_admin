@@ -14,7 +14,7 @@
                                 <img src="../../assets/images/guestezee/logged.png" alt="Platinum Icon"
                                     class="me-2 rounded-circle p-2" width="40" style="background-color: #FFFDE7;">
                                 <div>
-                                    <strong class="d-block">{{ activities.guest_status.GuestLogged }}</strong>
+                                    <strong class="d-block">{{ activities?.guest_status?.GuestLogged || 0 }}</strong>
                                     <span style="color: #8F9899; font-size: 14px;">Guest Logged</span>
                                 </div>
                             </div>
@@ -22,7 +22,7 @@
                                 <img src="../../assets/images/guestezee/request.png" alt="Gold Icon"
                                     class="me-2 rounded-circle p-2" width="40" style="background-color: #FFFDE7;">
                                 <div>
-                                    <strong class="d-block">{{ activities.guest_status.TotalRequest }}</strong>
+                                    <strong class="d-block">{{ activities?.guest_status?.TotalRequest || 0 }}</strong>
                                     <span style="color: #8F9899; font-size: 14px;">Total Request</span>
                                 </div>
                             </div>
@@ -30,7 +30,7 @@
                                 <img src="../../assets/images/guestezee/completed.png" alt="Silver Icon"
                                     class="me-2 rounded-circle p-2" width="40" style="background-color: #FFFDE7;">
                                 <div>
-                                    <strong class="d-block">{{ activities.guest_status.Completed }}</strong>
+                                    <strong class="d-block">{{ activities?.guest_status?.Completed || 0 }}</strong>
                                     <span style="color: #8F9899; font-size: 14px;">Completed</span>
                                 </div>
                             </div>
@@ -38,7 +38,7 @@
                                 <img src="../../assets/images/guestezee/escalatedC.png" alt="Bronze Icon"
                                     class="me-2 rounded-circle p-2" width="40" style="background-color: #FFFDE7;">
                                 <div>
-                                    <strong class="d-block">{{ activities.guest_status.Escalated }}</strong>
+                                    <strong class="d-block">{{ activities?.guest_status?.Escalated || 0 }}</strong>
                                     <span style="color: #8F9899; font-size: 14px;">Escalated</span>
                                 </div>
                             </div>
@@ -74,7 +74,7 @@
                     <div class="row">
                         <!-- Reviews Section -->
                         <div class="col-md-12">
-                            <div class="card review-card px-3 py-2 mb-4 text-center"
+                            <div class="card review-card px-3 py-2 mb-2 text-center"
                                 style=" background: linear-gradient(290.19deg, #FFFFFF 32.26%, #EBF0F2 100%); border-color: #E9E9E9">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <h6 class="fw-bold" style="color: #0B0B12;">Reviews</h6>
@@ -102,7 +102,7 @@
                                 </div>
                                 <h4 class="fw-bold mt-2 mb-0"
                                     style="color: #9b9b9b; text-align: start; font-size: 20px">Reviews Count: <span
-                                        style="color: #800020">{{review.reviews_count}}</span></h4> 
+                                        style="color: #800020">{{review?.reviews_count || 0}}</span></h4>
                                 <div class="d-flex justify-content-between align-items-center">
                                     <!-- <p class="mb-0 rounded px-2 py-1 fw-medium"
                                         style="background: linear-gradient(90deg, rgba(1, 116, 250, 0.1) 0%, rgba(1, 146, 250, 0.1) 50%, rgba(139, 0, 224, 0.1) 100%); font-size: 14px">
@@ -110,7 +110,7 @@
                                             style="color: #252525; font-size: 14px">{{review.avg_rating}}<span
                                                 style="color: #FFC300; ">★</span></span> Rating
                                     </p> -->
-                                    <ng-container *ngFor="let star of getStarArray(review.avg_rating)">
+                                    <ng-container *ngFor="let star of getStarArray(review?.avg_rating || 0)">
                                         <!-- Full Star -->
                                         <i *ngIf="star === 'full'" class="bi bi-star-fill"
                                             style="color: #FFC300; font-size: 15px;"></i>
@@ -123,7 +123,7 @@
                                     </ng-container>
                                     <!-- Show numeric rating -->
                                     <span class="ms-2 fw-bold" style="font-size: 14px; color: #252525;">
-                                        {{ review.avg_rating.toFixed(2) }}
+                                        {{ (review?.avg_rating || 0).toFixed(2) }}
                                     </span>
                                     <img src="../../assets/images/guestezee/girl.png" alt="Star illustration"
                                         class="img-fluid mt-2" />
@@ -134,29 +134,46 @@
                         <div class="col-md-12">
                             <div class="card px-3 py-2"
                                 style=" background: linear-gradient(290.19deg, #FFFFFF 32.26%, #EBF0F2 100%); border-color: #E9E9E9">
-                                <h6 class="mb-3 fw-bold" style="font-size: 18px">Generate Report</h6>
+                                <h6 class="mb-1 fw-bold" style="font-size: 18px">Generate Report</h6>
                                 <form>
-                                    <div class="mb-3">
+                                    <div class="mb-2">
                                         <label class="form-label fw-bold" style="font-size: 14px;">Enter Room No</label>
                                         <input type="text" class="form-control bg-white" placeholder="Room Number"
-                                            [(ngModel)]="roomNo" name="roomNo" style="font-size: 14px;" />
+                                            [(ngModel)]="roomNo" name="roomNo" style="font-size: 14px;"
+                                            (input)="clearRoomError()" />
+                                        <!-- Newly added for validation -->
+                                        <div *ngIf="roomError" style="color:red;font-size:13px;margin-top:4px">
+                                            Room Number is required
+                                        </div>
+                                        <!-- End of newly added for validation -->
                                     </div>
-                                    <div class="row mb-3">
+                                    <div class="row mb-2">
                                         <div class="col-6">
                                             <label class="form-label fw-bold" style="font-size: 14px;">Start
                                                 Date</label>
                                             <input type="date" class="form-control bg-white" style="font-size: 14px;"
-                                                [(ngModel)]="startDate" name="startDate" />
+                                                [(ngModel)]="startDate" name="startDate"
+                                                (change)="clearStartDateError()" />
+                                            <!-- Newly added for validation -->
+                                            <div *ngIf="startDateError" style="color:red;font-size:13px;margin-top:4px">
+                                                Start Date is required
+                                            </div>
+                                            <!-- End of newly added for validation -->
                                         </div>
                                         <div class="col-6">
                                             <label class="form-label fw-bold">End Date</label>
                                             <input type="date" class="form-control"
                                                 style="font-size: 14px; background-color: white;" [(ngModel)]="endDate"
-                                                name="endDate" />
+                                                name="endDate" (change)="clearEndDateError()" />
+                                            <!-- Newly added for validation -->
+                                            <div *ngIf="endDateError" style="color:red;font-size:13px;margin-top:4px">
+                                                End Date is required
+                                            </div>
+                                            <!-- End of newly added for validation -->
                                         </div>
                                         <!-- Show error below End Date -->
                                         <div *ngIf="dateError" style="color: red; font-size: 13px; margin-top: 4px;">
-                                            End Date must be greater than Start Date
+                                            End Date must be greater than or equal to Start Date
                                         </div>
                                     </div>
                                     <button type="button" class="btn fw-medium w-100 rounded"
@@ -190,7 +207,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                 <tr *ngIf="allBookings.length == 0">
+                                <tr *ngIf="allBookings.length == 0">
                                     <td colspan="6" style="text-align: center; color: #888;">
                                         No guests available
                                     </td>
@@ -200,8 +217,10 @@
                                     <td>{{ guest.Guest_detail[0].First_Name }}</td>
                                     <td>{{ guest.Room_No }}</td>
                                     <td>{{ guest.Adult_Pax + guest.Child_Pax }}</td>
-                                    <td>{{ guest.Arrival_Date }}</td>
-                                    <td>{{ guest.Departure_Date }}</td>
+                                    <!-- <td>{{ guest.Arrival_Date }}</td>
+                                    <td>{{ guest.Departure_Date }}</td> -->
+                                    <td>{{ guest.Arrival_Date | date:'dd MMM yyyy, hh:mm a' }}</td>
+                                    <td>{{ guest.Departure_Date | date:'dd MMM yyyy, hh:mm a' }}</td>
                                     <!-- <td> <i class="fa fa-ellipsis-h" style="color: #868686; cursor: pointer;"></i></td>
                                     <td> <i class="fas fa-print" style="color: #868686; cursor: pointer;"></i></td> -->
                                 </tr>
@@ -259,7 +278,7 @@
                                 </tr>
                                 <tr *ngFor="let service of tasks">
                                     <td>{{ service.room_no }}</td>
-                                    <td>{{ service.guest_name }}</td>
+                                    <td>{{ service.guest_name || service.task_created_by }}</td>
                                     <td>{{ service.service.service_name }}</td>
                                     <td>{{ service.service.category }}</td>
                                     <!-- <td>{{ service.assignee }}</td>

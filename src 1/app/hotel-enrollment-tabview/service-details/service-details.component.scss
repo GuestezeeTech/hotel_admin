@@ -1,0 +1,160 @@
+.form1_div {
+  width: 95%
+}
+
+.inputwidth {
+  width: 95%;
+}
+
+.section {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+h3 {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 15px;
+}
+
+.form1_div {
+  width: 95%
+}
+
+.input_box {
+  width: 95%;
+  border: 2px solid #DBDBDB;
+  border-radius: 5px;
+  padding: 5px 5px;
+}
+
+.body {
+  font-family: urbanist;
+
+}
+
+.label {
+  font-family: urbanist;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.custom_tablist_color {
+  background-color: #eaebed;
+  border-radius: 10px;
+
+}
+
+.nav-link {
+  color: #6e6e6f;
+
+}
+
+.nav-tabs .nav-link.active {
+  background-color: #800020;
+  color: white
+}
+
+.services-container {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  padding: 20px;
+}
+
+.service-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #00000040;
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.service-item:hover,
+.service-item.selected {
+
+  border: 2px solid #900C3F;
+  color: #00000040;
+}
+
+.selected {
+  border-width: 3px;
+}
+
+.header {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: white;
+  padding: 10px 15px;
+  font-weight: bold;
+  color: #900C3F;
+  border-radius: 5px;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+}
+
+.cancel_bt {
+  padding: 8px 50px;
+  border: none;
+  border-radius: 5px;
+  background: #C6C6C6;
+  color: #4E4E4E;
+  font-weight: 600;
+}
+
+.save_bt, .next_bt {
+  border: none;
+  border-radius: 5px;
+  background: #800020;
+  color: white;
+  font-weight: 600;
+}
+
+.save_bt {
+  padding: 8px 15px;
+}
+
+.next_bt {
+  padding: 8px 25px;
+}
+
+.save_bt:disabled, .next_bt:disabled {
+  background: #b35a78;
+  /* Lighter color */
+  cursor: not-allowed;
+  /* Show not-allowed cursor */
+  opacity: 0.6;
+  /* Reduce opacity */
+}
+
+.services-container {
+  margin-top: 2.5%;
+  margin-bottom: 2.5%;
+  border-radius: 8px;
+  border: 1px solid #E9E9E9;
+}
+
+img {
+  width: 25%;
+}
+
+// Newly added the appearance of disabled sections
+// .disabled-section {
+//   pointer-events: none;
+//   opacity: 0.7;
+// }
+.disabled-section {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.disabled-section * {
+  pointer-events: none;  /* disable all interactions inside */
+  cursor: not-allowed;   /* show the not-allowed cursor everywhere */
+}

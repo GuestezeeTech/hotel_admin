@@ -8,7 +8,7 @@ import { FormGroup, FormControl, FormBuilder, FormArray } from '@angular/forms';
 import { ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { AuthTokenService } from '../../../auth-services/auth-token.service';
-
+import { LocalStorageService } from '../../../auth-services/local-storage.service';
 import { DOMAIN_NAME, ENDPOINTS, USER_ID } from '../../../app.config';
 import { AlertsService } from '../../../shared/alerts/alerts.service';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -46,7 +46,7 @@ export class EditTechnicalInfoComponent implements OnInit {
     keepAfterRouteChange: false
   };
   showEdit: boolean = true;
-
+  memberId: string | null = null;
 
   constructor(
     private fb: FormBuilder,
@@ -54,8 +54,8 @@ export class EditTechnicalInfoComponent implements OnInit {
     private technicalInfoService: TechnicalInfoService,
     private alertService: AlertsService,
     private router: Router,
-    private route: ActivatedRoute
-
+    private route: ActivatedRoute,
+    private localStorageService: LocalStorageService
   ) {
 
 
@@ -64,12 +64,13 @@ export class EditTechnicalInfoComponent implements OnInit {
     })
   }
   ngOnInit(): void {
+    this.memberId = this.localStorageService.get('MemberId');
     this.techInfoForm = new FormGroup({
       api_url: new FormControl('', Validators.required),
     });
     this.route.paramMap.subscribe(params => {
       const id = params.get('id');
-      console.log('Reactive ID:', id);
+      // console.log('Reactive ID:', id);
       if (id != undefined) {
         this.tech_info_id = Number(id);
         this.getTechInfoById();
@@ -194,7 +195,9 @@ export class EditTechnicalInfoComponent implements OnInit {
       },
       "extras": {
         "find": {
-          "customer_id": this.tech_info_id
+          // Newly added for getting member id for customer type
+          // "customer_id": this.tech_info_id
+          "member_id": this.memberId
         }
       }
     }
@@ -366,7 +369,9 @@ export class EditTechnicalInfoComponent implements OnInit {
         user_id: USER_ID,
         extras: {
           find: {
-            customer_id: this.tech_info_id
+            // Newly added for getting member id for customer type
+            // customer_id: this.tech_info_id
+            member_id: this.memberId
           }
         }
       };
@@ -376,8 +381,8 @@ export class EditTechnicalInfoComponent implements OnInit {
 
           if (resp) {
 
-            const customerInfo = resp.result.data[0]?.customer_technical_info;
-            if (resp.result.data[0]?.customer_technical_info == undefined) {
+            const customerInfo = resp?.result?.data[0]?.customer_technical_info;
+            if (resp?.result?.data[0]?.customer_technical_info == undefined) {
               this.showEdit = false;
 
             }
@@ -456,7 +461,9 @@ export class EditTechnicalInfoComponent implements OnInit {
       user_id: USER_ID, //Default user id
       "extras": {
         "find": {
-          "customer_id": this.tech_info_id
+          // Newly added for getting member id for customer type
+          // "customer_id": this.tech_info_id
+          "member_id": this.memberId
         }
       }
     }

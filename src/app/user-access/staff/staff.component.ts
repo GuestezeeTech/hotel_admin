@@ -99,6 +99,9 @@ export class StaffComponent implements OnInit {
   selectedStaffHierarchies: any[] = [];
   staffHierarchyDropdownOpen: boolean = false;
   hierarchyOptions: any;
+  // View-only mode (when opened from eye icon)
+  isViewMode: boolean = false;
+
 
   constructor(
     private formBuilder: FormBuilder,
@@ -119,16 +122,19 @@ export class StaffComponent implements OnInit {
   async ngOnInit(): Promise<void> {
     // read service flags set by listing-->First staff creation
     // this.isFirstStaff = this.staffService.isFirstStaff;
-    this.isFirstStaff = JSON.parse(this.localStorageService.get('isFirstStaff') || 'false');
-    console.log('Is first staff while creating:', this.isFirstStaff);
+    // Newld added & commented - for higher level hierarchy
+    // this.isFirstStaff = JSON.parse(this.localStorageService.get('isFirstStaff') || 'false');
+    this.isFirstStaff = this.localStorageService.get('isFirstStaff') === 'true';
+    // Ended
+    // console.log('Is first staff while creating:', this.isFirstStaff);
     // this.dh = this.staffService.defaultHierarchy;
     if (this.isFirstStaff) {
       this.dh = await this.staffService.getDefaultHierarchyForFirstStaff();
-      console.log('Default hierarchy while creating:', this.dh);
+      // console.log('Default hierarchy while creating:', this.dh);
     }
     // Initialize the form with validation rules
     this.staffForm = new FormGroup({
-      email: this.formBuilder.control('', [Validators.required, Validators.email, Validators.pattern(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)]),
+      email: this.formBuilder.control('', [Validators.required, Validators.pattern(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)]),
       full_name: this.formBuilder.control('', [Validators.required, Validators.maxLength(30),]),
       phone_number: this.formBuilder.control('', [Validators.required, Validators.maxLength(10), Validators.pattern(/^[0-9]{10}$/)]),
       // employee_id: this.formBuilder.control('', [Validators.required]),
@@ -143,6 +149,9 @@ export class StaffComponent implements OnInit {
       is_staff_active: this.formBuilder.control(true),
       at_desk: this.formBuilder.control('', [Validators.required]),
       password: this.formBuilder.control('', [Validators.required, Validators.minLength(6), Validators.maxLength(30),]),
+      //  Newly commented because no need of fo desk 
+      // front_office_desk: this.formBuilder.control(false)
+      // End of newly commented code
     })
     // Apply conditional validator for higher_level_officer
     this.updateHigherLevelOfficerValidator();
@@ -155,7 +164,7 @@ export class StaffComponent implements OnInit {
     // console.log('Selected Room Range:', this.roomRanges);
     // For getting customer id
     this.hotelId = Number(this.localStorageService.get('UserId'));
-    console.log('Hotel Id:', this.hotelId);
+    // console.log('Hotel Id:', this.hotelId);
     // this.getCustomerById();
     this.createdByName = this.localStorageService.get('Name')
     this.getCustomerHierarchy();
@@ -173,6 +182,10 @@ export class StaffComponent implements OnInit {
     // }
     // this.editScreen = this.enableEdit;
 
+    // Detect if opened in view-only mode
+    const navState = window.history.state as any;
+    this.isViewMode = navState?.mode === 'view';
+
     try {
       // Wait for customer data to be fetched
       await this.getCustomerById();
@@ -187,6 +200,11 @@ export class StaffComponent implements OnInit {
       }
     } catch (error) {
       console.error('Error fetching customer:', error);
+    }
+
+    // If in view mode, disable the entire form so nothing can be edited
+    if (this.isViewMode) {
+      this.staffForm.disable({ emitEvent: false });
     }
   }
 
@@ -205,14 +223,16 @@ export class StaffComponent implements OnInit {
 
   getCustomerById(): Promise<void> {
     const memberId = this.localStorageService.get('MemberId');
-    console.log('getCustomerById called with hotelId:', memberId, this.hotelId);
+    // console.log('getCustomerById called with hotelId:', memberId, this.hotelId);
     return new Promise((resolve, reject) => {
       let requestBody = {
         domain_name: DOMAIN_NAME,
         user_id: USER_ID,
         extras: {
           find: {
-            "id": this.hotelId
+            // "id": this.hotelId
+            // Newly added for getting member id for customer type
+            "customer_member_id": this.localStorageService.get('MemberId')
           }
         }
       };
@@ -221,23 +241,23 @@ export class StaffComponent implements OnInit {
           this.loaderService.emitComplete();
           if (resp) {
             const customerdata = resp.result.data[0];
-            console.log('Customer Data:', customerdata);
+            // console.log('Customer Data:', customerdata);
             this.memberId = customerdata.customer_member_id;
-            console.log('Member Id:', this.memberId);
+            // console.log('Member Id:', this.memberId);
             this.localStorageService.set('roomRange', JSON.stringify(customerdata?.settings?.room_range));
             this.localStorageService.set('selectedSlots', JSON.stringify(customerdata?.settings?.shift_timings));
-            console.log('Room Range:', this.localStorageService.get('roomRange'));
-            console.log('Selected Slots:', this.localStorageService.get('selectedSlots'));
+            // console.log('Room Range:', this.localStorageService.get('roomRange'));
+            // console.log('Selected Slots:', this.localStorageService.get('selectedSlots'));
             const slots = this.localStorageService.get('selectedSlots');
             this.selectedSlots = slots ? JSON.parse(slots) : [];
-            console.log('Selected Slots:', this.selectedSlots);
+            // console.log('Selected Slots:', this.selectedSlots);
             const room_ranges = this.localStorageService.get('roomRange');
             this.roomRanges = room_ranges ? JSON.parse(room_ranges) : [];
-            console.log('Selected Room Range:', this.roomRanges);
+            // console.log('Selected Room Range:', this.roomRanges);
             // Newly added for placeholder member id
             const memberIdForDisplay = this.memberId.substring(1) + 'XXX';
             this.memberIdDisplay = memberIdForDisplay;
-            console.log('Member Id Display:', this.memberIdDisplay);
+            // console.log('Member Id Display:', this.memberIdDisplay);
             resolve();
           }
         },
@@ -292,7 +312,7 @@ export class StaffComponent implements OnInit {
   //         phone_number: selectedOfficer.phone_number
   //       };
   //     }
-  //     console.log('Selected Officer Details:', this.officersData.length);
+  //     // console.log('Selected Officer Details:', this.officersData.length);
   //     // Newly added for is_available
   //     // Determine is_available based on hierarchy structure
   //     let isAvailable = false;
@@ -311,7 +331,7 @@ export class StaffComponent implements OnInit {
   //     };
   //     this.staffListingService.getAllStaves(requestBody).subscribe({
   //       next: (staffList: any) => {
-  //         console.log('Existing Staff List:', staffList);
+  //         // console.log('Existing Staff List:', staffList);
   //         const phoneExists = staffList.result.data.find((staff: any) => staff.phone_number === formValues.phone_number);
   //         if (phoneExists) {
   //           this.loaderService.emitComplete();
@@ -345,7 +365,7 @@ export class StaffComponent implements OnInit {
   //           user_id: USER_ID,
   //           payload: { staff_creation: payloadData }
   //         };
-  //         console.log('Payload Data:', requestData);
+  //         // console.log('Payload Data:', requestData);
   //         this.staffService.addStaff(requestData).subscribe({
   //           next: (resp) => {
   //             this.loaderService.emitComplete();
@@ -550,7 +570,7 @@ export class StaffComponent implements OnInit {
   //             if (resp?.success === 1 && resp.status_code === 200) {
   //               // Filter staff who report to this supervisor
   //               this.officersData = resp.result.data;
-  //               console.log('Officers Data:', this.officersData);
+  //               // console.log('Officers Data:', this.officersData);
   //               if (respData.higher_level_officer) {
   //                 this.showHigherLevelOfficer = true;
   //                 // Find officer in officersData by id
@@ -561,8 +581,8 @@ export class StaffComponent implements OnInit {
   //                   higher_level_officer: matchedOfficer || null
   //                 });
   //                 this.showInitalHigherLevelOfficer = true;
-  //                 console.log('Higher Level Officer:', respData.higher_level_officer);
-  //                 console.log('Matched Officer:', matchedOfficer);
+  //                 // console.log('Higher Level Officer:', respData.higher_level_officer);
+  //                 // console.log('Matched Officer:', matchedOfficer);
   //               }
   //               else {
   //                 this.showHigherLevelOfficer = false;
@@ -602,10 +622,10 @@ export class StaffComponent implements OnInit {
   //         // Newly changed for shift time
   //         // this.selectedShiftTimes = respData.shift_time?.map((t: any) => t.split(' - ')[0]) || [];
   //         this.selectedShiftTimes = respData.shift_time;
-  //         console.log('Shift:', this.selectedShiftTimes);
+  //         // console.log('Shift:', this.selectedShiftTimes);
   //         // selected rooms
   //         this.selectedRooms = respData.room_no;
-  //         console.log('Rooms:', this.selectedRooms);
+  //         // console.log('Rooms:', this.selectedRooms);
   //         // Set selected supervisor safely
   //         let selectedSupervisor = null;
   //         if (respData.higher_level_hierarchy) {
@@ -613,7 +633,7 @@ export class StaffComponent implements OnInit {
   //             s.id === respData.higher_level_hierarchy.id
   //           );
   //         }
-  //         console.log('Selected Supervisor:', selectedSupervisor);
+  //         // console.log('Selected Supervisor:', selectedSupervisor);
   //         this.staffForm.patchValue({ higher_level_hierarchy: selectedSupervisor || null });
   //         // Fetch hierarchy list for this supervisor
   //         if (selectedSupervisor) {
@@ -650,7 +670,7 @@ export class StaffComponent implements OnInit {
   //       this.supervisorChildList = allHierarchies.filter((item: any) =>
   //         item.parentId === supervisorId
   //       );
-  //       console.log('Resp Data:', respData);
+  //       // console.log('Resp Data:', respData);
   //       // Patch staff hierarchy safely
   //       let selectedHierarchy = null;
   //       if (respData?.hierarchy) {
@@ -663,10 +683,10 @@ export class StaffComponent implements OnInit {
   //         selectedHierarchy = this.staffForm.get('higher_level_hierarchy')?.value || null;
   //       }
   //       this.staffForm.patchValue({ hierarchy: selectedHierarchy || null });
-  //       console.log('Selected Hierarchy:', selectedHierarchy);
+  //       // console.log('Selected Hierarchy:', selectedHierarchy);
   //       // getLowestLevelHierarchy() to check if lowest is selected**
   //       const lowestHierarchy = await this.getLowestLevelHierarchy();
-  //       console.log('Lowest Hierarchy:', lowestHierarchy);
+  //       // console.log('Lowest Hierarchy:', lowestHierarchy);
   //       if (!this.showInitalHigherLevelOfficer) {
   //         if (selectedHierarchy && lowestHierarchy && selectedHierarchy.id === lowestHierarchy.id) {
   //           // Lowest hierarchy selected: higher_level_officer
@@ -679,7 +699,7 @@ export class StaffComponent implements OnInit {
   //           // if (respData?.room_no?.length > 0) {
   //           const room_ranges = this.localStorageService.get('roomRange');
   //           this.roomRanges = room_ranges ? JSON.parse(room_ranges) : [];
-  //           console.log('Room Ranges for Lowest Hierarchy:', this.roomRanges);
+  //           // console.log('Room Ranges for Lowest Hierarchy:', this.roomRanges);
   //           // } else {
   //           //   this.roomRanges = [];
   //           // }
@@ -726,7 +746,7 @@ export class StaffComponent implements OnInit {
   //               ? rootLevel.reduce((min: any, h: any) => (h.id < min.id ? h : min), rootLevel[0])
   //               : null;
   //             this.defaultHierarchy = lowest;
-  //             console.log('Lowest hierarchy found:', lowest);
+  //             // console.log('Lowest hierarchy found:', lowest);
   //             resolve(lowest);
   //           } else {
   //             this.defaultHierarchy = null;
@@ -755,7 +775,7 @@ export class StaffComponent implements OnInit {
   //         this.officersData = resp.result.data.filter(
   //           (staff: any) => staff.hierarchy?.id == supervisorId
   //         );
-  //         console.log('Officers Data:', this.officersData);
+  //         // console.log('Officers Data:', this.officersData);
   //         // if (this.officersData.length == 0) {
   //         // No officers under this supervisor
   //         // this.alertService.error('No officer available for this hierarchy. Cannot create staff.', this.alertOptions);
@@ -778,7 +798,7 @@ export class StaffComponent implements OnInit {
   //           selectedOfficer = this.officersData.find(
   //             (officer: any) => officer.hierarchy.id == supervisorId
   //           );
-  //           console.log('Selected Officer:', selectedOfficer);
+  //           // console.log('Selected Officer:', selectedOfficer);
   //           // Patch the form with the selected officer (or null)
   //           // if (selectedOfficer == null || selectedOfficer == undefined) {
   //           //   this.alertService.error('No officer available for this hierarchy. Cannot create staff.', this.alertOptions);
@@ -835,11 +855,11 @@ export class StaffComponent implements OnInit {
   //         //console.log('Supervisor List:', this.supervisorList);
   //         // If first staff, prefill hierarchy
   //         if (this.isFirstStaff && this.dh) {
-  //           console.log('Default Hierarchy Level Hierarchy:', this.dh);
+  //           // console.log('Default Hierarchy Level Hierarchy:', this.dh);
   //           const supervisorObj = this.supervisorList?.find(
   //             (s: any) => s.designation === this.dh.designation && s.department === this.dh.department
   //           );
-  //           console.log('Default Hierarchy Level Hierarchy:', supervisorObj);
+  //           // console.log('Default Hierarchy Level Hierarchy:', supervisorObj);
   //           this.staffForm.patchValue({
   //             higher_level_hierarchy: supervisorObj || null
   //           });
@@ -879,6 +899,11 @@ export class StaffComponent implements OnInit {
   // }
 
   openExitModal() {
+    // In view mode just go back without confirmation
+    if (this.isViewMode) {
+      this.routerUrl.navigate(['/staff-list']);
+      return;
+    }
     this.isExitModalOpen = true;
   }
 
@@ -909,7 +934,7 @@ export class StaffComponent implements OnInit {
     } else {
       this.selectedRooms = this.selectedRooms.filter(r => r.id !== room.id);
     }
-    console.log('Selected Rooms:', this.selectedRooms);
+    // console.log('Selected Rooms:', this.selectedRooms);
     this.staffForm.get('room_no')?.setValue(this.selectedRooms.length > 0 ? this.selectedRooms : null);
     this.staffForm.get('room_no')?.updateValueAndValidity();
   }
@@ -939,7 +964,7 @@ export class StaffComponent implements OnInit {
         (s: any) => s.label !== slot.label
       );
     }
-    console.log('Selected Shift Times:', this.selectedShiftTimes);
+    // console.log('Selected Shift Times:', this.selectedShiftTimes);
     this.staffForm.get('shift_time')?.setValue(this.selectedShiftTimes);
     this.staffForm.get('shift_time')?.updateValueAndValidity();
   }
@@ -1041,7 +1066,7 @@ export class StaffComponent implements OnInit {
   //   this.getChildHierarchy(selectedIds);
   // }
   onHierarchySelect(hierarchy: any, event: any) {
-    console.log('Calling');
+    // console.log('Calling');
     const isChecked = event.target.checked;
     if (isChecked) {
       //  Add if not already selected
@@ -1058,7 +1083,7 @@ export class StaffComponent implements OnInit {
     this.staffForm.patchValue({
       higher_level_hierarchy: this.selectedHierarchies,
     });
-    console.log('Selected Higher Level Hierarchies:', this.selectedHierarchies);
+    // console.log('Selected Higher Level Hierarchies:', this.selectedHierarchies);
     const selectedIds = this.selectedHierarchies.map((h: any) => h.id);
     if (selectedIds.length === 0) {
       // Clear dependent data
@@ -1096,7 +1121,7 @@ export class StaffComponent implements OnInit {
   //           supervisorIds.includes(item.parentId) ||
   //           supervisorIds.includes(item.parent_id)
   //         );
-  //         console.log(
+  //         // console.log(
   //           'Child hierarchies for selected higher level hierarchies:',
   //           this.supervisorChildList
   //         );
@@ -1168,8 +1193,8 @@ export class StaffComponent implements OnInit {
   //           }
   //         });
   //         this.officersData = officersForSelected;
-  //         console.log('Officers found:', this.officersData);
-  //         console.log('Missing hierarchies:', missingHierarchies);
+  //         // console.log('Officers found:', this.officersData);
+  //         // console.log('Missing hierarchies:', missingHierarchies);
   //         // check if lowest hierarchy included
   //         const lowest = this.defaultHierarchy;
   //         const includesLowest = this.selectedHierarchies.some(
@@ -1208,7 +1233,7 @@ export class StaffComponent implements OnInit {
 
   getOfficerDetails(supervisorIds: any[]) {
     // console.log('Calling 1')
-    console.log('Fetching officers for higher level hierarchy IDs:', supervisorIds);
+    // console.log('Fetching officers for higher level hierarchy IDs:', supervisorIds);
     const requestBody = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
@@ -1237,14 +1262,14 @@ export class StaffComponent implements OnInit {
           // Remove duplicate staff entries (by ID)
           const uniqueOfficersMap = new Map();
           officersForSelected.forEach((staff: any) => {
-            console.log('staff:', staff.id);
+            // console.log('staff:', staff.id);
             if (!uniqueOfficersMap.has(staff.id)) {
               uniqueOfficersMap.set(staff.id, staff);
             }
           });
-          this.officersData =  Array.from(uniqueOfficersMap.values());
-          console.log('Officers found:', this.officersData);
-          console.log('Missing hierarchies:', missingHierarchies);
+          this.officersData = Array.from(uniqueOfficersMap.values());
+          // console.log('Officers found:', this.officersData);
+          // console.log('Missing hierarchies:', missingHierarchies);
           // Remove any selected officer not in new officer list
           const allowedIds = new Set(this.officersData.map((o: any) => o.id));
           const newSelectedOfficers = (this.selectedOfficers || []).filter((officer: any) =>
@@ -1254,7 +1279,7 @@ export class StaffComponent implements OnInit {
           this.selectedOfficers = [...newSelectedOfficers];
           // Update the form control value (ensure it clears visually)
           const control = this.staffForm.get('higher_level_officer');
-          console.log('Selected Officer:', this.selectedOfficers)
+          // console.log('Selected Officer:', this.selectedOfficers)
           if (control) {
             control.setValue(this.selectedOfficers.length > 0 ? [...this.selectedOfficers] : []);
             control.updateValueAndValidity();
@@ -1289,7 +1314,6 @@ export class StaffComponent implements OnInit {
     );
   }
 
-
   // async getChildHierarchy(supervisorIds: any[], respData?: any) {
   //   console.log('Fetching child hierarchy for supervisor IDs:', supervisorIds);
   //   const requestBody = {
@@ -1305,7 +1329,7 @@ export class StaffComponent implements OnInit {
   //       this.supervisorChildList = allHierarchies.filter((item: any) =>
   //         supervisorIds.includes(item.parentId)
   //       );
-  //       console.log('Child hierarchies for selected higher level hierarchies:', this.supervisorChildList);
+  //       // console.log('Child hierarchies for selected higher level hierarchies:', this.supervisorChildList);
   //       // Find the lowest hierarchy (default one)
   //       const lowestHierarchy = await this.getLowestLevelHierarchy();
   //       // If creating a staff and selected hierarchy includes the lowest one — hide officer field
@@ -1313,7 +1337,7 @@ export class StaffComponent implements OnInit {
   //         (h: any) => h.id === lowestHierarchy?.id
   //       );
   //       if (includesLowestHierarchy) {
-  //         console.log('Selected hierarchy includes lowest level → hiding officer field');
+  //         // console.log('Selected hierarchy includes lowest level → hiding officer field');
   //         // Hide officer field and clear validators
   //         this.showLowestHigherLevelOfficer = false;
   //         this.staffForm.patchValue({ higher_level_officer: null });
@@ -1322,7 +1346,7 @@ export class StaffComponent implements OnInit {
   //         // Load room list for lowest hierarchy
   //         const room_ranges = this.localStorageService.get('roomRange');
   //         this.roomRanges = room_ranges ? JSON.parse(room_ranges) : [];
-  //         console.log('Room Ranges for Lowest Hierarchy:', this.roomRanges);
+  //         // console.log('Room Ranges for Lowest Hierarchy:', this.roomRanges);
   //       } else {
   //         // Show and validate officer field
   //         this.showLowestHigherLevelOfficer = true;
@@ -1345,11 +1369,18 @@ export class StaffComponent implements OnInit {
   // }
 
   async getChildHierarchy(supervisorIds: any[], respData?: any) {
-    console.log('Fetching child hierarchy for supervisor IDs:', supervisorIds);
+    // console.log('Fetching child hierarchy for supervisor IDs:', supervisorIds);
     const requestBody = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
-      extras: { find: { customer_id: Number(this.hotelId) } }
+      extras: {
+        find:
+        {
+          // Newly added for getting member id for customer type
+          // customer_id: Number(this.hotelId)
+          "member_id": this.localStorageService.get('MemberId')
+        }
+      }
     };
     this.hierarchyService.getAllHierarchy(requestBody).subscribe(async (resp: any) => {
       this.loaderService.emitComplete();
@@ -1359,11 +1390,11 @@ export class StaffComponent implements OnInit {
         this.supervisorChildList = allHierarchies.filter((item: any) =>
           supervisorIds.includes(item.parentId) || supervisorIds.includes(item.parent_id) // cover different prop names
         );
-        console.log('Child hierarchies for selected higher level hierarchies:', this.supervisorChildList);
+        // console.log('Child hierarchies for selected higher level hierarchies:', this.supervisorChildList);
         // If respData (editing), preselect staff child hierarchies from respData.hierarchy
         if (respData?.hierarchy) {
           // respData.hierarchy may be array or object: normalize to array of ids
-          const respHierarchyArr = Array.isArray(respData.hierarchy) ? respData.hierarchy : [respData.hierarchy];
+          const respHierarchyArr = Array.isArray(respData?.hierarchy) ? respData?.hierarchy : [respData?.hierarchy];
           // Map each incoming child to matching object in supervisorChildList by id/_id or designation+department
           this.selectedStaffHierarchies = respHierarchyArr.map((h: any) => {
             const incomingId = (h.id ?? h._id ?? '').toString();
@@ -1380,7 +1411,7 @@ export class StaffComponent implements OnInit {
           });
           // Patch selected children and form control
           this.staffForm.patchValue({ hierarchy: this.selectedStaffHierarchies.length ? this.selectedStaffHierarchies : null });
-          console.log('Preselected staff child hierarchies:', this.selectedStaffHierarchies);
+          // console.log('Preselected staff child hierarchies:', this.selectedStaffHierarchies);
         } else {
           // normal flow (user selecting from dropdown) - keep empty until user picks
           this.selectedStaffHierarchies = [];
@@ -1424,7 +1455,13 @@ export class StaffComponent implements OnInit {
       const requestBody = {
         domain_name: DOMAIN_NAME,
         user_id: USER_ID,
-        extras: { find: { customer_id: Number(this.hotelId) } }
+        extras: {
+          find: {
+            // Newly added for getting member id for customer type
+            // customer_id: Number(this.hotelId) 
+            "member_id": this.localStorageService.get('MemberId')
+          }
+        }
       };
       this.hierarchyLowestService.apiCall(requestBody, ENDPOINTS.GET_HIERARCHY)
         .subscribe({
@@ -1438,7 +1475,7 @@ export class StaffComponent implements OnInit {
                 ? rootLevel.reduce((min: any, h: any) => (h.id < min.id ? h : min), rootLevel[0])
                 : null;
               this.defaultHierarchy = lowest;
-              console.log('Lowest hierarchy found in hierarchy:', lowest);
+              // console.log('Lowest hierarchy found in hierarchy:', lowest);
               resolve(lowest);
             } else {
               this.defaultHierarchy = null;
@@ -1464,12 +1501,12 @@ export class StaffComponent implements OnInit {
   //     (resp: any) => {
   //       if (resp?.success === 1 && resp.status_code === 200) {
   //         // Filter officers belonging to any of the selected hierarchies
-  //         console.log('All Officers:', resp.result.data);
+  //         // console.log('All Officers:', resp.result.data);
   //         const allOfficers = resp.result.data.filter((staff: any) =>
   //           staff.hierarchy?.some((h: any) => supervisorIds.includes(h.id))
   //         );
   //         this.officersData = allOfficers;
-  //         console.log('Officers details selected hierarchies:', this.officersData);
+  //         // console.log('Officers details selected hierarchies:', this.officersData);
   //         // Optionally preselect first officer if needed
   //         const selectedOfficer = this.officersData.length ? this.officersData[0] : null;
   //         this.staffForm.patchValue({ higher_level_officer: selectedOfficer || null });
@@ -1508,7 +1545,7 @@ export class StaffComponent implements OnInit {
         (o: any) => o.member_id !== officer.member_id
       );
     }
-    console.log('Selected higher level officers:', this.selectedOfficers);
+    // console.log('Selected higher level officers:', this.selectedOfficers);
     // Combine all officers’ room ranges
     let combinedRooms: any[] = [];
     this.selectedOfficers.forEach((officer) => {
@@ -1566,7 +1603,7 @@ export class StaffComponent implements OnInit {
     }
     // Patch reactive form
     this.staffForm.patchValue({ hierarchy: this.selectedStaffHierarchies });
-    console.log('Selected Staff Hierarchies:', this.selectedStaffHierarchies);
+    // console.log('Selected Staff Hierarchies:', this.selectedStaffHierarchies);
   }
 
   saveForm() {
@@ -1590,8 +1627,8 @@ export class StaffComponent implements OnInit {
           department: officer.hierarchy?.map((h: any) => h.department) || []
         }));
       }
-      console.log('Selected Officer Details:', officerDetails);
-      console.log('Selected Officer Details:', this.officersData.length);
+      // console.log('Selected Officer Details:', officerDetails);
+      // console.log('Selected Officer Details:', this.officersData.length);
       // Newly added for is_available
       // Determine is_available based on hierarchy structure
       let isAvailable = false;
@@ -1619,7 +1656,7 @@ export class StaffComponent implements OnInit {
       };
       this.staffListingService.getAllStaves(requestBody).subscribe({
         next: (staffList: any) => {
-          console.log('Existing Staff List:', staffList);
+          // console.log('Existing Staff List:', staffList);
           const phoneExists = staffList.result.data.find((staff: any) => staff.phone_number === formValues.phone_number);
           if (phoneExists) {
             this.loaderService.emitComplete();
@@ -1646,14 +1683,19 @@ export class StaffComponent implements OnInit {
             member_id: this.memberId,
             higher_level_officer: officerDetails,
             password: formValues.password,
-            is_available: isAvailable
+            // Newly commnted for is_available because while logging in the staff will be available while logging out it will be unavailable
+            // is_available: isAvailable,
+            // Ended
+            //  Newly commented because no need of fo desk 
+            // front_office_desk: formValues.front_office_desk
+            // End of newly commented code
           };
           const requestData: any = {
             domain_name: DOMAIN_NAME,
             user_id: USER_ID,
             payload: { staff_creation: payloadData }
           };
-          console.log('Payload Data(while staff creation):', requestData);
+          // console.log('Payload Data(while staff creation):', requestData);
           this.staffService.addStaff(requestData).subscribe({
             next: (resp) => {
               this.loaderService.emitComplete();
@@ -1725,12 +1767,12 @@ export class StaffComponent implements OnInit {
         department: officer.hierarchy?.map((h: any) => h.department) || []
       }));
     }
-    console.log(this.staffForm.valid, 'Valid/Not')
+    // console.log(this.staffForm.valid, 'Valid/Not')
     if (!this.staffForm.valid) {
       this.validateForm = true;
       return;
     }
-    console.log('Staff Form Values:', this.staffForm.value);
+    // console.log('Staff Form Values:', this.staffForm.value);
     this.loaderService.emitLoading();
     this.validateForm = false;
     const formValues = this.staffForm.getRawValue();
@@ -1771,6 +1813,9 @@ export class StaffComponent implements OnInit {
           created_by_name: this.createdByName,
           password: this.password,
           // higher_level_officer: officerDetails
+          //  Newly commented because no need of fo desk 
+          // front_office_desk: formValues.front_office_desk
+          // End of newly commented code
         };
         // only include password if changed
         if (formValues.password && formValues.password !== '********') {
@@ -1934,7 +1979,7 @@ export class StaffComponent implements OnInit {
   // }
 
   setInitialValues(staffId: any) {
-    console.log('Staff ID:', staffId, this.memberId);
+    // console.log('Staff ID:', staffId, this.memberId);
     this.staffId = staffId;
     const jsonObj = {
       domain_name: DOMAIN_NAME,
@@ -1951,28 +1996,31 @@ export class StaffComponent implements OnInit {
           const respData = resp.result.data[0];
           // Patch basic info
           this.staffForm.patchValue({
-            email: respData.email,
-            full_name: respData.full_name,
-            phone_number: respData.phone_number,
-            is_staff_active: respData.is_staff_active,
-            at_desk: !!respData.at_desk,
+            email: respData?.email,
+            full_name: respData?.full_name,
+            phone_number: respData?.phone_number,
+            is_staff_active: respData?.is_staff_active,
+            at_desk: !!respData?.at_desk,
+            //  Newly commented because no need of fo desk 
+            // front_office_desk: respData?.front_office_desk
+            // End of newly commented code
           });
           // Password handling
-          if (respData.password) {
-            this.password = respData.password;
+          if (respData?.password) {
+            this.password = respData?.password;
             this.staffForm.patchValue({ password: '********' });
           }
           // Shift times and rooms
-          this.selectedShiftTimes = respData.shift_time || [];
+          this.selectedShiftTimes = respData?.shift_time || [];
           this.staffForm.get('shift_time')?.setValue(
             this.selectedShiftTimes.length ? this.selectedShiftTimes.map(st => ({ label: st.label })) : null
           );
-          this.selectedRooms = respData.room_no || [];
+          this.selectedRooms = respData?.room_no || [];
           this.staffForm.get('room_no')?.setValue(
             this.selectedRooms.length ? this.selectedRooms.map(r => ({ label: r.label })) : null
           );
           // Staff member ID
-          this.staff_member_id = respData.staff_employee_number;
+          this.staff_member_id = respData?.staff_employee_number;
           // fetch all staff to populate officersData
           const requestBody = {
             domain_name: DOMAIN_NAME,
@@ -1984,9 +2032,9 @@ export class StaffComponent implements OnInit {
               if (staffResp?.success === 1 && staffResp.status_code === 200) {
                 this.officersData = staffResp.result.data || [];
                 // --- Higher Level Officers (multi-select) ---
-                if (respData.higher_level_officer && Array.isArray(respData.higher_level_officer)) {
+                if (respData?.higher_level_officer && Array.isArray(respData?.higher_level_officer)) {
                   this.showHigherLevelOfficer = true;
-                  this.selectedOfficers = respData.higher_level_officer.map((officer: any) => {
+                  this.selectedOfficers = respData?.higher_level_officer.map((officer: any) => {
                     const matched = this.officersData.find((o: any) => (o.id ?? o._id) === (officer.id ?? officer._id));
                     return matched || officer;
                   });
@@ -2005,9 +2053,9 @@ export class StaffComponent implements OnInit {
             }
           );
           // --- Higher Level Hierarchy (multi-select) ---
-          if (respData.higher_level_hierarchy && Array.isArray(respData.higher_level_hierarchy)) {
+          if (respData?.higher_level_hierarchy && Array.isArray(respData?.higher_level_hierarchy)) {
             // Map parent/supervisor selection by id/_id (defensive)
-            this.selectedHierarchies = respData.higher_level_hierarchy.map((h: any) =>
+            this.selectedHierarchies = respData?.higher_level_hierarchy.map((h: any) =>
               this.supervisorList?.find((s: any) =>
                 (s.id ?? s._id ?? '').toString() === (h.id ?? h._id ?? '').toString()
               ) || h
@@ -2044,7 +2092,9 @@ export class StaffComponent implements OnInit {
       user_id: USER_ID,
       "extras": {
         "find": {
-          "customer_id": Number(this.hotelId)
+          // Newly added for getting member id for customer type
+          // "customer_id": Number(this.hotelId)
+          "member_id": this.localStorageService.get('MemberId')
         }
       }
     };
@@ -2053,7 +2103,7 @@ export class StaffComponent implements OnInit {
         this.loaderService.emitComplete();
         if (resp?.success === 1 && resp.status_code === 200) {
           this.customerHierarchy = resp.result.data[0];
-          console.log("Fetched customer hierarchy(in staff creation):", this.customerHierarchy);
+          // console.log("Fetched customer hierarchy(in staff creation):", this.customerHierarchy);
           this.customerHierarchydata = resp.result.data[0];
           this.hierarchyParentIds = [
             ...new Set(
@@ -2074,7 +2124,7 @@ export class StaffComponent implements OnInit {
             const supervisorObj = this.supervisorList?.find(
               (s: any) => s.designation === this.dh.designation && s.department === this.dh.department
             );
-            console.log('Default Hierarchy Level Hierarchy:', supervisorObj);
+            // console.log('Default Hierarchy Level Hierarchy:', supervisorObj);
             // Newly added & commented for combined - started
             // this.staffForm.patchValue({
             //   higher_level_hierarchy: supervisorObj || null
@@ -2095,7 +2145,7 @@ export class StaffComponent implements OnInit {
             );
             this.selectedStaffHierarchies = []; //  children remain unselected
             this.staffForm.patchValue({ hierarchy: [] }); // form control empty initially
-            console.log('Child hierarchies (unselected by default):', this.supervisorChildList);
+            // console.log('Child hierarchies (unselected by default):', this.supervisorChildList);
             // Ended
           }
         } else {

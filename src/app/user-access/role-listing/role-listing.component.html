@@ -5,14 +5,19 @@
             <!-- Role listing page -->
             <!-- Tabs Navigation -->
             <div style="display: flex; justify-content: space-between;">
-                <button class="fw-semibold" (click)="openDeleteModal()"
-                    style="background-color: #800020;font-weight: 500;color: white; padding: 10px 20px; border-radius: 5px; font-size: 14px; border: none;">
+                <button
+                    class="fw-semibold"
+                    (click)="openDeleteModal()"
+                    style="background-color: #800020;font-weight: 500;color: white; padding: 10px 20px; border-radius: 5px; font-size: 14px; border: none;"
+                    [disabled]="!canDeleteUserAccess">
                     Delete Selected
                 </button>
                 <!-- For adding new role -->
-                <button class="fw-semibold"
+                <button
+                    class="fw-semibold"
                     style="background-color: #800020; color: white; padding: 10px 20px; border-radius: 5px; font-size: 14px; border: none;"
-                    (click)="toggleAddRole()">
+                    (click)="toggleAddRole()"
+                    [disabled]="!canAddUserAccess">
                     Add Role
                 </button>
             </div>
@@ -20,7 +25,9 @@
             <table class="table" style="margin-top: 3%;">
                 <thead>
                     <tr>
-                        <th><input type="checkbox"></th>
+                        <th>
+                            <input type="checkbox" disabled>
+                        </th>
                         <th style="text-align: start;">Role Name</th>
                         <th>Standard Role</th>
                         <th>Active</th>
@@ -30,16 +37,35 @@
                 <tbody>
                     <tr *ngFor="let role of allRoles" style="background-color: white;">
                         <td style="text-align: center;">
-                            <input type="checkbox" [id]="role.name" [name]="role.name" [value]="role.name"
-                                (change)="toggleSelection($event, role.id)">
+                                <input type="checkbox"
+                                    [id]="role.name"
+                                    [name]="role.name"
+                                    [value]="role.name"
+                                    (change)="toggleSelection($event, role.id)"
+                                    [disabled]="!canDeleteUserAccess">
                         </td>
                         <td>{{ role.name }}</td>
                         <td style="text-align: center;">{{ role.is_standard }}</td>
                         <td style="text-align: center;">{{ role.is_active }}</td>
                         <td style="text-align: center;">
-                            <i class="fa fa-pen-to-square" style="color: #800020;"
-                                (click)="setInitialValues(role.id)"></i>
+                            <!-- View icon: requires read permission -->
+                            <i class="fa fa-eye me-3"
+                               style="color: #800020; cursor: pointer;"
+                               [style.opacity]="canReadUserAccess ? 1 : 0.4"
+                               (click)="viewRole(role.id)"
+                               [style.cursor]="canReadUserAccess ? 'pointer' : 'not-allowed'"
+                               title="View"></i>
+                            <!-- Edit icon: requires edit permission -->
+                            <i class="fa fa-pen-to-square"
+                               style="color: #800020; cursor: pointer;"
+                               [style.opacity]="canEditUserAccess ? 1 : 0.4"
+                               (click)="setInitialValues(role.id)"
+                               [style.cursor]="canEditUserAccess ? 'pointer' : 'not-allowed'"
+                               title="Edit"></i>
                         </td>
+                    </tr>
+                    <tr *ngIf="allRoles.length === 0">
+                        <td colspan="5" class="text-center">No roles found</td>
                     </tr>
                 </tbody>
             </table>

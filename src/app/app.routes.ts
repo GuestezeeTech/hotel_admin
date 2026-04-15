@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+// import { authGuard } from './auth-services/auth.guard';
 
 export const routes: Routes = [
   {
@@ -12,34 +13,42 @@ export const routes: Routes = [
   {
     path: '',
     loadChildren: () => import('./admin-dashboard/admin-dashboard.module').then(m => m.AdminDashboarModule),
+    // canActivate: [authGuard] //for after logout, back button should not navigate to dashboard without login
   },
   {
     path: '',
     loadChildren: () => import('./report/report.module').then(m => m.ReportModule),  // Lazy-load LoginModule
+    // canActivate: [authGuard] //for after logout, back button should not navigate to dashboard without login
   },
   {
     path: '',
     loadChildren: () => import('./hotel-enrollment-tabview/hotel-enrollment-tabview.module').then(m => m.HotelEnrollmentTabviewModule),  // Lazy-load LoginModule
+    // canActivate: [authGuard] //for after logout, back button should not navigate to dashboard without login
   },
   {
     path: '',
     loadChildren: () => import('./user-access/role/role.module').then(m => m.RoleModule),
+    // canActivate: [authGuard] //for after logout, back button should not navigate to dashboard without login
   },
   {
     path: '',
     loadChildren: () => import('./user-access/role-listing/role-listing.module').then(m => m.RoleListingModule),
+    // canActivate: [authGuard] //for after logout, back button should not navigate to dashboard without login
   },
   {
     path: '',
     loadChildren: () => import('./profile/profile.module').then(m => m.ProfileModule),  // Lazy-load LoginModule
+    // canActivate: [authGuard] //for after logout, back button should not navigate to dashboard without login
   },
   {
     path: '',
     loadChildren: () => import('./settings/settings.module').then(m => m.SettingsModule),  // Lazy-load LoginModule
+    // canActivate: [authGuard] //for after logout, back button should not navigate to dashboard without login
   },
   {
     path: '',
     loadChildren: () => import('./payment-subscription-management/payment-subscription-management.module').then(m => m.PaymentSubscriptionManagementModule),  // Lazy-load LoginModule
+    // canActivate: [authGuard] //for after logout, back button should not navigate to dashboard without login
   },
   {
     path: '',
@@ -119,5 +128,17 @@ export const routes: Routes = [
   {
     path: '',
     loadChildren: () => import('./service-settings/service-settings.module').then(m => m.ServiceSettingsModule),
+  },
+  {
+    path: 'service-tab-list',
+    loadChildren: () => import('./service-tab-list/service-tab-list.module').then(m => m.ServiceTabListModule)
+  },
+  {
+    path: '',
+    loadChildren: () => import('./features/features.module').then(m => m.FeaturesModule)
+  },
+  {
+    path: '',
+    loadChildren: () => import('./restaurants-list/restaurants-list.module').then(m => m.RestaurantsListModule)
   }
 ];

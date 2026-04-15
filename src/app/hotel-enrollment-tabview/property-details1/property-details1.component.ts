@@ -16,6 +16,7 @@ import { LocalStorageService } from '../../auth-services/local-storage.service';
 // Newly added
 import { HttpHeaders } from '@angular/common/http';
 import { ProfileService } from '../../profile/profile.service';
+import { HierarchyService } from '../../hierarchy/hierarchy.service';
 
 @Component({
   selector: 'app-property-details1',
@@ -33,7 +34,7 @@ export class PropertyDetails1Component {
   countryDropdownList: any;
   customerId: string | null = null;
   orderData: any;
-  memberId: Number | null = null;
+  memberId: any | null = null;
   isOtherBrand = false;
   customerdata: any = {};
   options = {
@@ -125,9 +126,25 @@ export class PropertyDetails1Component {
     '101-150 Rooms': 150,
     '150 and above Rooms': Infinity // no upper limit
   };
+  // Min/max range per property size band
+  propertySizeRanges: { [key: string]: { min: number; max: number } } = {
+    '01-50 Rooms': { min: 1, max: 50 },
+    '51-100 Rooms': { min: 51, max: 100 },
+    '101-150 Rooms': { min: 101, max: 150 },
+    '150 and above Rooms': { min: 151, max: Infinity }
+  };
   // dynamicRoomCost: number = 0;
   status: string = '';
   customerStatus: string = '';
+  // Newly added fo hierarchy member_id update
+  hierarchyData: any;
+  // Newly added for documents upload
+  originalUploadedDocuments: any[] = [];
+  // The company_status value that was last saved to the server
+  originalCompanyStatus: string = '';
+  // Tracks which specific doc the user clicked upload for
+  selectedApiDocName: string | null = null;
+  selectedUploadDoc: string | null = null;
 
   constructor(
     private authTokenService: AuthTokenService,
@@ -140,7 +157,9 @@ export class PropertyDetails1Component {
     private localStorageService: LocalStorageService,
     private hotelenrollmentservice: HotelEnrollmentTabviewService,
     // Newly added
-    private profileService: ProfileService
+    private profileService: ProfileService,
+    // Newly added fo hierarchy member_id update
+    private hierarchyService: HierarchyService
   ) {
     this.router.events.subscribe(event => {
       if (event instanceof NavigationEnd) {
@@ -159,26 +178,31 @@ export class PropertyDetails1Component {
   }
 
   ngOnInit(): void {
-    this.hotelId = Number(this.localStorageService.get('UserId'));
+    // Newly added for getting customer id for customer type
+    // this.hotelId = Number(this.localStorageService.get('UserId'));
     //console.log('Hotels ID:', this.hotelId);
+    this.memberId = this.localStorageService.get('MemberId');
+    // console.log('Member ID:', this.memberId);
+    // End of newly added for getting customer id for customer type
     this.executeFunctions();
     this.customerProprtyDetailsForm = new FormGroup({
-      hotel_name: new FormControl('', Validators.required),
-      contact_person: new FormControl('', Validators.required),
-      designation: new FormControl('', Validators.required),
-      primary_phone_number: new FormControl('', [Validators.required, Validators.pattern(/^[0-9\s\-+()]+$/)]),
-      secondary_phone_number: new FormControl('', [Validators.required, Validators.pattern(/^[0-9\s\-+()]+$/)]),
-      email: new FormControl('', [Validators.required, Validators.email]),
+      hotel_name: new FormControl('', [Validators.required, CustomValidators.noWhitespaceValidator]),
+      contact_person: new FormControl('', [Validators.required, CustomValidators.noWhitespaceValidator]),
+      designation: new FormControl('', [Validators.required, CustomValidators.noWhitespaceValidator]),
+      primary_phone_number: new FormControl('', [Validators.required, Validators.pattern(/^[0-9\s\-+()]+$/), CustomValidators.noWhitespaceValidator]),
+      secondary_phone_number: new FormControl('', [Validators.required, Validators.pattern(/^[0-9\s\-+()]+$/), CustomValidators.noWhitespaceValidator]),
+      // email: new FormControl('', [Validators.required, Validators.email]), 
+        email: new FormControl('', [Validators.required, Validators.pattern(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)]),  
       brand: new FormControl('', Validators.required),
-      property_doorno: new FormControl('', Validators.required),
-      property_address: new FormControl('', Validators.required),
-      property_city: new FormControl('', Validators.required),
+      property_doorno: new FormControl('', [Validators.required, CustomValidators.noWhitespaceValidator]),
+      property_address: new FormControl('', [Validators.required, CustomValidators.noWhitespaceValidator]),
+      property_city: new FormControl('', [Validators.required, CustomValidators.noWhitespaceValidator]),
       property_state: new FormControl('', Validators.required),
-      property_location: new FormControl('', [Validators.required,]),
+      property_location: new FormControl('', [Validators.required, CustomValidators.noWhitespaceValidator]),
       property_country: new FormControl('', Validators.required),
       property_pincode: new FormControl('', [Validators.required, CustomValidators.pincodeValidator]),
-      property_pan: new FormControl('', [Validators.required, CustomValidators.panValidator]),
-      property_gst: new FormControl('', [Validators.required, CustomValidators.gstValidator]),
+      property_pan: new FormControl('', [Validators.required, CustomValidators.panValidator, CustomValidators.noWhitespaceValidator]),
+      property_gst: new FormControl('', [Validators.required, CustomValidators.gstValidator, CustomValidators.noWhitespaceValidator]),
       property_size: new FormControl('', Validators.required),
       // Newly added
       company_status: new FormControl('', Validators.required),
@@ -189,8 +213,21 @@ export class PropertyDetails1Component {
       // Newly added for room number 
       number_of_rooms: new FormControl('', [Validators.required]),
     });
+    // Newly added for documents upload
+    // React when company status (KYC) changes so that
+    // required documents list is rebuilt for the selected option
+    const companyStatusControl = this.customerProprtyDetailsForm.get('company_status');
+    if (companyStatusControl) {
+      companyStatusControl.valueChanges.subscribe((status: string) => {
+        this.onCompanyStatusChange(status);
+      });
+    }
+    //  End of newly added for documents upload
 
-    if (this.hotelId != 0) {
+    // Newly added for getting customer id for customer type
+    // if (this.hotelId != 0) {
+    if (this.memberId !== undefined && this.memberId !== null && this.memberId !== '' && this.memberId !== 'undefined' && this.memberId !== 'null') {
+      // End of newly added for getting customer id for customer type
       // this.getCustomerById();
       this.getCustomerById().then(() => {
         if (!this.selectedPropertySize && Object.keys(this.propertyPricingMap).length > 0) {
@@ -213,7 +250,7 @@ export class PropertyDetails1Component {
     // if (changes['paymentDone'] || this.paymentDone) {
     //   this.customerProprtyDetailsForm.disable();
     // }
-    console.log('Payment changes:', changes, 'Payment done:', this.paymentDone);
+    // console.log('Payment changes:', changes, 'Payment done:', this.paymentDone);
     if (changes['paymentDone'] || this.paymentDone) {
       this.customerProprtyDetailsForm.get('property_size')?.disable();
       this.customerProprtyDetailsForm.get('number_of_rooms')?.disable();
@@ -231,9 +268,13 @@ export class PropertyDetails1Component {
     if (this.router.url.includes('confirmation')) {
       this.customerId = this.activatedRoute.snapshot.queryParamMap.get('customer_id');
       //console.log('Customer ID:', this.customerId);
-      this.hotelId = Number(this.customerId)
+      // Newly added for getting customer id for customer type
+      // this.hotelId = Number(this.customerId)
+      this.memberId = this.localStorageService.get('MemberId');
+      // console.log('Member ID:', this.memberId);
+      // End of newly added for getting customer id for customer type
       this.executeFunctions().then(() => {
-        this.getOrderData(Number(this.customerId))
+        this.getOrderData(this.memberId)
       });
 
     }
@@ -528,13 +569,213 @@ export class PropertyDetails1Component {
     }
   }
 
+  /*  async customerUpdate() {
+     // console.log('Clicked')
+     delete this.customerdata._id;
+     delete this.customerdata.password;
+     //console.log(this.customerdata._id, this.customerdata, "test check ")
+     const formValues = this.customerProprtyDetailsForm.getRawValue();
+     let tempCustomerObject = {
+       "contact_details": {
+         hotel_name: formValues.hotel_name,
+         contact_person: formValues.contact_person,
+         designation: formValues.designation,
+         primary_phone_number: formValues.primary_phone_number,
+         secondary_phone_number: formValues.secondary_phone_number,
+         email: formValues.email,
+         brand: formValues.brand,
+         other_brand_name: formValues.other_brand_name,
+       },
+       "property_address": {
+         property_doorno: formValues.property_doorno,
+         property_address: formValues.property_address,
+         property_city: formValues.property_city,
+         property_state: formValues.property_state,
+         property_location: formValues.property_location,
+         property_country: formValues.property_country,
+         property_pincode: formValues.property_pincode,
+         property_pan: formValues.property_pan,
+         property_gst: formValues.property_gst,
+         property_size: formValues.property_size,
+         number_of_rooms: formValues.number_of_rooms
+       },
+       // Newly added
+       "kyc_documents": {
+         company_status: formValues.company_status,
+         uploaded_documents: this.uploaded_documents
+       },
+       "hotel_logo": this.hotelLogoUrl
+     }
+     this.customerdata["property_details"] = tempCustomerObject;
+     this.customerdata["name"] = formValues.hotel_name;
+     this.customerdata["is_property_details_exists"] = true;
+ 
+     //  Password key reset value
+     // this.customerdata["password"] = this.localStorageService.get('Password');
+     //console.log(tempCustomerObject)
+     //console.log(this.customerdata, " this.customerdata")
+     let requestBody = {
+       domain_name: DOMAIN_NAME,
+       user_id: USER_ID,
+       payload: {
+         customer_update: this.customerdata
+       },
+       extras: {
+         find: {
+           // id: this.hotelId
+           customer_member_id: this.memberId
+         }
+       }
+     }
+     //console.log("123")
+     // this.hotelenrollmenttabviewService.updateCustomer(requestBody).subscribe(
+     this.hotelenrollmenttabviewService.updateCustomerSettings(requestBody).subscribe(
+       resp => {
+         this.loaderService.emitComplete();
+         if (resp) {
+           if (resp.success === 1 && resp.status_code === 200) {
+             // this.hotelenrollmenttabviewService.updateCustomer(requestBody).subscribe(
+             this.hotelenrollmenttabviewService.updateCustomerSettings(requestBody).subscribe(
+               resp1 => {
+                 this.loaderService.emitComplete();
+                 if (resp1) {
+                   // console.log(resp1.success, resp1.status_code, "resp1")
+                   if (resp1.success === 1 && resp1.status_code === 200) {
+                     let requestBody = {
+                       domain_name: DOMAIN_NAME,
+                       user_id: USER_ID,
+                       extras: {
+                         find: {
+                           id: this.hotelId
+                           // customer_member_id: this.memberId
+                         }
+                       }
+                     };
+                     this.hotelenrollmentservice.getLoginCustomerById(requestBody).subscribe(
+                       resp2 => {
+                         this.loaderService.emitComplete();
+                         if (resp2) {
+                           // console.log(resp2.result.data[0].customer_member_id, "Member iddddddd");
+                           this.localStorageService.set('MemberId', resp2.result.data[0].customer_member_id);
+                           // Newly added fo hierarchy member_id update - started
+                           const customerMemberId = resp2.result.data[0].customer_member_id;
+                           // console.log(customerMemberId, "Member id");
+                           // this.getHierarchyById(this.hotelId).then(() => {
+                           this.getHierarchyById(this.memberId).then(() => {
+                             if (this.hierarchyData) {
+                               const hierarchyMemberId = this.hierarchyData.member_id;
+                               const hierarchyUpdateData: any = { ...this.hierarchyData };
+                               delete hierarchyUpdateData._id;
+                               if (hierarchyMemberId !== customerMemberId) {
+                                 // Build update request for hierarchy
+                                 const updateHierarchyBody = {
+                                   domain_name: DOMAIN_NAME,
+                                   user_id: USER_ID,
+                                   payload: {
+                                     hierarchy_update: {
+                                       ...hierarchyUpdateData,
+                                       member_id: customerMemberId   // update member_id
+                                     }
+                                   },
+                                   extras: {
+                                     find: {
+                                       // Newly added for getting member id for customer type
+                                       // customer_id: this.hierarchyData.customer_id
+                                       member_id: this.hierarchyData.member_id
+                                     }
+                                   }
+                                 };
+                                 // Call update hierarchy API
+                                 this.hierarchyService.apiCall(updateHierarchyBody, ENDPOINTS.UPDATE_HIERARCHY).subscribe(
+                                   (resp: any) => {
+                                     if (resp) {
+                                       if (resp.success === 1 && resp.status_code === 200) {
+                                         // Success message – do NOT navigate anywhere here
+                                         // console.log("Hierarchy updated due to member_id mismatch");
+                                         this.alertService.success('Hierarchy updated successfully', this.options);
+ 
+                                       }
+                                       else if (resp.success === 0) {
+                                         if (resp.message) {
+                                           this.alertService.error(resp.message, this.options);
+                                         }
+                                       }
+                                       else if (resp.message && resp.status_code !== 200) {
+                                         this.alertService.error(resp.message, this.options);
+                                       }
+                                       else {
+                                         this.alertService.error('Something bad happened. Please try again!', this.options);
+                                       }
+                                     }
+                                   },
+                                   (err: any) => {
+                                     if (err.error.statusCode === 403) {
+                                       this.alertService.error('Session Time Out! Please login Again', this.options);
+                                       this.router.navigate([`/login`], { skipLocationChange: false });
+                                     }
+                                     else if (err.error.message) {
+                                       this.alertService.error(err.error.message, this.options);
+                                     }
+                                     else {
+                                       this.alertService.error('Something bad happened. Please try again!', this.options);
+                                     }
+                                   }
+                                 );
+                               }
+                             }
+                           });
+                           // Ended
+                           this.hotelenrollmenttabviewService.clearAdminFormEvent();
+                           //console.log("alerttttt")
+                           this.alertService.success(resp1.message, this.options);
+                           this.executeFunctions(); //For storing all values am calling this function
+                           this.onContinue();
+                           // //console.log(resp);
+                         }
+                       })
+ 
+ 
+                   }
+                 }
+               })
+           }
+           else if (resp.success === 0) {
+             if (resp.message) {
+               this.alertService.error(resp.message, this.options);
+             }
+           }
+           else if (resp.message && resp.status_code !== 200) {
+             this.alertService.error(resp.message, this.options);
+           }
+           else {
+             this.alertService.error('Something bad happened. Please try again!', this.options);
+           }
+         }
+       },
+       err => {
+         this.loaderService.emitComplete();
+         if (err.error.statusCode === 403) {
+           this.alertService.error('Session Time Out! Please login Again', this.options)
+           this.router.navigate([`/login`], { skipLocationChange: false });
+         }
+         else if (err.error.message) {
+           this.alertService.error(err.error.message, this.options)
+         }
+         else {
+           this.alertService.error('Something bad happened. Please try again!', this.options);
+         }
+       }
+     )
+   } */
+
   async customerUpdate() {
-    console.log('Clicked')
+    // console.log('Clicked')
     delete this.customerdata._id;
-    //console.log(this.customerdata._id, this.customerdata, "test check ")
+    delete this.customerdata.password;
+
     const formValues = this.customerProprtyDetailsForm.getRawValue();
-    let tempCustomerObject = {
-      "contact_details": {
+    const tempCustomerObject = {
+      contact_details: {
         hotel_name: formValues.hotel_name,
         contact_person: formValues.contact_person,
         designation: formValues.designation,
@@ -544,7 +785,7 @@ export class PropertyDetails1Component {
         brand: formValues.brand,
         other_brand_name: formValues.other_brand_name,
       },
-      "property_address": {
+      property_address: {
         property_doorno: formValues.property_doorno,
         property_address: formValues.property_address,
         property_city: formValues.property_city,
@@ -558,21 +799,19 @@ export class PropertyDetails1Component {
         number_of_rooms: formValues.number_of_rooms
       },
       // Newly added
-      "kyc_documents": {
+      kyc_documents: {
         company_status: formValues.company_status,
         uploaded_documents: this.uploaded_documents
       },
-      "hotel_logo": this.hotelLogoUrl
-    }
-    this.customerdata["property_details"] = tempCustomerObject;
-    this.customerdata["name"] = formValues.hotel_name;
-    this.customerdata["is_property_details_exists"] = true;
+      hotel_logo: this.hotelLogoUrl
+    };
 
-    //  Password key reset value
-    // this.customerdata["password"] = this.localStorageService.get('Password');
-    //console.log(tempCustomerObject)
-    //console.log(this.customerdata, " this.customerdata")
-    let requestBody = {
+    this.customerdata['property_details'] = tempCustomerObject;
+    this.customerdata['name'] = formValues.hotel_name;
+    this.customerdata['is_property_details_exists'] = true;
+    this.customerdata['old_member_id'] = this.localStorageService.get('MemberId');
+
+    const requestBody = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
       payload: {
@@ -580,60 +819,127 @@ export class PropertyDetails1Component {
       },
       extras: {
         find: {
-          id: this.hotelId
+          // id: this.hotelId
+          customer_member_id: this.memberId
         }
       }
-    }
-    //console.log("123")
-    this.hotelenrollmenttabviewService.updateCustomer(requestBody).subscribe(
+    };
+
+    // Single customer update
+    this.hotelenrollmenttabviewService.updateCustomerSettings(requestBody).subscribe(
       resp => {
         this.loaderService.emitComplete();
         if (resp) {
           if (resp.success === 1 && resp.status_code === 200) {
-            this.hotelenrollmenttabviewService.updateCustomer(requestBody).subscribe(
-              resp1 => {
-                this.loaderService.emitComplete();
-                if (resp1) {
-                  console.log(resp1.success, resp1.status_code, "resp1")
-                  if (resp1.success === 1 && resp1.status_code === 200) {
-                    let requestBody = {
-                      domain_name: DOMAIN_NAME,
-                      user_id: USER_ID,
-                      extras: {
-                        find: {
-                          id: this.hotelId
-                        }
-                      }
-                    };
-                    this.hotelenrollmentservice.getLoginCustomerById(requestBody).subscribe(
-                      resp2 => {
-                        this.loaderService.emitComplete();
-                        if (resp2) {
-                          console.log(resp2.result.data[0].customer_member_id, "Member iddddddd");
-                          this.localStorageService.set('MemberId', resp2.result.data[0].customer_member_id);
-                          this.hotelenrollmenttabviewService.clearAdminFormEvent();
-                          //console.log("alerttttt")
-                          this.alertService.success(resp1.message, this.options);
-                          this.executeFunctions(); //For storing all values am calling this function
-                          this.onContinue();
-                          // //console.log(resp);
-                        }
-                      })
 
-
-                  }
+            // After update, get customer data and member_id
+            const getCustomerBody = {
+              domain_name: DOMAIN_NAME,
+              user_id: USER_ID,
+              extras: {
+                find: {
+                  id: this.hotelId
+                  // customer_member_id: this.memberId
                 }
-              })
+              }
+            };
+
+            this.hotelenrollmentservice.getLoginCustomerById(getCustomerBody).subscribe(
+              resp2 => {
+                this.loaderService.emitComplete();
+                if (resp2) {
+                  const customerMemberId = resp2.result.data[0].customer_member_id;
+                  this.memberId = customerMemberId;
+                  // Store member id
+                  this.localStorageService.set('MemberId', customerMemberId);
+                  // console.log(this.memberId, "Member id(After update in property details)");
+                  // Update hierarchy with this member id (2nd updation)
+                  /*  this.getHierarchyById(this.memberId).then(() => {
+                     if (this.hierarchyData) {
+                       const hierarchyMemberId = this.hierarchyData.member_id;
+                       const hierarchyUpdateData: any = { ...this.hierarchyData };
+                       delete hierarchyUpdateData._id;
+ 
+                       if (hierarchyMemberId !== customerMemberId) {
+                         const updateHierarchyBody = {
+                           domain_name: DOMAIN_NAME,
+                           user_id: USER_ID,
+                           payload: {
+                             hierarchy_update: {
+                               ...hierarchyUpdateData,
+                               member_id: customerMemberId
+                             }
+                           },
+                           extras: {
+                             find: {
+                               // customer_id: this.hierarchyData.customer_id
+                               member_id: this.hierarchyData.member_id
+                             }
+                           }
+                         };
+ 
+                         this.hierarchyService.apiCall(updateHierarchyBody, ENDPOINTS.UPDATE_HIERARCHY).subscribe(
+                           (resp: any) => {
+                             if (resp) {
+                               if (resp.success === 1 && resp.status_code === 200) {
+                                 this.alertService.success('Hierarchy updated successfully', this.options);
+                               } else if (resp.success === 0) {
+                                 if (resp.message) {
+                                   this.alertService.error(resp.message, this.options);
+                                 }
+                               } else if (resp.message && resp.status_code !== 200) {
+                                 this.alertService.error(resp.message, this.options);
+                               } else {
+                                 this.alertService.error('Something bad happened. Please try again!', this.options);
+                               }
+                             }
+                           },
+                           (err: any) => {
+                             if (err.error.statusCode === 403) {
+                               this.alertService.error('Session Time Out! Please login Again', this.options);
+                               this.router.navigate(['/login'], { skipLocationChange: false });
+                             } else if (err.error.message) {
+                               this.alertService.error(err.error.message, this.options);
+                             } else {
+                               this.alertService.error('Something bad happened. Please try again!', this.options);
+                             }
+                           }
+                         );
+                       }
+                     }
+                   }); */
+
+                  // Final success actions
+                  this.hotelenrollmenttabviewService.clearAdminFormEvent();
+                  this.alertService.success(resp.message, this.options);
+                  this.executeFunctions();
+                  this.onContinue();
+                }
+              },
+              err => {
+                this.loaderService.emitComplete();
+                if (err.error.statusCode === 403) {
+                  this.alertService.error('Session Time Out! Please login Again', this.options);
+                  this.router.navigate(['/login'], { skipLocationChange: false });
+                } else if (err.error.message) {
+                  this.alertService.error(err.error.message, this.options);
+                } else {
+                  this.alertService.error('Something bad happened. Please try again!', this.options);
+                }
+              }
+            );
+
+          }
+          else if (resp.message.toLowerCase().includes('input parameters missing')) {
+            this.alertService.error('Please fill all the required fields.', this.options);
           }
           else if (resp.success === 0) {
             if (resp.message) {
               this.alertService.error(resp.message, this.options);
             }
-          }
-          else if (resp.message && resp.status_code !== 200) {
+          } else if (resp.message && resp.status_code !== 200) {
             this.alertService.error(resp.message, this.options);
-          }
-          else {
+          } else {
             this.alertService.error('Something bad happened. Please try again!', this.options);
           }
         }
@@ -641,19 +947,16 @@ export class PropertyDetails1Component {
       err => {
         this.loaderService.emitComplete();
         if (err.error.statusCode === 403) {
-          this.alertService.error('Session Time Out! Please login Again', this.options)
-          this.router.navigate([`/login`], { skipLocationChange: false });
-        }
-        else if (err.error.message) {
-          this.alertService.error(err.error.message, this.options)
-        }
-        else {
+          this.alertService.error('Session Time Out! Please login Again', this.options);
+          this.router.navigate(['/login'], { skipLocationChange: false });
+        } else if (err.error.message) {
+          this.alertService.error(err.error.message, this.options);
+        } else {
           this.alertService.error('Something bad happened. Please try again!', this.options);
         }
       }
-    )
+    );
   }
-
 
   getCustomerById(): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -662,7 +965,8 @@ export class PropertyDetails1Component {
         user_id: USER_ID,
         extras: {
           find: {
-            id: this.hotelId
+            // id: this.hotelId
+            customer_member_id: this.memberId
           }
         }
       };
@@ -671,21 +975,30 @@ export class PropertyDetails1Component {
           this.loaderService.emitComplete();
           if (resp) {
             this.customerdata = resp.result.data[0];
-            console.log('Customer data:', this.customerdata);
+            this.hotelId = resp.result.data[0].id;
+            // console.log('Customer data:', this.customerdata);
             if (resp.result.data[0]) {
               if (resp?.result?.data[0]?.property_details?.kyc_documents?.uploaded_documents) {
-                this.uploadedDocuments = resp?.result?.data[0]?.property_details?.kyc_documents?.uploaded_documents;
-                this.uploaded_documents = resp?.result?.data[0]?.property_details?.kyc_documents?.uploaded_documents;
-                this.uploadedDocumentsApi = resp?.result?.data[0]?.property_details?.kyc_documents?.uploaded_documents;
+                const apiDocs = resp.result.data[0].property_details.kyc_documents.uploaded_documents;
+                // Store snapshot so onCompanyStatusChange can restore URLs when switching back
+                this.originalUploadedDocuments = apiDocs;
+                this.uploaded_documents = apiDocs;
+                this.uploadedDocumentsApi = [...apiDocs];
+                // uploadedDocuments is a {[docName]: File} map — do NOT assign the API array to it
+                this.uploadedDocuments = {};
+              }
+              // Track the company status that was originally saved to the server
+              if (resp?.result?.data[0]?.property_details?.kyc_documents?.company_status) {
+                this.originalCompanyStatus = resp.result.data[0].property_details.kyc_documents.company_status;
               }
               //  Store company logo URL from API
               if (resp?.result?.data[0]?.property_details?.hotel_logo) {
                 this.hotelLogoUrl = resp?.result?.data[0]?.property_details?.hotel_logo;
-                console.log('Existing company logo:', this.hotelLogoUrl);
+                // console.log('Existing company logo:', this.hotelLogoUrl);
               }
               this.status = this.customerdata.status;
               this.customerStatus = this.customerdata.status;
-              console.log('Customer status:', this.status);
+              // console.log('Customer status:', this.status);
               if (this.paymentDone) {
                 this.customerProprtyDetailsForm.get('property_size')?.disable();
                 this.customerProprtyDetailsForm.get('number_of_rooms')?.disable();
@@ -749,14 +1062,14 @@ export class PropertyDetails1Component {
   //       if (resp && resp.result?.data?.length) {
   //         // Take the first plan as general fallback
   //         this.plans = resp.result.data;
-  //         console.log('Subscription Plans', this.plans);
+  //         // console.log('Subscription Plans', this.plans);
   //         // this.perRoomCost = this.plans[0]?.perRoomCost;
   //         // console.log('Per Room Cost Set To:', this.perRoomCost);
   //         this.finalPrice = this.plans[0]?.finalPrice;
-  //         console.log('Final Price Cost Set To:', this.finalPrice);
+  //         // console.log('Final Price Cost Set To:', this.finalPrice);
   //         // Update total cost for current selection
   //         this.totalCost = this.getTotalCostForOption(this.selectedPropertySize);
-  //         console.log('Total Cost Updated To:', this.totalCost);
+  //         // console.log('Total Cost Updated To:', this.totalCost);
   //       }
   //     },
   //     (err: any) => {
@@ -845,7 +1158,15 @@ export class PropertyDetails1Component {
         // Newly added for room no
         number_of_rooms: this.customerdata.property_details?.property_address?.number_of_rooms
       });
-      this.uploadedDocumentsApi = this.customerdata.property_details?.kyc_documents?.uploaded_documents;
+      // Sync selectedPropertySize so range validation works correctly on load
+      const savedSize = this.customerdata.property_details?.property_address?.property_size;
+      if (savedSize) {
+        this.selectedPropertySize = savedSize;
+      }
+      // Newly added for documents upload
+      //  this.uploadedDocumentsApi = this.customerdata.property_details?.kyc_documents?.uploaded_documents;
+      this.originalUploadedDocuments = this.customerdata.property_details?.kyc_documents?.uploaded_documents || [];
+      this.uploadedDocumentsApi = [...this.originalUploadedDocuments];
       //console.log('Uploaded Documents', this.uploadedDocumentsApi);
       //console.log('Company status', this.customerdata.property_details?.kyc_documents?.company_status);
       //console.log('this:', this.customerdata.property_details.property_address?.property_pincode);
@@ -1156,15 +1477,16 @@ export class PropertyDetails1Component {
 
   }
 
-  getOrderData(customer_id: number) {
+  // getOrderData(customer_id: number) {
+  getOrderData(memberId: any) {
     //console.log("111")
     let formatJson = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
       extras: {
         find: {
-          customer_id: Number(customer_id),
-
+          // customer_id: Number(customer_id),
+          customer_member_id: memberId,
           status: "Order Confirmed"
 
         }
@@ -1275,7 +1597,9 @@ export class PropertyDetails1Component {
         this.alertService.error('File size must be less than 2MB.', this.options);
         return;
       }
-      const currentDoc = this.nextPendingDocument;
+      // Use the explicitly selected doc name (set by triggerUpload) so the
+      // correct row is always updated, not just the first pending one.
+      const currentDoc = this.selectedUploadDoc ?? this.nextPendingDocument;
       if (currentDoc) {
         this.uploadedDocuments[currentDoc] = file;
         //console.log('Uploaded Docs:', this.uploadedDocuments);
@@ -1299,20 +1623,29 @@ export class PropertyDetails1Component {
             this.uploaded_documents.push(docObject);
             //console.log('Uploaded Docs:', this.uploaded_documents)
 
+            // Only show success after server confirms ALL docs are uploaded
+            if (!this.nextPendingDocument) {
+              this.alertService.success('All required documents uploaded successfully.', this.options);
+            }
           }
         })
 
-        // this.alertService.success(`${currentDoc} uploaded successfully`, this.options);
-        // If this upload completed the list
-        if (!this.nextPendingDocument) {
-          setTimeout(() => {
-            this.alertService.success('All required documents uploaded successfully.', this.options);
-          }, 200); // Slight delay ensures nextPendingDocument reflects new state
-        }
       }
       // Reset input to allow uploading same file again
       fileInput.value = '';
+      // Clear the explicit selection after upload is handled
+      this.selectedUploadDoc = null;
     }
+  }
+
+  /**
+   * Called by each row's upload icon (non-API section). Sets the target
+   * document name so onFileChange uploads to the correct doc.
+   */
+  triggerUpload(docName: string, input: HTMLInputElement): void {
+    this.selectedUploadDoc = docName;
+    input.value = '';
+    input.click();
   }
 
   onFileChangeApi(event: Event) {
@@ -1330,7 +1663,9 @@ export class PropertyDetails1Component {
         this.alertService.error('File size must be less than 2MB.', this.options);
         return;
       }
-      const currentDoc = this.nextApiPendingDocument;
+      // Use the explicitly selected doc name (set by triggerApiUpload) so the
+      // correct row is always updated, not just the first pending one.
+      const currentDoc = this.selectedApiDocName ?? this.nextApiPendingDocument;
       //console.log('Current Doc:', currentDoc);
       if (currentDoc) {
         this.uploadedDocumentsApi[currentDoc] = file;
@@ -1352,20 +1687,31 @@ export class PropertyDetails1Component {
             }
             this.uploaded_documents = this.uploadedDocumentsApi;
             //console.log('Uploaded Docs:', this.uploaded_documents)
+
+            // Only show success after server confirms ALL docs are uploaded
+            if (!this.hasPendingDocument) {
+              this.alertService.success('All required documents uploaded successfully.', this.options);
+            }
           }
         })
 
-        // this.alertService.success(`${currentDoc} uploaded successfully`, this.options);
-        // If this upload completed the list
-        if (!this.nextPendingDocument) {
-          setTimeout(() => {
-            this.alertService.success('All required documents uploaded successfully.', this.options);
-          }, 200); // Slight delay ensures nextPendingDocument reflects new state
-        }
       }
       // Reset input to allow uploading same file again
       fileInput.value = '';
+      // Clear the explicit selection after upload is handled
+      this.selectedApiDocName = null;
     }
+  }
+
+  /**
+   * Called by each row's upload icon. Sets the target document name so that
+   * onFileChangeApi knows which row to update, then opens that row's own
+   * hidden file input (rowFileInput) instead of a shared one.
+   */
+  triggerApiUpload(docName: string, input: HTMLInputElement): void {
+    this.selectedApiDocName = docName;
+    input.value = ''; // reset so same file can be re-selected if needed
+    input.click();
   }
 
   removeDocument(docName: string) {
@@ -1431,10 +1777,10 @@ export class PropertyDetails1Component {
   // Newly added for other brand name
   onBrandChange(event: any): void {
     const selectedBrand = event.target.value;
-    console.log('Selected Brand:', selectedBrand);
+    // console.log('Selected Brand:', selectedBrand);
     this.isOtherBrand = selectedBrand === 'Others';
     const otherBrandControl = this.customerProprtyDetailsForm.controls['other_brand_name'];
-    console.log('Other Brand Name:', otherBrandControl);
+    // console.log('Other Brand Name:', otherBrandControl);
     // Always reset value and validation status
     otherBrandControl.setValue('');
     otherBrandControl.markAsPristine();
@@ -1494,6 +1840,7 @@ export class PropertyDetails1Component {
 
   // Newly added for company logo upload
   onLogoChange(event: Event) {
+    // console.log('File input changed', event);
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
       const file = input.files[0];
@@ -1592,8 +1939,8 @@ export class PropertyDetails1Component {
               this.singleRoomFinalPrice = plan.finalPrice ?? this.singleRoomFinalPrice;
             }
           });
-          console.log('All property sizes final price:', this.propertyPricingMap);
-          console.log('SingleRoomFinalPrice (fallback):', this.singleRoomFinalPrice);
+          // console.log('All property sizes final price:', this.propertyPricingMap);
+          // console.log('SingleRoomFinalPrice (fallback):', this.singleRoomFinalPrice);
           // Ensure selectedPropertySize exists (default to first non-SingleRoomPricing plan if empty)
           // Set default selectedPropertySize if not set, and update form control
           // if (!this.selectedPropertySize) {
@@ -1771,52 +2118,71 @@ export class PropertyDetails1Component {
   //   this.updatePricingAndValidation(rooms, option)
   // }
 
+  // updatePricingAndValidation(numberOfRooms?: number, selectedSize?: string) {
+  //   const control = this.customerProprtyDetailsForm.get('number_of_rooms');
+  //   const rooms = numberOfRooms ?? control?.value ?? 0;
+  //   let propertySize = selectedSize ?? this.selectedPropertySize;
+  //
+  //   // --- Auto-set property size only if user hasn't manually selected one
+  //   if (!selectedSize && rooms > 0) {
+  //     if (rooms <= 50) propertySize = '01-50 Rooms';
+  //     else if (rooms <= 100) propertySize = '51-100 Rooms';
+  //     else if (rooms <= 150) propertySize = '101-150 Rooms';
+  //     else propertySize = '150 and above Rooms';
+  //     this.selectedPropertySize = propertySize;
+  //     this.customerProprtyDetailsForm.get('property_size')?.setValue(propertySize, { emitEvent: false });
+  //   }
+  //
+  //   // --- Determine price per room (from general pricing map)
+  //   const pricePerRoom = this.propertyPricingMap[propertySize] ?? this.singleRoomFinalPrice;
+  //   this.finalPrice = pricePerRoom;
+  //   this.totalCost = rooms > 0 ? pricePerRoom * rooms * 12 : 0;
+  //
+  //   // --- Validate number of rooms against the min/max range for the selected property size band
+  //   const range = this.propertySizeRanges[propertySize];
+  //   const errors: any = {};
+  //
+  //   if (!rooms && rooms !== 0) {
+  //     errors.required = true;
+  //   } else if (rooms < 1) {
+  //     errors.min = true;
+  //   } else if (range) {
+  //     if (rooms < range.min) {
+  //       // Room count too low for selected property size
+  //       errors.belowMin = true;
+  //     } else if (range.max !== Infinity && rooms > range.max) {
+  //       // Room count too high for selected property size
+  //       errors.maxExceeded = true;
+  //     }
+  //   }
+  //
+  //   control?.setErrors(Object.keys(errors).length > 0 ? errors : null);
+  // }
+
   updatePricingAndValidation(numberOfRooms?: number, selectedSize?: string) {
     const control = this.customerProprtyDetailsForm.get('number_of_rooms');
     const rooms = numberOfRooms ?? control?.value ?? 0;
-    // const rooms = this.customerProprtyDetailsForm.get('number_of_rooms')?.value ?? 0;
-    let propertySize = selectedSize ?? this.selectedPropertySize;
-    // --- Auto-set property size only if user hasn't manually selected one
-    if (!selectedSize && rooms > 0) {
-      if (rooms <= 50) propertySize = '01-50 Rooms';
-      else if (rooms <= 100) propertySize = '51-100 Rooms';
-      else if (rooms <= 150) propertySize = '101-150 Rooms';
-      else propertySize = '150 and above Rooms';
-      this.selectedPropertySize = propertySize;
-      this.customerProprtyDetailsForm.get('property_size')?.setValue(propertySize, { emitEvent: false });
-    }
+    const propertySize = selectedSize ?? this.selectedPropertySize;
 
-    // --- Determine price per room (from general pricing map)
-    let pricePerRoom = this.propertyPricingMap[propertySize] ?? this.singleRoomFinalPrice;
-
-    // If subscription exists AND matches property size
-    // if (
-    //   this.customerdata?.subscription_detail &&
-    //   this.customerdata.subscription_detail.name === propertySize &&
-    //   this.customerdata.subscription_detail.finalPrice != null
-    // ) {
-    //   pricePerRoom = this.customerdata.subscription_detail.finalPrice;
-    // }
-
+    // --- Determine price per room and update cost display
+    const pricePerRoom = this.propertyPricingMap[propertySize] ?? this.singleRoomFinalPrice;
     this.finalPrice = pricePerRoom;
     this.totalCost = rooms > 0 ? pricePerRoom * rooms * 12 : 0;
 
-    // --- Validate number of rooms against selected property size limits
-    const maxRooms = this.propertySizeLimits[propertySize] ?? Infinity;
+    // --- Validate: rooms must fall within the min/max band of the selected property size
+    const range = this.propertySizeRanges[propertySize];
     const errors: any = {};
-    if (!rooms) errors.required = true;
-    if (rooms < 1) errors.min = true;
-    if (rooms > maxRooms) errors.maxExceeded = true;
 
-    // --- Additional check: manual size selection mismatch
-    if (selectedSize && rooms > 0) {
-      let sizeMismatch = false;
-      if (rooms <= 50 && selectedSize !== '01-50 Rooms') sizeMismatch = true;
-      else if (rooms <= 100 && selectedSize !== '51-100 Rooms') sizeMismatch = true;
-      else if (rooms <= 150 && selectedSize !== '101-150 Rooms') sizeMismatch = true;
-      else if (rooms > 150 && selectedSize !== '150 and above Rooms') sizeMismatch = true;
-
-      if (sizeMismatch) errors.sizeMismatch = true;
+    if (!rooms || rooms === '') {
+      errors['required'] = true;
+    } else if (Number(rooms) < 1) {
+      errors['min'] = true;
+    } else if (range) {
+      if (Number(rooms) < range.min) {
+        errors['belowMin'] = true;
+      } else if (range.max !== Infinity && Number(rooms) > range.max) {
+        errors['maxExceeded'] = true;
+      }
     }
 
     control?.setErrors(Object.keys(errors).length > 0 ? errors : null);
@@ -1859,7 +2225,7 @@ export class PropertyDetails1Component {
         default: return 50;
       }
     })();
-    console.log('Customer data for subscription: ', this.customerdata);
+    // console.log('Customer data for subscription: ', this.customerdata);
     let pricePerRoom = this.singleRoomFinalPrice;
     // if (this.customerdata?.subscription_detail?.name === option &&
     //   this.customerdata.subscription_detail.finalPrice != null) {
@@ -1870,9 +2236,75 @@ export class PropertyDetails1Component {
     // (this.propertyPricingMap[option] != null) {
     pricePerRoom = this.propertyPricingMap[option];
     // }
-    console.log('Total amount: ', pricePerRoom * roomCount * 12);
+    // console.log('Total amount: ', pricePerRoom * roomCount * 12);
     return pricePerRoom * roomCount * 12;
   }
+
+  // getHierarchyById(customerId: any): Promise<void> {
+  getHierarchyById(memberId: any): Promise<void> {
+    return new Promise((resolve, reject) => {
+      let requestBody = {
+        domain_name: DOMAIN_NAME,
+        user_id: USER_ID,
+        extras: {
+          find: {
+            // customer_id: customerId
+            member_id: this.memberId
+          }
+        }
+      };
+      this.hierarchyService.apiCall(requestBody, ENDPOINTS.GETBYID_HIERARCHY).subscribe(
+        (resp: any) => {
+          if (resp) {
+            this.hierarchyData = resp.result.data[0];
+            resolve();
+          }
+        },
+        (err: any) => {
+          if (err.error.statusCode === 403) {
+            this.alertService.error('Session Time Out! Please login Again', this.options);
+            this.router.navigate([`/login`], { skipLocationChange: false });
+          } else if (err.error.message) {
+            this.alertService.error(err.error.message, this.options);
+          } else {
+            this.alertService.error('Something bad happened. Please try again!', this.options);
+          }
+          reject(err);
+        }
+      );
+    });
+  }
+
+  // Newly added for documents upload
+  onCompanyStatusChange(status: string) {
+    if (!status) {
+      return;
+    }
+    const templates = this.companyStatusDocuments[status] || [];
+    // Only restore previously saved URLs when switching back to the EXACT
+    // option that was saved on the server. For any other option, all docs
+    // start with an empty URL so nothing bleeds across options.
+    const isSameAsOriginal = status === this.originalCompanyStatus;
+    const currentMap = new Map<string, string>();
+    if (isSameAsOriginal) {
+      this.originalUploadedDocuments.forEach((doc: any) => {
+        if (doc && doc.document_name) {
+          currentMap.set(doc.document_name, doc.document_url || '');
+        }
+      });
+    }
+    this.uploadedDocumentsApi = templates.map(t => ({
+      document_name: t.name,
+      document_url: currentMap.get(t.name) || ''
+    }));
+    // Keep payload array in sync with the currently selected status
+    this.uploaded_documents = [...this.uploadedDocumentsApi];
+    // Clear locally selected files so documents uploaded under one option
+    // are not shown as "Uploaded" in a different option's document list.
+    this.uploadedDocuments = {};
+  }
+
+
 
 }
 

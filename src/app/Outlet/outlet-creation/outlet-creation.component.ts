@@ -1,4 +1,4 @@
-
+/* 
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
@@ -22,10 +22,16 @@ import { LocalStorageService } from '../../auth-services/local-storage.service';
   templateUrl: './outlet-creation.component.html',
   styleUrl: './outlet-creation.component.scss'
 })
+
 export class OutletCreationComponent {
-
   outletForm!: FormGroup;
-
+  outletdata: any = {};
+  hotelid: number = 0;
+  outlet_id: number = 0;
+  options = {
+    autoClose: true,
+    keepAfterRouteChange: false
+  };
 
   constructor(private fb: FormBuilder, private outletCreationService: OutletCreationService,
     private loaderService: LoaderService,
@@ -34,13 +40,6 @@ export class OutletCreationComponent {
     private route: ActivatedRoute,
     private localService: LocalStorageService
   ) { }
-  outletdata: any = {};
-  hotelid: number = 0;
-  outlet_id: number = 0;
-  options = {
-    autoClose: true,
-    keepAfterRouteChange: false
-  };
 
   ngOnInit(): void {
     this.outletForm = this.fb.group({
@@ -58,10 +57,8 @@ export class OutletCreationComponent {
       pincode: [''],
       delivery_pickup_point_pincode: [''],
       country: ['India'],
-      shift_title: ['Full Day'],
-      time_slot: ['30mins'],
-      open_time: ['12:00AM'],
-      close_time: ['11:59PM'],
+      open_time: [],
+      close_time: [],
       enable_distance_radius: [false],
       sendordermail: [true],
       takephoto: [''],
@@ -73,11 +70,11 @@ export class OutletCreationComponent {
       const id = params.get('id');
       this.outlet_id = Number(id)
       if (id) {
-        console.log('Editing Outlet with ID:', id);
+        // console.log('Editing Outlet with ID:', id);
         this.getOutletById(Number(id));
         // fetch and patch data
       } else {
-        console.log('Creating new Outlet');
+        // console.log('Creating new Outlet');
       }
     });
   }
@@ -341,4 +338,379 @@ export class OutletCreationComponent {
 
 
 
+}
+ */
+import { Component, OnInit } from '@angular/core';
+import { FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
+import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule, FormsModule } from '@angular/forms';
+import { HttpHeaders } from '@angular/common/http';
+import { Router, ActivatedRoute } from '@angular/router';
+import { ENDPOINTS, DOMAIN_NAME, USER_ID } from '../../app.config';
+import { OutletCreationService } from '../outlet-creation.service';
+import { LoaderService } from '../../shared/loader/loader.service';
+import { AlertsService } from '../../shared/alerts/alerts.service';
+import { LocalStorageService } from '../../auth-services/local-storage.service';
+import { ProfileService } from '../../profile/profile.service';
+import { AlertsComponent } from '../../shared/alerts/alerts.component';
+import { PermissionService, ModulePermission } from '../../services/permission.service';
+
+@Component({
+  selector: 'app-outlet-creation',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, AlertsComponent],
+  templateUrl: './outlet-creation.component.html',
+  styleUrls: ['./outlet-creation.component.scss']
+})
+
+export class OutletCreationComponent implements OnInit {
+  outletForm!: FormGroup;
+  outletdata: any = {};
+  outlet_id: number = 0;
+  photoPreview: string = '';
+  photoName: string = ''; // To store the filename for UI display
+  maxSizeMB = 5;
+  submitted = false;
+  options = { autoClose: true, keepAfterRouteChange: false };
+  isExitModalOpen: boolean = false;
+  member_id: any;
+  editScreen: boolean = false;
+  isViewMode: boolean = false;
+
+  constructor(
+    private fb: FormBuilder,
+    private outletCreationService: OutletCreationService,
+    private loaderService: LoaderService,
+    private alertService: AlertsService,
+    private router: Router,
+    private route: ActivatedRoute,
+    private localService: LocalStorageService,
+    private profileService: ProfileService,
+    private permissionService: PermissionService
+  ) { }
+
+  ngOnInit(): void {
+    this.buildForm();
+    this.member_id = this.localService.get('MemberId');
+    // console.log('Member id:', this.member_id);
+    
+    // Check if in view mode from navigation state
+    const navState = window.history.state as any;
+    this.isViewMode = navState?.mode === 'view';
+    
+    this.route.paramMap.subscribe(params => {
+      const id = params.get('id');
+      // console.log('Outlet id:', id);
+      this.outlet_id = id ? Number(id) : 0;
+      if (id) {
+        this.editScreen = true;
+        this.getOutletById(Number(id));
+      }
+    });
+
+    // Disable form if in view mode
+    if (this.isViewMode) {
+      this.outletForm.disable({ emitEvent: false });
+    }
+  }
+
+  get canAddRestaurants(): boolean {
+    const permission = this.permissionService.getModulePermission('RESTAURANTS');
+    return permission?.has_add_permission ?? false;
+  }
+
+  get canEditRestaurants(): boolean {
+    const permission = this.permissionService.getModulePermission('RESTAURANTS');
+    return permission?.has_edit_permission ?? false;
+  }
+
+  private buildForm() {
+    this.outletForm = this.fb.group({
+      owner_name: ['', Validators.required],
+      email: ['', [Validators.required, Validators.email]],
+      phone: ['', [Validators.required, this.onlyNumbersValidator]],
+      companyphone: ['', [Validators.required, this.optionalNumbersValidator]],
+      name: ['', Validators.required],
+      gstno: ['', [Validators.required, this.gstValidator]],
+      association: [''],
+      address: ['', Validators.required],
+      address1: [''],
+      doorno: ['', Validators.required],
+      location: ['', Validators.required],
+      pincode: ['', [Validators.required, this.onlyNumbersValidator]],
+      delivery_pickup_point_pincode: [''],
+      country: ['India', Validators.required],
+      open_time: ['', [Validators.required, this.time12HrValidator]],
+      close_time: ['', [Validators.required, this.time12HrValidator]],
+      enable_distance_radius: [false],
+      sendordermail: [true],
+      takephoto: [''],
+      winhms_outlet_id: ['', Validators.required],
+      property_name: ['', Validators.required],
+      x_api_key: ['', Validators.required],
+      Hotel_Code: ['', Validators.required],
+      is_active: [true]
+    });
+  }
+
+  onlyNumbersValidator(control: AbstractControl): ValidationErrors | null {
+    const v = control.value;
+    if (!v) return null;
+    return /^[0-9]+$/.test(v) ? null : { numbersOnly: true };
+  }
+
+  optionalNumbersValidator(control: AbstractControl): ValidationErrors | null {
+    const v = control.value;
+    if (!v) return null;
+    return /^[0-9]+$/.test(v) ? null : { numbersOnly: true };
+  }
+
+  time12HrValidator(control: AbstractControl): ValidationErrors | null {
+    const v = control.value;
+    if (!v) return null;
+    return /^(0?[1-9]|1[0-2]):[0-5][0-9]\s?(AM|PM)$/i.test(v)
+      ? null
+      : { invalidTime: true };
+  }
+
+  validateNumberInput(field: string) {
+    const c = this.outletForm.get(field);
+    if (!c) return;
+    const raw = c.value ?? '';
+    const clean = raw.replace(/\D+/g, '');
+    if (clean !== raw) c.setValue(clean, { emitEvent: false });
+  }
+
+  validateTimeFormat(field: string) {
+    const ctrl = this.outletForm.get(field);
+    if (!ctrl) return;
+    const err = this.time12HrValidator(ctrl);
+    if (err) ctrl.setErrors({ ...ctrl.errors, invalidTime: true });
+    else {
+      if (ctrl.errors) {
+        const e = { ...ctrl.errors };
+        delete e['invalidTime'];
+        ctrl.setErrors(Object.keys(e).length ? e : null);
+      }
+    }
+  }
+
+  // GST Number Validator Function
+  gstValidator(control: any) {
+    if (!control.value) return null; // required validator handles empty case
+    const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
+    if (!gstRegex.test(control.value)) {
+      return {
+        invalidGST: {
+          message: 'Please enter a valid 15-digit GST Number (e.g., 29ABCDE1234F1Z5)'
+        }
+      };
+    }
+    return null;
+  }
+
+  // IMAGE UPLOAD
+  onPhotoUpload(event: any) {
+    if (this.isViewMode) return; // Prevent upload in view mode
+    const input = event.target as HTMLInputElement;
+    if (!input.files?.length) return;
+    const file = input.files[0];
+    this.photoName = file.name; // Saves filename for UI
+    if (!file.type.startsWith('image/')) {
+      this.alertService.error('Only image files allowed', this.options);
+      input.value = '';
+      this.photoName = '';
+      return;
+    }
+    if (file.size / 1024 / 1024 > this.maxSizeMB) {
+      this.alertService.error(`Max size ${this.maxSizeMB}MB allowed`, this.options);
+      input.value = '';
+      this.photoName = '';
+      return;
+    }
+    this.photoPreview = URL.createObjectURL(file);
+    this.uploadImage(file, input);
+  }
+
+  private uploadImage(file: File, inputEl: HTMLInputElement) {
+    const fd = new FormData();
+    fd.append('upload', file);
+    const headers = new HttpHeaders()
+      .set('source', 'Product')
+      .set('domain_name', String(DOMAIN_NAME));
+    this.profileService.sendImage(fd, headers).subscribe(
+      (r: any) => {
+        const url = r?.result?.data?.[0]?.location;
+        if (!url) {
+          this.alertService.error('Upload failed', this.options);
+          this.photoPreview = '';
+          this.photoName = '';
+          return;
+        }
+        this.photoPreview = url;
+        this.outletForm.patchValue({ takephoto: url });
+        this.alertService.success('Photo uploaded successfully', this.options);
+        if (this.editScreen) {
+          this.alertService.success(
+            'Photo uploaded successfully. Changes are not saved yet — please click “Save” to apply the update.',
+            this.options
+          );
+        }
+      },
+      () => {
+        this.alertService.error('Upload error', this.options);
+        inputEl.value = '';
+        this.photoPreview = '';
+        this.photoName = '';
+      }
+    );
+  }
+
+  private updateOnlyImage(url: string) {
+    const payload = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: { find: { id: this.outlet_id } },
+      payload: { outlet_creation: { takephoto: url } }
+    };
+    this.outletCreationService.postApiCall(payload, ENDPOINTS.OUTLET_UPDATE).subscribe(
+      (r: any) => {
+        if (r.success === 1) this.alertService.success('Image updated!', this.options);
+        else this.alertService.error(r?.message || 'Save failed', this.options);
+      },
+      () => this.alertService.error('Save error', this.options)
+    );
+  }
+
+  removePhoto() {
+    if (this.isViewMode) return; // Prevent removal in view mode
+    this.photoPreview = '';
+    this.photoName = '';
+    this.outletForm.patchValue({ takephoto: '' });
+    // Reset the file input field
+    const input: any = document.getElementById('photoInput');
+    if (input) input.value = '';
+    this.alertService.success('Photo removed successfully!');
+    if (this.editScreen) {
+      this.alertService.success(
+        'Photo removed successfully. Changes are not saved yet — please click "Save" to apply the update.',
+        this.options
+      );
+    }
+  }
+
+  getOutletById(id: number) {
+    const req = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: {
+        find: {
+          id: id,
+          member_id: this.member_id
+        }
+      }
+    };
+    this.outletCreationService.postApiCall(req, ENDPOINTS.OUTLET_GETBYID).subscribe(
+      (resp: any) => {
+        const data = resp?.result?.data?.[0] || {};
+        this.outletdata = data;
+        // console.log('Outlet data(based on id:', this.outletdata);
+        this.outletForm.patchValue({ ...data });
+        this.photoPreview = data.takephoto || '';
+        this.photoName = this.getFileNameFromUrl(data.takephoto);
+      }
+    );
+  }
+
+  private getFileNameFromUrl(url?: string): string {
+    if (!url) return '';
+    try {
+      // Get last segment after slash
+      let name = url.split('/').pop() || '';
+      // Remove query string or fragment if present
+      name = name.split('?')[0].split('#')[0];
+      // Decode URL encoded characters (e.g. %20 -> space)
+      name = decodeURIComponent(name);
+      return name;
+    } catch (e) {
+      return '';
+    }
+  }
+
+  onSubmit() {
+    if (this.isViewMode) return; // Prevent submission in view mode
+    this.submitted = true;
+    Object.values(this.outletForm.controls).forEach(c => c.markAsTouched());
+    if (this.outletForm.invalid) {
+      this.alertService.error('Please fill all required fields correctly!', this.options);
+      return;
+    }
+    const fv = this.outletForm.value;
+    const outletObj = {
+      ...fv,
+      // status: 'Pending',
+      // is_active: true,
+      customer_id: Number(this.localService.get('UserId')) || Number(USER_ID),
+      member_id: this.member_id
+    };
+    const requestBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      payload: { outlet_creation: outletObj }
+    };
+    // console.log('Request Body of outlet:', requestBody)
+    if (this.outlet_id === 0) {
+      this.outletCreationService.postApiCall(requestBody, ENDPOINTS.OUTLET_CREATE).subscribe(
+        (resp: any) => {
+          if (resp.success === 1) {
+            this.alertService.success(resp.message, this.options);
+            this.router.navigate(['/outlet-list']);
+          } else {
+            this.alertService.error(resp.message || 'Create failed', this.options);
+          }
+        }
+      );
+    }
+    else {
+      const req = {
+        ...requestBody,
+        extras: {
+          find: {
+            id: this.outlet_id
+          }
+        }
+      };
+      this.outletCreationService.postApiCall(req, ENDPOINTS.OUTLET_UPDATE).subscribe(
+        (resp: any) => {
+          if (resp.success === 1) {
+            this.alertService.success(resp.message, this.options);
+            this.router.navigate(['/outlet-list']);
+          } else {
+            this.alertService.error(resp.message || 'Update failed', this.options);
+          }
+        }
+      );
+    }
+  }
+
+  openExitModal() {
+    if (this.isViewMode) {
+      this.navigateToList(); // Bypass confirmation in view mode
+      return;
+    }
+    this.isExitModalOpen = true;
+  }
+
+  closeExitModal() {
+    this.isExitModalOpen = false;
+  }
+
+  confirmExit() {
+    this.isExitModalOpen = false;
+    this.navigateToList();
+  }
+
+  navigateToList() {
+    this.router.navigateByUrl('outlet-list')
+  }
 }

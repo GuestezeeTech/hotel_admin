@@ -39,7 +39,6 @@ export class HotelListService {
     //   return new Observable(); 
     // }
     // else{
-
     return this.http.post(ENDPOINTS.GETSIGNUPALLCUSTOMER, jsonObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
     // }
   }
@@ -62,6 +61,7 @@ export class HotelListService {
       return this.http.post(ENDPOINTS.DELETE_CUSTOMER, jsonObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
     }
   }
+
   updateCustomer(UpdateCustomerObj: any): Observable<any> {
     if (this.authTokenService.isTokenExpired()) {
       this.router.navigate([`/login`], { skipLocationChange: false });
@@ -82,6 +82,16 @@ export class HotelListService {
   }
   postApiCall(dataObj: any, api_endpoint: any): Observable<any> {
     return this.http.post(api_endpoint, dataObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
+  }
+
+  deleteUserCustomer(jsonObj: any): Observable<any> {
+    if (this.authTokenService.isTokenExpired()) {
+      this.router.navigate([`/login`], { skipLocationChange: false });
+      return new Observable();
+    }
+    else {
+      return this.http.post(ENDPOINTS.DELETE_CUSTOMER_SIGNUP, jsonObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
+    }
   }
 }
 

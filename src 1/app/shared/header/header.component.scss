@@ -1,0 +1,128 @@
+/* Header Styling */
+.header {
+  display: flex;
+  justify-content: space-between;
+  /* Ensures menu name is on the left and icons on the right */
+  align-items: center;
+  background-color: white;
+  /* Header background */
+  color: white;
+  padding: 10px 20px;
+  background-color: #fff;
+  /* Set background color */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
+  /* Add a soft shadow at the bottom */
+  border-bottom: 1px solid transparent;
+  margin-left: 19%;
+  position: sticky;
+  top: 0;
+  // width: 100%;
+  z-index: 99;
+}
+
+.menu-name h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.user-info .username {
+  font-size: 15px;
+  color: black;
+}
+
+.user-info img {
+  height: 35px;
+  /* Adjust size of icons */
+  cursor: pointer;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  /* Ensures menu name is on the left and icons on the right */
+  align-items: center;
+  background-color: #fff;
+  /* Set background color */
+  padding: 10px 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
+  /* Add a soft shadow at the bottom */
+  border-bottom: 1px solid transparent;
+}
+
+/* Styling for the menu name */
+.menu-name h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+/* User Info Section Styling */
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+/* Icon size */
+.user-info img {
+  height: 35px;
+  /* Adjust size of icons */
+  cursor: pointer;
+}
+
+/* For small screens: stack the icons and the username in a column */
+@media (max-width: 767px) {
+  .header {
+    flex-direction: column;
+    /* Stack header content vertically */
+    align-items: flex-start;
+  }
+
+  .user-info {
+    margin-top: 10px;
+    gap: 10px;
+  }
+
+  .user-info .username {
+    font-size: 14px;
+    color: black;
+  }
+}
+
+/* For medium screens and above, display the username */
+@media (min-width: 768px) {
+  .user-info .username {
+    font-size: 15px;
+    color: black;
+  }
+}
+
+.profile-settings {
+  button:hover {
+    color: #800020;
+  }
+}
+
+// Newly added for payment
+.pay-button {
+  font-size: 13px;
+  font-weight: 500;
+  padding: 5px 10px;
+  color: white;
+  background-color: #800020;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.pay-button.disabled-btn,
+.pay-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed; /* no pointer */
+  color: #666666;
+}

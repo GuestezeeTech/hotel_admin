@@ -5,14 +5,19 @@
             <!-- Staff listing page -->
             <!-- Tabs Navigation -->
             <div style="display: flex; justify-content: space-between;">
-                <button class="fw-semibold" (click)="openDeleteModal()"
-                    style="background-color: #800020;font-weight: 500;color: white; padding: 10px 20px; border-radius: 5px; font-size: 14px; border: none;">
+                <button
+                    class="fw-semibold"
+                    (click)="openDeleteModal()"
+                    style="background-color: #800020;font-weight: 500;color: white; padding: 10px 20px; border-radius: 5px; font-size: 14px; border: none;"
+                    [disabled]="!canDeleteUserAccess">
                     Delete Selected
                 </button>
                 <!-- For adding new staff -->
-                <button class="fw-semibold"
+                <button
+                    class="fw-semibold"
                     style="background-color: #800020; color: white; padding: 10px 20px; border-radius: 5px; font-size: 14px; border: none;"
-                    (click)="toggleAddStaff()">
+                    (click)="toggleAddStaff()"
+                    [disabled]="!canAddUserAccess">
                     Add Staff
                 </button>
             </div>
@@ -20,8 +25,8 @@
             <table class="table" style="margin-top: 3%;">
                 <thead>
                     <tr>
-                        <!-- <th><input type="checkbox"></th> -->
-                        <th></th>
+                        <th><input type="checkbox" disabled></th>
+                        <!-- <th></th> -->
                         <th>Employee Id</th>
                         <th>Staff Name</th>
                         <th>Phone Number</th>
@@ -33,9 +38,15 @@
                 <tbody>
                     <tr *ngFor="let staff of allStaves" style="background-color: white;">
                         <td style="text-align: center;">
-                            <input type="checkbox" [id]="staff.full_name" [name]="staff.full_name"
-                                [value]="staff.full_name" (change)="toggleSelection($event, staff.id)"
-                                style="cursor: pointer" [checked]="selectedStaffIds.includes(staff.id)">
+                            <input
+                                type="checkbox"
+                                [id]="staff.full_name"
+                                [name]="staff.full_name"
+                                [value]="staff.full_name"
+                                (change)="toggleSelection($event, staff.id)"
+                                style="cursor: pointer"
+                                [checked]="selectedStaffIds.includes(staff.id)"
+                                [disabled]="!canDeleteUserAccess">
                         </td>
                         <td style="text-align: center;">{{ staff.staff_employee_number }}</td>
                         <td style="text-align: center;">{{ staff.full_name }}</td>
@@ -49,10 +60,26 @@
                             (staff.hierarchy.length > 1 ? ', ...' : '')
                             : 'N/A'
                             }}</td>
-                        <td style="text-align: center;">
-                            <i class="fa fa-pen-to-square" style="color: #800020; cursor: pointer;"
-                                (click)="setInitialValues(staff.id)"></i>
+                        <td style="text-align: center;">  
+                            <!-- View icon: requires read permission -->
+                            <i class="fa fa-eye me-3"
+                                style="color: #800020; cursor: pointer;"
+                                [style.opacity]="canReadUserAccess ? 1 : 0.4"
+                                (click)="viewStaff(staff.id)"
+                              
+                                [style.cursor]="canReadUserAccess ? 'pointer' : 'not-allowed'"
+                                title="View"></i>
+                            <!-- Edit icon: requires edit permission -->
+                            <i class="fa fa-pen-to-square"
+                                style="color: #800020; cursor: pointer;"
+                                [style.opacity]="canEditUserAccess ? 1 : 0.4"
+                                (click)="setInitialValues(staff.id)"
+                                [style.cursor]="canEditUserAccess ? 'pointer' : 'not-allowed'"
+                                title="Edit"></i>
                         </td>
+                    </tr>
+                    <tr *ngIf="allStaves.length === 0"> 
+                        <td colspan="7" class="text-center">No staff found</td>
                     </tr>
                 </tbody>
             </table>

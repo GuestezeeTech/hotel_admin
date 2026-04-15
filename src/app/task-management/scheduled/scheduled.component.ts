@@ -7,6 +7,7 @@ import { CommonModule } from '@angular/common';
 import { Component, Output, EventEmitter } from '@angular/core';
 import { AlertsService } from '../../shared/alerts/alerts.service';
 import { FormsModule } from '@angular/forms';
+import { shouldFilterByCategory } from '../task-category.util';
 
 @Component({
   selector: 'app-scheduled',
@@ -162,6 +163,11 @@ export class ScheduledComponent {
   isHelpServiceModalOpen: boolean = false;
   selectedHelpServiceTask: any = null;
   searchRoomNo: string = '';
+  userDepartment: string[] = [];
+  // Newly added for loader
+  isLoading: boolean = false;
+  // Newly added for cancellation update
+  private intervalId: any;
 
   constructor(
     private router: Router,
@@ -172,12 +178,20 @@ export class ScheduledComponent {
 
   async ngOnInit() {
     this.customerType = this.localService.get('CustomerType');
-    this.hotelId = Number(this.localService.get('UserId'));
-    console.log('Hotel Id:', this.hotelId);
+    // console.log('Hotel Id:', this.hotelId);
     // this.member_id = this.localService.get('MemberId');
     // To load inital all tasks
+    // Newly added for getting member id for customer type
+    // this.hotelId = Number(this.localService.get('UserId'));
+    this.memberId = this.localService.get('MemberId');
+    // console.log('Member ID from scheduled component:', this.memberId);
     if (this.customerType == 'Customer') {
-      await this.getCustomerMemberId(this.hotelId);
+      // await this.getCustomerMemberId(this.hotelId);
+      this.member_id = this.memberId;
+      if (this.memberId !== undefined && this.memberId !== null && this.memberId !== '' && this.memberId !== 'undefined' && this.memberId !== 'null') {
+        await this.getCustomerMemberId(this.memberId);
+      }
+      // End of newly added for getting member id for customer type
     }
     else {
       this.member_id = this.localService.get('MemberId');
@@ -197,11 +211,28 @@ export class ScheduledComponent {
     const hierarchyString = this.localService.get('hierarchy');
     if (hierarchyString) {
       this.escalationHierarchy = JSON.parse(hierarchyString);
-      console.log('Escalation Hierarchy:', this.escalationHierarchy);
+      // console.log('Escalation Hierarchy:', this.escalationHierarchy);
     } else {
       this.escalationHierarchy = [];
     }
     // Ended
+    // Newly added for userDepartment
+    if (this.customerType === 'Staff') {
+      let userData: any = this.localService.get('StaffData');
+      let userDataParse = JSON.parse(userData);
+      this.userDepartment = userDataParse?.hierarchy?.map((item: any) => item.department) || [];
+      // console.log('User Department(Scheduled):', this.userDepartment);
+    }
+    // Ended
+    // Newly added for cancellation update
+    this.intervalId = setInterval(() => {
+      this.getAllScheduledTask();
+    }, 10000);
+  }
+
+  // Newly added for cancellation update
+  ngOnDestroy() {
+    clearInterval(this.intervalId);
   }
 
   // getAllScheduledTask() {
@@ -298,21 +329,25 @@ export class ScheduledComponent {
   //   });
   // }
 
-  getCustomerMemberId(hotelId: any): Promise<any> {
+  // getCustomerMemberId(hotelId: any): Promise<any> {
+  getCustomerMemberId(memberId: any): Promise<any> {
     return new Promise((resolve, reject) => {
       const requestBody = {
         domain_name: DOMAIN_NAME,
         user_id: USER_ID,
         extras: {
-          find: { id: hotelId }
+          find: {
+            // id: hotelId
+            "customer_member_id": memberId
+          }
         }
       };
       this.hotelListService.getSignupAllCustomers(requestBody).subscribe({
         next: (res: any) => {
           if (res && res.result.data.length > 0) {
             const customer = res.result.data[0];
-            console.log('Customer Data:', customer);
-            this.member_id = customer.customer_member_id;
+            // console.log('Customer Data:', customer);
+            // this.member_id = customer.customer_member_id;
             resolve(this.memberId); // resolves with memberId
           } else {
             reject('No customer found');
@@ -351,7 +386,7 @@ export class ScheduledComponent {
     this.hotelListService.getSignupAllCustomers(requestBody).subscribe((res: any) => {
       if (res && res.result.data.length > 0) {
         const customer = res.result.data[0];
-        console.log('Customer Data:', customer);
+        // console.log('Customer Data:', customer);
         if (customer && customer.settings?.room_range) {
           this.mapStaffRooms(customer.settings.room_range);
           // Now rooms ready → call Scheduled API
@@ -366,7 +401,7 @@ export class ScheduledComponent {
     let staffData: any = this.localService.get('StaffData');
     let staffDataParse = JSON.parse(staffData);
     let staffRoomNo = staffDataParse.room_no; // [{ label: "Floor 1" }, { label: "Floor 3" }]
-    console.log('Staff Room No:', staffRoomNo);
+    // console.log('Staff Room No:', staffRoomNo);
     let finalRoomArray: string[] = [];
     staffRoomNo.forEach((staff: any) => {
       const matched = roomRange.find(r => r.label === staff.label);
@@ -374,7 +409,7 @@ export class ScheduledComponent {
         finalRoomArray.push(`${matched.startRoom}-${matched.endRoom}`);
       }
     });
-    console.log('Final Room Array:', finalRoomArray); // ["1-100", "201-300"]
+    // console.log('Final Room Array:', finalRoomArray); // ["1-100", "201-300"]
     this.labelRoomArray = finalRoomArray;
   }
 
@@ -385,7 +420,7 @@ export class ScheduledComponent {
     // Newly added & commented for combined - started
     // let department = hierarchyParse?.department;
     let department = hierarchyParse?.map((item: any) => item.department);
-    console.log('Staff department:', department);
+    // console.log('Staff department:', department);
     // Ended
     let staffData: any = this.localService.get('StaffData');
     let staffDataParse = JSON.parse(staffData);
@@ -465,7 +500,7 @@ export class ScheduledComponent {
       }
     });
     this.labelRoomArray = roomList;
-    console.log('Room Number:', this.labelRoomArray);
+    // console.log('Room Number:', this.labelRoomArray);
     // Ended
     if (this.at_desk) {
       object = {
@@ -492,18 +527,31 @@ export class ScheduledComponent {
         };
       }
     }
-    if (department && department !== 'Select') {
-      object["service.category"] = department;
-    }
+    // Newly commented while checkout / late checkout
+    // if (department && (department !== 'Select' || department !== '')) {
+    // object["service.category"] = department;
+    // }
+    // Ended
     // if (department && department === 'Select') {
     //   object["service.category"] = 'Select';
     // }
-    this.callScheduledTaskApi(object);
+    // this.callScheduledTaskApi(object);
+    this.scheduledTasks = [];
+    this.allTasks = [];
+    // API call → service.category (category-based listing ONLY, when not Default)
+    const findObject = shouldFilterByCategory(department)
+      ? { ...object, 'service.category': department }
+      : { ...object };
+    this.callScheduledTaskApi(findObject);
+    // Previously we  fetched by assigned_department.
+    // const assignedObj = { ...object, 'assigned_department': department };
+    // this.callScheduledTaskApi(assignedObj, 'assigned_department');
   }
 
   // Final call for api
   callScheduledTaskApi(findObject: any) {
-    console.log('Find object(Scheduled):', findObject)
+    this.isLoading = true;
+    // console.log('Find object(Scheduled):', findObject)
     let requestBody = {
       "domain_name": DOMAIN_NAME,
       "user_id": USER_ID,
@@ -517,34 +565,61 @@ export class ScheduledComponent {
     this.taskManagementService.getAllTask(requestBody).subscribe({
       next: (response) => {
         if (response?.success) {
-          // this.scheduledTasks = response.result.data.map((task: any) => ({
-          //   ...task,
-          //   remainingSeconds: undefined
-          // }));
-          // Newly added & commented for combined - started
-          // Filter only tasks having scheduled_date & scheduled_time
-          // this.scheduledTasks = (response.result.data || [])
-          //   .filter((task: any) => task.scheduled_date && task.scheduled_time)
-          //   .map((task: any) => ({
-          //     ...task,
-          //     remainingSeconds: undefined
-          //   }));
-          this.scheduledTasks = (response.result.data || [])
+          const newTasks = (response.result.data || [])
             .filter((task: any) => task.scheduled_date && task.scheduled_time)
             .map((task: any) => {
-              // Match escalation time based on service.category
-              const matchedHierarchy = this.escalationHierarchy.find(
-                (h: any) => h.department?.toLowerCase() === task.service?.category?.toLowerCase()
-              );
-              const escalationTime = matchedHierarchy ? matchedHierarchy.escalationTime : 0; // fallback if not found
+              // Newly added - Check if logged-in staff's department is "Default"
+              // If "Default", skip department matching and directly use escalation time
+              const isDefaultDept = Array.isArray(this.userDepartment)
+                ? this.userDepartment.includes('Default')
+                : this.userDepartment === 'Default';
+
+              let escalationTime = 0;
+
+              if (isDefaultDept) {
+                // If department is "Default", directly use escalation time from hierarchy
+                // Use the escalation time from "Default" department hierarchy item, or first one if not found
+                const defaultHierarchy = this.escalationHierarchy.find(
+                  (h: any) => h.department?.toLowerCase() === 'default'
+                ) || this.escalationHierarchy[0];
+                escalationTime = defaultHierarchy ? defaultHierarchy.escalationTime : 0;
+              } else {
+                // Old code - Category-based matching ONLY (no assigned_department)
+                // const departmentToMatch = task.service?.category;
+                // const matchedHierarchy = this.escalationHierarchy.find(
+                //   (h: any) =>
+                //     h.department?.toLowerCase() ===
+                //     departmentToMatch?.toLowerCase()
+                // );
+                // escalationTime = matchedHierarchy ? matchedHierarchy.escalationTime : 0;
+
+                // Category-based matching ONLY (no assigned_department)
+                const departmentToMatch = task.service?.category;
+                const matchedHierarchy = this.escalationHierarchy.find(
+                  (h: any) =>
+                    h.department?.toLowerCase() ===
+                    departmentToMatch?.toLowerCase()
+                );
+                escalationTime = matchedHierarchy ? matchedHierarchy.escalationTime : 0;
+              }
+              // Ended
               return {
                 ...task,
                 remainingSeconds: undefined,
                 escalationTime
               };
             });
-          console.log("Tasks with Escalation Time(Scheduled):", this.scheduledTasks);
-          // Ended
+          // Merge and deduplicate by task id
+          const taskMap = new Map<number, any>();
+          // Add existing tasks to map
+          this.scheduledTasks.forEach((task: any) => taskMap.set(task.id, task));
+          // Add new tasks (will overwrite duplicates by id)
+          newTasks.forEach((task: any) => taskMap.set(task.id, task));
+          // Convert map back to array
+          this.scheduledTasks = Array.from(taskMap.values());
+          // Ensure newest scheduled tasks appear first
+          this.sortScheduledTasksByMostRecent();
+          // console.log("Tasks with Escalation Time(Scheduled):", this.scheduledTasks);
           this.scheduledTasks.forEach((task: any) => this.initializeTimer(task));
           this.totalTasks = this.scheduledTasks.length;
           this.totalPages = Math.ceil(this.totalTasks / this.pageSize);
@@ -552,9 +627,11 @@ export class ScheduledComponent {
         } else {
           console.error('No Scheduled tasks found:', response?.message);
         }
+        this.isLoading = false;
       },
       error: (err) => {
         console.error('Scheduled API Error:', err);
+        this.isLoading = false;
       }
     });
   }
@@ -571,7 +648,7 @@ export class ScheduledComponent {
       ? this.scheduledTasks.filter((task: any) =>
         // task.room_no?.toString().toLowerCase().includes(searchTerm)
         task.room_no?.toString().toLowerCase().startsWith(searchTerm) ||
-        task.guest_name?.toString().toLowerCase().startsWith(searchTerm)
+        (task.guest_name || task.task_created_by)?.toString().toLowerCase().startsWith(searchTerm)
       )
       : this.scheduledTasks;
     const startIndex = (this.currentPage - 1) * this.pageSize;
@@ -603,9 +680,9 @@ export class ScheduledComponent {
     const newHours = date.getHours().toString().padStart(2, '0');
     const newMinutes = date.getMinutes().toString().padStart(2, '0');
     const newSeconds = date.getSeconds().toString().padStart(2, '0');
-    console.log('Formatted Scheduled Time:', `${newHours}:${newMinutes}:${newSeconds}`);
+    // console.log('Formatted Scheduled Time:', `${newHours}:${newMinutes}:${newSeconds}`);
 
-    console.log('Initializing timer for task:', task);
+    // console.log('Initializing timer for task:', task);
     const orderDateTime = new Date(`${task.order_date}T${task.order_time}`);
     // Newly added & commented for combined - started
     // const escalationDurationInSeconds = this.escalationHierarchy?.escalationTime * 60;
@@ -761,7 +838,7 @@ export class ScheduledComponent {
           this.deskStaff = resp.result.data;
           //store only ids
           this.deskStavesIds = this.deskStaff.map((staff: any) => staff.id);
-          console.log('Desk Staff:', this.deskStaff);
+          // console.log('Desk Staff:', this.deskStaff);
         } else {
           this.deskStaff = [];
         }
@@ -847,7 +924,7 @@ export class ScheduledComponent {
         // console.log('Room Number in task:', task.room_no);
         // return task.room_no?.toString().toLowerCase().includes(searchTerm);
         const roomValue = task.room_no?.toString().trim().toLowerCase();
-        const guestValue = task.guest_name?.toString().trim().toLowerCase();
+        const guestValue = (task.guest_name || task.task_created_by)?.toString().trim().toLowerCase();
         const roomMatch = roomValue?.startsWith(searchTerm);
         const guestMatch = guestValue?.startsWith(searchTerm);
         return roomMatch || guestMatch;
@@ -859,6 +936,16 @@ export class ScheduledComponent {
       this.totalTasks = filtered.length;
       this.totalPages = Math.ceil(filtered.length / this.pageSize);
     }
+  }
+
+  // Newest scheduled tasks first (based on scheduled_date + scheduled_time)
+  private sortScheduledTasksByMostRecent() {
+    if (!Array.isArray(this.scheduledTasks)) return;
+    this.scheduledTasks.sort((a: any, b: any) => {
+      const aTime = new Date(`${a?.scheduled_date || ''} ${a?.scheduled_time || ''}`).getTime();
+      const bTime = new Date(`${b?.scheduled_date || ''} ${b?.scheduled_time || ''}`).getTime();
+      return bTime - aTime;
+    });
   }
 
 }

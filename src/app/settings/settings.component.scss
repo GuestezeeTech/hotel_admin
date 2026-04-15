@@ -19,10 +19,11 @@ body {
 }
 
 .bi-chevron-right {
-   font-size: 18px !important;
+    font-size: 18px !important;
 }
 
-h6, .bi-chevron-right {
+h6,
+.bi-chevron-right {
     color: #1A1A1A !important;
 }
 
@@ -36,10 +37,11 @@ img {
 }
 
 .password {
-   width: 7% !important;
+    width: 7% !important;
 }
 
-.payment, .authentication {
+.payment,
+.authentication {
     width: 4% !important;
 }
 
@@ -47,7 +49,7 @@ app-alerts {
     z-index: 1100 !important;
 }
 
-h6 { 
+h6 {
     font-size: 16px !important;
 }
 
@@ -57,4 +59,72 @@ p {
 
 input[type="checkbox"] {
     accent-color: #800020;
+}
+
+// Late checkout toggle styling
+.form-switch #lateCheckoutToggle,
+#lateCheckoutToggle.form-check-input {
+    background-color: #8d9296 !important;
+    border-color: #8d9296 !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e") !important;
+
+    // Green when checked (enabled/true)
+    &:checked {
+        background-color: #28a745 !important;
+        border-color: #28a745 !important;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e") !important;
+        background-position: right center !important;
+    }
+
+    // REMOVE shadow on focus
+    &:focus,
+    &:focus-visible {
+        box-shadow: none !important;
+        outline: none !important;
+    }
+
+    // Disabled state
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed !important;
+        pointer-events: auto !important; // Override Bootstrap's pointer-events: none
+    }
+}
+
+// Disabled styles for buttons and icons
+.view-icon[style*="cursor: not-allowed"],
+.bi-chevron-right[style*="cursor: not-allowed"] {
+    cursor: not-allowed !important;
+    pointer-events: auto !important; // Override Bootstrap's pointer-events: none
+}
+
+// Disabled form controls
+.form-control:disabled,
+input[disabled],
+select[disabled],
+.form-select:disabled {
+    background-color: #f5f5f5 !important;
+    cursor: not-allowed !important;
+    opacity: 0.8;
+    pointer-events: auto !important; // Override Bootstrap's pointer-events: none
+}
+
+// Disabled buttons
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed !important;
+    pointer-events: auto !important; // Override Bootstrap's pointer-events: none
+}
+
+// Ensure disabled elements show cursor not-allowed
+[disabled],
+:disabled {
+    pointer-events: auto !important; // Override Bootstrap's pointer-events: none
+    cursor: not-allowed !important;
+}
+
+// For elements with inline style cursor: not-allowed
+[style*="cursor: not-allowed"] {
+    pointer-events: auto !important;
+    cursor: not-allowed !important;
 }

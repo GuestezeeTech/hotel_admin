@@ -206,7 +206,9 @@ export class MemberViewComponent {
       user_id: USER_ID, //Default user id
       "extras": {
         "find": {
-          "customer_id": this.hotelId
+          // Newly added for getting member id for customer type
+          // "customer_id": this.hotelId
+          "member_id": this.localService.get('MemberId')
         }
       }
     }

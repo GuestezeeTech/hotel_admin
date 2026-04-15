@@ -47,6 +47,7 @@ export class OfficeDetailsComponent implements OnInit, OnChanges {
   @Input() paymentDone!: boolean;
   customerType: any;
   customerStatus: any = '';
+  memberId: any;
 
   constructor(
     private authTokenService: AuthTokenService,
@@ -69,28 +70,28 @@ export class OfficeDetailsComponent implements OnInit, OnChanges {
     this.customerType = this.localService.get('CustomerType');
     ////console.log(this.continue,"jj")
     this.customerForm = new FormGroup({
-      first_name: new FormControl('', Validators.required),
-      last_name: new FormControl('', Validators.required),
-      designation: new FormControl('', Validators.required),
-      phone_number: new FormControl('', [Validators.required, Validators.pattern(/^[0-9\s\-+()]+$/)]),
-      email: new FormControl('', [Validators.required, Validators.email]),
+      first_name: new FormControl('', [Validators.required, CustomValidators.noWhitespaceValidator]),
+      last_name: new FormControl('', [Validators.required, CustomValidators.noWhitespaceValidator]),
+      designation: new FormControl('', [Validators.required, CustomValidators.noWhitespaceValidator]),
+      phone_number: new FormControl('', [Validators.required, Validators.pattern(/^[0-9\s\-+()]+$/), CustomValidators.noWhitespaceValidator]),
+      email: new FormControl('', [Validators.required, Validators.pattern(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)]),
       gender: new FormControl('', Validators.required),
 
-      sec_first_name: new FormControl('', Validators.required),
-      sec_last_name: new FormControl('', Validators.required),
-      sec_designation: new FormControl('', Validators.required),
-      sec_phone_number: new FormControl('', [Validators.required, Validators.pattern(/^[0-9\s\-+()]+$/)]),
-      sec_email: new FormControl('', [Validators.required, Validators.email]),
+      sec_first_name: new FormControl('', [Validators.required, CustomValidators.noWhitespaceValidator]),
+      sec_last_name: new FormControl('', [Validators.required, CustomValidators.noWhitespaceValidator]),
+      sec_designation: new FormControl('', [Validators.required, CustomValidators.noWhitespaceValidator]),
+      sec_phone_number: new FormControl('', [Validators.required, Validators.pattern(/^[0-9\s\-+()]+$/), CustomValidators.noWhitespaceValidator]),
+      sec_email: new FormControl('', [Validators.required, Validators.pattern(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)]),
       sec_gender: new FormControl('', Validators.required),
-      company_name: new FormControl('', Validators.required),
-      door_no: new FormControl('', Validators.required),
-      address: new FormControl('', Validators.required),
-      city: new FormControl('', Validators.required),
+      company_name: new FormControl('', [Validators.required, CustomValidators.noWhitespaceValidator]),
+      door_no: new FormControl('', [Validators.required, CustomValidators.noWhitespaceValidator]),
+      address: new FormControl('', [Validators.required, CustomValidators.noWhitespaceValidator]),
+      city: new FormControl('', [Validators.required, CustomValidators.noWhitespaceValidator]),
       state: new FormControl('', Validators.required),
       country: new FormControl('', Validators.required),
       pincode: new FormControl('', [Validators.required, CustomValidators.pincodeValidator]),
-      pan_no: new FormControl('', [Validators.required, CustomValidators.panValidator]),
-      gst_no: new FormControl('', [Validators.required, CustomValidators.gstValidator]),
+      pan_no: new FormControl('', [Validators.required, CustomValidators.panValidator, CustomValidators.noWhitespaceValidator]),
+      gst_no: new FormControl('', [Validators.required, CustomValidators.gstValidator, CustomValidators.noWhitespaceValidator]),
 
       is_review_emails: new FormControl(false),
       is_password_reset_next_login: new FormControl(false),
@@ -379,12 +380,17 @@ export class OfficeDetailsComponent implements OnInit, OnChanges {
       { "state": "Uttarakhand", "code": "", "flag": "" },
       { "state": "West Bengal", "code": "", "flag": "" }
     ]
-    this.hotelId = Number(this.localService.get('UserId'));
-    ////console.log('Hotel ID:', this.hotelId);
-    if (this.hotelId != 0) {
+    // Newly added for getting customer id for customer type
+    this.memberId = this.localService.get('MemberId');
+    if (this.memberId !== undefined && this.memberId !== null && this.memberId !== '' && this.memberId !== 'undefined' && this.memberId !== 'null') {
       this.executeFunctions();
-      // this.getCountries();
     }
+    // this.hotelId = Number(this.localService.get('UserId'));
+    ////console.log('Hotel ID:', this.hotelId);
+    // if (this.hotelId ) {
+    // this.getCustomerById();
+    // }
+    // End of newly added for getting customer id for customer type
     else {
       // this.getCountries();
     }
@@ -581,6 +587,7 @@ export class OfficeDetailsComponent implements OnInit, OnChanges {
       this.customerdata.registered_address.pan_no = this.customerForm.value.pan_no,
       this.customerdata.registered_address.gst_no = this.customerForm.value.gst_no
     delete this.customerdata._id;
+    delete this.customerdata.password;
     let requestBody = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
@@ -589,7 +596,8 @@ export class OfficeDetailsComponent implements OnInit, OnChanges {
       },
       extras: {
         find: {
-          id: this.hotelId
+          // id: this.hotelId
+          customer_member_id: this.memberId
         }
       }
     }
@@ -614,6 +622,9 @@ export class OfficeDetailsComponent implements OnInit, OnChanges {
               }
             });
             //  this.saveAndContinue();
+          }
+          else if (resp.message.toLowerCase().includes('input parameters missing')) {
+            this.alertService.error('Please fill all the required fields.', this.options);
           }
           else if (resp.success === 0) {
             if (resp.message) {
@@ -651,7 +662,8 @@ export class OfficeDetailsComponent implements OnInit, OnChanges {
         user_id: USER_ID,
         extras: {
           find: {
-            id: this.hotelId
+            // id: this.hotelId
+            customer_member_id: this.memberId
           }
         }
       };
@@ -662,7 +674,7 @@ export class OfficeDetailsComponent implements OnInit, OnChanges {
             this.customerdata = resp.result.data[0];
             // Newly added for disabling form on payment done to approving the customer
             this.customerStatus = this.customerdata.status;
-            console.log('Customer status:', this.customerStatus);
+            // console.log('Customer status:', this.customerStatus);
             if (this.customerStatus === 'approved') {
               this.customerForm.disable();
             }
@@ -689,19 +701,24 @@ export class OfficeDetailsComponent implements OnInit, OnChanges {
 
   setFormValues() {
     ////console.log(this.customerdata.first_name, 'this.customerdata.first_name', this.customerdata.registered_address?.state);
+
+    // Patch email only for first-time visit (is_office_details_exists is false)
+    const isFirstTime = !this.customerdata.is_office_details_exists;
+    const loginEmail = isFirstTime ? (this.localService.get('UserEmail') || '') : '';
+
     this.customerForm.patchValue({
       first_name: this.customerdata.first_name,
       last_name: this.customerdata.last_name,
       designation: this.customerdata.designation,
       phone_number: this.customerdata.phone_number,
-      email: this.customerdata.primary_email,
+      email: isFirstTime ? loginEmail : this.customerdata.primary_email,
       gender: this.customerdata.gender,
 
       sec_first_name: this.customerdata.sec_first_name,
       sec_last_name: this.customerdata.sec_last_name,
       sec_designation: this.customerdata.sec_designation,
       sec_phone_number: this.customerdata.sec_phone_number,
-      sec_email: this.customerdata.sec_email,
+      sec_email: isFirstTime ? loginEmail : this.customerdata.sec_email,
       sec_gender: this.customerdata.sec_gender,
       company_name: this.customerdata.registered_address?.company_name,
       door_no: this.customerdata.registered_address?.door_no,
@@ -879,10 +896,10 @@ export class OfficeDetailsComponent implements OnInit, OnChanges {
     try {
       const userId = Number(this.localService.get('UserId'));
       const customerType = this.localService.get('CustomerType');
-      console.log('Logging out userId:', userId, 'customerType:', customerType);
+      // console.log('Logging out userId:', userId, 'customerType:', customerType);
       if (!userId) return;
       const currentToken = await this.pushService.getCurrentToken();
-      console.log('Current FCM token to remove:', currentToken);
+      // console.log('Current FCM token to remove:', currentToken);
       // Prepare Customer fetch body dynamically based on user type
       const customerFindKey = customerType === 'Staff' ? 'staff_id' : 'id';
       const customerFetchBody = {
@@ -894,7 +911,7 @@ export class OfficeDetailsComponent implements OnInit, OnChanges {
       const customerResp: any = await this.hotelListService.getSignupAllCustomers(customerFetchBody).toPromise();
       if (customerResp.success === 1 && customerResp.result.data.length > 0) {
         const customer = customerResp.result.data[0];
-        console.log('Fetched customer for FCM removal:', customer);
+        // console.log('Fetched customer for FCM removal:', customer);
         if (Array.isArray(customer.fcm_token)) {
           customer.fcm_token = customer.fcm_token.filter((t: string) => t !== currentToken);
           const updateBody = {
@@ -904,7 +921,7 @@ export class OfficeDetailsComponent implements OnInit, OnChanges {
             extras: { find: { [customerFindKey]: userId } }
           };
           await this.hotelenrollmenttabviewService.updateCustomerFcm(updateBody).toPromise();
-          console.log('FCM token removed for customer:', currentToken);
+          // console.log('FCM token removed for customer:', currentToken);
         }
       }
       // Remove FCM token from Staff table only if user is Staff
@@ -917,7 +934,7 @@ export class OfficeDetailsComponent implements OnInit, OnChanges {
         const staffResp: any = await this.taskManagementService.getAllStaves(staffFetchBody).toPromise();
         if (staffResp.success === 1 && staffResp.result.data.length > 0) {
           const staff = staffResp.result.data[0];
-          console.log('Fetched staff for FCM removal:', staff);
+          // console.log('Fetched staff for FCM removal:', staff);
           if (Array.isArray(staff.fcm_token)) {
             staff.fcm_token = staff.fcm_token.filter((t: string) => t !== currentToken);
             const updateBody = {
@@ -927,7 +944,7 @@ export class OfficeDetailsComponent implements OnInit, OnChanges {
               extras: { find: { id: userId } }
             };
             await this.staffService.updateStaff(updateBody).toPromise();
-            console.log('FCM token removed for staff:', currentToken);
+            // console.log('FCM token removed for staff:', currentToken);
           }
         }
       }

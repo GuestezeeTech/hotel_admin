@@ -8,6 +8,7 @@ import { LocalStorageService } from '../../auth-services/local-storage.service';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Observable } from 'rxjs';
+import { shouldFilterByCategory } from '../task-category.util';
 
 @Component({
   selector: 'app-staff-delivered',
@@ -49,6 +50,8 @@ export class StaffDeliveredComponent {
   isHelpServiceModalOpen: boolean = false;
   selectedHelpServiceTask: any = null;
   searchRoomNo: string = '';
+  // Newly added for loader
+  isLoading: boolean = false;
 
   constructor(
     private localService: LocalStorageService,
@@ -62,10 +65,18 @@ export class StaffDeliveredComponent {
     // Newly added
     // To load inital all tasks
     this.customerType = this.localService.get('CustomerType');
-    this.hotelId = Number(this.localService.get('UserId'));
-    console.log('Hotel Id:', this.hotelId);
+    // Newly added for getting member id for customer type
+    // this.hotelId = Number(this.localService.get('UserId'));
+    // console.log('Hotel Id:', this.hotelId);
+    this.memberId = this.localService.get('MemberId');
+    // console.log('Member ID from staff delivered component:', this.memberId);
     if (this.customerType == 'Customer') {
-      await this.getCustomerMemberId(this.hotelId);
+      // await this.getCustomerMemberId(this.hotelId);
+      this.member_id = this.memberId;
+      if (this.memberId !== undefined && this.memberId !== null && this.memberId !== '' && this.memberId !== 'undefined' && this.memberId !== 'null') {
+        await this.getCustomerMemberId(this.memberId);
+      }
+      // End of newly added for getting member id for customer type
     }
     else {
       this.member_id = this.localService.get('MemberId');
@@ -85,7 +96,7 @@ export class StaffDeliveredComponent {
     const hierarchyString = this.localService.get('hierarchy');
     if (hierarchyString) {
       this.escalationHierarchy = JSON.parse(hierarchyString);
-      console.log('Escalation Hierarchy(Cancelled):', this.escalationHierarchy);
+      // console.log('Escalation Hierarchy(Cancelled):', this.escalationHierarchy);
     } else {
       this.escalationHierarchy = [];
     }
@@ -182,13 +193,17 @@ export class StaffDeliveredComponent {
   // }
 
   // Newly added for getting room number based on label
-  getCustomerMemberId(hotelId: any): Promise<any> {
+  // getCustomerMemberId(hotelId: any): Promise<any> {
+  getCustomerMemberId(memberId: any): Promise<any> {
     return new Promise((resolve, reject) => {
       const requestBody = {
         domain_name: DOMAIN_NAME,
         user_id: USER_ID,
         extras: {
-          find: { id: hotelId }
+          find: {
+            //  id: hotelId 
+            "customer_member_id": memberId
+          }
         }
       };
 
@@ -196,8 +211,8 @@ export class StaffDeliveredComponent {
         next: (res: any) => {
           if (res && res.result.data.length > 0) {
             const customer = res.result.data[0];
-            console.log('Customer Data:', customer);
-            this.member_id = customer.customer_member_id;
+            // console.log('Customer Data:', customer);
+            // this.member_id = customer.customer_member_id;
             resolve(this.memberId); // resolves with memberId
           } else {
             reject('No customer found');
@@ -237,7 +252,7 @@ export class StaffDeliveredComponent {
     this.hotelListService.getSignupAllCustomers(requestBody).subscribe((res: any) => {
       if (res && res.result.data.length > 0) {
         const customer = res.result.data[0];
-        console.log('Customer Data:', customer);
+        // console.log('Customer Data:', customer);
         if (customer && customer.settings?.room_range) {
           this.mapStaffRooms(customer.settings.room_range);
           // Now rooms ready → call Delivered API
@@ -252,7 +267,7 @@ export class StaffDeliveredComponent {
     let staffData: any = this.localService.get('StaffData');
     let staffDataParse = JSON.parse(staffData);
     let staffRoomNo = staffDataParse.room_no; // [{ label: "Floor 1" }, { label: "Floor 3" }]
-    console.log('Staff Room No:', staffRoomNo);
+    // console.log('Staff Room No:', staffRoomNo);
     let finalRoomArray: string[] = [];
     staffRoomNo.forEach((staff: any) => {
       const matched = roomRange.find(r => r.label === staff.label);
@@ -260,18 +275,18 @@ export class StaffDeliveredComponent {
         finalRoomArray.push(`${matched.startRoom}-${matched.endRoom}`);
       }
     });
-    console.log('Final Room Array:', finalRoomArray); // ["1-100", "201-300"]
+    // console.log('Final Room Array:', finalRoomArray); // ["1-100", "201-300"]
     this.labelRoomArray = finalRoomArray;
   }
 
   // Prepares object and hits task api
-  prepareAndCallDeliveredTaskApi() {
+  /* prepareAndCallDeliveredTaskApi() {
     let hierarchy: any = this.localService.get('hierarchy');
     let hierarchyParse = JSON.parse(hierarchy);
     // Newly added & commented for combine - started
     // let department = hierarchyParse?.department;
     let department = hierarchyParse?.map((item: any) => item.department);
-    console.log('Staff department(Staff delivered):', department);
+    // console.log('Staff department(Staff delivered):', department);
     // Ended
     let staffData: any = this.localService.get('StaffData');
     let staffDataParse = JSON.parse(staffData);
@@ -280,7 +295,7 @@ export class StaffDeliveredComponent {
     // Newly added for delivered 
     let baseStaffIds: number[] = [];
     const storedIds = this.localService.get('baseStaffIds');
-    console.log('Stored Base Staff Ids:', storedIds);
+    // console.log('Stored Base Staff Ids:', storedIds);
     if (storedIds) {
       try {
         baseStaffIds = JSON.parse(storedIds);  // works if stored properly
@@ -289,7 +304,7 @@ export class StaffDeliveredComponent {
         baseStaffIds = storedIds.split(',').map((id: string) => Number(id.trim()));
       }
     }
-    console.log('Base Staff Ids:', baseStaffIds);
+    // console.log('Base Staff Ids:', baseStaffIds);
     // Convert labelRoomArray into a final room list
     // Newly added 
     // this.labelRoomArray = ['1-100'];
@@ -364,8 +379,8 @@ export class StaffDeliveredComponent {
       }
     });
     this.labelRoomArray = roomList;
-    console.log('Room Number:', this.labelRoomArray);
-    console.log('Base Staff Ids before FO desk check:', baseStaffIds);
+    // console.log('Room Number:', this.labelRoomArray);
+    // console.log('Base Staff Ids before FO desk check:', baseStaffIds);
     // Ended
     if (this.at_desk) {
       object = {
@@ -435,7 +450,222 @@ export class StaffDeliveredComponent {
     else {
       this.callDeliveredTaskApi(object);
     }
+  } */
+
+  prepareAndCallDeliveredTaskApi() {
+    const hierarchy: any = this.localService.get('hierarchy');
+    const hierarchyParse = JSON.parse(hierarchy || '[]');
+    const department = hierarchyParse?.map((item: any) => item.department);
+    // console.log('Staff department (Completed):', department);
+    const staffData: any = this.localService.get('StaffData');
+    const staffDataParse = JSON.parse(staffData || '{}');
+    this.at_desk = staffDataParse?.at_desk;
+    let object: any = { status: "Completed" };
+    let baseStaffIds: number[] = [];
+    const storedIds = this.localService.get('baseStaffIds');
+    // console.log('Stored Base Staff Ids:', storedIds);
+    if (storedIds) {
+      try {
+        baseStaffIds = JSON.parse(storedIds);
+      } catch {
+        baseStaffIds = String(storedIds).split(',').map((id: string) => Number(id.trim()));
+      }
+    }
+    // If at_desk is true, add the logged-in staff ID from StaffData (not UserId)
+    // console.log('Staff Data Parse(Staff delivered):', staffDataParse);
+    // console.log('At Desk(Staff delivered):', this.at_desk);
+    if (this.at_desk && staffDataParse?.staff_id) {
+      const currentStaffId = Number(staffDataParse.staff_id);
+      if (!baseStaffIds.includes(currentStaffId)) {
+        baseStaffIds.push(currentStaffId);
+      }
+    }
+    // Newly commented because no need of fo desk 
+    /*   let frontOfficeStaffIds: number[] = [];
+      const storedFo = this.localService.get('frontOfficeStaffIds');
+      // console.log('Stored FO Staff Ids:', storedFo);
+      if (storedFo) {
+        try {
+          frontOfficeStaffIds = JSON.parse(storedFo);
+        } catch {
+          frontOfficeStaffIds = String(storedFo).split(',').map((id: string) => Number(id.trim()));
+        }
+      }
+      // merge & dedupe
+      baseStaffIds.push(...frontOfficeStaffIds); */
+    // End of newly commented code
+    baseStaffIds = baseStaffIds.filter(id => !!id);
+    baseStaffIds = [...new Set(baseStaffIds)];
+    // console.log('Base Staff Ids:', baseStaffIds);
+    // Get at_desk staff IDs based on hierarchy
+    this.getAtDeskStaffIds().then((atDeskStaffIds: number[]) => {
+      baseStaffIds.push(...atDeskStaffIds);
+      baseStaffIds = baseStaffIds.filter(id => !!id);
+      baseStaffIds = [...new Set(baseStaffIds)];
+      // console.log('Final Staff IDs AFTER merging FO IDs and at_desk:', baseStaffIds);
+      let roomList: string[] = [];
+      const expandAlphaRange = (start: string, end: string): string[] => {
+        const result: string[] = [];
+        const toNumber = (str: string) => {
+          let n = 0;
+          for (let i = 0; i < str.length; i++) {
+            n = n * 26 + (str.charCodeAt(i) - 65 + 1);
+          }
+          return n;
+        };
+        const toLetters = (num: number) => {
+          let s = '';
+          while (num > 0) {
+            const rem = (num - 1) % 26;
+            s = String.fromCharCode(65 + rem) + s;
+            num = Math.floor((num - 1) / 26);
+          }
+          return s;
+        };
+        const startNum = toNumber(start.toUpperCase());
+        const endNum = toNumber(end.toUpperCase());
+        for (let i = startNum; i <= endNum; i++) result.push(toLetters(i));
+        return result;
+      };
+      (this.labelRoomArray || []).forEach((room: any) => {
+        const value = String(room).trim();
+        const alphaNumericRange = value.match(/^([A-Za-z0-9]+)-([A-Za-z0-9]+)$/);
+        if (alphaNumericRange) {
+          const start = alphaNumericRange[1];
+          const end = alphaNumericRange[2];
+          if (!isNaN(Number(start)) && !isNaN(Number(end))) {
+            for (let i = Number(start); i <= Number(end); i++) roomList.push(String(i));
+          } else if (/^\d+[A-Z]+$/i.test(start) && /^\d+[A-Z]+$/i.test(end)) {
+            const prefix = start.match(/^\d+/)![0];
+            const startSuffix = start.slice(prefix.length);
+            const endSuffix = end.slice(prefix.length);
+            roomList.push(...expandAlphaRange(startSuffix.toUpperCase(), endSuffix.toUpperCase()).map(suf => `${prefix}${suf}`));
+          } else if (/^[A-Z]+\d+$/i.test(start) && /^[A-Z]+\d+$/i.test(end)) {
+            const prefix = start.match(/^[A-Z]+/i)![0];
+            const sNum = parseInt(start.slice(prefix.length));
+            const eNum = parseInt(end.slice(prefix.length));
+            for (let i = sNum; i <= eNum; i++) roomList.push(`${prefix}${i}`);
+          } else if (/^[A-Z]+$/i.test(start) && /^[A-Z]+$/i.test(end)) {
+            roomList.push(...expandAlphaRange(start.toUpperCase(), end.toUpperCase()));
+          } else {
+            roomList.push(value);
+          }
+        } else {
+          roomList.push(value);
+        }
+      });
+      this.labelRoomArray = roomList;
+      // console.log('Room Number:', this.labelRoomArray);
+      if (this.at_desk) {
+        object = {
+          status: "Completed",
+          room_no: this.labelRoomArray,
+          member_id: this.member_id,
+          assigned_staff_id: baseStaffIds
+        };
+      } else {
+        object = {
+          status: "Completed",
+          member_id: this.member_id,
+          assigned_staff_id: baseStaffIds
+        };
+        if (this.labelRoomArray.length > 0) object.room_no = this.labelRoomArray;
+      }
+      // keep service.category if available and not 'Select'
+      // if (department && department !== 'Select') {
+      //   object["service.category"] = department;
+      // }
+      // console.log('FINAL COMPLETED OBJECT (no FO API):', object);
+      // this.callDeliveredTaskApi(object);
+      this.deliveredTasks = [];
+      this.allDeliveredTasks = [];
+      this.totalDeliveredTasks = 0;
+      this.totalPages = 0;
+      // API call → service.category (category-based listing ONLY, when not Default)
+      const findObject = shouldFilterByCategory(department)
+        ? { ...object, 'service.category': department }
+        : { ...object };
+      this.callDeliveredTaskApi(findObject);
+      // Previously we also fetched by assigned_department. For your requirement
+      // we no longer list tasks based on assigned_department, so this is commented.
+      //
+      // const assignedObj = { ...object, 'assigned_department': department };
+      // this.callDeliveredTaskApi(assignedObj);
+    });
   }
+
+  // Get all at_desk staff IDs based on hierarchy (similar to baseStaffIds)
+  getAtDeskStaffIds(): Promise<number[]> {
+    return new Promise((resolve) => {
+      if (this.customerType !== 'Staff') {
+        resolve([]);
+        return;
+      }
+      const hierarchy: any = this.localService.get('hierarchy');
+      const hierarchyParse = JSON.parse(hierarchy || '[]');
+      const department = hierarchyParse?.map((item: any) => item.department);
+      const staffData: any = this.localService.get('StaffData');
+      const staffDataParse = JSON.parse(staffData || '{}');
+      const staffId = Number(staffDataParse?.staff_id);
+      const memberId = this.member_id;
+      if (!staffId || !memberId) {
+        resolve([]);
+        return;
+      }
+      const find: any = (Array.isArray(department) ? !department.includes('Default') : department !== 'Default' && !!department)
+        ? { member_id: memberId, 'hierarchy.department': department }
+        : { member_id: memberId };
+      const requestBody = {
+        domain_name: DOMAIN_NAME,
+        user_id: USER_ID,
+        extras: {
+          find: find
+        }
+      };
+      this.taskManagementService.getAllStaves(requestBody).subscribe(
+        (resp: any) => {
+          if (resp?.success === 1 && resp.status_code === 200) {
+            const allStaff = resp.result.data;
+            const atDeskStaffIds: number[] = [];
+
+            // First, check if the logged-in staff themselves are at_desk
+            const loggedInStaff = allStaff.find((s: any) => s.id === staffId);
+            if (loggedInStaff && loggedInStaff.at_desk === true) {
+              atDeskStaffIds.push(loggedInStaff.id);
+            }
+
+            // Recursive helper to traverse hierarchy
+            const traverse = (currentId: number) => {
+              const children = allStaff.filter((s: any) =>
+                Array.isArray(s.higher_level_officer) &&
+                s.higher_level_officer.some((officer: any) => officer?.id === currentId)
+              );
+
+              // Check each child for at_desk
+              children.forEach((child: any) => {
+                // Check if child itself is at_desk
+                if (child.at_desk === true && !atDeskStaffIds.includes(child.id)) {
+                  atDeskStaffIds.push(child.id);
+                }
+                // Continue traversing to find all descendants
+                traverse(child.id);
+              });
+            };
+            // Start from logged-in staffId to traverse all children
+            traverse(staffId);
+            resolve(atDeskStaffIds);
+          } else {
+            resolve([]);
+          }
+        },
+        (err: any) => {
+          // console.error('Error fetching at_desk staff IDs:', err);
+          resolve([]);
+        }
+      );
+    });
+  }
+
 
   getFoDeskStaff(department: string[]): Observable<number[]> {
     return new Observable((observer) => {
@@ -459,7 +689,7 @@ export class StaffDeliveredComponent {
             // const deskStaff = resp.result.data[0];
             // observer.next(deskStaff.id);
             const deskStaffIds = resp.result.data.map((staff: any) => staff.id);
-            console.log('Desk staff id(s) (Cancelled):', deskStaffIds)
+            // console.log('Desk staff id(s) (Cancelled):', deskStaffIds)
             observer.next(deskStaffIds);
             // Ended
           } else {
@@ -504,7 +734,88 @@ export class StaffDeliveredComponent {
   //   });
   // }
 
+  /*  callDeliveredTaskApi(findObject: any) {
+     let requestBody = {
+       domain_name: DOMAIN_NAME,
+       user_id: USER_ID,
+       extras: {
+         find: findObject,
+         pagination: false,
+         sorting: true,
+         sortingDetails: { id: -1 }
+       }
+     };
+     this.taskManagementService.getAllTask(requestBody).subscribe({
+       next: (response) => {
+         if (response?.success) {
+           const tasks = response.result.data || [];
+           if (tasks.length === 0) {
+             this.allDeliveredTasks = [];
+             this.deliveredTasks = [];
+             this.totalDeliveredTasks = 0;
+             this.totalPages = 0;
+             return;
+           }
+           let updatedTasks: any[] = [];
+           let completedCount = 0;
+           tasks.forEach((task: any) => {
+             // console.log('Id:', task.id);
+             const ratingRequestBody = {
+               domain_name: DOMAIN_NAME,
+               user_id: USER_ID,
+               extras: {
+                 find: {
+                   task_id: task.id,
+                   member_id: this.member_id
+                 },
+                 pagination: false,
+                 sorting: true,
+                 sortingDetails: { id: -1 }
+               }
+             };
+             this.taskManagementService.getAllRatings(ratingRequestBody).subscribe({
+               next: (ratingResponse) => {
+                 if (ratingResponse?.success && ratingResponse.result.data.length > 0) {
+                   task.rating = ratingResponse.result.data[0].rating;
+                 } else {
+                   task.rating = 0; // default if no rating
+                 }
+                 updatedTasks.push(task);
+                 completedCount++;
+                 // Once all rating calls are finished
+                 if (completedCount === tasks.length) {
+                   this.allDeliveredTasks = updatedTasks;
+                   this.deliveredTasks = [...updatedTasks];
+                   this.totalDeliveredTasks = this.deliveredTasks.length;
+                   this.totalPages = Math.ceil(this.totalDeliveredTasks / this.pageSize);
+                   this.updatePaginatedDeliveredTasks();
+                 }
+               },
+               error: (err) => {
+                 console.error("Delivered Ratings API Error:", err);
+                 task.rating = 0;
+                 updatedTasks.push(task);
+                 completedCount++;
+                 if (completedCount === tasks.length) {
+                   this.allDeliveredTasks = updatedTasks;
+                   this.deliveredTasks = [...updatedTasks];
+                   this.totalDeliveredTasks = this.deliveredTasks.length;
+                   this.totalPages = Math.ceil(this.totalDeliveredTasks / this.pageSize);
+                   this.updatePaginatedDeliveredTasks();
+                 }
+               }
+             });
+           });
+         }
+       },
+       error: (err) => {
+         console.error("Delivered API Error:", err);
+       }
+     });
+   } */
+
   callDeliveredTaskApi(findObject: any) {
+    this.isLoading = true;
     let requestBody = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
@@ -520,16 +831,19 @@ export class StaffDeliveredComponent {
         if (response?.success) {
           const tasks = response.result.data || [];
           if (tasks.length === 0) {
-            this.allDeliveredTasks = [];
-            this.deliveredTasks = [];
-            this.totalDeliveredTasks = 0;
-            this.totalPages = 0;
+            // Nothing new to add — don't reset existing tasks
+            this.isLoading = false;
             return;
+          }
+          // Keep a map to prevent duplicates by task.id
+          const taskMap = new Map<number, any>();
+          // Add existing tasks to map (if any)
+          if (this.deliveredTasks && this.deliveredTasks.length > 0) {
+            this.deliveredTasks.forEach((t: any) => taskMap.set(t.id, t));
           }
           let updatedTasks: any[] = [];
           let completedCount = 0;
           tasks.forEach((task: any) => {
-            console.log('Id:', task.id);
             const ratingRequestBody = {
               domain_name: DOMAIN_NAME,
               user_id: USER_ID,
@@ -545,20 +859,23 @@ export class StaffDeliveredComponent {
             };
             this.taskManagementService.getAllRatings(ratingRequestBody).subscribe({
               next: (ratingResponse) => {
-                if (ratingResponse?.success && ratingResponse.result.data.length > 0) {
-                  task.rating = ratingResponse.result.data[0].rating;
-                } else {
-                  task.rating = 0; // default if no rating
-                }
+                task.rating =
+                  ratingResponse?.success && ratingResponse.result.data.length > 0
+                    ? ratingResponse.result.data[0].rating
+                    : 0;
                 updatedTasks.push(task);
                 completedCount++;
-                // Once all rating calls are finished
+                // Once all rating calls for this batch are done
                 if (completedCount === tasks.length) {
-                  this.allDeliveredTasks = updatedTasks;
-                  this.deliveredTasks = [...updatedTasks];
+                  // Merge new tasks with existing tasks and remove duplicates
+                  [...updatedTasks].forEach(t => taskMap.set(t.id, t));
+                  const dedupedTasks = Array.from(taskMap.values());
+                  this.deliveredTasks = [...dedupedTasks];
+                  this.sortDeliveredTasksByMostRecent();
                   this.totalDeliveredTasks = this.deliveredTasks.length;
                   this.totalPages = Math.ceil(this.totalDeliveredTasks / this.pageSize);
                   this.updatePaginatedDeliveredTasks();
+                  this.isLoading = false;
                 }
               },
               error: (err) => {
@@ -567,11 +884,14 @@ export class StaffDeliveredComponent {
                 updatedTasks.push(task);
                 completedCount++;
                 if (completedCount === tasks.length) {
-                  this.allDeliveredTasks = updatedTasks;
-                  this.deliveredTasks = [...updatedTasks];
+                  [...updatedTasks].forEach(t => taskMap.set(t.id, t));
+                  const dedupedTasks = Array.from(taskMap.values());
+                  this.deliveredTasks = [...dedupedTasks];
+                  this.sortDeliveredTasksByMostRecent();
                   this.totalDeliveredTasks = this.deliveredTasks.length;
                   this.totalPages = Math.ceil(this.totalDeliveredTasks / this.pageSize);
                   this.updatePaginatedDeliveredTasks();
+                  this.isLoading = false;
                 }
               }
             });
@@ -580,7 +900,22 @@ export class StaffDeliveredComponent {
       },
       error: (err) => {
         console.error("Delivered API Error:", err);
+        this.isLoading = false;
       }
+    });
+  }
+
+  // Ensure newest staff-completed tasks appear first
+  private sortDeliveredTasksByMostRecent() {
+    if (!Array.isArray(this.deliveredTasks)) return;
+    this.deliveredTasks.sort((a: any, b: any) => {
+      const aTime = a?.delivered_time
+        ? new Date(a.delivered_time).getTime()
+        : new Date(`${a?.order_date || ''} ${a?.order_time || ''}`).getTime();
+      const bTime = b?.delivered_time
+        ? new Date(b.delivered_time).getTime()
+        : new Date(`${b?.order_date || ''} ${b?.order_time || ''}`).getTime();
+      return bTime - aTime; // most recent first
     });
   }
 
@@ -597,7 +932,7 @@ export class StaffDeliveredComponent {
       ? this.deliveredTasks.filter((task: any) =>
         // task.room_no?.toString().toLowerCase().includes(searchTerm)
         task.room_no?.toString().toLowerCase().startsWith(searchTerm) ||
-        task.guest_name?.toString().toLowerCase().startsWith(searchTerm)
+        (task.guest_name || task.task_created_by)?.toString().toLowerCase().startsWith(searchTerm)
       )
       : this.deliveredTasks;
     const startIndex = (this.currentPage - 1) * this.pageSize;
@@ -681,7 +1016,7 @@ export class StaffDeliveredComponent {
         // console.log('Room Number in task:', task.room_no);
         // return task.room_no?.toString().toLowerCase().includes(searchTerm);
         const roomValue = task.room_no?.toString().trim().toLowerCase();
-        const guestValue = task.guest_name?.toString().trim().toLowerCase();
+        const guestValue = (task.guest_name || task.task_created_by)?.toString().trim().toLowerCase();
         const roomMatch = roomValue?.startsWith(searchTerm);
         const guestMatch = guestValue?.startsWith(searchTerm);
         return roomMatch || guestMatch;

@@ -1,4 +1,7 @@
-/* Title Styling */
+body {
+  font-family: urbanist !important;
+}
+
 h3 {
   font-size: 18px;
   font-weight: bold;
@@ -52,7 +55,7 @@ h3 {
   color: white;
   display: inline-block;
   padding-left: 10px;
-  clip-path: polygon(10px 50%, 0 0, 100% 0, 100% 100%,0 100%);
+  clip-path: polygon(10px 50%, 0 0, 100% 0, 100% 100%, 0 100%);
 }
 
 .product-image {
@@ -122,7 +125,13 @@ select {
   border-radius: 5px;
   font-size: 14px;
   flex: 1;
+  background-color: white;
   /* Make all inputs the same width */
+}
+
+option {
+  font-size: 14px;
+  background-color: white;
 }
 
 /* Remove Button */
@@ -166,12 +175,13 @@ select {
 .submit {
   background: #883a01;
   color: white;
-  padding: 10px 15px;
+  padding: 10px 20px;
   border: none;
-  height: 35px;
+  // height: 35px;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: 14px;
   cursor: pointer;
+  font-weight: 500;
 
   &:disabled {
     background: #bdbdbd;
@@ -184,11 +194,12 @@ select {
   color: #000;
   margin-right: 20px;
   padding: 10px 15px;
-  height: 35px;
+  // height: 35px;
   border: none;
   border-radius: 4px;
   font-size: 14px;
   cursor: pointer;
+  font-weight: 500;
 
   &:hover {
     background: #aaa;
@@ -198,12 +209,13 @@ select {
 .submit1 {
   background: #883a01;
   color: white;
-  padding: 10px 50px;
+  padding: 9px 30px;
   border: none;
   height: 35px;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: 14px;
   cursor: pointer;
+  font-weight: 500;
 
   &:disabled {
     background: #bdbdbd;
@@ -215,12 +227,13 @@ select {
   background: #ccc;
   color: #000;
   margin-right: 20px;
-  padding: 10px 50px;
+  padding: 10px 30px;
   height: 35px;
   border: none;
   border-radius: 4px;
   font-size: 14px;
   cursor: pointer;
+  font-weight: 500;
 
   &:hover {
     background: #aaa;
@@ -329,6 +342,7 @@ select {
   display: flex;
   justify-content: center;
   align-items: center;
+  z-index: 9999;
 }
 
 .modal-overlay1 {
@@ -341,6 +355,7 @@ select {
   display: flex;
   justify-content: center;
   align-items: center;
+  z-index: 9999;
 }
 
 .modal-content {
@@ -350,6 +365,7 @@ select {
   position: relative;
   width: 300px;
   text-align: center;
+  z-index: 10000;
 }
 
 .modal-content1 {
@@ -359,6 +375,7 @@ select {
   position: relative;
   width: 30%;
   text-align: center;
+  z-index: 10000;
 }
 
 .category-btn-actions {
@@ -405,14 +422,12 @@ textarea {
   padding: 0.5rem;
   border: 1px solid #ccc;
   border-radius: 6px;
-  font-size: 12px;
-  font-family: 'montsmed';
+  font-size: 13px;
 }
 
 .custom-input::placeholder {
-  font-family: 'montsmed';
   /* or any other font */
-  font-size: 12px;
+  font-size: 13px;
   color: #999;
   /* change to your desired color */
   opacity: 1;
@@ -420,12 +435,12 @@ textarea {
 }
 
 .custom-input1 {
-  width: 95%;
+  width: 100%;
 }
 
 .label-text {
   margin-left: 60px;
-  font-weight: bold;
+  font-weight: 500;
   color: #333;
 }
 
@@ -433,8 +448,8 @@ textarea {
 .switch {
   position: relative;
   display: inline-block;
-  width: 50px;
-  height: 26px;
+  width: 40px;
+  height: 20px;
   margin-left: 10px;
 }
 
@@ -459,8 +474,8 @@ textarea {
 .slider:before {
   position: absolute;
   content: "";
-  height: 20px;
-  width: 20px;
+  height: 14px;
+  width: 15px;
   left: 3px;
   bottom: 3px;
   background-color: white;
@@ -478,29 +493,137 @@ input:checked+.slider:before {
 }
 
 .label-text {
-  font-family: 'montsreg';
   font-size: 14px;
-  margin-left: 10px;
+  margin-left: 0px;
   vertical-align: middle;
 }
 
 .add-btn-section {
   display: flex;
-  justify-content: flex-end;
+  justify-content: end;
 
-  .add-btn {
+  .add-btn, .back-btn {
     border-radius: 5px;
     background: #883a01;
     color: white;
-    font-weight: bold;
-    padding: 8px 16px;
+    font-weight: 600;
+    padding: 10px 20px;
     cursor: pointer;
     border: none;
+    font-size:14px;
   }
 }
 
+// Newly added
 .required {
   color: red;
-  font-size: 12px;
-  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 400;
+  margin-top: 1%;
+  text-align: start;
+}
+
+.category-dropdown {
+  background-color: white !important;
+  cursor: pointer;
+  appearance: auto !important;  /* restores default dropdown arrow */
+}
+
+.upload-btn.disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+i.disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.pagination-container {
+    display: flex;
+    justify-content: end;
+    align-items: center;
+    gap: 8px;
+    float: right;
+    margin-top: 2%;
+}
+
+.pagination-input {
+    width: 30px;
+    height: 30px;
+    text-align: center;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 14px !important;
+    outline: none;
+    background-color: transparent !important;
+    flex: none !important;
+}
+
+.pagination-btn {
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+    color: #6c757d;
+    padding: 5px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.pagination-btn:disabled {
+    background-color: #eee;
+    cursor: not-allowed;
+    color: #a0a0a0;
+}
+
+/* Disabled styles for buttons and icons */
+.view-icon,
+.edit-icon,
+.delete-icon {
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.view-icon[style*="cursor: not-allowed"],
+.edit-icon[style*="cursor: not-allowed"],
+.delete-icon[style*="cursor: not-allowed"] {
+    cursor: not-allowed;
+}
+
+/* Disabled form controls */
+.form-control:disabled,
+input[disabled],
+select[disabled],
+textarea[disabled],
+.custom-input:disabled,
+.custom-input1:disabled {
+    background-color: #f5f5f5 !important;
+    cursor: not-allowed;
+    opacity: 0.8;
+}
+
+input[type="file"]:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+input[type="checkbox"]:disabled + .slider {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.disabled-slider {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.submit:disabled,
+.submit1:disabled {
+    // cursor: not-allowed;
+    // opacity: 0.6;
+}
+
+.upload-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
 }

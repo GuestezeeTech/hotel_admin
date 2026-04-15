@@ -24,15 +24,15 @@ export class PushService {
   // Asks user for permission and generates FCM token to receive notifications.
   async requestPermissionAndGetToken(userId: string): Promise<string | null> {
     try {
-      console.log('Requesting notification permission...');
+      // console.log('Requesting notification permission...');
       const status = await Notification.requestPermission();
-      console.log('Permission status:', status);
+      // console.log('Permission status:', status);
       if (status !== 'granted') throw new Error('Notification permission not granted');
       const token = await getToken(this.messaging, {
         vapidKey: environment.fcmVapidKey
       });
       if (!token) throw new Error('No registration token available.');
-      console.log('FCM token:', token);
+      // console.log('FCM token:', token);
       return token;
     } catch (err) {
       console.error('FCM token error:', err);
@@ -63,12 +63,12 @@ export class PushService {
 onMessageListener(): Observable<MessagePayload> {
     return new Observable((observer) => {
       onMessage(this.messaging, (payload: MessagePayload) => {
-        console.log('[PushService] Foreground message received:', payload);
+        // console.log('[PushService] Foreground message received:', payload);
         const messageId = payload?.messageId;
         if (!messageId) return;
         // Prevent duplicates
         if (this.lastHandledId === messageId) {
-          console.log('[PushService] Duplicate notification skipped:', messageId);
+          // console.log('[PushService] Duplicate notification skipped:', messageId);
           return;
         }
         this.lastHandledId = messageId;
@@ -96,7 +96,7 @@ onMessageListener(): Observable<MessagePayload> {
       const currentToken = await getToken(this.messaging, { vapidKey: environment.fcmVapidKey });
       if (!currentToken) return false;
       await deleteToken(this.messaging);
-      console.log('FCM token deleted:', currentToken);
+      // console.log('FCM token deleted:', currentToken);
       return true;
     } catch (err) {
       console.error('Error deleting FCM token:', err);
@@ -108,7 +108,7 @@ onMessageListener(): Observable<MessagePayload> {
   async getCurrentToken(): Promise<string | null> {
     try {
       const token = await getToken(this.messaging, { vapidKey: environment.fcmVapidKey });
-      console.log('Current FCM token:', token);
+      // console.log('Current FCM token:', token);
       return token || null;
     } catch (err) {
       console.error('Error getting current FCM token:', err);

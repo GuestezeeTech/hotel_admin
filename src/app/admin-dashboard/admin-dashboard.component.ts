@@ -78,32 +78,53 @@ export class AdminDashboardComponent implements OnInit {
     autoClose: true,
     keepAfterRouteChange: false
   };
-  activities: any;
+  activities: any = {
+    guest_status: {
+      GuestLogged: 0,
+      TotalRequest: 0,
+      Completed: 0,
+      Escalated: 0
+    }
+  };
   // report
   report: any;
   roomNo: string = '';
   startDate: string = '';
   endDate: string = '';
-  dateError: boolean = false;
   // year (graph)
   years: number[] = [];
-  selectedYear: any = '2025';
+  selectedYear: any = '2026';
   guestUsageChart: Chart | undefined;
   // reviews
-  selectedReviewYear: any = '2025';
+  selectedReviewYear: any = '2026';
   isReviewDropdownOpen: boolean = false;
-  review: any;
+  review: any = {
+    reviews_count: 0,
+    avg_rating: 0
+  };
   memberId: any;
+  // Newly added for validation
+  // dateError: boolean = false;
+  roomError = false;
+  startDateError = false;
+  endDateError = false;
+  dateError = false;
+  // End of newly added for validation
 
   async ngOnInit(): Promise<void> {
     // this.memberId = this.localStorageService.get('MemberId');
     // console.log('Member ID:', this.localStorageService.get('UserId'));
     const hotelId = Number(this.localStorageService.get('UserId'));
     try {
-      const customer = await this.getCustomerById(hotelId);
-      console.log('Customer Data:', customer);
-      this.memberId = customer.customer_member_id;
-      console.log('Member ID:', this.memberId);
+      // Newly added for getting member id for customer type
+      // const customer = await this.getCustomerById(hotelId);
+      // this.memberId = customer.customer_member_id;
+      this.memberId = this.localStorageService.get('MemberId');
+      // console.log('Member ID from admin dashboard:', this.memberId);
+      if (this.memberId !== undefined && this.memberId !== null && this.memberId !== '' && this.memberId !== 'undefined' && this.memberId !== 'null') {
+        const customer = await this.getCustomerById(this.memberId);
+      }
+      // End of newly added for getting member id for customer type
       // this.getAllAsapTask();
       this.guestActivity(this.selectedYear, this.selectedReviewYear);
       this.getAllBookings();
@@ -116,26 +137,32 @@ export class AdminDashboardComponent implements OnInit {
     // this.createGuestUsageChart();
     this.selectButton('asap');
     // this.getAllBookings();
-    const currentYear = 2025;
-    for (let year = currentYear; year <= 2075; year++) {
+    const currentYear = 2026;
+    for (let year = currentYear; year <= 3026; year++) {
       this.years.push(year);
     }
-    console.log('All years:', this.years);
+    // console.log('All years:', this.years);
   }
 
-  getCustomerById(hotelId: any): Promise<any> {
+  // getCustomerById(hotelId: any): Promise<any> {
+  getCustomerById(memberId: any): Promise<any> {
     let requestBody = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
-      extras: { find: { id: hotelId } }
+      extras: {
+        find: {
+          // id: hotelId
+          "customer_member_id": memberId
+        }
+      }
     };
     return new Promise((resolve, reject) => {
       this.hotellistService.getSignupAllCustomers(requestBody).subscribe({
         next: (resp: any) => {
           if (resp.success === 1 && resp.status_code === 200 && resp.result.data.length > 0) {
             const userData = resp.result.data[0];
-            this.memberId = userData.customer_member_id;
-            console.log('Member id:', this.memberId);
+            // this.memberId = userData.customer_member_id;
+            // console.log('Member id:', this.memberId);
             resolve(userData);
           } else {
             reject('Customer not found');
@@ -147,7 +174,7 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   toggleUsageDropdown() {
-    console.log('Toggle Usage Dropdown');
+    // console.log('Toggle Usage Dropdown');
     this.isUsageDropdownOpen = !this.isUsageDropdownOpen;
   }
 
@@ -158,7 +185,7 @@ export class AdminDashboardComponent implements OnInit {
 
   setYear(year: number) {
     this.selectedYear = year;
-    console.log('Selected Year:', this.selectedYear);
+    // console.log('Selected Year:', this.selectedYear);
     this.isUsageDropdownOpen = false; // close dropdown
     // Reload chart for selected year
     this.guestActivity(this.selectedYear, this.selectedReviewYear);
@@ -198,7 +225,7 @@ export class AdminDashboardComponent implements OnInit {
   //     resp => {
   //       if (resp) {
   //         this.activities = resp.result.data;
-  //         console.log(this.activities, "All activity");
+  //         // console.log(this.activities, "All activity");
   //         // const guestUsageData = Object.values(resp.result.data.guest_activity) as number[];
   //         // pass to chart
   //         // this.createGuestUsageChart(guestUsageData);
@@ -212,10 +239,10 @@ export class AdminDashboardComponent implements OnInit {
   //           this.createGuestUsageChart(new Array(12).fill(0));
   //         }
   //         const reviewYearData = resp.result.data.reviews[reviewYear];
-  //         console.log('Review Year Data:', reviewYearData);
+  //         // console.log('Review Year Data:', reviewYearData);
   //         if (reviewYearData && reviewYearData.length > 0) {
   //           this.review = reviewYearData[0];
-  //           console.log('Review:',this.review);
+  //           // console.log('Review:',this.review);
   //         } else {
   //           // If no data, pass zeros
   //           this.review = {
@@ -258,7 +285,7 @@ export class AdminDashboardComponent implements OnInit {
         }
       }
     };
-    console.log(requestBody);
+    // console.log(requestBody);
     this.bookingService.getAllDashboard(requestBody).subscribe(
       resp => {
         const data = resp?.result?.data || {};
@@ -271,7 +298,7 @@ export class AdminDashboardComponent implements OnInit {
             Escalated: data.guest_status?.Escalated || 0
           }
         };
-        console.log(this.activities, "All activity");
+        // console.log(this.activities, "All activity");
         // Guest Usage Chart
         const guestYearData = data.guest_activity?.[usageYear] || [];
         if (guestYearData.length > 0) {
@@ -374,8 +401,19 @@ export class AdminDashboardComponent implements OnInit {
   //   }
   // }
 
-  createGuestUsageChart(data: number[]) {
+  createGuestUsageChart(data: number[], retryCount: number = 0) {
     const canvas = document.getElementById('guestUsageChart') as HTMLCanvasElement;
+    if (!canvas) {
+      // Retry up to 3 times with a delay if canvas is not ready yet
+      if (retryCount < 3) {
+        setTimeout(() => {
+          this.createGuestUsageChart(data, retryCount + 1);
+        }, 100);
+      } else {
+        // console.warn('Canvas element with id "guestUsageChart" not found in DOM after retries');
+      }
+      return;
+    }
     const ctx = canvas.getContext('2d');
     if (ctx) {
       // Destroy previous chart if it exists
@@ -460,35 +498,6 @@ export class AdminDashboardComponent implements OnInit {
     this.routerUrl.navigate(['/task-management']);
   }
 
-  validateDates() {
-    console.log('Room No:', this.roomNo);
-    console.log('Start Date:', this.startDate);
-    console.log('End Date:', this.endDate);
-    if (this.startDate && this.endDate) {
-      const start = new Date(this.startDate);
-      const end = new Date(this.endDate);
-      this.dateError = end <= start; // true if invalid
-    }
-  }
-
-  // For navigating to reports
-  generateReport() {
-    this.validateDates();
-    if (!this.dateError) {
-      console.log(this.roomNo, this.startDate, this.endDate);
-      this.localStorageService.set('RoomNo', this.roomNo);
-      this.localStorageService.set('StartDate', this.startDate);
-      this.localStorageService.set('EndDate', this.endDate);
-      this.routerUrl.navigate(['/report'], {
-        state: {
-          roomNo: this.roomNo,
-          startDate: this.startDate,
-          endDate: this.endDate
-        }
-      });
-    }
-  }
-
   getAllAsapTask() {
     let requestBody = {
       "domain_name": DOMAIN_NAME,
@@ -507,7 +516,7 @@ export class AdminDashboardComponent implements OnInit {
       next: (response) => {
         if (response?.success) {
           this.tasks = response.result.data.slice(0, 10);
-          console.log('Tasks:', this.tasks);
+          // console.log('Tasks:', this.tasks);
         }
       },
       error: (err) => {
@@ -536,7 +545,7 @@ export class AdminDashboardComponent implements OnInit {
       next: (response) => {
         if (response?.success) {
           this.tasks = response.result.data.slice(0, 10);
-          console.log('Delivered Tasks:', this.tasks);
+          // console.log('Delivered Tasks:', this.tasks);
         }
       },
       error: (err) => {
@@ -564,7 +573,7 @@ export class AdminDashboardComponent implements OnInit {
       next: (response) => {
         if (response?.success) {
           this.tasks = response.result.data.slice(0, 10);
-          console.log('Escalated Tasks:', this.tasks);
+          // console.log('Escalated Tasks:', this.tasks);
         }
       },
       error: (err) => {
@@ -596,11 +605,10 @@ export class AdminDashboardComponent implements OnInit {
       resp => {
         if (resp) {
           this.allBookings = resp.result.data;
-          console.log(this.allBookings, this.allBookings.length,
-            "Bookings List")
+          // console.log(this.allBookings, this.allBookings.length,  "Bookings List")
         }
       },
-      err => {
+      (err: any) => {
         if (err.error.statusCode === 403) {
           this.alerts.error('Session Time Out! Please login Again', this.options)
           this.routerUrl.navigate([`/login`], { skipLocationChange: false });
@@ -617,7 +625,7 @@ export class AdminDashboardComponent implements OnInit {
 
 
   roomReport(roomNo: any) {
-    console.log('Report member id:', this.memberId);
+    // console.log('Report member id:', this.memberId);
     let requestBody = {
       "domain_name": DOMAIN_NAME,
       "user_id": USER_ID,
@@ -638,12 +646,12 @@ export class AdminDashboardComponent implements OnInit {
         }
       }
     }
-    console.log(requestBody);
+    // console.log(requestBody);
     this.bookingService.getAllReport(requestBody).subscribe(
       resp => {
         if (resp) {
           this.report = resp.result.data;
-          console.log(this.report, "All report");
+          // console.log(this.report, "All report");
         }
       },
       err => {
@@ -660,5 +668,83 @@ export class AdminDashboardComponent implements OnInit {
       }
     )
   }
+
+  // Newly added for validation
+  // For navigating to reports
+  /* generateReport() {
+    this.validateDates();
+    if (!this.dateError) {
+      // console.log(this.roomNo, this.startDate, this.endDate);
+      this.localStorageService.set('RoomNo', this.roomNo);
+      this.localStorageService.set('StartDate', this.startDate);
+      this.localStorageService.set('EndDate', this.endDate);
+      this.routerUrl.navigate(['/report'], {
+        state: {
+          roomNo: this.roomNo,
+          startDate: this.startDate,
+          endDate: this.endDate
+        }
+      });
+    }
+  } */
+
+  /*  validateDates() {
+   // console.log('Room No:', this.roomNo);
+   // console.log('Start Date:', this.startDate);
+   // console.log('End Date:', this.endDate);
+   if (this.startDate && this.endDate) {
+     const start = new Date(this.startDate);
+     const end = new Date(this.endDate);
+     this.dateError = end < start; // true if end is before start
+   }
+ } */
+
+  validateDates() {
+    if (this.startDate && this.endDate) {
+      const start = new Date(this.startDate);
+      const end = new Date(this.endDate);
+      this.dateError = end < start;
+    }
+  }
+
+  generateReport() {
+    this.roomError = !this.roomNo;
+    this.startDateError = !this.startDate;
+    this.endDateError = !this.endDate;
+    this.validateDates();
+    if (this.roomError || this.startDateError || this.endDateError || this.dateError) {
+      return;
+    }
+    this.localStorageService.set('RoomNo', this.roomNo);
+    this.localStorageService.set('StartDate', this.startDate);
+    this.localStorageService.set('EndDate', this.endDate);
+    this.routerUrl.navigate(['/report'], {
+      state: {
+        roomNo: this.roomNo,
+        startDate: this.startDate,
+        endDate: this.endDate
+      }
+    });
+  }
+
+  clearRoomError() {
+    if (this.roomNo) {
+      this.roomError = false;
+    }
+  }
+
+  clearStartDateError() {
+    if (this.startDate) {
+      this.startDateError = false;
+    }
+  }
+
+  clearEndDateError() {
+    if (this.endDate) {
+      this.endDateError = false;
+    }
+    this.validateDates();
+  }
+  // End of newly added for validation
 
 }

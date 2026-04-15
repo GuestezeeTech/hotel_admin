@@ -1,5 +1,5 @@
 import { Component, ChangeDetectorRef, ElementRef, ViewChild } from '@angular/core';
-import { FormBuilder, FormGroup } from '@angular/forms';
+import { FormBuilder, FormGroup, FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { HttpHeaders } from '@angular/common/http';
@@ -11,13 +11,14 @@ import { Validators } from '@angular/forms';
 import { AlertsService } from '../shared/alerts/alerts.service';
 import { ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { Route,ActivatedRoute } from '@angular/router';
-
+import { Route, ActivatedRoute } from '@angular/router';
+import { AlertsComponent } from '../shared/alerts/alerts.component';
+import { PermissionService, ModulePermission } from '../services/permission.service';
 
 @Component({
   selector: 'app-product-details',
-    standalone: true,
-    imports: [ReactiveFormsModule, CommonModule],
+  standalone: true,
+  imports: [ReactiveFormsModule, CommonModule, AlertsComponent, FormsModule],
   templateUrl: './product-details.component.html',
   styleUrls: ['./product-details.component.scss']
 })
@@ -65,8 +66,20 @@ export class ProductDetailsComponent {
     autoClose: true,
     keepAfterRouteChange: false
   };
-  defaultImageUrl = '../../assets/images/common/default.jpg';
-  outlet_id:number=0;
+  defaultImageUrl = '../../assets/images/guestezee/menu.jpg';
+  outlet_id: number = 0;
+  // File uploading
+  @ViewChild('fileInput') fileInput!: ElementRef;
+  @ViewChild('reuploadInput') reuploadInput!: ElementRef;
+  isModalOpen1 = false;
+  memberId: any;
+  isExitModalOpen: boolean = false;
+  allProductsData: any = [];
+  currentPage: number = 1;
+  pageSize: number = 10 // Show 10 roles per page
+  totalProducts: number = 0; // Total number of roles
+  totalPages: number = 0; // Total number of pages
+  isViewMode: boolean = false;
 
   constructor(private fb: FormBuilder,
     private cdr: ChangeDetectorRef,
@@ -75,7 +88,8 @@ export class ProductDetailsComponent {
     private localService: LocalStorageService,
     private productDetailService: ProductDetailService,
     private alertService: AlertsService,
-    private route:ActivatedRoute
+    private route: ActivatedRoute,
+    private permissionService: PermissionService
   ) {
     this.companyForm = this.fb.group({
       name: ['', Validators.required],
@@ -85,115 +99,92 @@ export class ProductDetailsComponent {
       description: [''],
       uploadedDocuments: [[]] // Placeholder for uploaded documents
     });
-    
     this.categoryForm = this.fb.group({
-      selectedCategory: [null, Validators.required],
+      selectedCategory: ['', Validators.required],
       name: ['']
     })
   }
 
   ngOnInit(): void {
     // Customer id
-    this.customerId = Number(this.localService.get('customerId'));
+    this.customerId = Number(this.localService.get('UserId'));
+    this.memberId = this.localService.get('MemberId');
     
+    // Check if in view mode from navigation state
+    const navState = window.history.state as any;
+    this.isViewMode = navState?.mode === 'view';
+    /*  this.route.paramMap.subscribe(params => {
+       const id = params.get('id');
+       this.outlet_id = Number(id)
+       if (id) {
+         // console.log('Editing Outlet with ID:', id);
+         this.outlet_id = Number(id);
+         // fetch and patch data
+       }
+       else {
+         // console.log('Creating new product');
+       }
+     }); */
     this.route.paramMap.subscribe(params => {
-  const id = params.get('id');
-  this.outlet_id= Number(id)
-  if (id) {
-    console.log('Editing Outlet with ID:', id);
-    this.outlet_id = Number(id);
-    // fetch and patch data
-  } else {
-    console.log('Creating new Outlet');
-  }
-});
-
+      const outlet_id = params.get('outlet_id');
+      const id = params.get('id');
+      // console.log('Outlet id:', outlet_id);
+      // console.log('Product id:', id);
+      if (outlet_id) {
+        // console.log('Product list ofOutlet(ID):', outlet_id);
+        this.outlet_id = Number(outlet_id);
+        this.localService.set('outlet_id', outlet_id);
+      }
+      else if (id) {
+        // console.log('Editing product(Id):', id);
+        this.productId = Number(id);
+        this.getAllProductsList(this.productId);
+        this.isEditMode = true;
+        this.newProduct = false;
+      }
+      else {
+        // console.log('Creating new product');
+        this.newProduct = false;
+        this.isEditMode = false;
+      }
+    });
     // Check if payment done or not
     this.isPaymentDone = (this.localService.get('isPaymentDone') == 'true') ? true : false;
     // Category List
     this.getAllCategories();
     // Product List
     this.getAllProducts();
-    // this.allProducts = [{
-    //   name: "Demo Product",
-    //   sku: "SKU123456",
-    //   product_type: "Simple",
-    //   stock_status: "Available",
-    //   categories: [
-    //     {
-    //       id: 101,
-    //       categories: "Electronics",
-    //       path: "Home > Electronics > Gadgets"
-    //     }
-    //   ],
-    //   pricing: {
-    //     currency: [
-    //       {
-    //         iso2: "IN",
-    //         currency_code: "INR"
-    //       }
-    //     ],
-    //     tax_class: [
-    //       {
-    //         id: 1.0,
-    //         name: "Default Tax Class"
-    //       }
-    //     ],
-    //     raw: {
-    //       price: 999.99,
-    //       msrp: 1299.99,
-    //       sale_price: 999.99
-    //     }
-    //   },
-    //   description: {
-    //     is_title_as_name: true,
-    //     title: "This is a sample product description."
-    //   },
-    //   outlet_id: 1234,
-    //   assets: [
-    //     {
-    //       image_source: "../../assets/images/common/banner.png",
-    //       image_width: 0,
-    //       image_height: 0,
-    //       image_source_thumbnail: "",
-    //       thumbnail_image: false
-    //     },
-    //     {
-    //       image_source: "https://example.com/images/image2.jpg",
-    //       image_width: 0,
-    //       image_height: 0,
-    //       image_source_thumbnail: "",
-    //       thumbnail_image: false
-    //     },
-    //     {
-    //       image_source: "https://example.com/images/image3.jpg",
-    //       image_width: 0,
-    //       image_height: 0,
-    //       image_source_thumbnail: "",
-    //       thumbnail_image: false
-    //     }
-    //   ],
-    //   uploadedDocuments: [
-    //     {
-    //       fileName: "doc1.pdf",
-    //       fileUrl: "../../assets/images/common/ecr.png"
-    //     },
-    //     {
-    //       fileName: "doc2.pdf",
-    //       fileUrl: "https://example.com/docs/doc2.pdf"
-    //     },
-    //     {
-    //       fileName: "doc3.pdf",
-    //       fileUrl: "https://example.com/docs/doc3.pdf"
-    //     }
-    //   ],
-    //   available: true
-    // }];
+    
+    // Disable forms if in view mode
+    if (this.isViewMode) {
+      this.companyForm.disable({ emitEvent: false });
+      this.categoryForm.disable({ emitEvent: false });
+    }
   }
 
-  addProduct() {
-    this.newProduct = false;
+  get canReadRestaurants(): boolean {
+    const permission = this.permissionService.getModulePermission('RESTAURANTS');
+    return permission?.has_read_permission ?? false;
   }
+
+  get canAddRestaurants(): boolean {
+    const permission = this.permissionService.getModulePermission('RESTAURANTS');
+    return permission?.has_add_permission ?? false;
+  }
+
+  get canEditRestaurants(): boolean {
+    const permission = this.permissionService.getModulePermission('RESTAURANTS');
+    return permission?.has_edit_permission ?? false;
+  }
+
+  get canDeleteRestaurants(): boolean {
+    const permission = this.permissionService.getModulePermission('RESTAURANTS');
+    return permission?.has_delete_permission ?? false;
+  }
+
+  // addProduct() {
+  //   this.newProduct = false;
+  // }
 
   cancelProduct() {
     this.categoryForm.reset();
@@ -209,14 +200,16 @@ export class ProductDetailsComponent {
   }
 
   editProduct(id: any) {
-    console.log('Edit Product ID:', id);
-    this.setInitialValues(id);
-    this.productId = id;
-    this.isEditMode = true;
-    this.newProduct = false;
+    // console.log('Editing product ID:', id);
+    this.router.navigate(['/product-detail', id]);
+  }
+
+  viewProduct(id: any) {
+    this.router.navigate(['/product-detail', id], { state: { mode: 'view' } });
   }
 
   deleteProduct(id: any) {
+    if (!this.canDeleteRestaurants) return;
     let requestBody = {
       "domain_name": "https://www.guestezee.com",
       "user_id": 1,
@@ -243,8 +236,11 @@ export class ProductDetailsComponent {
 
   setInitialValues(id: any) {
     const product = this.allProducts.find((p: any) => p.id === id);
-    console.log('Product:', product);
+    // console.log('Product details based on id:', product);
     if (product) {
+      this.router.navigate(['/product-detail', id]);
+      this.isEditMode = true;
+      this.newProduct = false;
       this.companyForm.patchValue({
         name: product.name || '',
         // sku: product.sku || '',
@@ -260,37 +256,33 @@ export class ProductDetailsComponent {
       this.categoryForm.patchValue({
         selectedCategory: matchedCategory || 'othercat'
       });
-      // Set uploaded image files
-      this.uploadedFiles = product.assets.map((img: any, index: number) => {
-        const fullName = img.image_source?.split('/').pop() || '';
-        const namePart = fullName.split('%20-%20')[1]?.split('.')[0] || `Image ${index + 1}`;
-        return {
-          name: `Image ${index + 1}`,
-          fileName: namePart,
-          fileUrl: img.image_source && img.image_source.trim() !== '' ? img.image_source : this.defaultImageUrl
-        };
-      });
+      // Set uploaded image files - ensure we always have 3 slots
+      const assetsArray = product.assets || [];
+      this.uploadedFiles = [];
+      for (let i = 0; i < 3; i++) {
+        if (i < assetsArray.length && assetsArray[i]) {
+          const img = assetsArray[i];
+          const fullName = img.image_source?.split('/').pop() || '';
+          const namePart = fullName.split('%20-%20')[1]?.split('.')[0] || `Image ${i + 1}`;
+          const hasImage = img.image_source && img.image_source.trim() !== '';
+          this.uploadedFiles.push({
+            name: `Image ${i + 1}`,
+            fileName: hasImage ? namePart : '',
+            fileUrl: hasImage ? img.image_source : '',
+            fileSelected: null
+          });
+        } else {
+          // Empty slot
+          this.uploadedFiles.push({
+            name: `Image ${i + 1}`,
+            fileName: '',
+            fileUrl: '',
+            fileSelected: null
+          });
+        }
+      }
     }
   }
-
-  // getAllCategories() {
-  //   let jsonRequest = {
-  //     domain_name: 'https://www.guestezee.com',
-  //     user_id: 1,
-  //     extras: {
-  //       find: {},
-  //     }
-
-  //   }
-  //   this.appService.getAllCategories(jsonRequest).subscribe(resp => {
-  //     if (resp && resp.success === 1) {
-  //       this.allCategories = resp.result.data; // stores in a separate variable
-  //       console.log("All Layouts Raw:", this.allCategories);
-  //     } else {
-  //       console.error("Error fetching layouts", resp?.message);
-  //     }
-  //   })
-  // }
 
   getAllCategories() {
     this.productDetailService.getAllCategories(
@@ -299,7 +291,7 @@ export class ProductDetailsComponent {
         "user_id": 1,
         "extras": {
           "find": {
-            outlet_id:this.outlet_id
+            outlet_id: Number(this.localService.get('outlet_id'))
           },
           "pagination": false,
           "paginationDetails": {
@@ -315,10 +307,10 @@ export class ProductDetailsComponent {
     ).subscribe(response => {
       if (response && response.success == 1) {
         this.categories = response.result.data;
-        console.log("Categoies", this.categories)
+        // console.log("Categoies list:", this.categories)
       }
       else {
-        console.log(response.message);
+        // console.log(response.message);
       }
     }
     )
@@ -330,33 +322,36 @@ export class ProductDetailsComponent {
       "user_id": 1,
       "extras": {
         "find": {
-          "customer_id": this.customerId,
-          "outlet_id":this.outlet_id
+          "outlet_id": Number(this.localService.get('outlet_id')),
+          // Newly added for getting member id for customer type
+          // "customer_id": this.customerId,
+          "member_id": this.localService.get('MemberId')
         },
-        "pagination": true,
-        "paginationDetails": {
-          "limit": 10,
-          "pageSize": 1
-        },
-        "sorting": true,
-        "sortingDetails": {
-          "id": -1
-        }
+        // "pagination": true,
+        // "paginationDetails": {
+        //   "limit": ,
+        //   "page": this.currentPage   
+        // },
+        // "sorting": true,
+        // "sortingDetails": {
+        //   "id": 1
+        // }
       }
     }
     this.productDetailService.postApiCall1(requestBody, ENDPOINTS.GET_ALL_PRODUCTS).subscribe(resp => {
       if (resp && resp.success === 1) {
         this.allProducts = resp.result.data;
-        console.log("All Products Raw:", this.allProducts);
+        // console.log("All Products Raw:", this.allProducts);
+        this.totalProducts = this.allProducts.length;
+        // console.log("Total Products:", this.totalProducts);
+        this.totalPages = Math.ceil(this.totalProducts / this.pageSize);
+        // console.log("Total Pages:", this.totalPages);
+        this.updatePaginatedProducts();
       } else {
         console.error("Error fetching products", resp?.message);
       }
     })
   }
-
-  // File uploading
-  @ViewChild('fileInput') fileInput!: ElementRef;
-  @ViewChild('reuploadInput') reuploadInput!: ElementRef;
 
   triggerFileInput1(fileInput: HTMLInputElement) {
     fileInput.click();
@@ -380,85 +375,92 @@ export class ProductDetailsComponent {
   }
 
   // To upload the file
-  onFileUpload(event: any) {
-    const file = event.target.files[0];
-    if (!file) return;
-    this.isUploading = true; // Show loader
-    const allowedExtensions = ['pdf', 'jpeg', 'jpg', 'png'];
-    const fileExtension = file.name.split('.').pop()?.toLowerCase();
-    if (!fileExtension || !allowedExtensions.includes(fileExtension)) {
-      alert("Invalid file type! Only PDF, JPEG, JPG, and PNG files are allowed.");
-      this.isUploading = false;
-      return;
+  /*   onFileUpload(event: any) {
+      const file = event.target.files[0];
+      if (!file) return;
+      this.isUploading = true; // Show loader
+      const allowedExtensions = ['pdf', 'jpeg', 'jpg', 'png'];
+      const fileExtension = file.name.split('.').pop()?.toLowerCase();
+      if (!fileExtension || !allowedExtensions.includes(fileExtension)) {
+        this.alertService.error("Invalid file type! Only PDF, JPEG, JPG, and PNG files are allowed.", this.options);
+        this.isUploading = false;
+        return;
+      }
+      if (file.size > 2 * 1024 * 1024) {
+        this.alertService.error("File size exceeds 2MB. Please select a smaller file.", this.options);
+        this.isUploading = false;
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        this.uploadedFiles[this.currentStage].fileName = file.name;
+        this.imgFile = file;
+        const formData = new FormData();
+        formData.append('upload', this.imgFile);
+        let headers = new HttpHeaders()
+          .set("source", "Certificate")
+          .set("domain_name", "https://www.guestezee.com");
+        this.productDetailService.sendImage(formData, headers).subscribe(resp => {
+          if (resp && resp.success === 1 && resp.status_code === 200) {
+            let imgVariable = resp.result.data[0];
+            let signImage = imgVariable.location;
+            this.uploadedFiles[this.currentStage].fileUrl = signImage;
+            this.companyForm.patchValue({ uploadedDocuments: [...this.uploadedFiles] });
+            if (this.currentStage < this.uploadedFiles.length - 1) {
+              this.currentStage++;
+            }
+          }
+          this.isUploading = false; // Hide loader
+        }, () => {
+          this.isUploading = false; // Hide loader on error
+        });
+      };
+      reader.readAsDataURL(file);
     }
-    if (file.size > 2 * 1024 * 1024) {
-      alert("File size exceeds 2MB. Please select a smaller file.");
-      this.isUploading = false;
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      this.uploadedFiles[this.currentStage].fileName = file.name;
-      this.imgFile = file;
-      const formData = new FormData();
-      formData.append('upload', this.imgFile);
+  
+    onIndividualFileUpload(event: any, index: number) {
+      const file = event.target.files[0];
       let headers = new HttpHeaders()
         .set("source", "Certificate")
         .set("domain_name", "https://www.guestezee.com");
-      this.productDetailService.sendImage(formData, headers).subscribe(resp => {
-        if (resp && resp.success === 1 && resp.status_code === 200) {
-          let imgVariable = resp.result.data[0];
-          let signImage = imgVariable.location;
-          this.uploadedFiles[this.currentStage].fileUrl = signImage;
-          this.companyForm.patchValue({ uploadedDocuments: [...this.uploadedFiles] });
-          if (this.currentStage < this.uploadedFiles.length - 1) {
-            this.currentStage++;
+      if (!file) return;
+      // Allowed file types
+      const allowedExtensions = ['pdf', 'jpeg', 'jpg', 'png'];
+      const fileExtension = file.name.split('.').pop()?.toLowerCase();
+      if (!fileExtension || !allowedExtensions.includes(fileExtension)) {
+        this.alertService.error("Invalid file type! Only PDF, JPEG, JPG, and PNG files are allowed.", this.options);
+        return;
+      }
+      if (file.size > 2 * 1024 * 1024) {
+        this.alertService.error("File size exceeds 2MB. Please select a smaller file.", this.options);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        this.uploadedFiles[index].fileName = file.name;
+        this.imgFile = file;
+        let formData = new FormData();
+        formData.append('upload', this.imgFile);
+        this.productDetailService.sendImage(formData, headers).subscribe(resp => {
+          if (resp && resp.success === 1 && resp.status_code === 200) {
+            let uploadedData = resp.result.data[0];
+            this.uploadedFiles[index].fileUrl = uploadedData.location;
+            this.companyForm.patchValue({ uploadedDocuments: [...this.uploadedFiles] });
+            // Update currentStage to next pending file
+            const nextIndex = this.uploadedFiles.findIndex(f => !f.fileUrl);
+            this.currentStage = nextIndex === -1 ? this.uploadedFiles.length : nextIndex;
           }
-        }
-        this.isUploading = false; // Hide loader
-      }, () => {
-        this.isUploading = false; // Hide loader on error
-      });
-    };
-    reader.readAsDataURL(file);
-  }
-
-  onIndividualFileUpload(event: any, index: number) {
-    const file = event.target.files[0];
-    let headers = new HttpHeaders()
-      .set("source", "Certificate")
-      .set("domain_name", "https://www.guestezee.com");
-    if (!file) return;
-    // Allowed file types
-    const allowedExtensions = ['pdf', 'jpeg', 'jpg', 'png'];
-    const fileExtension = file.name.split('.').pop()?.toLowerCase();
-    if (!fileExtension || !allowedExtensions.includes(fileExtension)) {
-      alert("Invalid file type! Only PDF, JPEG, JPG, and PNG files are allowed.");
-      return;
-    }
-    if (file.size > 2 * 1024 * 1024) {
-      alert("File size exceeds 2MB. Please select a smaller file.");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      this.uploadedFiles[index].fileName = file.name;
-      this.imgFile = file;
-      let formData = new FormData();
-      formData.append('upload', this.imgFile);
-      this.productDetailService.sendImage(formData, headers).subscribe(resp => {
-        if (resp && resp.success === 1 && resp.status_code === 200) {
-          let uploadedData = resp.result.data[0];
-          this.uploadedFiles[index].fileUrl = uploadedData.location;
-          this.companyForm.patchValue({ uploadedDocuments: [...this.uploadedFiles] });
-        }
-      });
-    };
-    reader.readAsDataURL(file);
-  }
+        });
+      };
+      reader.readAsDataURL(file);
+    } */
 
   // To open the image(modal)/pdf(blank)
   openImageModal(fileUrl: string) {
+    // Don't open modal if no file URL or if it's the default image
+    if (!fileUrl || fileUrl.trim() === '' || fileUrl === this.defaultImageUrl) {
+      return;
+    }
     if (fileUrl.toLowerCase().endsWith(".pdf")) {
       // Open PDF in a new tab
       window.open(fileUrl, "_blank");
@@ -471,6 +473,7 @@ export class ProductDetailsComponent {
 
   // To remove the uploaded file
   removeFile(index: number) {
+    if (this.isViewMode) return; // Prevent removal in view mode
     this.uploadedFiles[index].fileName = "";
     this.uploadedFiles[index].fileUrl = "";
     if (index <= this.currentStage) {
@@ -482,10 +485,8 @@ export class ProductDetailsComponent {
     this.isModalOpen = false;
   }
 
-  // To open/close the category modal
-  isModalOpen1 = false;
-
   opencate() {
+    if (this.isViewMode) return; // Prevent opening category modal in view mode
     this.isModalOpen1 = true;
     // Add required validator when modal opens
     this.categoryForm.get('name')?.setValidators([Validators.required]);
@@ -525,15 +526,21 @@ export class ProductDetailsComponent {
 
   onCategoryChange(event: any) {
     const selectedValue = event.target.value;
-    console.log("Selected Value", selectedValue)
+    // console.log("Selected Value", selectedValue)
     if (selectedValue === '0: othercat') {
       this.opencate();
     }
   }
 
   createcat() {
+    // If name is empty, show error and stop
+    if (!this.categoryForm.value.name || this.categoryForm.value.name.trim() === '') {
+      this.categoryForm.get('name')?.setErrors({ required: true });
+      this.categoryForm.get('name')?.markAsTouched();
+      return;
+    }
     let orderDetails = this.categoryForm.value.name;
-    // console.log('Order:', orderDetails);
+    // console.log('Category name:', orderDetails);
     let jsonRequest = {
       domain_name: 'https://www.guestezee.com',
       user_id: 1,
@@ -555,7 +562,7 @@ export class ProductDetailsComponent {
           "horizontal_name": [],
           "filter_name": [],
           "language": "EN",
-          "outlet_id":this.outlet_id,
+          "outlet_id": Number(this.localService.get('outlet_id')),
           "tags": "",
           "column": "",
           "is_active": true,
@@ -572,6 +579,10 @@ export class ProductDetailsComponent {
           this.alertService.success('Category Created Successfully', this.options);
           this.getAllCategories();
           this.isModalOpen1 = false;
+          // Remove required validator when modal closes
+          this.categoryForm.get('name')?.clearValidators();
+          this.categoryForm.get('name')?.updateValueAndValidity();
+          this.categoryForm.get('name')?.reset();
         }
         else {
           this.alertService.error(resp.message, this.options);
@@ -580,95 +591,34 @@ export class ProductDetailsComponent {
   }
 
   toggleAvailability(event: Event): void {
+    if (this.isViewMode) return; // Prevent toggling in view mode
     this.isAvailable = (event.target as HTMLInputElement).checked;
-    console.log('Available status:', this.isAvailable);
+    // console.log('Available status:', this.isAvailable);
   }
-
-
-  
 
   setAvailabilityToggle(product: any): void {
     this.isAvailable = product?.stock_status === 'Available' ? true : false;
-    console.log('Available status:', this.isAvailable);
+    // console.log('Available status:', this.isAvailable);
   }
 
   onSubmit() {
+    if (this.isViewMode) return; // Prevent submission in view mode
+    // Mark forms touched for error display
+    // this.categoryForm.markAllAsTouched();
+    this.categoryForm.get('selectedCategory')?.markAsTouched();
+    this.companyForm.markAllAsTouched();
+    // Validate
+    if (this.categoryForm.invalid || this.companyForm.invalid) {
+      this.alertService.error("Please fill all mandatory fields", this.options);
+      return;
+    }
     const selected = this.categoryForm.get('selectedCategory')?.value;
     const productName = this.companyForm.get('name')?.value;
     const generatedSku = this.generateSku(productName);
-    // let orderDetails = {
-    //   name: this.companyForm.get('name')?.value,
-    //   sku: this.companyForm.get('sku')?.value,
-    //   product_type: "Simple",
-    //   stock_status: this.isAvailable ? "Available" : "Out of Stock",
-    //   categories: [
-    //     {
-    //       id: Number(selected?.id),
-    //       categories: selected?.name,
-    //       path: selected?.path
-    //     }
-    //   ],
-    //   pricing: {
-    //     currency: [
-    //       {
-    //         iso2: "IN",
-    //         currency_code: "INR"
-    //       }
-    //     ],
-    //     tax_class: [
-    //       {
-    //         id: 1.0,
-    //         name: "Default Tax Class"
-    //       }
-    //     ],
-    //     raw: {
-    //       price: Number(this.companyForm.get('price')?.value),
-    //       msrp: Number(this.companyForm.get('offer_price')?.value),
-    //       sale_price: Number(this.companyForm.get('price')?.value),
-    //     }
-    //   },
-    //   description: {
-    //     is_title_as_name: true,
-    //     title: this.companyForm.get('description')?.value,
-    //   },
-    //   // delivery_date: this.companyForm.get('delivery_date')?.value,
-    //   outlet_id: Number(this.localService.get('outletfor_id')),
-    //   assets: [
-    //     {
-    //       image_source: this.uploadedFiles[0].fileUrl,
-    //       image_width: 0,
-    //       image_height: 0,
-    //       image_source_thumbnail: "",
-    //       thumbnail_image: false
-    //     },
-    //     {
-    //       image_source: this.uploadedFiles[1].fileUrl,
-    //       image_width: 0,
-    //       image_height: 0,
-    //       image_source_thumbnail: "",
-    //       thumbnail_image: false
-    //     },
-    //     {
-    //       image_source: this.uploadedFiles[2].fileUrl,
-    //       image_width: 0,
-    //       image_height: 0,
-    //       image_source_thumbnail: "",
-    //       thumbnail_image: false
-    //     }
-    //     // {
-    //     //   image_source: this.uploadedFiles[3].fileUrl,
-    //     //   image_width: 0,
-    //     //   image_height: 0,
-    //     //   image_source_thumbnail: "",
-    //     //   thumbnail_image: false
-    //     // }
-    //   ],
-    //   uploadedDocuments: this.uploadedFiles,
-    //   available: this.isAvailable,
-    // }
     let orderDetails = {
       customer_id: this.customerId,
-      outlet_id:this.outlet_id,
+      member_id: this.memberId,
+      outlet_id: Number(this.localService.get('outlet_id')),
       name: this.companyForm.get('name')?.value,
       product_type: "Simple",
       stock_status: this.isAvailable ? "Available" : "Out of Stock",
@@ -787,7 +737,7 @@ export class ProductDetailsComponent {
         shelf_life_description: null,
         manufacture: null
       },
-     
+
     };
     if (!this.isEditMode) {
       let requestData = {
@@ -810,15 +760,14 @@ export class ProductDetailsComponent {
                 { name: "Image 3", fileName: "", fileUrl: "", fileSelected: null }
               ];
               this.isAvailable = false;
+              this.router.navigate([`/product-list`, Number(this.localService.get('outlet_id'))]);
               this.getAllProducts()
               this.newProduct = true;
             }, 1000)
-
           }
           else {
             this.alertService.error(respData?.message, this.options);
           }
-
           // this.router.navigate([`/list-view/products`]);
         })
     }
@@ -841,12 +790,13 @@ export class ProductDetailsComponent {
             this.alertService.success('Product updated successfully', this.options);
             this.categoryForm.reset();
             this.companyForm.reset();
-             this.uploadedFiles = [
-                { name: "Image 1", fileName: "", fileUrl: "", fileSelected: null },
-                { name: "Image 2", fileName: "", fileUrl: "", fileSelected: null },
-                { name: "Image 3", fileName: "", fileUrl: "", fileSelected: null }
-              ];
-              this.isAvailable = false;
+            this.uploadedFiles = [
+              { name: "Image 1", fileName: "", fileUrl: "", fileSelected: null },
+              { name: "Image 2", fileName: "", fileUrl: "", fileSelected: null },
+              { name: "Image 3", fileName: "", fileUrl: "", fileSelected: null }
+            ];
+            this.isAvailable = false;
+            this.router.navigate([`/product-list`, Number(this.localService.get('outlet_id'))]);
             this.getAllProducts()
             this.newProduct = true;
           }
@@ -856,7 +806,6 @@ export class ProductDetailsComponent {
           // this.router.navigate([`/list-view/products`]);
         })
     }
-
   }
 
   generateSku(productName: string): string {
@@ -873,37 +822,235 @@ export class ProductDetailsComponent {
       nextNumber = Math.max(...existingNumbers) + 1;
     }
     const paddedNumber = nextNumber.toString().padStart(2, '0'); // e.g., 01, 02
-    console.log()
+    // console.log()
     return `${baseName}-${paddedNumber}`;
   }
 
-  // brand() {
-  //   this.router.navigate([`/list-view/member-detailsbrand`])
-  // }
+  addProduct1() {
+    if (!this.canAddRestaurants) return;
+    this.router.navigate(['/add-menu', Number(this.localService.get('outlet_id'))])
+    this.newProduct = false;
+    this.isEditMode = false;
+  }
 
-  // addBrand() {
-  //   this.brands.push({ brandName: '', productCategory: '', qty: '', value: '', country: 'India' });
-  //   this.calculateTotals();
-  // }
+  // Newly added
+  getAllProductsList(productId: any) {
+    let requestBody = {
+      "domain_name": "https://www.guestezee.com",
+      "user_id": 1,
+      "extras": {
+        "find": {
+          "outlet_id": Number(this.localService.get('outlet_id')),
+          // Newly added for getting member id for customer type
+          // "customer_id": this.customerId,
+          "member_id": this.localService.get('MemberId')
+        },
+        "pagination": true,
+        "paginationDetails": {
+          "limit": 10,
+          "pageSize": 1
+        },
+        "sorting": true,
+        "sortingDetails": {
+          "id": -1
+        }
+      }
+    }
+    this.productDetailService.postApiCall1(requestBody, ENDPOINTS.GET_ALL_PRODUCTS).subscribe(resp => {
+      if (resp && resp.success === 1) {
+        this.allProducts = resp.result.data;
+        // console.log("All Products Raw(While taking list):", this.allProducts);
+        this.setInitialValues(this.productId);
+      } else {
+        console.error("Error fetching products", resp?.message);
+      }
+    })
+  }
 
-  // removeBrand(index: number) {
-  //   this.brands.splice(index, 1);
-  //   this.calculateTotals();
-  // }
+  onFileUpload(event: any) {
+    if (this.isViewMode) return; // Prevent upload in view mode
+    const file = event.target.files[0];
+    if (!file) return;
+    this.isUploading = true; // Show loader
+    const allowedExtensions = ['pdf', 'jpeg', 'jpg', 'png'];
+    const fileExtension = file.name.split('.').pop()?.toLowerCase();
+    if (!fileExtension || !allowedExtensions.includes(fileExtension)) {
+      this.alertService.error("Invalid file type! Only PDF, JPEG, JPG, and PNG files are allowed.", this.options);
+      this.isUploading = false;
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      this.alertService.error("File size exceeds 2MB. Please select a smaller file.", this.options);
+      this.isUploading = false;
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      this.uploadedFiles[this.currentStage].fileName = file.name;
+      this.imgFile = file;
+      const formData = new FormData();
+      formData.append('upload', this.imgFile);
+      let headers = new HttpHeaders()
+        .set("source", "Certificate")
+        .set("domain_name", "https://www.guestezee.com");
+      this.productDetailService.sendImage(formData, headers).subscribe({
+        next: (resp) => {
+          if (resp && resp.success === 1 && resp.status_code === 200) {
+            const uploadedData = resp.result.data[0];
+            this.uploadedFiles[this.currentStage].fileUrl = uploadedData.location;
+            this.companyForm.patchValue({ uploadedDocuments: [...this.uploadedFiles] });
+            this.alertService.success(`File uploaded successfully! Please save the changes to reflect it.`, this.options);
+            if (this.currentStage < this.uploadedFiles.length - 1) {
+              this.currentStage++;
+            }
+          } else {
+            this.alertService.error(`Upload failed. Please try again.`, this.options);
+          }
+          this.isUploading = false;
+        },
+        error: () => {
+          this.isUploading = false;
+          this.alertService.error(`Upload failed. Please try again.`, this.options);
+        }
+      });
+    };
+    reader.readAsDataURL(file);
+  }
 
-  // Calculate total quantity
-  // calculateTotals() {
-  //   this.totalQuantity = this.brands.reduce((sum, brand) => sum + Number(brand.qty), 0);
-  //   this.totalValue = this.brands.reduce((sum, brand) => sum + Number(brand.value), 0);
-  // }
+  onIndividualFileUpload(event: any, index: number) {
+    if (this.isViewMode) return; // Prevent upload in view mode
+    const file = event.target.files[0];
+    if (!file) return;
+    this.isUploading = true;
+    const allowedExtensions = ['pdf', 'jpeg', 'jpg', 'png'];
+    const fileExtension = file.name.split('.').pop()?.toLowerCase();
+    if (!fileExtension || !allowedExtensions.includes(fileExtension)) {
+      this.alertService.error("Invalid file type! Only PDF, JPEG, JPG, and PNG files are allowed.", this.options);
+      this.isUploading = false;
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      this.alertService.error("File size exceeds 2MB. Please select a smaller file.", this.options);
+      this.isUploading = false;
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      this.uploadedFiles[index].fileName = file.name;
+      this.imgFile = file;
+      const formData = new FormData();
+      formData.append('upload', this.imgFile);
+      const headers = new HttpHeaders()
+        .set("source", "Certificate")
+        .set("domain_name", "https://www.guestezee.com");
+      this.productDetailService.sendImage(formData, headers).subscribe({
+        next: (resp) => {
+          if (resp && resp.success === 1 && resp.status_code === 200) {
+            const uploadedData = resp.result.data[0];
+            this.uploadedFiles[index].fileUrl = uploadedData.location;
+            this.companyForm.patchValue({ uploadedDocuments: [...this.uploadedFiles] });
+            this.alertService.success(`File uploaded successfully! Please save the changes to reflect it.`, this.options);
+            // Update currentStage to next pending file
+            const nextIndex = this.uploadedFiles.findIndex(f => !f.fileUrl);
+            this.currentStage = nextIndex === -1 ? this.uploadedFiles.length : nextIndex;
+          } else {
+            this.alertService.error(`Upload failed. Please try again.`, this.options);
+          }
+          this.isUploading = false;
+        },
+        error: () => {
+          this.isUploading = false;
+          this.alertService.error(`Upload failed. Please try again.`, this.options);
+        }
+      });
+    };
+    reader.readAsDataURL(file);
+  }
 
-  // saveCategory() {
-  // }
+  // Get the name of the next file to upload
+  getUploadButtonText(): string {
+    const nextFile = this.uploadedFiles.find(file => !file.fileUrl || file.fileUrl.trim() === '');
+    return nextFile ? `Upload ${nextFile.name}` : 'All files uploaded';
+  }
 
-addProduct1(){
-   this.newProduct = false;
-   this.isEditMode=false;
-   this.router.navigate([`/product-detail`, this.outlet_id])
+  // Checks if all files have been uploaded
+  allFilesUploaded(): boolean {
+    return this.uploadedFiles.every(file => file.fileUrl && file.fileUrl.trim() !== '');
+  }
+
+  nextPage() {
+    if (this.currentPage < this.totalPages) {
+      this.currentPage++;
+      this.getAllProducts();
+    }
+  }
+
+  previousPage() {
+    if (this.currentPage > 1) {
+      this.currentPage--;
+      this.getAllProducts();
+    }
+  }
+
+  updatePaginatedProducts() {
+    const startIndex = (this.currentPage - 1) * this.pageSize;
+    const endIndex = startIndex + this.pageSize;
+    this.allProductsData = this.allProducts.slice(startIndex, endIndex);
+    // console.log('Current Page:', this.currentPage);
+    // console.log("Paginated Products:", this.allProductsData);
+  }
+
+  addProduct() {
+    if (!this.canAddRestaurants) return;
+    this.router.navigate(['/add-product']);
+  }
+
+  navigateToList() {
+    this.localService.remove('outlet_id');
+    this.router.navigateByUrl('outlet-list');
+  }
+
+  allowOnlyNumbers(event: any) {
+    const charCode = event.which ? event.which : event.keyCode;
+    // Block keyboard entry
+    if (event.type === "keypress") {
+      if (charCode < 48 || charCode > 57) {
+        event.preventDefault();
+        return false;
+      }
+    }
+    // Block paste (CTRL+V)
+    if (event.type === "paste") {
+      const pasteData = event.clipboardData.getData('text');
+      if (!/^\d+$/.test(pasteData)) {
+        event.preventDefault();
+        return false;
+      }
+    }
+    return true;
+  }
+
+  openExitModal() {
+    if (this.isViewMode) {
+      this.navigateToProduct(); // Bypass confirmation in view mode
+      return;
+    }
+    this.isExitModalOpen = true;
+  }
+
+  closeExitModal() {
+    this.isExitModalOpen = false;
+  }
+
+  confirmExit() {
+    this.isExitModalOpen = false;
+    this.navigateToProduct();
+  }
+
+  navigateToProduct() {
+    this.router.navigate(['/product-list', Number(this.localService.get('outlet_id'))])
+  }
+
 }
 
-}
+

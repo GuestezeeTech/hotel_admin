@@ -78,7 +78,7 @@ export class StaffService {
                 .subscribe({
                     next: (resp: any) => {
                         if (resp?.success && Array.isArray(resp.result?.data) && resp.result.data.length) {
-                            console.log('Hierarchy while checking service :', resp.result.data[0].hierarchy);
+                            // console.log('Hierarchy while checking service :', resp.result.data[0].hierarchy);
                             // pick only items without parentId
                             const withoutParent = resp.result.data[0].hierarchy.filter((h: any) =>
                                 !h.parentId && h.parentId !== 0
@@ -90,18 +90,29 @@ export class StaffService {
                             this.defaultHierarchy = lowest;
                             this.isFirstStaff = !!lowest; // true if found
                             this.localStorageService.set('defaultHierarchy', JSON.stringify(this.defaultHierarchy));
-                            console.log('Default lower hierarchy while checking service', this.localStorageService.get('defaultHierarchy'));
+                            // console.log('Default lower hierarchy while checking service', this.localStorageService.get('defaultHierarchy'));
                             // console.log('Lowest hierarchy set:', withoutParent, lowest);
-                            this.localStorageService.set('isFirstStaff', this.isFirstStaff);
-                            console.log('Is first staff while checking service', this.localStorageService.get('isFirstStaff'));
+                            // Newld added & commented - for higher level hierarchy
+                            // this.localStorageService.set('isFirstStaff', this.isFirstStaff);
+                            if (lowest) {
+                                // First staff scenario
+                                this.isFirstStaff = true;
+                                this.localStorageService.set('isFirstStaff', "true");
+                            } else {
+                                // NOT first staff
+                                this.isFirstStaff = false;
+                                this.localStorageService.set('isFirstStaff', "false");
+                            }
+                            // Ended
+                            // console.log('Is first staff while checking service', this.localStorageService.get('isFirstStaff'));
                             resolve(lowest);
                         } else {
                             this.defaultHierarchy = null;
                             this.isFirstStaff = false;
                             this.localStorageService.set('defaultHierarchy', JSON.stringify(this.defaultHierarchy));
-                            console.log('Default lower hierarchy while checking service', this.localStorageService.get('defaultHierarchy'));
+                            // console.log('Default lower hierarchy while checking service', this.localStorageService.get('defaultHierarchy'));
                             this.localStorageService.set('isFirstStaff', this.isFirstStaff);
-                            console.log('Is first staff while checking service', this.localStorageService.get('isFirstStaff'));
+                            // console.log('Is first staff while checking service', this.localStorageService.get('isFirstStaff'));
                             resolve(null);
                         }
                     },

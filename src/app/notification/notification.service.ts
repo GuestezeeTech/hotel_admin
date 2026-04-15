@@ -141,11 +141,11 @@ export class NotificationService {
     // Prevent duplicates
     const isDuplicate = current.some(n => n.id === notification.id);
     if (isDuplicate) {
-      console.log(' Duplicate notification skipped (id:', notification.id, ')');
+      // console.log(' Duplicate notification skipped (id:', notification.id, ')');
       return;
     }
     if (isDuplicate) {
-      console.log('Duplicate notification skipped');
+      // console.log('Duplicate notification skipped');
       return;
     }
     const updated = [notification, ...current];
@@ -173,7 +173,7 @@ export class NotificationService {
 
   private saveToStorage(notifications: any[]) {
     this.localStorageService.set(this.storageKey, JSON.stringify(notifications));
-    console.log('Saved notifications to storage:', notifications);
+    // console.log('Saved notifications to storage:', notifications);
   }
 
   private loadFromStorage(): any[] {

@@ -187,6 +187,8 @@ export class BookingsComponent {
   masterBookings: any[] = []; // all records (complete)
   bookings: any[] = [];       // filtered data for pagination
   allBookings: any[] = [];    // current page data for table
+  // Newly added for loader
+  isLoading: boolean = false;
 
 
   constructor(
@@ -197,11 +199,18 @@ export class BookingsComponent {
     private hotelListService: HotelListService
   ) { }
 
-  ngOnInit(): void {
-    this.hotelId = Number(this.localStorageService.get('UserId'));
-    if (this.hotelId) {
-      this.getCustomerById(this.hotelId);
+  async ngOnInit(): Promise<void> {
+    // Newly added for getting member id for customer type
+    // this.hotelId = Number(this.localStorageService.get('UserId'));
+    // if (this.hotelId) {
+    //   this.getCustomerById(this.hotelId);
+    // }
+    this.memberId = this.localStorageService.get('MemberId');
+    // console.log('Member ID from bookings component:', this.memberId);
+    if (this.memberId !== undefined && this.memberId !== null && this.memberId !== '' && this.memberId !== 'undefined' && this.memberId !== 'null') {
+      const customer = await this.getCustomerById(this.memberId);
     }
+    // End of newly added for getting member id for customer type
     // this.getAllBookings();
   }
 
@@ -248,7 +257,7 @@ export class BookingsComponent {
 
   filterGuests() {
     const term = this.searchTerm.toLowerCase().trim();
-    console.log('Search term:', term);
+    // console.log('Search term:', term);
     if (!term) {
       this.filteredGuests = [...this.guests]; // reset when empty
       return;
@@ -257,22 +266,28 @@ export class BookingsComponent {
       guest.name.toLowerCase().includes(term) ||
       guest.roomNo.toLowerCase().includes(term)
     );
-    console.log('Filtered Guests:', this.filteredGuests);
+    // console.log('Filtered Guests:', this.filteredGuests);
   }
 
-  getCustomerById(hotelId: any): Promise<any> {
+  // getCustomerById(hotelId: any): Promise<any> {
+  getCustomerById(memberId: any): Promise<any> {
     let requestBody = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
-      extras: { find: { id: hotelId } }
+      extras: {
+        find: {
+          // id: hotelId
+          "customer_member_id": memberId
+        }
+      }
     };
     return new Promise((resolve, reject) => {
       this.hotelListService.getSignupAllCustomers(requestBody).subscribe({
         next: (resp: any) => {
           if (resp.success === 1 && resp.status_code === 200) {
             const userData = resp.result.data[0];
-            this.memberId = userData.customer_member_id;
-            console.log('Member id:', this.memberId);
+            // this.memberId = userData.customer_member_id;
+            // console.log('Member id:', this.memberId);
             this.getAllBookings(this.memberId);
             resolve(userData);
           } else {
@@ -285,7 +300,8 @@ export class BookingsComponent {
   }
 
   getAllBookings(memberId: any) {
-    console.log('All Bookings:', memberId);
+    this.isLoading = true;
+    // console.log('All Bookings:', memberId);
     let requestBody = {
       "domain_name": DOMAIN_NAME,
       "user_id": USER_ID,
@@ -309,31 +325,49 @@ export class BookingsComponent {
       resp => {
         if (resp) {
           const rawBookings = resp.result.data;
+
+          // ========== OLD CODE (COMMENTED OUT) - WHAT WENT WRONG ==========
+          // PROBLEM: This code was deduplicating bookings by Guest_Id, keeping only ONE booking per guest
+          // This is why you were seeing only one booking in the list!
+          // 
           // Map to store the most recent record for each Guest_Id
-          const bookingMap = new Map<string, any>();
-          rawBookings.forEach((booking: any) => {
-            const guestId = booking.Guest_detail?.[0]?.Guest_Id;
-            if (!guestId) return;
-            // Keep only the first occurrence (assuming array is sorted most recent first)
-            if (!bookingMap.has(guestId)) {
-              bookingMap.set(guestId, booking);
-            }
-          });
-          // Convert map values back to array
-          // Newly added & commented for room filter
-          // this.allBookings = Array.from(bookingMap.values());
-          // this.allBookings = resp.result.data;
-          // console.log(this.allBookings, "Bookings List");
-          // this.bookings = this.allBookings;
-          this.masterBookings = Array.from(bookingMap.values()); // full data
-          this.bookings = [...this.masterBookings];               // filtered copy
-          console.log(this.masterBookings, "Bookings List");
-          // this.totalTasks = this.allBookings.length;
+          // const bookingMap = new Map<string, any>();
+          // rawBookings.forEach((booking: any) => {
+          //   const guestId = booking.Guest_detail?.[0]?.Guest_Id;
+          //   if (!guestId) return;
+          //   // Keep only the first occurrence (assuming array is sorted most recent first)
+          //   if (!bookingMap.has(guestId)) {
+          //     bookingMap.set(guestId, booking);
+          //   }
+          // });
+          // // Convert map values back to array
+          // // Newly added & commented for room filter
+          // // this.allBookings = Array.from(bookingMap.values());
+          // // this.allBookings = resp.result.data;
+          // // console.log(this.allBookings, "Bookings List");
+          // // this.bookings = this.allBookings;
+          // this.masterBookings = Array.from(bookingMap.values()); // full data
+          // this.bookings = [...this.masterBookings];               // filtered copy
+          // console.log(this.masterBookings, "Bookings List");
+          // // this.totalTasks = this.allBookings.length;
+          // this.totalTasks = this.bookings.length;
+          // // Ended
+          // this.totalPages = Math.ceil(this.totalTasks / this.pageSize);
+          // this.updatePaginatedTasks();
+          // ========== END OF OLD CODE ==========
+
+          // ========== FIXED CODE - Shows ALL bookings ==========
+          // Use all bookings directly without deduplication
+          // This ensures ALL bookings from the API are displayed, not just one per guest
+          this.masterBookings = rawBookings; // full data - all bookings
+          this.bookings = [...this.masterBookings]; // filtered copy
+          // console.log(this.masterBookings, "Bookings List");
           this.totalTasks = this.bookings.length;
-          // Ended
           this.totalPages = Math.ceil(this.totalTasks / this.pageSize);
           this.updatePaginatedTasks();
+          // ========== END OF FIXED CODE ==========
         }
+        this.isLoading = false;
       },
       err => {
         if (err.error.statusCode === 403) {
@@ -346,22 +380,24 @@ export class BookingsComponent {
         else {
           this.alertService.error('Something bad happened. Please try again!', this.options);
         }
+        this.isLoading = false;
       }
     )
   }
 
   // Newly added - function to get event status
   getEventStatus(event: string): string {
-    if (event === 'Reserved' || event === 'Reserved(Amend)') {
+    // console.log('Event:', event, event.toLowerCase());
+    if (event.toLowerCase() === 'reserved' || event.toLowerCase() === 'reserved(amend)') {
       return 'Reserved';
     }
-    if (event === 'Check-in' || event === 'In-house(Amend)') {
+    if (event.toLowerCase() === 'check-in' || event.toLowerCase() === 'in-house(amend)') {
       return 'Checked-in';
     }
-    if (event === 'Checked-out') {
+    if (event.toLowerCase() === 'checked-out') {
       return 'Checked-out';
     }
-    if (event === 'Cancelled') {
+    if (event.toLowerCase() === 'Cancelled') {
       return 'Cancelled';
     }
     return event; // fallback in case of unknown value
@@ -372,6 +408,7 @@ export class BookingsComponent {
     const startIndex = (this.currentPage - 1) * this.pageSize;
     const endIndex = startIndex + this.pageSize;
     this.allBookings = this.bookings.slice(startIndex, endIndex);
+    // console.log(this.allBookings, "All Bookings");
   }
 
   nextPage() {
@@ -391,7 +428,7 @@ export class BookingsComponent {
   // Newly added for room filter
   onRoomSearchChange() {
     const searchValue = this.roomSearchTerm.trim().toLowerCase();
-    console.log('Search Value:', searchValue);
+    // console.log('Search Value:', searchValue);
     if (!searchValue) {
       // Reset to full list
       this.bookings = [...this.masterBookings];
@@ -409,7 +446,7 @@ export class BookingsComponent {
     this.totalPages = Math.ceil(this.totalTasks / this.pageSize);
     this.currentPage = 1;
     this.updatePaginatedTasks(); // updates allBookings (your table source)
-    console.log('Filtered Bookings:', this.allBookings);
+    // console.log('Filtered Bookings:', this.allBookings);
   }
 
 }

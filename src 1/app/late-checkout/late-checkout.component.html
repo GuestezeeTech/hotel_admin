@@ -1,0 +1,154 @@
+<div class="main">
+    <app-alerts></app-alerts>
+    <div class="centered-container">
+        <div class="container">
+            <!-- Header -->
+            <div class="d-flex align-items-center mb-3 w-100">
+                <div class="w-100">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <button (click)="goBack()" class="btn btn-light fw-semibold" style="padding: 2px 10px;">Back</button>
+                        <h5 class="fw-bold">Room no : {{ guestData.Room_No }}</h5>
+                    </div>
+                    <div class="d-flex justify-content-between guest-info">
+                        <p class="mb-0">Guest name : {{ guestData.Guest_detail[0].First_Name }}</p>
+                        <p class="mb-0">Check in : {{ guestData.Arrival_Date | date:'yyyy-MM-dd HH:mm:ss' }}
+                            <!-- {{ guestData.checkInTime }} -->
+                        </p>
+                        <p class="mb-0">Check out : {{ guestData.Departure_Date | date:'yyyy-MM-dd HH:mm:ss' }}
+                            <!-- {{ guestData.checkOutTime }} -->
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+            <!-- Room Summary Card -->
+            <div class="card mb-4 shadow-sm bg-white">
+                <div class="row">
+                    <div class="col-md-4">
+                        <img src="../../assets/images/guestezee/room.jpg" class="img-fluid rounded-start" alt="Room Image"
+                            style="height: 100%; object-fit: cover;">
+                    </div>
+                    <div class="col-md-8 p-3">
+                        <div class="row guest-info-details">
+                            <div class="mb-3">Guest name :<span class="ps-4">{{ guestData.Guest_detail[0].First_Name
+                                    }}</span></div>
+                            <div class="mb-3">Room number :<span class="ps-2">{{ guestData.Room_No }}</span></div>
+                            <div class="mb-3">Room name :<span class="ps-4">{{ getRoomType(guestData.member_id)
+                                    }}</span></div>
+                            <div class="mb-3">Check in :<span style="padding-left: 7.5%;">{{ guestData.Arrival_Date |
+                                    date:'yyyy-MM-dd HH:mm:ss'}}
+                                    <!-- {{guestData.checkInTime }} -->
+                                </span>
+                            </div>
+                            <div class="">Check out :<span style="padding-left: 6%;">{{ guestData.Departure_Date |
+                                    date:'yyyy-MM-dd HH:mm:ss'}}
+                                    <!-- {{ guestData.checkOutTime }} -->
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Checkout table -->
+            <!-- <div class="checkout-table mb-4" style="border: 1px solid #dee2e6; border-radius: 12px; overflow: hidden;">
+                <table class="table text-center align-middle w-100" style="table-layout: fixed;">
+                    <thead class="table">
+                        <tr>
+                            <th style="background-color: #FFE9E9">Request</th>
+                            <th style="background-color: #FFE9E9">Date</th>
+                            <th style="background-color: #FFE9E9">Time</th>
+                            <th style="background-color: #FFE9E9">Room Availability</th>
+                            <th style="background-color: #FFE9E9">Check out fee</th>
+                            <th style="background-color: #FFE9E9">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Late check-out</td>
+                            <td>05/03/2025</td>
+                            <td>16:00 hrs</td>
+                            <td><a href="#" class="text-primary fw-semibold" style="color: #145CE6">Check
+                                    availability</a>
+                            </td>
+                            <td>
+                                <input type="text" class="form-control text-center bg-white" value="₹00.00"
+                                    style="font-size: 13px; color: #868686; border-color: #5E6366;" readonly />
+                            </td>
+                            <td>
+                                <div class="d-flex justify-content-center gap-2">
+                                    <button class="btn px-2 fw-medium"
+                                        style="background-color: #C9FED0; color: #0A700E; font-size: 13px;">Accept</button>
+                                    <button class="btn px-2 fw-medium"
+                                        style="background-color: #FEDFDF; color: #FE0000; font-size: 13px;"
+                                        (click)="navigateToManagement()">Declined</button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div> -->
+            <!-- Table -->
+            <div class="table-responsive mb-4">
+                <div style="border: 1px solid #dee2e6; border-radius: 12px; overflow: hidden;">
+                    <table class="table text-center align-middle mb-0">
+                        <thead class="table-light">
+                            <tr class="text-nowrap">
+                                <th>S.No</th>
+                                <th class="text-start">Guest name</th>
+                                <!-- <th>Date & Time</th> -->
+                                <!-- <th>Reason</th> -->
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Room status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngIf="!guestLogs || guestLogs.length === 0">
+                                <td colspan="4" class="text-center text-muted">No guest logs found</td>
+                            </tr>
+                            <tr *ngFor="let log of guestLogs; let i = index">
+                                <td>{{ i + 1 }}.</td> <!-- Serial Number -->
+                                <td class="text-start">{{ log.Guest_detail[0].First_Name }}</td>
+                                <!-- <td>{{ log.dateTime }}</td> -->
+                                <!-- <td>{{ log.reason }}</td> -->
+                                <td>{{ log.created_on | date:'yyyy-MM-dd' }}</td>
+                                <td>{{ log.created_on | date:'HH:mm:ss' }}</td>
+                                <td>{{ log.Event }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- Table -->
+            <div class="table-responsive">
+                <div style="border: 1px solid #dee2e6; border-radius: 12px; overflow: hidden;">
+                    <table class="table text-center align-middle mb-0">
+                        <thead class="table-light">
+                            <tr class="text-nowrap">
+                                <th>S.No</th>
+                                <th class="text-start">Guest name</th>
+                                <th>Requested Service</th>
+                                <th>Service Date</th>
+                                <th>Service Time</th>
+                                <th>Service status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngIf="!allGuestTask || allGuestTask.length === 0">
+                                <td colspan="5" class="text-center text-muted">No guest tasks found</td>
+                            </tr>
+                            <tr *ngFor="let task of allGuestTask; let i = index">
+                                <td>{{ i + 1 }}.</td> <!-- Serial Number -->
+                                <td class="text-start">{{ task.guest_name }}</td>
+                                <td>{{ task.service.service_name }}</td>
+                                <td>{{ task.order_date }}</td>
+                                <td>{{ task.order_time }}</td>
+                                <td>{{ task.status }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

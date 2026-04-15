@@ -89,10 +89,17 @@ export class LateCheckoutComponent {
     //   }
     // });
 
-    this.hotelId = Number(this.localStorageService.get('UserId'));
+    // Newly added for getting member id for customer type
+    // this.hotelId = Number(this.localStorageService.get('UserId'));
+    this.memberId = this.localStorageService.get('MemberId');
+    // console.log('Member ID from late checkout component:', this.memberId);
     try {
       // Waits for customer data first
-      await this.getCustomerById(this.hotelId);
+      // await this.getCustomerById(this.hotelId);
+      if (this.memberId !== undefined && this.memberId !== null && this.memberId !== '' && this.memberId !== 'undefined' && this.memberId !== 'null') {
+        const customer = await this.getCustomerById(this.memberId);
+      }
+      // End of newly added for getting member id for customer type
       // Only then proceeds with route param
       this.route.paramMap.subscribe(params => {
         const id = params.get('id');
@@ -114,19 +121,23 @@ export class LateCheckoutComponent {
     this.routerUrl.navigate([`/bookings-management/${this.guestData.id}`]);
   }
 
-  getCustomerById(hotelId: any) {
+  // getCustomerById(hotelId: any) {
+  getCustomerById(memberId: any) {
     let requestBody = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
-      extras: { find: { id: hotelId } }
+      extras: { find: { 
+        // id: hotelId
+        "customer_member_id": memberId
+       } }
     };
     return new Promise((resolve, reject) => {
       this.hotellistService.getSignupAllCustomers(requestBody).subscribe({
         next: (resp: any) => {
           if (resp.success === 1 && resp.status_code === 200 && resp.result.data.length > 0) {
             const userData = resp.result.data[0];
-            this.memberId = userData.customer_member_id;
-            console.log('Member id:', this.memberId);
+            // this.memberId = userData.customer_member_id;
+            // console.log('Member id:', this.memberId);
             resolve(userData);
           } else {
             reject('Customer not found');
@@ -152,7 +163,7 @@ export class LateCheckoutComponent {
       resp => {
         if (resp.success === 1 && resp.status_code === 200) {
           this.guestData = resp.result.data[0];
-          console.log(this.guestData, "Guest Booking");
+          // console.log(this.guestData, "Guest Booking");
           this.getBookingStatus(this.guestData.Reserve_No);
           // this.getAllTask(this.guestData.Guest_detail[0].Guest_Id)
           this.getAllTask(this.guestData.id)
@@ -187,7 +198,7 @@ export class LateCheckoutComponent {
       resp => {
         if (resp.success === 1 && resp.status_code === 200) {
           this.guestLogs = resp.result.data;
-          console.log(this.guestLogs, "Guest Logs");
+          // console.log(this.guestLogs, "Guest Logs");
         }
       },
       err => {
@@ -225,7 +236,7 @@ export class LateCheckoutComponent {
     this.taskManagementService.getAllTask(requestBody).subscribe(resp => {
       if (resp.success === 1 && resp.status_code === 200) {
         this.allGuestTask = resp.result.data;
-        console.log(this.allGuestTask, "Guest Tasks");
+        // console.log(this.allGuestTask, "Guest Tasks");
       }
     },
       err => {

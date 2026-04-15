@@ -31,4 +31,42 @@ export class CustomValidators {
     }
     return null;
   }
+  
+  static noWhitespaceValidator(control: AbstractControl): ValidationErrors | null {
+    if (control.value && typeof control.value === 'string') {
+      const isWhitespace = control.value.trim().length === 0;
+      return isWhitespace ? { whitespace: true } : null;
+    }
+    return null;
+  }
+
+  static minValueValidator(minValue: number) {
+    return (control: AbstractControl): ValidationErrors | null => {
+      if (control.value === null || control.value === undefined || control.value === '') {
+        return null; // Let required validator handle empty values
+      }
+      const numValue = Number(control.value);
+      if (isNaN(numValue) || numValue < minValue) {
+        return { minValue: { requiredMin: minValue, actualValue: control.value } };
+      }
+      return null;
+    };
+  }
+
+  static maxQuantityValidator(minQuantityControl: AbstractControl) {
+    return (control: AbstractControl): ValidationErrors | null => {
+      if (control.value === null || control.value === undefined || control.value === '') {
+        return null; // Let required validator handle empty values
+      }
+      const maxValue = Number(control.value);
+      const minValue = minQuantityControl?.value ? Number(minQuantityControl.value) : null;
+      if (isNaN(maxValue)) {
+        return { invalidNumber: true };
+      }
+      if (minValue !== null && !isNaN(minValue) && maxValue <= minValue) {
+        return { maxQuantity: { minValue: minValue, maxValue: maxValue } };
+      }
+      return null;
+    };
+  }
 }

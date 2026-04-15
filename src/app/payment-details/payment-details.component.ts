@@ -53,7 +53,11 @@ export class PaymentDetailsComponent implements OnInit {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
       extras: {
-        find: { customer_id: Number(this.hotelId) },
+        find: { 
+          // Newly added for getting member id for customer type
+          // customer_id: Number(this.hotelId) 
+          "customer_member_id": this.localStorageService.get('MemberId')
+        },
         pagination: false,
         paginationDetails: {
           limit: 0,
@@ -70,7 +74,7 @@ export class PaymentDetailsComponent implements OnInit {
           const confirmedOrders = resp.result.data.filter(
             (order: any) => order.status === "Order Confirmed"
           );
-          console.log("Confirmed Orders:", confirmedOrders);
+          // console.log("Confirmed Orders:", confirmedOrders);
           // extract only the latest paid installment per order
           this.paidInstallments = confirmedOrders.map((order: any) => {
             let latestPaid: any = null;
@@ -97,7 +101,7 @@ export class PaymentDetailsComponent implements OnInit {
         } else {
           this.paidInstallments = [];
         }
-        console.log("Paid Installments:", this.paidInstallments);
+        // console.log("Paid Installments:", this.paidInstallments);
       },
       (err) => {
         console.error("Error fetching order details", err);

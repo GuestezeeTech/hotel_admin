@@ -1,6 +1,6 @@
-<div class="container">
-  <!-- Newly commented -->
-  <button (click)="back()" class="back-btn mt-2" >Back</button>
+<div class="container" *ngIf="canReadSystemSettings">
+  <!-- Back is always allowed; viewing the tree itself is gated by read permission -->
+  <button (click)="back()" class="back-btn mt-2">Back</button>
   <div class="hierarchy-container">
     <ng-template #recursiveCard let-item let-level="level">
       <div class="hierarchy-card">

@@ -127,7 +127,7 @@ export class NotificationComponent {
       // Filter only valid notifications
       // this.notifications = (list || []).filter(n => n && n.title && n.body);
       this.notifications = (list || []).filter(n => n && n.id);
-      console.log('Notifications in component:', this.notifications);
+      // console.log('Notifications in component:', this.notifications);
     });
   }
 
@@ -158,7 +158,7 @@ export class NotificationComponent {
       const title = params['title'];
       const body = params['body'];
       if (title && body) {
-        console.log('Loaded from URL:', title, body);
+        // console.log('Loaded from URL:', title, body);
         this.playNotificationSound(),
           this.highlightTabBasedOnNotification(title, body);
       }
@@ -182,7 +182,7 @@ export class NotificationComponent {
       const audio = new Audio('/assets/images/guestezee/alarm.mp3');
       audio.volume = 1.0;
       audio.play().then(() => {
-        console.log('Notification sound played.');
+        // console.log('Notification sound played.');
       }).catch(err => {
         console.warn('Could not play sound:', err);
       });
@@ -192,7 +192,7 @@ export class NotificationComponent {
   }
 
   highlightTabBasedOnNotification(title: string, body: string) {
-    console.log('Highlighting tab based on notification:', title, body);
+    // console.log('Highlighting tab based on notification:', title, body);
     let targetTab = 'ASAP'; // default fallback
     if (title === 'Task Created' && body === 'Please assign the staff') {
       targetTab = 'ASAP';
@@ -211,23 +211,25 @@ export class NotificationComponent {
     else if (title === 'Assigned' && body === 'Please accept the task') {
       targetTab = 'ASAP';
     }
-    console.log('Highlighting tab:', targetTab);
+    // console.log('Highlighting tab:', targetTab);
     this.taskManagementService.setSelectedTab(targetTab);
     this.router.navigate(['/task-management']);
   }
 
   navigateNotification(notify: any) {
-    console.log('Navigating based on notification:', notify);
+    // console.log('Navigating based on notification:', notify);
     this.close.emit();
-
     let targetTab;
     if (notify.redirection_tab) {
       targetTab = notify.redirection_tab;
-    } else if (notify.title === 'Task Created' && notify.body === 'Please assign the staff') {
+    }
+    else if ((notify.title === 'Task Created' && notify.body === 'Please assign the staff') || (notify.title === 'ASAP' && notify.body === 'Please assign the staff')) {
       targetTab = 'ASAP';
-    } else if (notify.title === 'Escalated' && notify.body === 'Immediate attention needed') {
+    }
+    else if (notify.title === 'Escalated' && notify.body === 'Immediate attention needed') {
       targetTab = 'Priority';
-    } else if (notify.title === 'Escalated' && notify.body === 'Your task is escalated') {
+    }
+    else if (notify.title === 'Escalated' && notify.body === 'Your task is escalated') {
       targetTab = 'My Escalation';
     }
     else if (notify.title === 'Completed') {

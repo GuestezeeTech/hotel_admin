@@ -35,8 +35,16 @@ export class AppComponent implements OnInit {
     // --- Sidebar and menu tracking ---
     this.router.events.subscribe(event => {
       if (event instanceof NavigationEnd) {
+        //Logout back to login if no token
+        // const token = this.localservice.get('accessToken');
+        // const isLoginPage = event.url === '' || event.url === '/' || event.url.includes('/login');
+        // if (!token && !isLoginPage) {
+        //   // Only redirect if there is no token AND we aren't already trying to login
+        //   this.router.navigate([''], { replaceUrl: true });
+        // }
+
         this.showSidebar = this.routesWithoutSidebar.some(route => route === event.url);
-        console.log('Current URL:', event.url);
+        // console.log('Current URL:', event.url);
         if (event.url == '/hotel-list' || event.url == '/add-new-hotel') this.selectedMenuItem = "Hotels";
         // Newly added for terms and conditions & privacy policy
         else if (event.url == '/privacy-policy') this.selectedMenuItem = "Privacy Policy";
@@ -44,6 +52,7 @@ export class AppComponent implements OnInit {
         // Newly added for dynamic department and service
         else if (event.url == '/department-list') this.selectedMenuItem = "Department";
         else if (event.url == '/service-list') this.selectedMenuItem = "Service";
+        else if (event.url == '/service-tab-list') this.selectedMenuItem = "Service Tab";
         // Ended
         else if (event.url == '/role-list' || event.url == '/role') this.selectedMenuItem = "Roles";
         else if (event.url == '/user-list' || event.url == '/user') this.selectedMenuItem = "Users";
@@ -56,25 +65,25 @@ export class AppComponent implements OnInit {
           this.showSidebar = true;
         }
       }
-      console.log('Selected menu item:', this.selectedMenuItem);
+      // console.log('Selected menu item:', this.selectedMenuItem);
     });
   }
 
   ngOnInit(): void {
     // --- Restore user info ---
     this.customerType = this.localservice.get('CustomerType');
-    console.log('[App] Customer Type:', this.customerType);
+    // console.log('[App] Customer Type:', this.customerType);
     const queryParams = new URLSearchParams(window.location.search);
     const customerIdFromUrl = queryParams.get('customer_id');
     if (customerIdFromUrl) {
       localStorage.setItem('customer_id', customerIdFromUrl);
       this.localservice.set('UserId', customerIdFromUrl);
-      console.log('[App] Restored customer_id:', customerIdFromUrl);
+      // console.log('[App] Restored customer_id:', customerIdFromUrl);
     }
 
     // --- Unlock audio context ---
     const unlockAudio = () => {
-      console.log('[App] Attempting to unlock audio...');
+      // console.log('[App] Attempting to unlock audio...');
       if (!this.audioUnlocked) {
         try {
           const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -84,7 +93,7 @@ export class AppComponent implements OnInit {
           source.connect(audioCtx.destination);
           source.start(0);
           this.audioUnlocked = true;
-          console.log('[App] Audio unlocked for notifications');
+          // console.log('[App] Audio unlocked for notifications');
           window.removeEventListener('click', unlockAudio);
           window.removeEventListener('keydown', unlockAudio);
           window.removeEventListener('mousemove', unlockAudio);
@@ -99,12 +108,12 @@ export class AppComponent implements OnInit {
     unlockAudio(); // attempt immediate unlock
     // --- Foreground Notifications ---
     this.pushService.onMessageListener().subscribe((payload: any) => {
-      console.log('[App] Foreground message received:', payload);
+      // console.log('[App] Foreground message received:', payload);
 
       if (this.audioUnlocked) {
         const audio = new Audio('assets/images/guestezee/alarm.mp3');
         audio.play().then(() => {
-          console.log('[App] Foreground sound played');
+          // console.log('[App] Foreground sound played');
         }).catch(err => {
           console.warn('[App] Foreground sound blocked:', err);
         });
@@ -118,11 +127,11 @@ export class AppComponent implements OnInit {
     // --- Background Notifications from SW ---
     navigator.serviceWorker.addEventListener('message', (event: any) => {
       if (event.data?.action === 'playSound') {
-        console.log('[App] Received playSound from SW');
+        // console.log('[App] Received playSound from SW');
         if (this.audioUnlocked) {
           const audio = new Audio('assets/images/guestezee/alarm.mp3');
           audio.play().then(() => {
-            console.log('[App] Background sound played');
+            // console.log('[App] Background sound played');
           }).catch(err => {
             console.warn('[App] Background sound blocked:', err);
           });
@@ -169,7 +178,7 @@ export class AppComponent implements OnInit {
       task_id: parsedMessage?.task_id || null,
       redirection_tab: parsedMessage?.redirection_tab || null,
     };
-    console.log('[App] Extracted Notification Data:', structured);
+    // console.log('[App] Extracted Notification Data:', structured);
     return structured;
   }
 }

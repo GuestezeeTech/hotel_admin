@@ -1,136 +1,220 @@
 <div class="main">
+  <app-alerts></app-alerts>
   <div class="centered-container">
     <form [formGroup]="outletForm" (ngSubmit)="onSubmit()">
       <div class="section">
-        <h3>Outlet Creation</h3>
+        <h3>{{ isViewMode ? 'View Restaurant' : (outlet_id === 0 ? 'Restaurant Creation' : 'Edit Restaurant') }}</h3>
         <div class="form-grid">
+          <!-- Restaurant Name -->
           <div class="form-group form1_div">
-            <label>Restaurant Name</label>
-            <input type="text" class="input_box" formControlName="owner_name" placeholder="Restaurant Name" />
+            <label>Name</label>
+            <input type="text" class="input_box" formControlName="owner_name" placeholder="Restaurant Name" [disabled]="isViewMode || (outlet_id === 0 && !canAddRestaurants) || (outlet_id !== 0 && !canEditRestaurants)" />
+            <p class="error" *ngIf="submitted && outletForm.controls['owner_name'].hasError('required')">
+              Restaurant name is required
+            </p>
           </div>
+          <!-- Email -->
           <div class="form-group form1_div">
             <label>Email</label>
-            <input type="email" class="input_box" formControlName="email" placeholder="Email" />
+            <input type="email" class="input_box" formControlName="email" placeholder="Email" [disabled]="isViewMode || (outlet_id === 0 && !canAddRestaurants) || (outlet_id !== 0 && !canEditRestaurants)" />
+            <p class="error" *ngIf="submitted && outletForm.controls['email'].hasError('required')"> Email is required
+            </p>
+            <p class="error" *ngIf="submitted && outletForm.controls['email'].hasError('email')"> Invalid email format
+            </p>
           </div>
+          <!-- Phone -->
           <div class="form-group form1_div">
-            <label>Phone</label>
-            <input type="text" class="input_box" formControlName="phone" placeholder="Phone" />
+            <label>Phone Number</label>
+            <input type="text" class="input_box" formControlName="phone" placeholder="Phone"
+              (input)="validateNumberInput('phone')" [disabled]="isViewMode || (outlet_id === 0 && !canAddRestaurants) || (outlet_id !== 0 && !canEditRestaurants)" />
+            <p class="error" *ngIf="submitted && outletForm.controls['phone'].hasError('required')"> Phone number is
+              required
+            </p>
+            <p class="error" *ngIf="submitted && outletForm.controls['phone'].hasError('invalidNumber')"> Only numbers
+              allowed </p>
           </div>
+          <!-- Company Phone -->
           <div class="form-group form1_div">
-            <label>Company Phone</label>
-            <input type="text" class="input_box" formControlName="companyphone" placeholder="Company Phone" />
+            <label>Company Phone Number</label>
+            <input type="text" class="input_box" formControlName="companyphone" placeholder="Company Phone"
+              (input)="validateNumberInput('companyphone')" [disabled]="isViewMode || (outlet_id === 0 && !canAddRestaurants) || (outlet_id !== 0 && !canEditRestaurants)" />
+            <p class="error" *ngIf="submitted && outletForm.controls['companyphone'].hasError('required')"> Company
+              phone number is required
+            </p>
+            <p class="error" *ngIf="submitted && outletForm.controls['companyphone'].hasError('invalidNumber')"> Only
+              numbers allowed </p>
           </div>
+          <!-- Outlet Name -->
           <div class="form-group form1_div">
             <label>Outlet Name</label>
-            <input type="text" class="input_box" formControlName="name" placeholder="Outlet Name" />
+            <input type="text" class="input_box" formControlName="name" placeholder="Outlet Name" [disabled]="isViewMode || (outlet_id === 0 && !canAddRestaurants) || (outlet_id !== 0 && !canEditRestaurants)" />
+            <p class="error" *ngIf="submitted && outletForm.controls['name'].hasError('required')"> Outlet name is
+              required </p>
           </div>
+          <!-- GST -->
           <div class="form-group form1_div">
             <label>GST No</label>
-            <input type="text" class="input_box" formControlName="gstno" placeholder="GST Number" />
+            <input type="text" class="input_box" formControlName="gstno" placeholder="GST Number" [disabled]="isViewMode || (outlet_id === 0 && !canAddRestaurants) || (outlet_id !== 0 && !canEditRestaurants)" />
+            <p class="error" *ngIf="submitted && outletForm.controls['gstno'].hasError('required')"> GST Number is
+              required </p>
+            <p class="error" *ngIf="submitted && outletForm.controls['gstno'].hasError('invalidGST')">
+              {{ outletForm.controls['gstno'].errors?.['invalidGST']?.message }}
+            </p>
           </div>
-          <!-- <div class="form-group form1_div">
-            <label>Association</label>
-            <input type="text" class="input_box" formControlName="association" placeholder="Association" />
-          </div> -->
-          <!-- <div class="form-group form1_div">
-            <label>Category</label>
-            <input type="text" class="input_box" formControlName="category" placeholder="Category" />
-          </div> -->
+          <!-- Address 1 -->
           <div class="form-group form1_div">
             <label>Address Line 1</label>
-            <input type="text" class="input_box" formControlName="address" placeholder="Address" />
+            <input type="text" class="input_box" formControlName="address" placeholder="Address" [disabled]="isViewMode || (outlet_id === 0 && !canAddRestaurants) || (outlet_id !== 0 && !canEditRestaurants)" />
+            <p class="error" *ngIf="submitted && outletForm.controls['address'].hasError('required')"> Address is
+              required </p>
           </div>
+          <!-- Address 2 (not required) -->
           <div class="form-group form1_div">
             <label>Address Line 2</label>
-            <input type="text" class="input_box" formControlName="address1" placeholder="Address 1" />
+            <input type="text" class="input_box" formControlName="address1" placeholder="Address 1" [disabled]="isViewMode || (outlet_id === 0 && !canAddRestaurants) || (outlet_id !== 0 && !canEditRestaurants)" />
           </div>
+          <!-- Door No -->
           <div class="form-group form1_div">
             <label>Door No</label>
-            <input type="text" class="input_box" formControlName="doorno" placeholder="Door Number" />
+            <input type="text" class="input_box" formControlName="doorno" placeholder="Door Number" [disabled]="isViewMode || (outlet_id === 0 && !canAddRestaurants) || (outlet_id !== 0 && !canEditRestaurants)" />
+            <p class="error" *ngIf="submitted && outletForm.controls['doorno'].hasError('required')"> Door No is
+              required </p>
           </div>
+          <!-- Location -->
           <div class="form-group form1_div">
             <label>Location</label>
-            <input type="text" class="input_box" formControlName="location" placeholder="Location" />
+            <input type="text" class="input_box" formControlName="location" placeholder="Location" [disabled]="isViewMode || (outlet_id === 0 && !canAddRestaurants) || (outlet_id !== 0 && !canEditRestaurants)" />
+            <p class="error" *ngIf="submitted && outletForm.controls['location'].hasError('required')"> Location is
+              required </p>
           </div>
+          <!-- Pincode -->
           <div class="form-group form1_div">
             <label>Pincode</label>
-            <input type="text" class="input_box" formControlName="pincode" placeholder="Pincode" />
+            <input type="text" class="input_box" formControlName="pincode" placeholder="Pincode"
+              (input)="validateNumberInput('pincode')" [disabled]="isViewMode || (outlet_id === 0 && !canAddRestaurants) || (outlet_id !== 0 && !canEditRestaurants)" />
+            <p class="error" *ngIf="submitted && outletForm.controls['pincode'].hasError('required')"> Pincode is
+              required </p>
+            <p class="error" *ngIf="submitted && outletForm.controls['pincode'].hasError('invalidNumber')"> Only numbers
+              allowed </p>
           </div>
-          <!-- <div class="form-group form1_div">
-            <label>Delivery Pickup Pincode</label>
-            <input type="text" class="input_box" formControlName="delivery_pickup_point_pincode" placeholder="Delivery Pincode" />
-          </div> -->
+          <!-- Country -->
           <div class="form-group form1_div">
             <label>Country</label>
-            <input type="text" class="input_box" formControlName="country" placeholder="Country" />
+            <input type="text" class="input_box" formControlName="country" [disabled]="isViewMode || (outlet_id === 0 && !canAddRestaurants) || (outlet_id !== 0 && !canEditRestaurants)" />
+            <p class="error" *ngIf="submitted && outletForm.controls['country'].hasError('required')"> Country is
+              required </p>
           </div>
-          <div class="form-group form1_div">
-            <label>Shift Title</label>
-            <input type="text" class="input_box" formControlName="shift_title" placeholder="Shift Title" />
-          </div>
-          <div class="form-group form1_div">
-            <label>Time Slot</label>
-            <input type="text" class="input_box" formControlName="time_slot" placeholder="Time Slot (e.g., 30mins)" />
-          </div>
+          <!-- Open Time -->
           <div class="form-group form1_div">
             <label>Open Time</label>
-            <input type="text" class="input_box" formControlName="open_time" placeholder="12:00AM" />
+            <input type="text" class="input_box" formControlName="open_time" placeholder="12:00 AM"
+              (blur)="validateTimeFormat('open_time')" [disabled]="isViewMode || (outlet_id === 0 && !canAddRestaurants) || (outlet_id !== 0 && !canEditRestaurants)" />
+            <p class="error" *ngIf="submitted && outletForm.controls['open_time'].hasError('required')"> Open time
+              required </p>
+            <p class="error" *ngIf="submitted && outletForm.controls['open_time'].hasError('invalidTime')"> Enter valid
+              12-hour time (ex: 12:30 PM) </p>
           </div>
+          <!-- Close Time -->
           <div class="form-group form1_div">
             <label>Close Time</label>
-            <input type="text" class="input_box" formControlName="close_time" placeholder="11:59PM" />
+            <input type="text" class="input_box" formControlName="close_time" placeholder="11:59 PM"
+              (blur)="validateTimeFormat('close_time')" [disabled]="isViewMode || (outlet_id === 0 && !canAddRestaurants) || (outlet_id !== 0 && !canEditRestaurants)" />
+            <p class="error" *ngIf="submitted && outletForm.controls['close_time'].hasError('required')"> Close time
+              required </p>
+            <p class="error" *ngIf="submitted && outletForm.controls['close_time'].hasError('invalidTime')"> Enter valid
+              12-hour time (ex: 11:59 PM) </p>
           </div>
+          <!-- WINHMS -->
           <div class="form-group form1_div">
             <label>WINHMS Outlet ID</label>
-            <input type="text" class="input_box" formControlName="winhms_outlet_id" placeholder="WINHMS Outlet ID" />
+            <input type="text" class="input_box" formControlName="winhms_outlet_id" [disabled]="isViewMode || (outlet_id === 0 && !canAddRestaurants) || (outlet_id !== 0 && !canEditRestaurants)" />
+            <p class="error" *ngIf="submitted && outletForm.controls['winhms_outlet_id'].hasError('required')"> Outlet
+              ID is required
+            </p>
           </div>
+          <!-- Property Name -->
           <div class="form-group form1_div">
             <label>Property Name</label>
-            <input type="text" class="input_box" formControlName="property_name" placeholder="Property Name" />
+            <input type="text" class="input_box" formControlName="property_name" [disabled]="isViewMode || (outlet_id === 0 && !canAddRestaurants) || (outlet_id !== 0 && !canEditRestaurants)" />
+            <p class="error" *ngIf="submitted && outletForm.controls['property_name'].hasError('required')"> Property
+              name is required
+            </p>
           </div>
+          <!-- Hotel Code -->
           <div class="form-group form1_div">
             <label>Hotel Code</label>
-            <input type="text" class="input_box" formControlName="Hotel_Code" placeholder="Hotel Code" />
+            <input type="text" class="input_box" formControlName="Hotel_Code" [disabled]="isViewMode || (outlet_id === 0 && !canAddRestaurants) || (outlet_id !== 0 && !canEditRestaurants)" />
+            <p class="error" *ngIf="submitted && outletForm.controls['Hotel_Code'].hasError('required')"> HOtel code is
+              required </p>
           </div>
+          <!-- API Key -->
           <div class="form-group form1_div">
             <label>X API Key</label>
-            <input type="text" class="input_box" formControlName="x_api_key" placeholder="X Api Key" />
+            <input type="text" class="input_box" formControlName="x_api_key" [disabled]="isViewMode || (outlet_id === 0 && !canAddRestaurants) || (outlet_id !== 0 && !canEditRestaurants)" />
+            <p class="error" *ngIf="submitted && outletForm.controls['x_api_key'].hasError('required')"> API key is
+              required </p>
           </div>
         </div>
-
-        <!-- Toggles -->
-        <!-- <div class="form-group form1_div">
-          <label>Enable Distance Radius</label>
-          <label class="switch">
-            <input type="checkbox" formControlName="enable_distance_radius" />
-            <span class="slider round"></span>
-          </label>
-        </div> -->
-
-        <!-- <div class="form-group form1_div">
-          <label>Send Order Mail</label>
-          <label class="switch">
-            <input type="checkbox" formControlName="sendordermail" />
-            <span class="slider round"></span>
-          </label>
-        </div> -->
-
-        <!-- <div class="form-group form1_div">
-          <label>Is Active</label>
-          <label class="switch">
-            <input type="checkbox" formControlName="is_active" />
-            <span class="slider round"></span>
-          </label>
-        </div> -->
-
-        <!-- Photo Upload -->
+        <!-- IMAGE UPLOAD -->
         <div class="form-group form1_div">
           <label>Outlet Photo</label>
-          <input type="file" class="input_box" (change)="onPhotoUpload($event)" />
+          <!-- File input -->
+          <input type="file" id="photoInput" #photoInput (change)="onPhotoUpload($event)" accept="image/*"
+            class="input_box" [disabled]="isViewMode" />
+          <!-- Preview + filename + buttons -->
+          <div *ngIf="photoPreview" class="photo-preview-container">
+            <img [src]="photoPreview" alt="preview" class="photo-preview-img" />
+            <div class="photo-info-actions">
+              <span class="photo-filename">{{ photoName }}</span>
+              <div class="photo-buttons">
+                <button type="button" (click)="removePhoto()" class="btn-remove" [disabled]="isViewMode">Remove</button>
+              </div>
+            </div>
+          </div>
+          <!-- Upload hint if no preview -->
+          <div *ngIf="!photoPreview" class="photo-upload-hint">
+            Upload an image (max {{ maxSizeMB }}MB)
+          </div>
         </div>
-
-        <button type="submit" class="btn save_bt" [disabled]="outletForm.invalid">Save</button>
+        <div class="form-group form1_div"
+          style="display: flex; align-items: center; border: 1px solid #ddd; padding: 6px; border-radius: 10px; width: 15%">
+          <p style="font-weight: 600; font-size: 14px;" class="mb-0">Active</p>
+          <!-- Hidden checkbox that controls the form value -->
+          <input type="checkbox" formControlName="is_active" hidden #isActivatedCheckbox [disabled]="isViewMode">
+          <!-- Icon that updates the hidden checkbox -->
+          <i [ngClass]="isActivatedCheckbox.checked ? 'bi bi-toggle-on' : 'bi bi-toggle-off'"
+            (click)="!isViewMode && isActivatedCheckbox.click()" [ngStyle]="{ 
+                                    'cursor': isViewMode ? 'not-allowed' : 'pointer', 
+                                    'font-size': '25px', 
+                                    'margin-left': '10%',
+                                    'opacity': isViewMode ? 0.6 : 1}">
+          </i>
+        </div>
+        <div class="btn_div">
+          <button type="button" class="btn cancel_bt mr-2" (click)="openExitModal()">{{ isViewMode ? 'Close' : 'Cancel' }}</button>
+          <button type="submit" class="btn save_bt" *ngIf="!isViewMode" [disabled]="(outlet_id === 0 && !canAddRestaurants) || (outlet_id !== 0 && !canEditRestaurants)">Save</button>
+        </div>
       </div>
     </form>
+  </div>
+</div>
+<!-- Exit Confirmation Modal -->
+<div *ngIf="isExitModalOpen" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+           background: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center;">
+  <div style="background: white; padding: 30px; border-radius: 15px; width: 450px; text-align: center;
+              box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);">
+    <h2 style="margin-bottom: 10px; font-size: 20px; font-weight: bold;">
+      Are you sure you want to exit?
+    </h2>
+    <div style="display: flex; justify-content: space-around; margin-top: 25px;">
+      <button style="padding: 12px; background: #E1E2EB; color: black; border: none; cursor: pointer;
+                       width: 45%; border-radius: 8px;" (click)="closeExitModal()">
+        Cancel
+      </button>
+      <button style="padding: 12px; background: #800020; color: white; border: none; cursor: pointer;
+                       width: 45%; border-radius: 8px;" (click)="confirmExit()">
+        Exit
+      </button>
+    </div>
   </div>
 </div>

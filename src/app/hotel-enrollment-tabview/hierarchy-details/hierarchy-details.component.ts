@@ -54,10 +54,10 @@ export class HierarchyDetailsComponent {
 
   async ngOnInit(): Promise<void> {
     this.hotelId = Number(this.localService.get('UserId'));
-    console.log("id:", this.hotelId)
+    // console.log("id:", this.hotelId)
     if (this.hotelId !== 0) {
       try {
-        console.log('Hotel id:', this.hotelId)
+        // console.log('Hotel id:', this.hotelId)
         await this.getCustomerById();
         this.getAllHierarchy();
       } catch (err) {
@@ -86,7 +86,7 @@ export class HierarchyDetailsComponent {
           this.loaderService.emitComplete();
           if (resp) {
             this.customerdata = resp.result.data[0];
-            console.log(this.customerdata.customer_member_id, "Member id");
+            // console.log(this.customerdata.customer_member_id, "Member id");
             // Sets the radio button value based on `hierarchy_details`
             if (this.customerdata?.hierarchy_details) {
               this.selectedTemplate = this.customerdata.hierarchy_details;
@@ -95,7 +95,7 @@ export class HierarchyDetailsComponent {
             ////console.log(Array.isArray(this.customerdata));
             // Newly added for disabling form on payment done to approving the customer
             this.customerStatus = this.customerdata.status;
-            console.log('Customer status:', this.customerStatus);
+            // console.log('Customer status:', this.customerStatus);
             resolve();
           }
         },
@@ -222,9 +222,9 @@ export class HierarchyDetailsComponent {
                   ////console.log('All Hierarchies Length:', resp.result.data.length);
                   ////console.log('Selected Hierarchy id:', this.isSelectedHierarchyId);
                   if (resp.result.data.length > 0) {
-                    console.log(resp.result.data, 'All Hierarchy Data');
+                    // console.log(resp.result.data, 'All Hierarchy Data');
                     this.hierarchies = resp.result.data.filter((hierarchy: any) => hierarchy.customer_id === undefined);
-                    console.log(this.hierarchies, 'Common Hierarchy Data');
+                    // console.log(this.hierarchies, 'Common Hierarchy Data');
                   }
                 }
               },

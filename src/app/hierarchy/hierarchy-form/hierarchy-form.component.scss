@@ -13,7 +13,7 @@
 
 .form-container {
   background: white;
-  padding: 2rem;
+  padding: 20px;
   border-radius: 12px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
@@ -51,10 +51,10 @@
 
 .form-field input {
   width: 100%;
-  padding: 0.75rem;
+  padding: 1%;
   border: 2px solid #e9ecef;
   border-radius: 6px;
-  font-size: 1rem;
+  font-size: 14px;
   transition: border-color 0.2s;
 }
 
@@ -83,10 +83,6 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-}
-
-.back-btn {
-  padding: 0.50rem 1.5rem !important;
 }
 
 .btn.primary {
@@ -118,4 +114,8 @@
   background: #5a6268;
   transform: translateY(-2px);
   box-shadow: 0 6px 8px rgba(108, 117, 125, 0.3);
+}
+
+.save-btn, .cancel-btn, .add-btn {
+   padding: 5px 15px;
 }

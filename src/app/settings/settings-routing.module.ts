@@ -8,6 +8,7 @@ const routes: Routes = [
   { path: 'settings', component: SettingsComponent },
   { path: 'department-list', component: DepartmentListComponent },
   { path: 'service-list', component: ServiceSettingsComponent },
+  // { path: 'hierarchy-list', component: ServiceSettingsComponent }, 
 ];
 
 @NgModule({

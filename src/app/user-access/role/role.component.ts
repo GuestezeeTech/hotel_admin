@@ -28,10 +28,14 @@ export class RoleComponent implements OnInit {
   showAddRoleForm = false;
   validateForm: boolean = false;
   dashboardForm !: FormGroup;
-  customersForm !: FormGroup;
+  // customersForm !: FormGroup;
   paymentForm !: FormGroup;
   systemSettingsForm !: FormGroup;
-  marketingForm !: FormGroup;
+  // marketingForm !: FormGroup;
+  hotelsForm !: FormGroup;
+  taskManagementForm !: FormGroup;
+  bookingsForm !: FormGroup;
+  restaurantsForm !: FormGroup;
   userAccessForm !: FormGroup;
   roleForm !: FormGroup;
   editScreen: boolean = false;
@@ -39,6 +43,7 @@ export class RoleComponent implements OnInit {
   authorizationForm !: FormGroup;
   storeSetupForm !: FormGroup;
   storeFrontForm !: FormGroup;
+  featuresForm !: FormGroup;
   enableEdit = false;
   showalertmsg: boolean = true;
   isExitModalOpen: boolean = false;
@@ -52,6 +57,10 @@ export class RoleComponent implements OnInit {
   };
   roleName: string | null = null;
   roleId: any;
+  // Newly added
+  memberId: any;
+  // View-only mode (when opened from eye icon)
+  isViewMode: boolean = false;
 
   constructor(
     private roleService: RoleService,
@@ -66,10 +75,13 @@ export class RoleComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
+    // Detect if opened in view-only mode
+    const navState = window.history.state as any;
+    this.isViewMode = navState?.mode === 'view';
     this.roleName = this.localService.get('roleName');
     this.roleService.clearAdminFormEvent();
     this.roleForm = new FormGroup({
-      role_name: this.formBuilder.control('', [Validators.required, Validators.maxLength(40), Validators.minLength(3)]),
+      role_name: this.formBuilder.control('', [Validators.required, Validators.maxLength(40)]),
       is_standard: this.formBuilder.control(false),
       is_active: this.formBuilder.control(false)
     })
@@ -82,20 +94,20 @@ export class RoleComponent implements OnInit {
       delete: this.formBuilder.control(false),
       all: this.formBuilder.control(false)
     })
-    this.customersForm = new FormGroup({
-      create: this.formBuilder.control(false),
-      edit: this.formBuilder.control(false),
-      read: this.formBuilder.control(false),
-      delete: this.formBuilder.control(false),
-      all: this.formBuilder.control(false)
-    })
-    this.marketingForm = new FormGroup({
-      create: this.formBuilder.control(false),
-      edit: this.formBuilder.control(false),
-      read: this.formBuilder.control(false),
-      delete: this.formBuilder.control(false),
-      all: this.formBuilder.control(false)
-    })
+    /*  this.customersForm = new FormGroup({
+       create: this.formBuilder.control(false),
+       edit: this.formBuilder.control(false),
+       read: this.formBuilder.control(false),
+       delete: this.formBuilder.control(false),
+       all: this.formBuilder.control(false)
+     })
+     this.marketingForm = new FormGroup({
+       create: this.formBuilder.control(false),
+       edit: this.formBuilder.control(false),
+       read: this.formBuilder.control(false),
+       delete: this.formBuilder.control(false),
+       all: this.formBuilder.control(false)
+     }) */
     this.paymentForm = new FormGroup({
       create: this.formBuilder.control(false),
       edit: this.formBuilder.control(false),
@@ -117,6 +129,41 @@ export class RoleComponent implements OnInit {
       delete: this.formBuilder.control(false),
       all: this.formBuilder.control(false)
     })
+    this.hotelsForm = new FormGroup({
+      create: this.formBuilder.control(false),
+      edit: this.formBuilder.control(false),
+      read: this.formBuilder.control(false),
+      delete: this.formBuilder.control(false),
+      all: this.formBuilder.control(false)
+    })
+    this.taskManagementForm = new FormGroup({
+      create: this.formBuilder.control(false),
+      edit: this.formBuilder.control(false),
+      read: this.formBuilder.control(false),
+      delete: this.formBuilder.control(false),
+      all: this.formBuilder.control(false)
+    })
+    this.bookingsForm = new FormGroup({
+      create: this.formBuilder.control(false),
+      edit: this.formBuilder.control(false),
+      read: this.formBuilder.control(false),
+      delete: this.formBuilder.control(false),
+      all: this.formBuilder.control(false)
+    })
+    this.restaurantsForm = new FormGroup({
+      create: this.formBuilder.control(false),
+      edit: this.formBuilder.control(false),
+      read: this.formBuilder.control(false),
+      delete: this.formBuilder.control(false),
+      all: this.formBuilder.control(false)
+    })
+    this.featuresForm = new FormGroup({
+      create: this.formBuilder.control(false),
+      edit: this.formBuilder.control(false),
+      read: this.formBuilder.control(false),
+      delete: this.formBuilder.control(false),
+      all: this.formBuilder.control(false)
+    })
     // For getting id from router
     if (this.router.snapshot.params['id'] !== undefined) {
       this.roleId = this.router.snapshot.params['id'];
@@ -124,6 +171,23 @@ export class RoleComponent implements OnInit {
     } else {
       this.editScreen = false;
     }
+    // If in view mode, disable all permission forms so nothing can be edited
+    if (this.isViewMode) {
+      this.roleForm.disable({ emitEvent: false });
+      this.dashboardForm.disable({ emitEvent: false });
+      this.paymentForm.disable({ emitEvent: false });
+      this.userAccessForm.disable({ emitEvent: false });
+      this.systemSettingsForm.disable({ emitEvent: false });
+      this.hotelsForm.disable({ emitEvent: false });
+      this.taskManagementForm.disable({ emitEvent: false });
+      this.bookingsForm.disable({ emitEvent: false });
+      this.restaurantsForm.disable({ emitEvent: false });
+      this.featuresForm.disable({ emitEvent: false });
+      this.authorizationForm.disable({ emitEvent: false });
+      this.storeSetupForm.disable({ emitEvent: false });
+      this.storeFrontForm.disable({ emitEvent: false });
+    }
+
     // if (this.editScreen) {
     //   this.setInitialValues(this.roleId)
     //   if (!this.userAccessService.getUserAccess().AUTHORIZATION.has_edit_permission) {
@@ -174,12 +238,14 @@ export class RoleComponent implements OnInit {
     //     }
     //   }
     // })
-
+    // Newly added
+    this.memberId = this.localService.get('MemberId');
+    // console.log('Member Id:', this.memberId);
   }
 
   get f() { return this.roleForm.controls };
 
-  // For checking all options in modules
+  // For checking all options in modules (your original logic, kept as‑is)
   allOptions(option: any) {
     if (option === "dashboard") {
       this.dashboardForm.controls['create'].setValue(true);
@@ -190,15 +256,15 @@ export class RoleComponent implements OnInit {
     else if (option === "specDashboard") {
       this.dashboardForm.controls['all'].setValue(false);
     }
-    else if (option === "customers") {
-      this.customersForm.controls['create'].setValue(true);
-      this.customersForm.controls['edit'].setValue(true);
-      this.customersForm.controls['read'].setValue(true);
-      this.customersForm.controls['delete'].setValue(true);
-    }
-    else if (option === "specCustomers") {
-      this.customersForm.controls['all'].setValue(false);
-    }
+    /*  else if (option === "customers") {
+       this.customersForm.controls['create'].setValue(true);
+       this.customersForm.controls['edit'].setValue(true);
+       this.customersForm.controls['read'].setValue(true);
+       this.customersForm.controls['delete'].setValue(true);
+     }
+     else if (option === "specCustomers") {
+       this.customersForm.controls['all'].setValue(false);
+     } */
     else if (option === "payment") {
       this.paymentForm.controls['create'].setValue(true);
       this.paymentForm.controls['edit'].setValue(true);
@@ -208,15 +274,15 @@ export class RoleComponent implements OnInit {
     else if (option === "specPayment") {
       this.paymentForm.controls['all'].setValue(false);
     }
-    else if (option === "marketing") {
-      this.marketingForm.controls['create'].setValue(true);
-      this.marketingForm.controls['edit'].setValue(true);
-      this.marketingForm.controls['read'].setValue(true);
-      this.marketingForm.controls['delete'].setValue(true);
-    }
-    else if (option === "specMarketing") {
-      this.marketingForm.controls['all'].setValue(false);
-    }
+    /*   else if (option === "marketing") {
+        this.marketingForm.controls['create'].setValue(true);
+        this.marketingForm.controls['edit'].setValue(true);
+        this.marketingForm.controls['read'].setValue(true);
+        this.marketingForm.controls['delete'].setValue(true);
+      }
+      else if (option === "specMarketing") {
+        this.marketingForm.controls['all'].setValue(false);
+      } */
     else if (option === "systemSettings") {
       this.systemSettingsForm.controls['create'].setValue(true);
       this.systemSettingsForm.controls['edit'].setValue(true);
@@ -234,6 +300,163 @@ export class RoleComponent implements OnInit {
     }
     else if (option === "specUserAccess") {
       this.userAccessForm.controls['all'].setValue(false);
+    }
+    else if (option === "hotel") {
+      this.hotelsForm.controls['create'].setValue(true);
+      this.hotelsForm.controls['edit'].setValue(true);
+      this.hotelsForm.controls['read'].setValue(true);
+      this.hotelsForm.controls['delete'].setValue(true);
+    }
+    else if (option === "specHotel") {
+      this.hotelsForm.controls['all'].setValue(false);
+    }
+    else if (option === "taskManagement") {
+      this.taskManagementForm.controls['create'].setValue(true);
+      this.taskManagementForm.controls['edit'].setValue(true);
+      this.taskManagementForm.controls['read'].setValue(true);
+      this.taskManagementForm.controls['delete'].setValue(true);
+    }
+    else if (option === "specTaskManagement") {
+      this.taskManagementForm.controls['all'].setValue(false);
+    }
+    else if (option === "bookings") {
+      this.bookingsForm.controls['create'].setValue(true);
+      this.bookingsForm.controls['edit'].setValue(true);
+      this.bookingsForm.controls['read'].setValue(true);
+      this.bookingsForm.controls['delete'].setValue(true);
+    }
+    else if (option === "bookings") {
+      this.bookingsForm.controls['all'].setValue(false);
+    }
+    else if (option === "restaurant") {
+      this.restaurantsForm.controls['create'].setValue(true);
+      this.restaurantsForm.controls['edit'].setValue(true);
+      this.restaurantsForm.controls['read'].setValue(true);
+      this.restaurantsForm.controls['delete'].setValue(true);
+    }
+    else if (option === "specRestaurant") {
+      this.restaurantsForm.controls['all'].setValue(false);
+    }
+    else if (option === "features") {
+      this.featuresForm.controls['create'].setValue(true);
+      this.featuresForm.controls['edit'].setValue(true);
+      this.featuresForm.controls['read'].setValue(true);
+      this.featuresForm.controls['delete'].setValue(true);
+    }
+    else if (option === "specFeatures") {
+      this.featuresForm.controls['all'].setValue(false);
+    }
+  }
+
+  // New function: full toggle behavior (checks/unchecks all + syncs "All" with row)
+  allOptionsToggle(option: any) {
+    if (option === 'dashboard') {
+      const isAllChecked = this.dashboardForm.controls['all'].value;
+      this.dashboardForm.controls['create'].setValue(isAllChecked);
+      this.dashboardForm.controls['edit'].setValue(isAllChecked);
+      this.dashboardForm.controls['read'].setValue(isAllChecked);
+      this.dashboardForm.controls['delete'].setValue(isAllChecked);
+    }
+    else if (option === 'specdashboard') {
+      const { create, edit, read, delete: del } = this.dashboardForm.value;
+      const allSelected = create && edit && read && del;
+      this.dashboardForm.controls['all'].setValue(allSelected);
+    }
+    else if (option === 'payment') {
+      const isAllChecked = this.paymentForm.controls['all'].value;
+      this.paymentForm.controls['create'].setValue(isAllChecked);
+      this.paymentForm.controls['edit'].setValue(isAllChecked);
+      this.paymentForm.controls['read'].setValue(isAllChecked);
+      this.paymentForm.controls['delete'].setValue(isAllChecked);
+    }
+    else if (option === 'specPayment') {
+      const { create, edit, read, delete: del } = this.paymentForm.value;
+      const allSelected = create && edit && read && del;
+      this.paymentForm.controls['all'].setValue(allSelected);
+    }
+    else if (option === 'systemSettings') {
+      const isAllChecked = this.systemSettingsForm.controls['all'].value;
+      this.systemSettingsForm.controls['create'].setValue(isAllChecked);
+      this.systemSettingsForm.controls['edit'].setValue(isAllChecked);
+      this.systemSettingsForm.controls['read'].setValue(isAllChecked);
+      this.systemSettingsForm.controls['delete'].setValue(isAllChecked);
+    }
+    else if (option === 'specSystemSettings') {
+      const { create, edit, read, delete: del } = this.systemSettingsForm.value;
+      const allSelected = create && edit && read && del;
+      this.systemSettingsForm.controls['all'].setValue(allSelected);
+    }
+    else if (option === 'userAccess') {
+      const isAllChecked = this.userAccessForm.controls['all'].value;
+      this.userAccessForm.controls['create'].setValue(isAllChecked);
+      this.userAccessForm.controls['edit'].setValue(isAllChecked);
+      this.userAccessForm.controls['read'].setValue(isAllChecked);
+      this.userAccessForm.controls['delete'].setValue(isAllChecked);
+    }
+    else if (option === 'specUserAccess') {
+      const { create, edit, read, delete: del } = this.userAccessForm.value;
+      const allSelected = create && edit && read && del;
+      this.userAccessForm.controls['all'].setValue(allSelected);
+    }
+    else if (option === 'hotel') {
+      const isAllChecked = this.hotelsForm.controls['all'].value;
+      this.hotelsForm.controls['create'].setValue(isAllChecked);
+      this.hotelsForm.controls['edit'].setValue(isAllChecked);
+      this.hotelsForm.controls['read'].setValue(isAllChecked);
+      this.hotelsForm.controls['delete'].setValue(isAllChecked);
+    }
+    else if (option === 'specHotel') {
+      const { create, edit, read, delete: del } = this.hotelsForm.value;
+      const allSelected = create && edit && read && del;
+      this.hotelsForm.controls['all'].setValue(allSelected);
+    }
+    else if (option === 'taskManagement') {
+      const isAllChecked = this.taskManagementForm.controls['all'].value;
+      this.taskManagementForm.controls['create'].setValue(isAllChecked);
+      this.taskManagementForm.controls['edit'].setValue(isAllChecked);
+      this.taskManagementForm.controls['read'].setValue(isAllChecked);
+      this.taskManagementForm.controls['delete'].setValue(isAllChecked);
+    }
+    else if (option === 'specTaskManagement') {
+      const { create, edit, read, delete: del } = this.taskManagementForm.value;
+      const allSelected = create && edit && read && del;
+      this.taskManagementForm.controls['all'].setValue(allSelected);
+    }
+    else if (option === 'bookings') {
+      const isAllChecked = this.bookingsForm.controls['all'].value;
+      this.bookingsForm.controls['create'].setValue(isAllChecked);
+      this.bookingsForm.controls['edit'].setValue(isAllChecked);
+      this.bookingsForm.controls['read'].setValue(isAllChecked);
+      this.bookingsForm.controls['delete'].setValue(isAllChecked);
+    }
+    else if (option === 'specBookings') {
+      const { create, edit, read, delete: del } = this.bookingsForm.value;
+      const allSelected = create && edit && read && del;
+      this.bookingsForm.controls['all'].setValue(allSelected);
+    }
+    else if (option === 'restaurant') {
+      const isAllChecked = this.restaurantsForm.controls['all'].value;
+      this.restaurantsForm.controls['create'].setValue(isAllChecked);
+      this.restaurantsForm.controls['edit'].setValue(isAllChecked);
+      this.restaurantsForm.controls['read'].setValue(isAllChecked);
+      this.restaurantsForm.controls['delete'].setValue(isAllChecked);
+    }
+    else if (option === 'specRestaurant') {
+      const { create, edit, read, delete: del } = this.restaurantsForm.value;
+      const allSelected = create && edit && read && del;
+      this.restaurantsForm.controls['all'].setValue(allSelected);
+    }
+    else if (option === 'features') {
+      const isAllChecked = this.featuresForm.controls['all'].value;
+      this.featuresForm.controls['create'].setValue(isAllChecked);
+      this.featuresForm.controls['edit'].setValue(isAllChecked);
+      this.featuresForm.controls['read'].setValue(isAllChecked);
+      this.featuresForm.controls['delete'].setValue(isAllChecked);
+    }
+    else if (option === 'specFeatures') {
+      const { create, edit, read, delete: del } = this.featuresForm.value;
+      const allSelected = create && edit && read && del;
+      this.featuresForm.controls['all'].setValue(allSelected);
     }
   }
 
@@ -264,7 +487,7 @@ export class RoleComponent implements OnInit {
             this.dashboardForm.controls["read"].setValue(element.permission.has_read_permission)
             this.dashboardForm.controls["delete"].setValue(element.permission.has_delete_permission)
           }
-          else if (element.module_name === "CUSTOMERS") {
+          /* else if (element.module_name === "CUSTOMERS") {
             this.customersForm.controls["create"].setValue(element.permission.has_add_permission)
             this.customersForm.controls["edit"].setValue(element.permission.has_edit_permission)
             this.customersForm.controls["read"].setValue(element.permission.has_read_permission)
@@ -275,7 +498,7 @@ export class RoleComponent implements OnInit {
             this.marketingForm.controls["edit"].setValue(element.permission.has_edit_permission)
             this.marketingForm.controls["read"].setValue(element.permission.has_read_permission)
             this.marketingForm.controls["delete"].setValue(element.permission.has_delete_permission)
-          }
+          } */
           else if (element.module_name === "PAYMENT") {
             this.paymentForm.controls["create"].setValue(element.permission.has_add_permission)
             this.paymentForm.controls["edit"].setValue(element.permission.has_edit_permission)
@@ -294,6 +517,36 @@ export class RoleComponent implements OnInit {
             this.systemSettingsForm.controls["read"].setValue(element.permission.has_read_permission)
             this.systemSettingsForm.controls["delete"].setValue(element.permission.has_delete_permission)
           }
+          else if (element.module_name === "HOTELS") {
+            this.hotelsForm.controls["create"].setValue(element.permission.has_add_permission)
+            this.hotelsForm.controls["edit"].setValue(element.permission.has_edit_permission)
+            this.hotelsForm.controls["read"].setValue(element.permission.has_read_permission)
+            this.hotelsForm.controls["delete"].setValue(element.permission.has_delete_permission)
+          }
+          else if (element.module_name === "TASK MANAGEMENT") {
+            this.taskManagementForm.controls["create"].setValue(element.permission.has_add_permission)
+            this.taskManagementForm.controls["edit"].setValue(element.permission.has_edit_permission)
+            this.taskManagementForm.controls["read"].setValue(element.permission.has_read_permission)
+            this.taskManagementForm.controls["delete"].setValue(element.permission.has_delete_permission)
+          }
+          else if (element.module_name === "BOOKINGS") {
+            this.bookingsForm.controls["create"].setValue(element.permission.has_add_permission)
+            this.bookingsForm.controls["edit"].setValue(element.permission.has_edit_permission)
+            this.bookingsForm.controls["read"].setValue(element.permission.has_read_permission)
+            this.bookingsForm.controls["delete"].setValue(element.permission.has_delete_permission)
+          }
+          else if (element.module_name === "RESTAURANTS") {
+            this.restaurantsForm.controls["create"].setValue(element.permission.has_add_permission)
+            this.restaurantsForm.controls["edit"].setValue(element.permission.has_edit_permission)
+            this.restaurantsForm.controls["read"].setValue(element.permission.has_read_permission)
+            this.restaurantsForm.controls["delete"].setValue(element.permission.has_delete_permission)
+          }
+          else if (element.module_name === "FEATURES") {
+            this.featuresForm.controls["create"].setValue(element.permission.has_add_permission)
+            this.featuresForm.controls["edit"].setValue(element.permission.has_edit_permission)
+            this.featuresForm.controls["read"].setValue(element.permission.has_read_permission)
+            this.featuresForm.controls["delete"].setValue(element.permission.has_delete_permission)
+          }
         },
           this.enableEdit = true,
           this.showAddRoleForm = true);
@@ -303,7 +556,7 @@ export class RoleComponent implements OnInit {
 
   // For again navigatinh to listing page
   cancelForm() {
-    this.routeUrl.navigate(['/role-listing']);
+    this.routeUrl.navigate(['/role-list']);
   }
 
   // For resetting form values to empty and unchecked
@@ -317,21 +570,21 @@ export class RoleComponent implements OnInit {
     this.dashboardForm.controls["read"].setValue(false);
     this.dashboardForm.controls["delete"].setValue(false);
     this.dashboardForm.controls["all"].setValue(false);
-    this.customersForm.controls["create"].setValue(false);
+    /* this.customersForm.controls["create"].setValue(false);
     this.customersForm.controls["edit"].setValue(false);
     this.customersForm.controls["read"].setValue(false);
     this.customersForm.controls["delete"].setValue(false);
-    this.customersForm.controls["all"].setValue(false);
+    this.customersForm.controls["all"].setValue(false); */
     this.paymentForm.controls["create"].setValue(false);
     this.paymentForm.controls["edit"].setValue(false);
     this.paymentForm.controls["read"].setValue(false);
     this.paymentForm.controls["delete"].setValue(false);
     this.paymentForm.controls["all"].setValue(false);
-    this.marketingForm.controls["create"].setValue(false);
+    /* this.marketingForm.controls["create"].setValue(false);
     this.marketingForm.controls["edit"].setValue(false);
     this.marketingForm.controls["read"].setValue(false);
     this.marketingForm.controls["delete"].setValue(false);
-    this.marketingForm.controls["all"].setValue(false);
+    this.marketingForm.controls["all"].setValue(false); */
     this.userAccessForm.controls["create"].setValue(false);
     this.userAccessForm.controls["edit"].setValue(false);
     this.userAccessForm.controls["read"].setValue(false);
@@ -342,6 +595,31 @@ export class RoleComponent implements OnInit {
     this.systemSettingsForm.controls["read"].setValue(false);
     this.systemSettingsForm.controls["delete"].setValue(false);
     this.systemSettingsForm.controls["all"].setValue(false);
+    this.hotelsForm.controls["create"].setValue(false);
+    this.hotelsForm.controls["edit"].setValue(false);
+    this.hotelsForm.controls["read"].setValue(false);
+    this.hotelsForm.controls["delete"].setValue(false);
+    this.hotelsForm.controls["all"].setValue(false);
+    this.taskManagementForm.controls["create"].setValue(false);
+    this.taskManagementForm.controls["edit"].setValue(false);
+    this.taskManagementForm.controls["read"].setValue(false);
+    this.taskManagementForm.controls["delete"].setValue(false);
+    this.taskManagementForm.controls["all"].setValue(false);
+    this.bookingsForm.controls["create"].setValue(false);
+    this.bookingsForm.controls["edit"].setValue(false);
+    this.bookingsForm.controls["read"].setValue(false);
+    this.bookingsForm.controls["delete"].setValue(false);
+    this.bookingsForm.controls["all"].setValue(false);
+    this.restaurantsForm.controls["create"].setValue(false);
+    this.restaurantsForm.controls["edit"].setValue(false);
+    this.restaurantsForm.controls["read"].setValue(false);
+    this.restaurantsForm.controls["delete"].setValue(false);
+    this.restaurantsForm.controls["all"].setValue(false);
+    this.featuresForm.controls["create"].setValue(false);
+    this.featuresForm.controls["edit"].setValue(false);
+    this.featuresForm.controls["read"].setValue(false);
+    this.featuresForm.controls["delete"].setValue(false);
+    this.featuresForm.controls["all"].setValue(false);
   }
 
   // For add new role - create
@@ -349,7 +627,7 @@ export class RoleComponent implements OnInit {
     this.alertService.clear();
     this.showalertmsg = true;
     if (this.roleForm.valid) {
-      if (!this.dashboardForm.value.create && !this.dashboardForm.value.edit && !this.dashboardForm.value.read && !this.dashboardForm.value.delete && !this.marketingForm.value.create && !this.marketingForm.value.edit && !this.marketingForm.value.read && !this.marketingForm.value.delete && !this.customersForm.value.create && !this.customersForm.value.edit && !this.customersForm.value.read && !this.customersForm.value.delete && !this.paymentForm.value.create && !this.paymentForm.value.edit && !this.paymentForm.value.read && !this.paymentForm.value.delete && !this.userAccessForm.value.create && !this.userAccessForm.value.edit && !this.userAccessForm.value.read && !this.userAccessForm.value.delete && !this.systemSettingsForm.value.create && !this.systemSettingsForm.value.edit && !this.systemSettingsForm.value.read && !this.systemSettingsForm.value.delete) {
+      if (!this.dashboardForm.value.create && !this.dashboardForm.value.edit && !this.dashboardForm.value.read && !this.dashboardForm.value.delete && !this.hotelsForm.value.create && !this.hotelsForm.value.edit && !this.hotelsForm.value.read && !this.hotelsForm.value.delete && !this.taskManagementForm.value.create && !this.taskManagementForm.value.edit && !this.taskManagementForm.value.read && !this.taskManagementForm.value.delete && !this.paymentForm.value.create && !this.paymentForm.value.edit && !this.paymentForm.value.read && !this.paymentForm.value.delete && !this.userAccessForm.value.create && !this.userAccessForm.value.edit && !this.userAccessForm.value.read && !this.userAccessForm.value.delete && !this.systemSettingsForm.value.create && !this.systemSettingsForm.value.edit && !this.systemSettingsForm.value.read && !this.systemSettingsForm.value.delete && !this.bookingsForm.value.create && !this.bookingsForm.value.edit && !this.bookingsForm.value.read && !this.bookingsForm.value.delete && !this.restaurantsForm.value.create && !this.restaurantsForm.value.edit && !this.restaurantsForm.value.read && !this.restaurantsForm.value.delete) {
         this.alertService.error("Please select atleast one permission for the Role given", this.options);
       }
       else {
@@ -365,15 +643,15 @@ export class RoleComponent implements OnInit {
               "has_delete_permission": this.dashboardForm.value.delete
             }
           },
-          {
-            "module_name": "CUSTOMERS",
-            "permission": {
-              "has_add_permission": this.customersForm.value.create,
-              "has_edit_permission": this.customersForm.value.edit,
-              "has_read_permission": this.customersForm.value.read,
-              "has_delete_permission": this.customersForm.value.delete
-            }
-          },
+          /*   {
+              "module_name": "CUSTOMERS",
+              "permission": {
+                "has_add_permission": this.customersForm.value.create,
+                "has_edit_permission": this.customersForm.value.edit,
+                "has_read_permission": this.customersForm.value.read,
+                "has_delete_permission": this.customersForm.value.delete
+              }
+            }, */
           {
             "module_name": "PAYMENT",
             "permission": {
@@ -383,7 +661,7 @@ export class RoleComponent implements OnInit {
               "has_delete_permission": this.paymentForm.value.delete
             }
           },
-          {
+          /* {
             "module_name": "MARKETING",
             "permission": {
               "has_add_permission": this.marketingForm.value.create,
@@ -391,7 +669,7 @@ export class RoleComponent implements OnInit {
               "has_read_permission": this.marketingForm.value.read,
               "has_delete_permission": this.marketingForm.value.delete
             }
-          },
+          }, */
           {
             "module_name": "SYSTEM SETTINGS",
             "permission": {
@@ -409,24 +687,72 @@ export class RoleComponent implements OnInit {
               "has_read_permission": this.userAccessForm.value.read,
               "has_delete_permission": this.userAccessForm.value.delete
             }
+          },
+          {
+            "module_name": "HOTELS",
+            "permission": {
+              "has_add_permission": this.hotelsForm.value.create,
+              "has_edit_permission": this.hotelsForm.value.edit,
+              "has_read_permission": this.hotelsForm.value.read,
+              "has_delete_permission": this.hotelsForm.value.delete
+            }
+          },
+          {
+            "module_name": "TASK MANAGEMENT",
+            "permission": {
+              "has_add_permission": this.taskManagementForm.value.create,
+              "has_edit_permission": this.taskManagementForm.value.edit,
+              "has_read_permission": this.taskManagementForm.value.read,
+              "has_delete_permission": this.taskManagementForm.value.delete
+            }
+          },
+          {
+            "module_name": "BOOKINGS",
+            "permission": {
+              "has_add_permission": this.bookingsForm.value.create,
+              "has_edit_permission": this.bookingsForm.value.edit,
+              "has_read_permission": this.bookingsForm.value.read,
+              "has_delete_permission": this.bookingsForm.value.delete
+            }
+          },
+          {
+            "module_name": "RESTAURANTS",
+            "permission": {
+              "has_add_permission": this.restaurantsForm.value.create,
+              "has_edit_permission": this.restaurantsForm.value.edit,
+              "has_read_permission": this.restaurantsForm.value.read,
+              "has_delete_permission": this.restaurantsForm.value.delete
+            }
+          },
+          {
+            "module_name": "FEATURES",
+            "permission": {
+              "has_add_permission": this.featuresForm.value.create,
+              "has_edit_permission": this.featuresForm.value.edit,
+              "has_read_permission": this.featuresForm.value.read,
+              "has_delete_permission": this.featuresForm.value.delete
+            }
           }
         ]
         var payloadData = {
           name: this.roleForm.value.role_name,
           is_standard: this.roleForm.value.is_standard,
           is_active: this.roleForm.value.is_active,
-          modules: rolePermissions
+          modules: rolePermissions,
+          // Newly added
+          member_id: this.memberId
         }
+        // console.log('Payload while creating role:', payloadData);
         if (true) {
           let requestData = {
             domain_name: DOMAIN_NAME,
             user_id: USER_ID,
             payload: {
-              role_updation: payloadData
+              role_creation: payloadData
             },
             // extras: {
             //   find: {
-                // id: Number(this.roleId)
+            // id: Number(this.roleId)
             //   }
             // }
           }
@@ -480,7 +806,7 @@ export class RoleComponent implements OnInit {
     this.alertService.clear();
     this.showalertmsg = true;
     if (this.roleForm.valid) {
-      if (!this.dashboardForm.value.create && !this.dashboardForm.value.edit && !this.dashboardForm.value.read && !this.dashboardForm.value.delete && !this.marketingForm.value.create && !this.marketingForm.value.edit && !this.marketingForm.value.read && !this.marketingForm.value.delete && !this.customersForm.value.create && !this.customersForm.value.edit && !this.customersForm.value.read && !this.customersForm.value.delete && !this.paymentForm.value.create && !this.paymentForm.value.edit && !this.paymentForm.value.read && !this.paymentForm.value.delete && !this.userAccessForm.value.create && !this.userAccessForm.value.edit && !this.userAccessForm.value.read && !this.userAccessForm.value.delete && !this.systemSettingsForm.value.create && !this.systemSettingsForm.value.edit && !this.systemSettingsForm.value.read && !this.systemSettingsForm.value.delete) {
+      if (!this.dashboardForm.value.create && !this.dashboardForm.value.edit && !this.dashboardForm.value.read && !this.dashboardForm.value.delete && !this.hotelsForm.value.create && !this.hotelsForm.value.edit && !this.hotelsForm.value.read && !this.hotelsForm.value.delete && !this.taskManagementForm.value.create && !this.taskManagementForm.value.edit && !this.taskManagementForm.value.read && !this.taskManagementForm.value.delete && !this.paymentForm.value.create && !this.paymentForm.value.edit && !this.paymentForm.value.read && !this.paymentForm.value.delete && !this.userAccessForm.value.create && !this.userAccessForm.value.edit && !this.userAccessForm.value.read && !this.userAccessForm.value.delete && !this.systemSettingsForm.value.create && !this.systemSettingsForm.value.edit && !this.systemSettingsForm.value.read && !this.systemSettingsForm.value.delete && !this.bookingsForm.value.create && !this.bookingsForm.value.edit && !this.bookingsForm.value.read && !this.bookingsForm.value.delete && !this.restaurantsForm.value.create && !this.restaurantsForm.value.edit && !this.restaurantsForm.value.read && !this.restaurantsForm.value.delete) {
         this.alertService.error("Please select atleast one permission for the Role given", this.options);
       }
       else {
@@ -496,7 +822,7 @@ export class RoleComponent implements OnInit {
               "has_delete_permission": this.dashboardForm.value.delete
             }
           },
-          {
+          /* {
             "module_name": "CUSTOMERS",
             "permission": {
               "has_add_permission": this.customersForm.value.create,
@@ -504,7 +830,7 @@ export class RoleComponent implements OnInit {
               "has_read_permission": this.customersForm.value.read,
               "has_delete_permission": this.customersForm.value.delete
             }
-          },
+          }, */
           {
             "module_name": "PAYMENT",
             "permission": {
@@ -514,15 +840,15 @@ export class RoleComponent implements OnInit {
               "has_delete_permission": this.paymentForm.value.delete
             }
           },
-          {
-            "module_name": "MARKETING",
-            "permission": {
-              "has_add_permission": this.marketingForm.value.create,
-              "has_edit_permission": this.marketingForm.value.edit,
-              "has_read_permission": this.marketingForm.value.read,
-              "has_delete_permission": this.marketingForm.value.delete
-            }
-          },
+          /*  {
+             "module_name": "MARKETING",
+             "permission": {
+               "has_add_permission": this.marketingForm.value.create,
+               "has_edit_permission": this.marketingForm.value.edit,
+               "has_read_permission": this.marketingForm.value.read,
+               "has_delete_permission": this.marketingForm.value.delete
+             }
+           }, */
           {
             "module_name": "SYSTEM SETTINGS",
             "permission": {
@@ -539,6 +865,51 @@ export class RoleComponent implements OnInit {
               "has_edit_permission": this.userAccessForm.value.edit,
               "has_read_permission": this.userAccessForm.value.read,
               "has_delete_permission": this.userAccessForm.value.delete
+            }
+          },
+          {
+            "module_name": "HOTELS",
+            "permission": {
+              "has_add_permission": this.hotelsForm.value.create,
+              "has_edit_permission": this.hotelsForm.value.edit,
+              "has_read_permission": this.hotelsForm.value.read,
+              "has_delete_permission": this.hotelsForm.value.delete
+            }
+          },
+          {
+            "module_name": "TASK MANAGEMENT",
+            "permission": {
+              "has_add_permission": this.taskManagementForm.value.create,
+              "has_edit_permission": this.taskManagementForm.value.edit,
+              "has_read_permission": this.taskManagementForm.value.read,
+              "has_delete_permission": this.taskManagementForm.value.delete
+            }
+          },
+          {
+            "module_name": "BOOKINGS",
+            "permission": {
+              "has_add_permission": this.bookingsForm.value.create,
+              "has_edit_permission": this.bookingsForm.value.edit,
+              "has_read_permission": this.bookingsForm.value.read,
+              "has_delete_permission": this.bookingsForm.value.delete
+            }
+          },
+          {
+            "module_name": "RESTAURANTS",
+            "permission": {
+              "has_add_permission": this.restaurantsForm.value.create,
+              "has_edit_permission": this.restaurantsForm.value.edit,
+              "has_read_permission": this.restaurantsForm.value.read,
+              "has_delete_permission": this.restaurantsForm.value.delete
+            }
+          },
+          {
+            "module_name": "FEATURES",
+            "permission": {
+              "has_add_permission": this.featuresForm.value.create,
+              "has_edit_permission": this.featuresForm.value.edit,
+              "has_read_permission": this.featuresForm.value.read,
+              "has_delete_permission": this.featuresForm.value.delete
             }
           }
         ]
@@ -567,7 +938,7 @@ export class RoleComponent implements OnInit {
             if (resp.success === 1 && resp.status_code === 200) {
               this.roleService.clearAdminFormEvent();
               // this.showAddRoleForm = false;
-              this.resetForm();
+              // this.resetForm();
               this.alertService.success(resp.message, this.options);
               setTimeout(() => this.routeUrl.navigate(['/role-list'], { state: { result: resp.message }, relativeTo: this.router, skipLocationChange: false }), 1000)
               // this.routeUrl.navigate(['/role-listing']);
@@ -610,6 +981,11 @@ export class RoleComponent implements OnInit {
   }
 
   openExitModal() {
+    // In view mode just go back without confirmation
+    if (this.isViewMode) {
+      this.routeUrl.navigate(['/role-list']);
+      return;
+    }
     this.isExitModalOpen = true;
   }
 

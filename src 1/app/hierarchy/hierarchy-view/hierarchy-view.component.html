@@ -1,0 +1,49 @@
+<div class="container" *ngIf="canReadSystemSettings">
+  <!-- Back is always allowed; viewing the tree itself is gated by read permission -->
+  <button (click)="back()" class="back-btn mt-2">Back</button>
+  <div class="hierarchy-container">
+    <ng-template #recursiveCard let-item let-level="level">
+      <div class="hierarchy-card">
+        <div class="card-header">
+          <div class="card-title-row">
+            <span class="chevron" *ngIf="getChildren(item.id).length > 0" (click)="toggleExpand(item.id)" [attr.title]="isExpanded(item.id) ? 'Collapse' : 'Expand'">
+              <i class="fas" [ngClass]="isExpanded(item.id) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+            </span>
+            <span class="card-title highlight-designation">{{ item.designation }}
+              <span class="escalation-time"><i class="fas fa-clock"></i> {{ item.escalationTime }}</span>
+            </span>
+          </div>
+          <!-- Newly commented -->
+          <!-- <div class="icons">
+            <button (click)="onEdit(item.id)" class="icon-button" title="Edit">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button (click)="onDelete(item.id)" class="icon-button" title="Delete">
+              <i class="fas fa-trash"></i>
+            </button>
+            <button (click)="onAdd(item.id)" class="icon-button" title="Add Child">
+              <i class="fas fa-plus"></i>
+            </button>
+          </div> -->
+        </div>
+        <!-- No additional content needed here for now -->
+        <!-- Connector line to children -->
+        <div class="vertical-connector" *ngIf="getChildren(item.id).length > 0 && isExpanded(item.id)"></div>
+        <!-- Render children INSIDE the parent card, only if expanded -->
+        <div class="children-container" *ngIf="getChildren(item.id).length > 0 && isExpanded(item.id)">
+          <div class="tree-row">
+            <ng-container *ngFor="let child of getChildren(item.id)">
+              <ng-container *ngTemplateOutlet="recursiveCard; context: { $implicit: child, level: level + 1 }"></ng-container>
+            </ng-container>
+          </div>
+        </div>
+      </div>
+    </ng-template>
+    <!-- Render root items -->
+    <div class="root-list">
+      <ng-container *ngFor="let root of getChildren(undefined)">
+        <ng-container *ngTemplateOutlet="recursiveCard; context: { $implicit: root, level: 0 }"></ng-container>
+      </ng-container>
+    </div>
+  </div>
+</div>

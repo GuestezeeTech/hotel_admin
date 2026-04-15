@@ -12,6 +12,7 @@ import { LocalStorageService } from '../../auth-services/local-storage.service';
 import { FirestoreListenerService } from '../../firestore-listener.service';
 import { FormsModule } from '@angular/forms';
 import { StaffService } from '../staff/staff.service';
+import { PermissionService, ModulePermission } from '../../services/permission.service';
 
 @Component({
   selector: 'app-staff-listing',
@@ -46,7 +47,8 @@ export class StaffListingComponent implements OnInit {
     private firestoreListenerService: FirestoreListenerService,
     private staffService: StaffService,
     private hotelenrollmentservice: HotelEnrollmentTabviewService,
-    private loaderService: LoaderService
+    private loaderService: LoaderService,
+    private permissionService: PermissionService
   ) { }
 
   ngOnInit() {
@@ -59,7 +61,7 @@ export class StaffListingComponent implements OnInit {
       }
     });
     this.hotelId = Number(this.localStorageService.get('UserId'));
-    console.log('Hotel Id:', this.hotelId);
+    // console.log('Hotel Id:', this.hotelId);
     // First get customer → then fetch staves
     this.getCustomerById()
       .then(() => {
@@ -72,6 +74,27 @@ export class StaffListingComponent implements OnInit {
 
   }
 
+  // Permission helpers for USER ACCESS
+  get canReadUserAccess(): boolean {
+    const permission = this.permissionService.getModulePermission('USER ACCESS');
+    return permission?.has_read_permission ?? false;
+  }
+
+  get canAddUserAccess(): boolean {
+    const permission = this.permissionService.getModulePermission('USER ACCESS');
+    return permission?.has_add_permission ?? false;
+  }
+
+  get canEditUserAccess(): boolean {
+    const permission = this.permissionService.getModulePermission('USER ACCESS');
+    return permission?.has_edit_permission ?? false;
+  }
+
+  get canDeleteUserAccess(): boolean {
+    const permission = this.permissionService.getModulePermission('USER ACCESS');
+    return permission?.has_delete_permission ?? false;
+  }
+
   getCustomerById(): Promise<void> {
     return new Promise((resolve, reject) => {
       let requestBody = {
@@ -79,7 +102,9 @@ export class StaffListingComponent implements OnInit {
         user_id: USER_ID,
         extras: {
           find: {
-            "id": this.hotelId
+            // Newly added for getting member id for customer type
+            "customer_member_id": this.localStorageService.get('MemberId')
+            // "id": this.hotelId
           }
         }
       };
@@ -88,9 +113,9 @@ export class StaffListingComponent implements OnInit {
           this.loaderService.emitComplete();
           if (resp) {
             const customerdata = resp.result.data[0];
-            console.log('Customer Data:', customerdata);
+            // console.log('Customer Data:', customerdata);
             this.memberId = customerdata.customer_member_id;
-            console.log('Member Id:', this.memberId);
+            // console.log('Member Id:', this.memberId);
             resolve();
           }
         },
@@ -117,7 +142,7 @@ export class StaffListingComponent implements OnInit {
       "user_id": USER_ID,
       "extras": {
         "find": {
-          "member_id": this.memberId
+          "member_id": this.localStorageService.get('MemberId')
         },
         "pagination": true,
         "sorting": true,
@@ -131,7 +156,7 @@ export class StaffListingComponent implements OnInit {
         if (response?.success) {
           this.staves = response.result.data;
           this.allStaves = response.result.data; //For pagination
-          console.log('All staves:', this.staves);
+          // console.log('All staves:', this.staves);
           this.totalStaves = this.staves.length;
           //console.log('Total Staves:', this.totalStaves);
           this.totalPages = Math.ceil(this.totalStaves / this.pageSize);
@@ -177,11 +202,22 @@ export class StaffListingComponent implements OnInit {
 
   // To navigate to role page with id
   setInitialValues(staffId: any) {
+    if (!this.canEditUserAccess) return;
     this.localStorageService.set('isFirstStaff', false);
     this.routeUrl.navigate(['/staff', staffId]);
   }
 
+  viewStaff(staffId: any) {
+    if (!this.canReadUserAccess) return;
+    this.localStorageService.set('isFirstStaff', false);
+    this.routeUrl.navigate(['/staff', staffId], { state: { mode: 'view' } });
+  }
+
   openDeleteModal() {
+    if (!this.canDeleteUserAccess) {
+      this.alertService.error('You do not have permission to delete staff.', this.options);
+      return;
+    }
     //  Check if any selected staff is a higher_level_officer for others
     const blockedStaffIds = this.allStaves
       .filter((staff: any) => staff.higher_level_officer && this.selectedStaffIds.includes(staff.higher_level_officer.id))
@@ -270,7 +306,7 @@ export class StaffListingComponent implements OnInit {
 
   // To handle first staff creation
   async toggleAddStaff() {
-    console.log('Staff length:', this.allStaves.length);
+    // console.log('Staff length:', this.allStaves.length);
     if (!this.allStaves || this.allStaves.length === 0) {
       // first staff flow — fetch and store default hierarchy in service
       await this.staffService.getDefaultHierarchyForFirstStaff();
@@ -280,7 +316,7 @@ export class StaffListingComponent implements OnInit {
       this.staffService.defaultHierarchy = null;
       this.staffService.isFirstStaff = false;
       this.localStorageService.set('isFirstStaff', this.staffService.isFirstStaff);
-      console.log('Is first staff while listing staff', this.localStorageService.get('isFirstStaff'));
+      // console.log('Is first staff while listing staff', this.localStorageService.get('isFirstStaff'));
     }
     // navigate (no query params)
     this.routeUrl.navigate(['/staff']);

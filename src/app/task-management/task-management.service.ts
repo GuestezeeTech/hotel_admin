@@ -122,11 +122,79 @@ export class TaskManagementService {
         }
     }
 
-    private selectedTabSubject = new BehaviorSubject<string| null>(null);
+    private selectedTabSubject = new BehaviorSubject<string | null>(null);
     selectedTab$ = this.selectedTabSubject.asObservable();
 
     setSelectedTab(tab: string) {
         this.selectedTabSubject.next(tab);
+    }
+
+    // Task creation endpoint
+    createTask(requestBody: any): Observable<any> {
+        if (this.authTokenService.isTokenExpired()) {
+            this.router.navigate([`/login`], { skipLocationChange: false });
+            return new Observable();
+        } else {
+            return this.http.post(ENDPOINTS.CREATE_TASK, requestBody, {
+                headers: new HttpHeaders()
+                    .set('Content-Type', 'application/json')
+                    .set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken())
+            });
+        }
+    }
+
+    // Get guest details
+    getGuestDetails(requestBody: any): Observable<any> {
+        if (this.authTokenService.isTokenExpired()) {
+            this.router.navigate([`/login`], { skipLocationChange: false });
+            return new Observable();
+        } else {
+            return this.http.post(ENDPOINTS.GET_GUEST_DETAILS, requestBody, {
+                headers: new HttpHeaders()
+                    .set('Content-Type', 'application/json')
+                    .set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken())
+            });
+        }
+    }
+
+    // Get all outlets
+    getAllOutlets(requestBody: any): Observable<any> {
+        if (this.authTokenService.isTokenExpired()) {
+            this.router.navigate([`/login`], { skipLocationChange: false });
+            return new Observable();
+        } else {
+            return this.http.post(ENDPOINTS.GET_ALL_OUTLETS, requestBody, {
+                headers: new HttpHeaders()
+                    .set('Content-Type', 'application/json')
+                    .set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken())
+            });
+        }
+    }
+
+    getProductByOutlet(requestBody: any): Observable<any> {
+        if (this.authTokenService.isTokenExpired()) {
+            this.router.navigate([`/login`], { skipLocationChange: false });
+            return new Observable();
+        } else {
+            return this.http.post(ENDPOINTS.GET_PRODUCT_BY_OUTLET, requestBody, {
+                headers: new HttpHeaders()
+                    .set('Content-Type', 'application/json')
+                    .set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken())
+            });
+        }
+    }
+
+    orderUpsert(requestBody: any): Observable<any> {
+        if (this.authTokenService.isTokenExpired()) {
+            this.router.navigate([`/login`], { skipLocationChange: false });
+            return new Observable();
+        } else {
+            return this.http.post(ENDPOINTS.ORDER_UPSERT, requestBody, {
+                headers: new HttpHeaders()
+                    .set('Content-Type', 'application/json')
+                    .set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken())
+            });
+        }
     }
 
 }

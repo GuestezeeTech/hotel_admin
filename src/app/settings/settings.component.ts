@@ -1,14 +1,15 @@
 import { HotelEnrollmentTabviewService } from './../hotel-enrollment-tabview/hotel-enrollment-tabview.service';
-import { USER_ID } from './../app.config';
+import { DOMAIN_NAME, USER_ID } from './../app.config';
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { UntypedFormGroup, FormBuilder, Validators, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { AlertsService } from '../shared/alerts/alerts.service';
 import { LocalStorageService } from '../auth-services/local-storage.service';
-import { ProfileService } from '../profile/profile.service';
-import { DOMAIN_NAME } from '../app.config';
+import { ProfileService } from '../profile/profile.service';;
 import { AlertsComponent } from '../shared/alerts/alerts.component';
 import { Router } from '@angular/router';
+import { PermissionService } from '../services/permission.service';
+import { LoaderService } from '../shared/loader/loader.service';
 
 @Component({
   selector: 'app-settings',
@@ -40,7 +41,8 @@ export class SettingsComponent implements OnInit {
   selectedSlots: { start: string, end: string }[] = [];
   // Newly added - to update shift timings
   shifts: any[] = [{ id: '', startTime: '', startMeridian: 'AM', endTime: '', endMeridian: 'AM', label: '' }];
-  errorMessage = '';
+  errorMessage: string[] = [];
+  shiftRowErrors: { [key: number]: string } = {};
   isFormValid = false;
   options = {
     autoClose: true,
@@ -50,10 +52,36 @@ export class SettingsComponent implements OnInit {
   rooms: any[] = [
     { id: '', startRoom: '', endRoom: '', label: '' }
   ];
-  roomErrorMessage: string = '';
+  roomErrorMessage: string[] = [];
+  roomRowErrors: { [key: number]: string } = {};
   isRoomModalOpen: boolean = false;
   isRoomFormValid: boolean = false;
   customerType: any;
+  lateCheckoutRequired: boolean = false;
+  hasAtLeastOneRoomRange: boolean = false;
+  hasAtLeastOneShift: boolean = false;
+  // View mode flags
+  isShiftViewMode: boolean = false;
+  isRoomViewMode: boolean = false;
+  // Newly added for getting member id for customer type
+  customerStatus: any;
+  memberId: any;
+  allowedRoomCount: any;
+
+  /**
+   * Enable/disable background page scrolling when any modal is open.
+   */
+  private updateBodyScrollLock(): void {
+    const anyModalOpen =
+      this.isPasswordModalOpen ||
+      this.isDurationModalOpen ||
+      this.isRoomModalOpen;
+    if (anyModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+  }
 
   constructor(
     private fb: FormBuilder,
@@ -62,29 +90,115 @@ export class SettingsComponent implements OnInit {
     private profileService: ProfileService,
     private routerUrl: Router,
     private hotelEnrollmentTabviewService: HotelEnrollmentTabviewService,
+    private permissionService: PermissionService,
+    private loaderService: LoaderService
   ) { }
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
     this.passwordUpdateForm = this.fb.group({
       current_password: ['', [Validators.minLength(6), Validators.required]],
       new_password: ['', [Validators.minLength(6), Validators.required]],
       confirm_password: ['', [Validators.minLength(6), Validators.required]],
     });
     // Customer id
-    this.hotelId = Number(this.localService.get('UserId'));
-    // this.availableStartTimes = this.generateTimeList('12:00 AM', '11:59 PM');
     this.customerType = this.localService.get('CustomerType');
+    // Newly added for getting customer id for customer type
+    this.hotelId = Number(this.localService.get('UserId'));
+    if (this.hotelId !== undefined && this.hotelId !== null) {
+      await this.getCustomerStatus(this.hotelId);
+    }
+    // End of newly added for getting customer id for customer type
+    // this.availableStartTimes = this.generateTimeList('12:00 AM', '11:59 PM');
+    // Load late checkout setting
+    this.getLateCheckoutSettings();
+    this.getRoomCount();
+  }
+
+  getCustomerStatus(userId: any): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const requestBody = {
+        domain_name: DOMAIN_NAME,
+        user_id: USER_ID,
+        extras: {
+          find: {
+            id: userId
+          }
+        }
+      };
+      this.hotelEnrollmentTabviewService.getCustomerById(requestBody).subscribe({
+        next: (res: any) => {
+          if (res && res.result.data.length > 0) {
+            const customer = res.result.data[0];
+            // Set memberId based on availability of customer_member_id or member_id
+            this.memberId = customer.customer_member_id
+              ? customer.customer_member_id
+              : customer.member_id;
+            this.customerStatus = customer.status;
+            /*  console.log('Customer Status:', this.customerStatus);
+             console.log('Member ID:', this.memberId); */
+            resolve(this.memberId); // resolves with memberId
+          } else {
+            reject('No customer found');
+          }
+        },
+        error: (err: any) => {
+          reject(err); // handle API error
+        }
+      });
+    });
+
   }
 
   get p() { return this.passwordUpdateForm.controls; }
 
+  // Permission helpers for SYSTEM SETTINGS
+  get canReadSystemSettings(): boolean {
+    const permission = this.permissionService.getModulePermission('SYSTEM SETTINGS');
+    return permission?.has_read_permission ?? false;
+  }
+
+  get canAddSystemSettings(): boolean {
+    const permission = this.permissionService.getModulePermission('SYSTEM SETTINGS');
+    return permission?.has_add_permission ?? false;
+  }
+
+  get canEditSystemSettings(): boolean {
+    const permission = this.permissionService.getModulePermission('SYSTEM SETTINGS');
+    return permission?.has_edit_permission ?? false;
+  }
+
+  get canDeleteSystemSettings(): boolean {
+    const permission = this.permissionService.getModulePermission('SYSTEM SETTINGS');
+    return permission?.has_delete_permission ?? false;
+  }
+
+  // Helper to check if user can modify (add, edit, or delete)
+  get canModifySystemSettings(): boolean {
+    return this.canAddSystemSettings || this.canEditSystemSettings || this.canDeleteSystemSettings;
+  }
+
   openPasswordModal() {
     this.isPasswordModalOpen = true;
+    this.updateBodyScrollLock();
   }
 
   closePasswordModal(event: Event) {
     if (event.target === event.currentTarget) {
+      // Clear all entered values and validation states when closing the modal
+      if (this.passwordUpdateForm) {
+        this.passwordUpdateForm.reset();
+        this.passwordUpdateForm.markAsPristine();
+        this.passwordUpdateForm.markAsUntouched();
+      }
+      // Reset eye icon visibility states
+      this.showCurrentPassword = false;
+      this.showNewPassword = false;
+      this.showConfirmPassword = false;
+      // Reset internal validation flag if used elsewhere
+      this.validateForm2 = false;
+
       this.isPasswordModalOpen = false;
+      this.updateBodyScrollLock();
     }
   }
 
@@ -106,35 +220,41 @@ export class SettingsComponent implements OnInit {
       const currentPassword = this.p['current_password'].value;
       // Check if current password matches the stored password
       if (storedPassword !== currentPassword) {
-        console.log("storedPassword", storedPassword, "currentPassword", currentPassword)
+        // console.log("storedPassword", storedPassword, "currentPassword", currentPassword)
         this.p['current_password'].setErrors({ incorrect: true });
         this.alertService.error(("Current Password is incorrect."), this.options);
         return;
       }
       // Ensure passwords match
       if (this.p['new_password'].value !== this.p['confirm_password'].value) {
-        console.log("newPassword", this.p['new_password'].value, "confirmPassword", this.p['confirm_password'].value)
+        // console.log("newPassword", this.p['new_password'].value, "confirmPassword", this.p['confirm_password'].value)
         this.p['confirm_password'].setErrors({ matchError: true });
         this.alertService.error(("New Password and Confirm Password do not match."), this.options);
         return;
       }
       // Ensure passwords match
       if (this.p['new_password'].value == storedPassword) {
-        console.log("newPassword", this.p['new_password'].value, "storedPassword", storedPassword)
+        // console.log("newPassword", this.p['new_password'].value, "storedPassword", storedPassword)
         this.alertService.error(("New Password cannot be same as old Password"), this.options);
         return;
       }
       this.localService.set('Password', this.p['new_password'].value);
-      let formData = {
+      let formData: any = {
         new_password: this.p['new_password'].value,
+        // password_to_customer: this.p['new_password'].value
         // old_password: this.p['current_password'].value
       };
+      // Add password_to_customer only if NOT staff
+      if (this.customerType !== 'Staff') {
+        formData.password_to_customer = this.p['new_password'].value;
+      }
       let jsonObj: any = {
         domain_name: DOMAIN_NAME,
         user_id: USER_ID,
         payload: { password_details: formData },
         extras: { find: {} }
       };
+      // console.log("Password request body", jsonObj)
       const customerType = this.localService.get('CustomerType');
       // conditionally assign
       if (customerType === 'Staff') {
@@ -145,18 +265,18 @@ export class SettingsComponent implements OnInit {
       this.profileService.updatePassword(jsonObj).subscribe(
         resp => {
           if (resp?.success === 1) {
+            this.localService.set('Password', this.p['new_password'].value);
             this.passwordUpdateForm.reset();
             this.isPasswordModalOpen = false;
             this.alertService.success(("Password updated successfully!"), this.options);
-            this.localService.set('Password', this.p['new_password'].value);
-            setTimeout(() => {
-              this.alertService.clear(); // Clears the alert message
-            }, 2000);
+            // setTimeout(() => {
+            //   this.alertService.clear(); // Clears the alert message
+            // }, 2000);
           } else {
             this.alertService.error((resp?.message || "Something went wrong."), this.options);
-            setTimeout(() => {
-              this.alertService.clear(); // Clears the alert message
-            }, 2000);
+            // setTimeout(() => {
+            //   this.alertService.clear(); // Clears the alert message
+            // }, 2000);
           }
         },
         err => {
@@ -179,10 +299,27 @@ export class SettingsComponent implements OnInit {
   }
 
   openDurationModal() {
+    if (!this.canModifySystemSettings && !this.canReadSystemSettings) return;
+    this.isShiftViewMode = false;
+    this.loadShiftData();
+  }
+
+  viewShiftTimings() {
+    if (!this.canReadSystemSettings) return;
+    this.isShiftViewMode = true;
+    this.loadShiftData();
+  }
+
+  private loadShiftData() {
     const requestBody = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
-      extras: { find: { id: this.hotelId } }
+      extras: {
+        find: {
+          // id: this.hotelId 
+          customer_member_id: this.memberId
+        }
+      }
     };
     this.hotelEnrollmentTabviewService.getCustomerById(requestBody).subscribe(
       (resp: any) => {
@@ -204,13 +341,23 @@ export class SettingsComponent implements OnInit {
           // No data found → just initialize empty
           this.shifts = [{ id: '', startTime: '', startMeridian: 'AM', endTime: '', endMeridian: 'AM', label: '' }];
         }
-        console.log("Fetched shifts: ", this.shifts);
+        // console.log("Fetched shifts: ", this.shifts);
+        // Clear row errors when opening modal
+        this.shiftRowErrors = {};
+        this.errorMessage = [];
+        // Check if at least one shift is filled
+        this.checkAtLeastOneShift();
         // Finally open modal
         this.isDurationModalOpen = true;
+        this.updateBodyScrollLock();
       },
       (err: any) => {
         this.shifts = [{ id: '', startTime: '', startMeridian: 'AM', endTime: '', endMeridian: 'AM', label: '' }];
+        this.shiftRowErrors = {};
+        this.errorMessage = [];
+        this.checkAtLeastOneShift();
         this.isDurationModalOpen = true;
+        this.updateBodyScrollLock();
       }
     );
     // To salect previously saved slots
@@ -336,7 +483,10 @@ export class SettingsComponent implements OnInit {
   // }
 
   addShift() {
+    if (this.isShiftViewMode || !this.canModifySystemSettings) return;
     this.shifts.push({ id: '', startTime: '', startMeridian: 'AM', endTime: '', endMeridian: 'AM', label: '' });
+    this.shiftRowErrors = {};
+    this.checkAtLeastOneShift();
   }
 
   // Allow only numbers + colon in time input
@@ -347,40 +497,60 @@ export class SettingsComponent implements OnInit {
     }
   }
 
+  restrictSpecialChars(event: any) {
+    const allowedKeys = /^[0-9]*$/;
+    if (!allowedKeys.test(event.key)) {
+      event.preventDefault();
+    }
+  }
+
   validateId(index: number) {
+    // Clear row error when user starts typing
+    if (this.shiftRowErrors[index]) {
+      delete this.shiftRowErrors[index];
+    }
     if (!this.shifts[index].id || this.shifts[index].id.trim() === '') {
-      this.errorMessage = 'Please set a unique ID for this shift.';
+      this.errorMessage = ['Please set a unique ID for this shift.'];
       this.isFormValid = false;
       return;
     }
-    this.errorMessage = '';
+    this.errorMessage = [];
     this.checkFormValidity();
+    this.checkAtLeastOneShift();
   }
 
+
+ 
+
   validateTime(index: number, type: 'start' | 'end') {
+    // Clear row error when user starts typing
+    if (this.shiftRowErrors[index]) {
+      delete this.shiftRowErrors[index];
+    }
     const timePattern = /^(0?[1-9]|1[0-2]):[0-5][0-9]$/; // 12hr format
     const value = type === 'start' ? this.shifts[index].startTime : this.shifts[index].endTime;
     if (!value) {
-      this.errorMessage = type === 'start' ? 'Please enter start time.' : 'Please enter end time.';
+      this.errorMessage = [type === 'start' ? 'Please enter start time.' : 'Please enter end time.'];
       this.isFormValid = false;
       return;
     }
     if (!timePattern.test(value)) {
-      this.errorMessage = 'Invalid time! Use 12-hour format (HH:MM, e.g., 9:00 or 12:30).';
+      this.errorMessage = ['Invalid time! Use 12-hour format (HH:MM, e.g., 9:00 or 12:30).'];
       this.isFormValid = false;
       return;
     }
-    this.errorMessage = '';
+    this.errorMessage = [];
     this.checkFormValidity();
+    this.checkAtLeastOneShift();
   }
 
   validateLabel(index: number) {
     if (!this.shifts[index].label || this.shifts[index].label.trim() === '') {
-      this.errorMessage = 'Please set a label for shift timing.';
+      this.errorMessage = ['Please set a label for shift timing.'];
       this.isFormValid = false;
       return;
     }
-    this.errorMessage = '';
+    this.errorMessage = [];
     this.checkFormValidity();
   }
 
@@ -398,54 +568,72 @@ export class SettingsComponent implements OnInit {
 
   closeShiftModal() {
     this.isDurationModalOpen = false;
+    this.isShiftViewMode = false;
+    this.updateBodyScrollLock();
   }
 
   saveShifts() {
+    if (this.isShiftViewMode || !this.canModifySystemSettings) return;
+    this.errorMessage = [];
+    this.shiftRowErrors = {};
+    const errors: string[] = [];
+
+    // Validate each shift and populate row-specific errors
     for (let i = 0; i < this.shifts.length; i++) {
-      if (!this.shifts[i].id) {
-        this.errorMessage = 'Please enter an ID for shift.';
-        return;
+      const shift = this.shifts[i];
+      const rowErrors: string[] = [];
+
+      if (!shift.id || shift.id.trim() === '') {
+        rowErrors.push('ID');
       }
-      if (!this.shifts[i].startTime && !this.shifts[i].endTime && !this.shifts[i].label) {
-        this.errorMessage = 'Please enter the time details.';
-        return;
+      if (!shift.startTime || shift.startTime.trim() === '') {
+        rowErrors.push('Start Time');
       }
-      if (!this.shifts[i].startTime) {
-        this.errorMessage = 'Please enter start time.';
-        return;
+      if (!shift.endTime || shift.endTime.trim() === '') {
+        rowErrors.push('End Time');
       }
-      if (!this.shifts[i].endTime) {
-        this.errorMessage = 'Please enter end time.';
-        return;
+      if (shift.startTime && !/^(0?[1-9]|1[0-2]):[0-5][0-9]$/.test(shift.startTime)) {
+        rowErrors.push('Start Time format');
       }
-      if (!/^(0?[1-9]|1[0-2]):[0-5][0-9]$/.test(this.shifts[i].startTime) ||
-        !/^(0?[1-9]|1[0-2]):[0-5][0-9]$/.test(this.shifts[i].endTime)) {
-        this.errorMessage = 'Invalid time! Use 12-hour format (HH:MM, e.g., 9:00 or 12:30).';
-        return;
+      if (shift.endTime && !/^(0?[1-9]|1[0-2]):[0-5][0-9]$/.test(shift.endTime)) {
+        rowErrors.push('End Time format');
       }
-      if (!this.shifts[i].label || this.shifts[i].label.trim() === '') {
-        this.errorMessage = 'Please set a label for shift timing.';
-        return;
+      if (!shift.label || shift.label.trim() === '') {
+        rowErrors.push('Label');
+      }
+
+      if (rowErrors.length > 0) {
+        this.shiftRowErrors[i] = `Please fill all required fields: ${rowErrors.join(', ')}.`;
       }
     }
-    // Check duplicate IDs
-    const labels = this.shifts.map(s => s.label);
+
+    // Check duplicate labels
+    const labels = this.shifts.map(s => s.label).filter(l => l && l.trim() !== '');
     if (new Set(labels).size !== labels.length) {
-      this.errorMessage = 'Shift Labels must be unique!';
-      return;
+      errors.push('Shift Labels must be unique!');
     }
+
     // Check duplicate IDs
-    const ids = this.shifts.map(s => s.id);
+    const ids = this.shifts.map(s => s.id).filter(id => id && id.trim() !== '');
     if (new Set(ids).size !== ids.length) {
-      this.errorMessage = 'Shift IDs must be unique!';
+      errors.push('Shift IDs must be unique!');
+    }
+
+    // If there are row errors or general errors, display them
+    if (Object.keys(this.shiftRowErrors).length > 0 || errors.length > 0) {
+      this.errorMessage = errors;
       return;
     }
+
+    // Final validity check
     this.checkFormValidity();
     if (!this.isFormValid) {
-      this.errorMessage = 'Please fix errors before saving!';
+      this.errorMessage = ['Please fix errors before saving!'];
       return;
     }
-    console.log("Saved shifts: ", this.shifts);
+
+    // All validations passed
+    // console.log("Saved shifts: ", this.shifts);
     // Remove is_existing before saving
     const cleanShifts = this.shifts.map(s => {
       const { is_existing, ...rest } = s;
@@ -456,7 +644,106 @@ export class SettingsComponent implements OnInit {
   }
 
   removeShift(index: number) {
-    this.shifts.splice(index, 1);
+    if (this.isShiftViewMode || !this.canModifySystemSettings) return;
+
+    const shiftToDelete = this.shifts[index];
+
+    // If it's a new row (not yet saved to DB), just remove it
+    if (!shiftToDelete.is_existing) {
+      this.shifts.splice(index, 1);
+      this.updateShiftRowErrorsAfterDelete(index);
+      this.checkAtLeastOneShift();
+      return;
+    }
+
+    // If it's an existing row, verify deletion via updateCustomer API
+    const requestBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: {
+        find: {
+          customer_member_id: this.memberId
+        }
+      }
+    };
+
+    this.loaderService.emitLoading();
+    this.hotelEnrollmentTabviewService.getCustomerById(requestBody).subscribe({
+      next: (resp: any) => {
+        if (resp.success === 1 && resp.status_code === 200 && resp.result.data.length > 0) {
+          const existingData = resp.result.data[0];
+          if (!existingData.settings || !Array.isArray(existingData.settings.shift_timings)) {
+            this.loaderService.emitComplete();
+            this.alertService.error('No existing settings found!', this.options);
+            return;
+          }
+
+          // Prepare updated shifts by excluding the one to be deleted
+          const updatedShifts = existingData.settings.shift_timings.filter((s: any) => s.id !== shiftToDelete.id);
+
+          const updateRequestBody = {
+            domain_name: DOMAIN_NAME,
+            user_id: USER_ID,
+            payload: {
+              customer_update: {
+                settings: {
+                  ...existingData.settings,
+                  shift_timings: updatedShifts
+                }
+              }
+            },
+            extras: {
+              find: {
+                customer_member_id: this.memberId
+              }
+            }
+          };
+
+          this.hotelEnrollmentTabviewService.updateCustomer(updateRequestBody).subscribe({
+            next: (updateResp: any) => {
+              this.loaderService.emitComplete();
+              if (updateResp.success === 1 && updateResp.status_code === 200) {
+                if (updateResp.message === 'Record successfully updated') {
+                  this.shifts.splice(index, 1);
+                  this.updateShiftRowErrorsAfterDelete(index);
+                  this.checkAtLeastOneShift();
+                  this.localService.set('selectedSlots', JSON.stringify(updatedShifts));
+                  this.alertService.success('Shift timing removed successfully!', this.options);
+                } else {
+                  this.alertService.error(updateResp.message, this.options);
+                }
+              } else {
+                this.alertService.error(updateResp?.message || 'Something went wrong while removing shift.', this.options);
+              }
+            },
+            error: () => {
+              this.loaderService.emitComplete();
+              this.alertService.error('Error while removing shift!', this.options);
+            }
+          });
+        } else {
+          this.loaderService.emitComplete();
+          this.alertService.error('Could not fetch existing settings.', this.options);
+        }
+      },
+      error: () => {
+        this.loaderService.emitComplete();
+        this.alertService.error('Something went wrong while fetching existing settings!', this.options);
+      }
+    });
+  }
+
+  private updateShiftRowErrorsAfterDelete(index: number) {
+    const newErrors: { [key: number]: string } = {};
+    Object.keys(this.shiftRowErrors).forEach(key => {
+      const oldIndex = parseInt(key);
+      if (oldIndex < index) {
+        newErrors[oldIndex] = this.shiftRowErrors[oldIndex];
+      } else if (oldIndex > index) {
+        newErrors[oldIndex - 1] = this.shiftRowErrors[oldIndex];
+      }
+    });
+    this.shiftRowErrors = newErrors;
   }
 
   saveShiftSettings(savedShifts: any[]) {
@@ -465,7 +752,8 @@ export class SettingsComponent implements OnInit {
       user_id: USER_ID,
       extras: {
         find: {
-          id: this.hotelId
+          // id: this.hotelId
+          customer_member_id: this.memberId
         }
       }
     };
@@ -496,8 +784,8 @@ export class SettingsComponent implements OnInit {
               updatedShifts.push(newShift);
             }
           });
-          console.log(" Final Updated Shifts:", updatedShifts);
-          //  Merge with existing settings (don’t overwrite other keys like room_range)
+          // console.log(" Final Updated Shifts:", updatedShifts);
+          //  Merge with existing settings (don't overwrite other keys like room_range)
           const mergedSettings = {
             ...existingData.settings,
             shift_timings: updatedShifts
@@ -511,7 +799,12 @@ export class SettingsComponent implements OnInit {
                 settings: mergedSettings
               }
             },
-            extras: { find: { id: this.hotelId } }
+            extras: {
+              find: {
+                // id: this.hotelId
+                customer_member_id: this.memberId
+              }
+            }
           };
           // Call update API
           this.hotelEnrollmentTabviewService.updateCustomer(updateRequestBody).subscribe(
@@ -620,10 +913,27 @@ export class SettingsComponent implements OnInit {
 
   // Room Modal
   openRoomModal() {
+    if (!this.canModifySystemSettings && !this.canReadSystemSettings) return;
+    this.isRoomViewMode = false;
+    this.loadRoomData();
+  }
+
+  viewRoomNumbers() {
+    if (!this.canReadSystemSettings) return;
+    this.isRoomViewMode = true;
+    this.loadRoomData();
+  }
+
+  private loadRoomData() {
     const requestBody = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
-      extras: { find: { id: this.hotelId } }
+      extras: {
+        find: {
+          // id: this.hotelId
+          customer_member_id: this.memberId
+        }
+      }
     };
     this.hotelEnrollmentTabviewService.getCustomerById(requestBody).subscribe(
       (resp: any) => {
@@ -642,37 +952,174 @@ export class SettingsComponent implements OnInit {
           // No data found → just initialize empty
           this.rooms = [{ id: '', startRoom: '', endRoom: '', label: '' }];
         }
-        console.log("Fetched rooms: ", this.rooms);
+        // console.log("Fetched rooms: ", this.rooms);
+        // Clear row errors when opening modal
+        this.roomRowErrors = {};
+        this.roomErrorMessage = [];
+        // Check if at least one room range is filled
+        this.checkAtLeastOneRoomRange();
         // Finally open modal
         this.isRoomModalOpen = true;
+        this.updateBodyScrollLock();
       },
       (err: any) => {
         // API error → still open modal with empty row
         this.rooms = [{ id: '', startRoom: '', endRoom: '', label: '' }];
+        this.roomRowErrors = {};
+        this.roomErrorMessage = [];
+        this.checkAtLeastOneRoomRange();
         this.isRoomModalOpen = true;
+        this.updateBodyScrollLock();
       }
     );
   }
 
-  addRoom() {
+  /* addRoom() {
+    if (this.isRoomViewMode || !this.canModifySystemSettings) return;
     this.rooms.push({ id: '', startRoom: '', endRoom: '', label: '' });
+    this.roomRowErrors = {};
+    this.checkAtLeastOneRoomRange();
+  } */
+
+  addRoom() {
+    if (this.isRoomViewMode || !this.canModifySystemSettings) return;
+    const totalRoomsCreated = this.calculateTotalRooms();
+    if (totalRoomsCreated >= this.allowedRoomCount) {
+      this.roomErrorMessage = [
+        `Maximum ${this.allowedRoomCount} rooms allowed. Cannot add more.`
+      ];
+      return;
+    }
+    this.rooms.push({ id: '', startRoom: '', endRoom: '', label: '' });
+    this.roomRowErrors = {};
+    this.checkAtLeastOneRoomRange();
   }
 
+
   removeRoom(index: number) {
-    this.rooms.splice(index, 1);
+    if (this.isRoomViewMode || !this.canModifySystemSettings) return;
+
+    const roomToDelete = this.rooms[index];
+
+    // If it's a new row, just remove it
+    if (!roomToDelete.is_existing) {
+      this.rooms.splice(index, 1);
+      this.updateRoomRowErrorsAfterDelete(index);
+      this.validateAllRoomsLive();
+      this.checkAtLeastOneRoomRange();
+      return;
+    }
+
+    // If it's an existing row, verify deletion via updateCustomer API
+    const requestBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: {
+        find: {
+          customer_member_id: this.memberId
+        }
+      }
+    };
+
+    this.loaderService.emitLoading();
+    this.hotelEnrollmentTabviewService.getCustomerById(requestBody).subscribe({
+      next: (resp: any) => {
+        if (resp.success === 1 && resp.status_code === 200 && resp.result.data.length > 0) {
+          const existingData = resp.result.data[0];
+          if (!existingData.settings || !Array.isArray(existingData.settings.room_range)) {
+            this.loaderService.emitComplete();
+            this.alertService.error('No existing settings found!', this.options);
+            return;
+          }
+
+          const updatedRooms = existingData.settings.room_range.filter((r: any) => r.id !== roomToDelete.id);
+
+          const updateRequestBody = {
+            domain_name: DOMAIN_NAME,
+            user_id: USER_ID,
+            payload: {
+              customer_update: {
+                settings: {
+                  ...existingData.settings,
+                  room_range: updatedRooms
+                }
+              }
+            },
+            extras: {
+              find: {
+                customer_member_id: this.memberId
+              }
+            }
+          };
+
+          this.hotelEnrollmentTabviewService.updateCustomer(updateRequestBody).subscribe({
+            next: (updateResp: any) => {
+              this.loaderService.emitComplete();
+              if (updateResp.success === 1 && updateResp.status_code === 200) {
+                if (updateResp.message === 'Record successfully updated') {
+                  this.rooms.splice(index, 1);
+                  this.updateRoomRowErrorsAfterDelete(index);
+                  this.validateAllRoomsLive();
+                  this.checkAtLeastOneRoomRange();
+                  this.localService.set('roomRange', JSON.stringify(updatedRooms));
+                  this.alertService.success('Room range removed successfully!', this.options);
+                } else {
+                  this.alertService.error(updateResp.message, this.options);
+                }
+              } else {
+                this.alertService.error(updateResp?.message || 'Something went wrong while removing room range.', this.options);
+              }
+            },
+            error: () => {
+              this.loaderService.emitComplete();
+              this.alertService.error('Error while removing room range!', this.options);
+            }
+          });
+        } else {
+          this.loaderService.emitComplete();
+          this.alertService.error('Could not fetch existing settings.', this.options);
+        }
+      },
+      error: () => {
+        this.loaderService.emitComplete();
+        this.alertService.error('Something went wrong while fetching existing settings!', this.options);
+      }
+    });
+  }
+
+  private updateRoomRowErrorsAfterDelete(index: number) {
+    const newErrors: { [key: number]: string } = {};
+    Object.keys(this.roomRowErrors).forEach(key => {
+      const oldIndex = parseInt(key);
+      if (oldIndex < index) {
+        newErrors[oldIndex] = this.roomRowErrors[oldIndex];
+      } else if (oldIndex > index) {
+        newErrors[oldIndex - 1] = this.roomRowErrors[oldIndex];
+      }
+    });
+    this.roomRowErrors = newErrors;
   }
 
   validateRoom(index: number, type: 'start' | 'end') {
+    // Clear row error when user starts typing
+    if (this.roomRowErrors[index]) {
+      delete this.roomRowErrors[index];
+    }
     const value = type === 'start' ? this.rooms[index].startRoom : this.rooms[index].endRoom;
     if (value.length > 5) {
-      this.roomErrorMessage = 'Room number must be 5 characters or less.';
+      // Clear previous errors and set new one for real-time validation
+      this.roomErrorMessage = ['Room number must be 5 characters or less.'];
     } else {
-      this.roomErrorMessage = '';
+      // Clear error if validation passes
+      this.roomErrorMessage = [];
     }
+    this.checkAtLeastOneRoomRange();
   }
 
   closeRoomModal() {
     this.isRoomModalOpen = false;
+    this.isRoomViewMode = false;
+    this.updateBodyScrollLock();
   }
 
   checkRoomFormValidity() {
@@ -680,6 +1127,38 @@ export class SettingsComponent implements OnInit {
       r.id && r.startRoom && r.endRoom && r.label &&
       r.startRoom.length <= 5 && r.endRoom.length <= 5
     );
+  }
+
+  checkAtLeastOneRoomRange() {
+    this.hasAtLeastOneRoomRange = this.rooms.some(room =>
+      room.id && room.id.trim() !== '' &&
+      room.startRoom && room.startRoom.trim() !== '' &&
+      room.endRoom && room.endRoom.trim() !== '' &&
+      room.label && room.label.trim() !== ''
+    );
+  }
+
+  checkAtLeastOneShift() {
+    this.hasAtLeastOneShift = this.shifts.some(shift =>
+      shift.id && shift.id.trim() !== '' &&
+      shift.startTime && shift.startTime.trim() !== '' &&
+      shift.endTime && shift.endTime.trim() !== '' &&
+      shift.label && shift.label.trim() !== '' &&
+      /^(0?[1-9]|1[0-2]):[0-5][0-9]$/.test(shift.startTime) &&
+      /^(0?[1-9]|1[0-2]):[0-5][0-9]$/.test(shift.endTime)
+    );
+  }
+
+  clearShiftRowError(index: number) {
+    if (this.shiftRowErrors[index]) {
+      delete this.shiftRowErrors[index];
+    }
+  }
+
+  clearRoomRowError(index: number) {
+    if (this.roomRowErrors[index]) {
+      delete this.roomRowErrors[index];
+    }
   }
 
   // saveRooms() {
@@ -746,96 +1225,200 @@ export class SettingsComponent implements OnInit {
   //   this.closeRoomModal();
   // }
 
-  saveRooms() {
-    for (let i = 0; i < this.rooms.length; i++) {
-      const room = this.rooms[i];
-      // Required checks
-      if (!room.startRoom || room.startRoom.trim() === '') {
-        this.roomErrorMessage = `Please enter a Start Room for "${room.label || room.id || 'this entry'}".`;
-        return;
-      }
-      if (!room.endRoom || room.endRoom.trim() === '') {
-        this.roomErrorMessage = `Please enter an End Room for "${room.label || room.id || 'this entry'}".`;
-        return;
-      }
-      if (!room.label || room.label.trim() === '') {
-        this.roomErrorMessage = `Please set a Label for "${room.id || `Start:${room.startRoom}-End:${room.endRoom}`}".`;
-        return;
-      }
-      if (!room.id || room.id.trim() === '') {
-        this.roomErrorMessage = `Please enter an ID for "${room.label || `Start:${room.startRoom}-End:${room.endRoom}`}".`;
-        return;
-      }
-      if (room.startRoom.length > 5) {
-        this.roomErrorMessage = `Start Room cannot exceed 5 characters for "${room.label || room.id}".`;
-        return;
-      }
-      if (room.endRoom.length > 5) {
-        this.roomErrorMessage = `End Room cannot exceed 5 characters for "${room.label || room.id}".`;
-        return;
-      }
-      // Convert start/end to numbers for overlap validation
-      const start = Number(room.startRoom);
-      const end = Number(room.endRoom);
-      if (isNaN(start) || isNaN(end)) {
-        this.roomErrorMessage = `Start/End Room must be numeric for "${room.label || room.id}".`;
-        return;
-      }
-      if (start > end) {
-        this.roomErrorMessage = `Start Room cannot be greater than End Room for "${room.label || room.id}".`;
-        return;
-      }
-      // Overlap check with all previous rooms
-      for (let j = 0; j < this.rooms.length; j++) {
-        if (i === j) continue;
-        const otherStart = Number(this.rooms[j].startRoom);
-        const otherEnd = Number(this.rooms[j].endRoom);
-        if (!(end < otherStart || start > otherEnd)) {
-          this.roomErrorMessage = `Room range ${start}-${end} overlaps with existing range ${otherStart}-${otherEnd}.`;
-          return;
-        }
-      }
-    }
-    // Uniqueness checks
-    const labels = this.rooms.map(r => r.label.trim().toLowerCase());
-    if (new Set(labels).size !== labels.length) {
-      this.roomErrorMessage = 'Room Labels must be unique!';
-      return;
-    }
-    const ids = this.rooms.map(r => r.id.trim().toLowerCase());
-    if (new Set(ids).size !== ids.length) {
-      this.roomErrorMessage = 'Room IDs must be unique!';
-      return;
-    }
-    const ranges = this.rooms.map(r => `${r.startRoom.trim().toLowerCase()}-${r.endRoom.trim().toLowerCase()}`);
-    if (new Set(ranges).size !== ranges.length) {
-      this.roomErrorMessage = 'Room ranges must be unique!';
-      return;
-    }
-    // Final validity check
-    this.checkRoomFormValidity();
-    if (!this.isRoomFormValid) {
-      this.roomErrorMessage = 'Please fix errors before saving!';
-      return;
-    }
-    // All validations passed
-    this.roomErrorMessage = '';
-    console.log("Saved rooms: ", this.rooms);
-    // remove is_existing before saving
-    const cleanRooms = this.rooms.map(r => {
-      const { is_existing, ...rest } = r;
-      return rest;
-    });
-    console.log("Cleared rooms: ", cleanRooms);
-    this.saveRoomSettings(cleanRooms);
-    this.closeRoomModal();
-  }
+  // saveRooms() {
+  //   // helper: expand A..Z, AA.. etc
+  //   const expandAlphaRange = (start: string, end: string): string[] => {
+  //     const result: string[] = [];
+  //     const toNumber = (str: string) => {
+  //       let n = 0;
+  //       for (let i = 0; i < str.length; i++) {
+  //         n = n * 26 + (str.charCodeAt(i) - 65 + 1);
+  //       }
+  //       return n;
+  //     };
+  //     const toLetters = (num: number) => {
+  //       let s = '';
+  //       while (num > 0) {
+  //         const rem = (num - 1) % 26;
+  //         s = String.fromCharCode(65 + rem) + s;
+  //         num = Math.floor((num - 1) / 26);
+  //       }
+  //       return s;
+  //     };
+  //     const sNum = toNumber(start.toUpperCase());
+  //     const eNum = toNumber(end.toUpperCase());
+  //     for (let i = sNum; i <= eNum; i++) result.push(toLetters(i));
+  //     return result;
+  //   };
+  //   // helper: expand a single range like "A1-A5" or "1-10" -> array of concrete room names
+  //   const expandRange = (startRaw: string, endRaw: string): string[] => {
+  //     const start = String(startRaw).trim();
+  //     const end = String(endRaw).trim();
+  //     if (!start || !end) return [];
+  //     // Case 1: Pure numeric 1-100
+  //     if (!isNaN(Number(start)) && !isNaN(Number(end))) {
+  //       const s = Number(start), e = Number(end);
+  //       if (s > e) return [];
+  //       const out: string[] = [];
+  //       for (let i = s; i <= e; i++) out.push(String(i));
+  //       return out;
+  //     }
+  //     // Case 2: Pure alphabetic A-C
+  //     if (/^[A-Z]+$/i.test(start) && /^[A-Z]+$/i.test(end)) {
+  //       return expandAlphaRange(start.toUpperCase(), end.toUpperCase());
+  //     }
+  //     // Case 3: NumberPrefix + LetterSuffix (e.g. 10A-10C)
+  //     if (/^\d+[A-Z]+$/i.test(start) && /^\d+[A-Z]+$/i.test(end)) {
+  //       const startMatch = start.match(/^(\d+)([A-Z]+)$/i);
+  //       const endMatch = end.match(/^(\d+)([A-Z]+)$/i);
+  //       const sPrefix = startMatch![1];
+  //       const ePrefix = endMatch![1];
+  //       const sSuffix = startMatch![2].toUpperCase();
+  //       const eSuffix = endMatch![2].toUpperCase();
+  //       // Case 3A: Same numeric prefix, suffix increases → 10A-10C
+  //       if (sPrefix === ePrefix) {
+  //         const suffixes = expandAlphaRange(sSuffix, eSuffix);
+  //         return suffixes.map(suf => `${sPrefix}${suf}`);
+  //       }
+  //       // Case 3B: Numeric increases, suffix fixed → 1A-100A  (YOUR CASE)
+  //       if (sSuffix === eSuffix) {
+  //         const sNum = Number(sPrefix);
+  //         const eNum = Number(ePrefix);
+  //         if (sNum > eNum) return [];
+  //         const out: string[] = [];
+  //         for (let i = sNum; i <= eNum; i++) out.push(`${i}${sSuffix}`);
+  //         return out;
+  //       }
+  //     }
+  //     // Case 4: LetterPrefix + NumberSuffix (e.g. A1-A5)
+  //     if (/^[A-Z]+\d+$/i.test(start) && /^[A-Z]+\d+$/i.test(end)) {
+  //       const prefix = (start.match(/^[A-Z]+/i) || [''])[0];
+  //       const sNum = parseInt(start.slice(prefix.length));
+  //       const eNum = parseInt(end.slice(prefix.length));
+  //       if (isNaN(sNum) || isNaN(eNum) || sNum > eNum) return [];
+  //       const out: string[] = [];
+  //       for (let i = sNum; i <= eNum; i++) out.push(`${prefix}${i}`);
+  //       return out;
+  //     }
+  //     // fallback
+  //     if (start === end) return [start];
+  //     return [];
+  //   };
+  //   // validations 
+  //   for (let i = 0; i < this.rooms.length; i++) {
+  //     const room = this.rooms[i];
+  //     // Required checks (same as before)
+  //     if (!room.startRoom || room.startRoom.trim() === '') {
+  //       this.roomErrorMessage = `Please enter a Start Room for "${room.label || room.id || 'this entry'}".`;
+  //       return;
+  //     }
+  //     if (!room.endRoom || room.endRoom.trim() === '') {
+  //       this.roomErrorMessage = `Please enter an End Room for "${room.label || room.id || 'this entry'}".`;
+  //       return;
+  //     }
+  //     if (!room.label || room.label.trim() === '') {
+  //       this.roomErrorMessage = `Please set a Label for "${room.id || `Start:${room.startRoom}-End:${room.endRoom}`}".`;
+  //       return;
+  //     }
+  //     if (!room.id || room.id.trim() === '') {
+  //       this.roomErrorMessage = `Please enter an ID for "${room.label || `Start:${room.startRoom}-End:${room.endRoom}`}".`;
+  //       return;
+  //     }
+  //     if (room.startRoom.length > 5) {
+  //       this.roomErrorMessage = `Start Room cannot exceed 5 characters for "${room.label || room.id}".`;
+  //       return;
+  //     }
+  //     if (room.endRoom.length > 5) {
+  //       this.roomErrorMessage = `End Room cannot exceed 5 characters for "${room.label || room.id}".`;
+  //       return;
+  //     }
+  //     // If both start and end are numeric: check start <= end (keeps old behavior)
+  //     const startNum = Number(room.startRoom);
+  //     const endNum = Number(room.endRoom);
+  //     if (!isNaN(startNum) && !isNaN(endNum)) {
+  //       if (startNum > endNum) {
+  //         this.roomErrorMessage = `Start Room cannot be greater than End Room for "${room.label || room.id}".`;
+  //         return;
+  //       }
+  //     } else {
+  //       // For non-numeric ranges we will not throw a numeric-only error here,
+  //       // but we do a lightweight sanity check: if expansion returns empty treat as invalid range
+  //       const expanded = expandRange(room.startRoom, room.endRoom);
+  //       if (!expanded || expanded.length === 0) {
+  //         this.roomErrorMessage = `Invalid range "${room.startRoom}-${room.endRoom}" for "${room.label || room.id}".`;
+  //         return;
+  //       }
+  //     }
+  //   }
+  //   // Build expanded value lists for each room so we can detect overlaps and duplicates robustly
+  //   const expandedPerRoom: string[][] = [];
+  //   for (let i = 0; i < this.rooms.length; i++) {
+  //     const r = this.rooms[i];
+  //     const expanded = expandRange(r.startRoom, r.endRoom).map(x => String(x).trim());
+  //     // If expansion produced duplicates inside the same room, reduce to unique
+  //     expandedPerRoom.push([...new Set(expanded)]);
+  //   }
+  //   // Overlap check: if any two rooms share any expanded room name -> overlap
+  //   for (let i = 0; i < expandedPerRoom.length; i++) {
+  //     for (let j = 0; j < expandedPerRoom.length; j++) {
+  //       if (i === j) continue;
+  //       const setA = new Set(expandedPerRoom[i]);
+  //       for (const val of expandedPerRoom[j]) {
+  //         if (setA.has(val)) {
+  //           this.roomErrorMessage = `Room range ${this.rooms[i].startRoom}-${this.rooms[i].endRoom} overlaps with existing range ${this.rooms[j].startRoom}-${this.rooms[j].endRoom}.`;
+  //           return;
+  //         }
+  //       }
+  //     }
+  //   }
+  //   // Uniqueness checks (labels & ids unchanged)
+  //   const labels = this.rooms.map(r => r.label.trim().toLowerCase());
+  //   if (new Set(labels).size !== labels.length) {
+  //     this.roomErrorMessage = 'Room Labels must be unique!';
+  //     return;
+  //   }
+  //   const ids = this.rooms.map(r => r.id.trim().toLowerCase());
+  //   if (new Set(ids).size !== ids.length) {
+  //     this.roomErrorMessage = 'Room IDs must be unique!';
+  //     return;
+  //   }
+  //   // Also check that no single expanded room value is repeated across the whole set (additional safety)
+  //   const allExpanded = expandedPerRoom.flat();
+  //   if (new Set(allExpanded).size !== allExpanded.length) {
+  //     this.roomErrorMessage = 'Room ranges expand to duplicate room numbers — please adjust ranges so expanded rooms are unique.';
+  //     return;
+  //   }
+  //   // Final validity check (keeps your existing check)
+  //   this.checkRoomFormValidity();
+  //   if (!this.isRoomFormValid) {
+  //     this.roomErrorMessage = 'Please fix errors before saving!';
+  //     return;
+  //   }
+  //   // All validations passed
+  //   this.roomErrorMessage = '';
+  //   console.log("Saved rooms: ", this.rooms);
+  //   // remove is_existing before saving
+  //   const cleanRooms = this.rooms.map(r => {
+  //     const { is_existing, ...rest } = r;
+  //     return rest;
+  //   });
+  //   console.log("Cleared rooms: ", cleanRooms);
+  //   // If you want to persist the expanded values to this.labelRoomArray as prepareAndCallProcessedTaskApi does:
+  //   // this.labelRoomArray = allExpanded;  // uncomment if intended
+  //   this.saveRoomSettings(cleanRooms);
+  //   this.closeRoomModal();
+  // }
 
   saveRoomSettings(savedRooms: any[]) {
     const requestBody = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
-      extras: { find: { id: this.hotelId } }
+      extras: {
+        find: {
+          // id: this.hotelId
+          customer_member_id: this.memberId
+        }
+      }
     };
 
     this.hotelEnrollmentTabviewService.getCustomerById(requestBody).subscribe(
@@ -862,8 +1445,8 @@ export class SettingsComponent implements OnInit {
               updatedRooms.push(newRoom);
             }
           });
-          console.log("Final Updated Rooms:", updatedRooms);
-          // Merge with existing settings (don’t overwrite)
+          // console.log("Final Updated Rooms:", updatedRooms);
+          // Merge with existing settings (don't overwrite)
           const mergedSettings = {
             ...existingData.settings,
             room_range: updatedRooms
@@ -876,7 +1459,12 @@ export class SettingsComponent implements OnInit {
                 settings: mergedSettings
               }
             },
-            extras: { find: { id: this.hotelId } }
+            extras: {
+              find: {
+                // id: this.hotelId
+                customer_member_id: this.memberId
+              }
+            }
           };
           this.hotelEnrollmentTabviewService.updateCustomer(updateRequestBody).subscribe(
             (updateResp: any) => {
@@ -1027,7 +1615,415 @@ export class SettingsComponent implements OnInit {
   }
 
   navigateToTerms() {
-    this.routerUrl.navigate(['/terms-conditions']); 
+    this.routerUrl.navigate(['/terms-conditions']);
   }
+
+  getLateCheckoutSettings() {
+    const requestBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: {
+        find: {
+          // id: this.hotelId 
+          customer_member_id: this.memberId
+        }
+      }
+    };
+    this.hotelEnrollmentTabviewService.getCustomerById(requestBody).subscribe(
+      (resp: any) => {
+        if (resp.success === 1 && resp.status_code === 200 && resp.result.data.length > 0) {
+          const existingData = resp.result.data[0];
+          if (existingData.settings && existingData.settings.late_checkout_required !== undefined) {
+            this.lateCheckoutRequired = existingData.settings.late_checkout_required;
+          }
+        }
+      },
+      (err: any) => {
+        console.error('Error loading late checkout setting:', err);
+        this.lateCheckoutRequired = false;
+      }
+    );
+  }
+
+  onLateCheckoutToggle() {
+    if (!this.canModifySystemSettings) {
+      // Revert toggle if no permission
+      this.lateCheckoutRequired = !this.lateCheckoutRequired;
+      return;
+    }
+    const requestBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: {
+        find: {
+          // id: this.hotelId
+          customer_member_id: this.memberId
+        }
+      }
+    };
+    this.hotelEnrollmentTabviewService.getCustomerById(requestBody).subscribe(
+      (resp: any) => {
+        if (resp.success === 1 && resp.status_code === 200 && resp.result.data.length > 0) {
+          const existingData = resp.result.data[0];
+          // Ensure `settings` key exists
+          if (!existingData.settings) {
+            existingData.settings = {};
+          }
+          // Update late checkout setting
+          const mergedSettings = {
+            ...existingData.settings,
+            late_checkout_required: this.lateCheckoutRequired
+          };
+          // Prepare update payload
+          const updateRequestBody = {
+            domain_name: DOMAIN_NAME,
+            user_id: USER_ID,
+            payload: {
+              customer_update: {
+                settings: mergedSettings
+              }
+            },
+            extras: {
+              find: {
+                // id: this.hotelId
+                customer_member_id: this.memberId
+              }
+            }
+          };
+          // Call update API
+          this.hotelEnrollmentTabviewService.updateCustomer(updateRequestBody).subscribe(
+            (updateResp: any) => {
+              if (updateResp.success === 1 && updateResp.status_code === 200) {
+                // this.alertService.success('Late checkout setting updated successfully!', this.options);
+                const msg = this.lateCheckoutRequired
+                  ? 'Late checkout has been enabled.'
+                  : 'Late checkout has been disabled.';
+                this.alertService.success(msg, this.options);
+              } else {
+                const message = updateResp?.message || 'Something went wrong while updating late checkout setting.';
+                this.alertService.error(message, this.options);
+                // Revert toggle on error
+                this.lateCheckoutRequired = !this.lateCheckoutRequired;
+              }
+            },
+            () => {
+              this.alertService.error('Error while updating late checkout setting!', this.options);
+              // Revert toggle on error
+              this.lateCheckoutRequired = !this.lateCheckoutRequired;
+            }
+          );
+        } else {
+          this.alertService.error('No existing settings found!', this.options);
+          // Revert toggle on error
+          this.lateCheckoutRequired = !this.lateCheckoutRequired;
+        }
+      },
+      () => {
+        this.alertService.error('Something went wrong while fetching existing settings!', this.options);
+        // Revert toggle on error
+        this.lateCheckoutRequired = !this.lateCheckoutRequired;
+      }
+    );
+  }
+
+  // Newly added for room restiction
+  getRoomCount() {
+    const requestBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: {
+        find: {
+          // id: this.hotelId 
+          customer_member_id: this.memberId
+        }
+      }
+    };
+    this.hotelEnrollmentTabviewService.getCustomerById(requestBody).subscribe(
+      (resp: any) => {
+        if (resp.success === 1 && resp.status_code === 200 && resp.result.data.length > 0) {
+          const existingData = resp.result.data[0];
+          const roomCount = existingData?.property_details?.property_address?.number_of_rooms;
+          this.allowedRoomCount = Number(roomCount) || 0;
+          // console.log('Room count:', this.allowedRoomCount);
+        }
+      },
+      (err: any) => {
+        console.error('Error loading room count:', err);
+      }
+    );
+  }
+
+  calculateTotalRooms(): number {
+    let total = 0;
+    for (const room of this.rooms) {
+      if (room.startRoom && room.endRoom) {
+        const start = Number(room.startRoom);
+        const end = Number(room.endRoom);
+        if (!isNaN(start) && !isNaN(end) && start <= end) {
+          total += (end - start + 1);
+        }
+      }
+    }
+    return total;
+  }
+
+  onRoomFieldChange() {
+    this.checkAtLeastOneRoomRange();
+    this.validateAllRoomsLive();
+  }
+
+  saveRooms() {
+    if (this.isRoomViewMode || !this.canModifySystemSettings) return;
+    this.validateAllRoomsLive();
+    if (Object.keys(this.roomRowErrors).length > 0 ||
+      this.roomErrorMessage.length > 0) {
+      return;
+    }
+    const cleanRooms = this.rooms.map(r => {
+      const { is_existing, ...rest } = r;
+      return rest;
+    });
+    this.saveRoomSettings(cleanRooms);
+    this.closeRoomModal();
+  }
+
+
+  validateAllRoomsLive() {
+    this.roomRowErrors = {};
+    this.roomErrorMessage = [];
+    const errors: string[] = [];
+    // ------- Row-Level Validation --------
+    for (let i = 0; i < this.rooms.length; i++) {
+      const room = this.rooms[i];
+      const missingFields: string[] = [];
+      const validationErrors: string[] = [];
+      if (!room.id?.trim()) missingFields.push('ID');
+      if (!room.startRoom?.trim()) missingFields.push('Start Room');
+      if (!room.endRoom?.trim()) missingFields.push('End Room');
+      if (!room.label?.trim()) missingFields.push('Label');
+      if (room.startRoom && room.startRoom.length > 5)
+        validationErrors.push('Start Room exceeds 5 characters');
+      if (room.endRoom && room.endRoom.length > 5)
+        validationErrors.push('End Room exceeds 5 characters');
+      if (room.startRoom && room.endRoom) {
+        const startVal = room.startRoom.trim();
+        const endVal = room.endRoom.trim();
+        // numeric conversion
+        const startNum = parseInt(startVal, 10);
+        const endNum = parseInt(endVal, 10);
+        // 1. Check if same
+        if (startNum === endNum) {
+          validationErrors.push('Start and End Room cannot be same');
+        }
+      }
+
+      if (room.startRoom && room.endRoom) {
+        const start = Number(room.startRoom);
+        const end = Number(room.endRoom);
+        if (isNaN(start) || isNaN(end)) {
+          validationErrors.push('Start/End Room must be numeric');
+        } else if (start > end) {
+          validationErrors.push('Start Room cannot be greater than End Room');
+        }
+      }
+      if (missingFields.length || validationErrors.length) {
+        let message = '';
+        if (missingFields.length) {
+          message = `Please fill: ${missingFields.join(', ')}.`;
+        }
+        if (validationErrors.length) {
+          if (message) message += ' ';
+          message += validationErrors.join(', ') + '.';
+        }
+        this.roomRowErrors[i] = message;
+      }
+    }
+    // -------- Overlap Validation --------
+    for (let i = 0; i < this.rooms.length; i++) {
+      const r1 = this.rooms[i];
+      const s1 = Number(r1.startRoom);
+      const e1 = Number(r1.endRoom);
+      if (isNaN(s1) || isNaN(e1)) continue;
+      for (let j = i + 1; j < this.rooms.length; j++) {
+        const r2 = this.rooms[j];
+        const s2 = Number(r2.startRoom);
+        const e2 = Number(r2.endRoom);
+        if (isNaN(s2) || isNaN(e2)) continue;
+        // TRUE overlap condition
+        if (s1 <= e2 && s2 <= e1) {
+          this.roomRowErrors[i] =
+            `Room range overlaps with ${s2}-${e2}.`;
+
+          this.roomRowErrors[j] =
+            `Room range overlaps with ${s1}-${e1}.`;
+        }
+      }
+    }
+    // -------- Duplicate Labels --------
+    const labels = this.rooms
+      .map(r => r.label?.trim().toLowerCase())
+      .filter(Boolean);
+    if (new Set(labels).size !== labels.length) {
+      errors.push('Room Labels must be unique!');
+    }
+    // -------- Duplicate IDs --------
+    const ids = this.rooms
+      .map(r => r.id?.trim().toLowerCase())
+      .filter(Boolean);
+    if (new Set(ids).size !== ids.length) {
+      errors.push('Room IDs must be unique!');
+    }
+    // -------- Duplicate Ranges --------
+    const ranges = this.rooms
+      .map(r => r.startRoom && r.endRoom ? `${r.startRoom}-${r.endRoom}` : '')
+      .filter(Boolean);
+    if (new Set(ranges).size !== ranges.length) {
+      errors.push('Room ranges must be unique!');
+    }
+    // -------- Room Count Limit --------
+    const totalRoomsCreated = this.calculateTotalRooms();
+    if (totalRoomsCreated > this.allowedRoomCount) {
+      errors.push(
+        `You are allowed to create only ${this.allowedRoomCount} rooms. Currently creating ${totalRoomsCreated}.`
+      );
+    }
+    this.roomErrorMessage = errors;
+  }
+
+
+
+  /* saveRooms() {
+  if (this.isRoomViewMode || !this.canModifySystemSettings) return;
+  this.roomErrorMessage = [];
+  this.roomRowErrors = {};
+  const errors: string[] = [];
+  // Validate each room and populate row-specific errors
+  for (let i = 0; i < this.rooms.length; i++) {
+    const room = this.rooms[i];
+    const missingFields: string[] = [];
+    const validationErrors: string[] = [];
+    // Required checks
+    if (!room.startRoom || room.startRoom.trim() === '') {
+      missingFields.push('Start Room');
+    }
+    if (!room.endRoom || room.endRoom.trim() === '') {
+      missingFields.push('End Room');
+    }
+    if (!room.label || room.label.trim() === '') {
+      missingFields.push('Label');
+    }
+    if (!room.id || room.id.trim() === '') {
+      missingFields.push('ID');
+    }
+    if (room.startRoom && room.startRoom.length > 5) {
+      validationErrors.push('Start Room exceeds 5 characters');
+    }
+    if (room.endRoom && room.endRoom.length > 5) {
+      validationErrors.push('End Room exceeds 5 characters');
+    }
+    // Convert start/end to numbers for validation
+    if (room.startRoom && room.endRoom) {
+      const start = Number(room.startRoom);
+      const end = Number(room.endRoom);
+      if (isNaN(start) || isNaN(end)) {
+        validationErrors.push('Start/End Room must be numeric');
+      } else {
+        if (start > end) {
+          validationErrors.push('Start Room cannot be greater than End Room');
+        }
+      }
+    }
+    // Build single consolidated message
+    if (missingFields.length > 0 || validationErrors.length > 0) {
+      let message = '';
+      if (missingFields.length > 0) {
+        message = `Please fill: ${missingFields.join(', ')}.`;
+      }
+      if (validationErrors.length > 0) {
+        if (message) message += ' ';
+        message += validationErrors.join(', ') + '.';
+      }
+      this.roomRowErrors[i] = message;
+    }
+  }
+  // Overlap checks
+  for (let i = 0; i < this.rooms.length; i++) {
+    const room = this.rooms[i];
+    if (room.startRoom && room.endRoom) {
+      const start = Number(room.startRoom);
+      const end = Number(room.endRoom);
+      if (!isNaN(start) && !isNaN(end)) {
+        for (let j = i + 1; j < this.rooms.length; j++) {
+          const otherRoom = this.rooms[j];
+          if (otherRoom.startRoom && otherRoom.endRoom) {
+            const otherStart = Number(otherRoom.startRoom);
+            const otherEnd = Number(otherRoom.endRoom);
+            if (!isNaN(otherStart) && !isNaN(otherEnd)) {
+              if (!(end < otherStart || start > otherEnd)) {
+                const overlapError = `Room range overlaps with range ${otherStart}-${otherEnd}.`;
+                if (this.roomRowErrors[i]) {
+                  this.roomRowErrors[i] = `${this.roomRowErrors[i]} ${overlapError}`;
+                } else {
+                  this.roomRowErrors[i] = overlapError;
+                }
+                if (this.roomRowErrors[j]) {
+                  this.roomRowErrors[j] = `${this.roomRowErrors[j]} ${overlapError}`;
+                } else {
+                  this.roomRowErrors[j] = overlapError;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  // Uniqueness checks
+  const labels = this.rooms.map(r => r.label && r.label.trim() ? r.label.trim().toLowerCase() : '').filter(l => l !== '');
+  if (new Set(labels).size !== labels.length) {
+    errors.push('Room Labels must be unique!');
+  }
+  const ids = this.rooms.map(r => r.id && r.id.trim() ? r.id.trim().toLowerCase() : '').filter(id => id !== '');
+  if (new Set(ids).size !== ids.length) {
+    errors.push('Room IDs must be unique!');
+  }
+  const ranges = this.rooms
+    .map(r => r.startRoom && r.endRoom ? `${r.startRoom.trim().toLowerCase()}-${r.endRoom.trim().toLowerCase()}` : '')
+    .filter(r => r !== '');
+  if (new Set(ranges).size !== ranges.length) {
+    errors.push('Room ranges must be unique!');
+  }
+  // If there are row errors or general errors, display them
+  if (Object.keys(this.roomRowErrors).length > 0 || errors.length > 0) {
+    this.roomErrorMessage = errors;
+    return;
+  }
+  // Newly added for room restiction
+  const totalRoomsCreated = this.calculateTotalRooms();
+  if (totalRoomsCreated > this.allowedRoomCount) {
+    this.roomErrorMessage = [
+      `You are allowed to create only ${this.allowedRoomCount} rooms. 
+   Currently you are trying to create ${totalRoomsCreated} rooms.`
+    ];
+    return;
+  }
+  // End of room restiction
+  // Final validity check
+  this.checkRoomFormValidity();
+  if (!this.isRoomFormValid) {
+    this.roomErrorMessage = ['Please fix errors before saving!'];
+    return;
+  }
+  // All validations passed
+  // console.log("Saved rooms: ", this.rooms);
+  // remove is_existing before saving
+  const cleanRooms = this.rooms.map(r => {
+    const { is_existing, ...rest } = r;
+    return rest;
+  });
+  // console.log("Cleared rooms: ", cleanRooms);
+  this.saveRoomSettings(cleanRooms);
+  this.closeRoomModal();
+} */
 
 }

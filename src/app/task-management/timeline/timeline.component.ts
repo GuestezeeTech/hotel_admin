@@ -1,5 +1,6 @@
 import { LocalStorageService } from './../../auth-services/local-storage.service';
 import { HotelListService } from './../../hotel-list/hotel-list.service';
+import { ServiceDetailService } from '../../hotel-enrollment-tabview/service-details/service-details.service';
 import { DOMAIN_NAME, USER_ID } from './../../app.config';
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
@@ -23,6 +24,7 @@ export class TimelineComponent {
   member_id: any;
   timely_delivered: boolean = true;
   hotelLogoUrl: string | null = null;
+  expectedDelivery: string = '-';
 
   constructor(
     private router: Router,
@@ -32,7 +34,8 @@ export class TimelineComponent {
     private loaderService: LoaderService,
     private hotelListService: HotelListService,
     private localService: LocalStorageService,
-    private hotelenrollmentservice: HotelEnrollmentTabviewService) { }
+    private hotelenrollmentservice: HotelEnrollmentTabviewService,
+    private serviceDetailService: ServiceDetailService) { }
 
   ngOnInit(): void {
     this.member_id = this.localService.get('MemberId');
@@ -103,7 +106,11 @@ export class TimelineComponent {
       next: (response) => {
         if (response?.success && response.result.data.length > 0) {
           const task = response.result.data[0];
-          // Now fetch rating for this task
+          this.timelineData = task;
+          this.timely_delivered = task.hasOwnProperty('timely_delivered') ? task.timely_delivered : true;
+          // Compute expected delivery as soon as we have the task (no need to wait for rating)
+          this.getDeliveryTime();
+          // Fetch rating for this task (only updates rating fields when done)
           const ratingRequestBody = {
             domain_name: DOMAIN_NAME,
             user_id: USER_ID,
@@ -121,26 +128,20 @@ export class TimelineComponent {
             next: (ratingResponse) => {
               if (ratingResponse?.success && ratingResponse.result.data.length > 0) {
                 const ratingData = ratingResponse.result.data[0];
-                task.rating = ratingData.rating;
-                task.feedback_text = ratingData.feedback_text;
-                task.created_on = ratingData.created_on;
+                this.timelineData.rating = ratingData.rating;
+                this.timelineData.feedback_text = ratingData.feedback_text;
+                this.timelineData.created_on = ratingData.created_on;
               } else {
-                task.rating = 0;
-                task.feedback_text = '';
-                task.created_on = null;
+                this.timelineData.rating = 0;
+                this.timelineData.feedback_text = '';
+                this.timelineData.created_on = null;
               }
-              this.timelineData = task; // attach everything to timelineData
-              console.log('Timeline Data Status:', this.timelineData.status);
-              // this.timely_delivered = task.timely_delivered;
-              this.timely_delivered = task.hasOwnProperty('timely_delivered') ? task.timely_delivered : true;
-              console.log('Timeline Data:', this.timelineData);
             },
             error: (err) => {
               console.error('Rating API Error:', err);
-              task.rating = 0;
-              task.feedback_text = '';
-              task.created_on = null;
-              this.timelineData = task;
+              this.timelineData.rating = 0;
+              this.timelineData.feedback_text = '';
+              this.timelineData.created_on = null;
             }
           });
         } else {
@@ -152,6 +153,103 @@ export class TimelineComponent {
         this.timelineData = null;
       }
     });
+  }
+
+  /*  getDeliveryTime(): void {
+     this.expectedDelivery = '-';
+     if (!this.timelineData || !this.timelineData.order_time || !this.timelineData.service?.service_name || !this.member_id) {
+       return;
+     }
+     const requestBody = {
+       domain_name: DOMAIN_NAME,
+       user_id: USER_ID,
+       extras: {
+         find: {
+           member_id: this.member_id
+         }
+       }
+     };
+     this.serviceDetailService.getAllServices(requestBody).subscribe(
+       (resp: any) => {
+         if (resp?.success === 1 && resp?.status_code === 200) {
+           const allServices = resp.result.data || [];
+           const matchedService = allServices.find(
+             (service: any) =>
+               service.name?.toLowerCase() === this.timelineData.service.service_name?.toLowerCase()
+           );
+           const timeBoundValue = matchedService?.time_bound_value;
+           if (
+             timeBoundValue !== undefined &&
+             timeBoundValue !== null &&
+             !isNaN(Number(timeBoundValue)) &&
+             Number(timeBoundValue) > 0
+           ) {
+             const expected = this.getExpectedTime(this.timelineData.order_time, Number(timeBoundValue));
+             this.expectedDelivery = expected || '-';
+           } else {
+             this.expectedDelivery = '-';
+           }
+         } else {
+           this.expectedDelivery = '-';
+         }
+       },
+       () => {
+         this.expectedDelivery = '-';
+       }
+     );
+   } */
+
+  getDeliveryTime(): void {
+    this.expectedDelivery = '-';
+    if (!this.timelineData || !this.timelineData.order_time || !this.timelineData.service?.service_name) {
+      return;
+    }
+    const excludedBelongsTo = ['Menu Ordering', 'Late checkout', 'Checkout', 'Help Service'];
+    const belongsTo = this.timelineData.service?.belongs_to;
+    let findObj: any = {};
+    // Send member_id only for other services
+    if (!excludedBelongsTo.includes(belongsTo) && this.member_id) {
+      findObj.member_id = this.member_id;
+    }
+    const requestBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: {
+        find: findObj
+      }
+    };
+    this.serviceDetailService.getAllServices(requestBody).subscribe(
+      (resp: any) => {
+        if (resp?.success === 1 && resp?.status_code === 200) {
+          const allServices = resp.result.data || [];
+          const matchedService = allServices.find(
+            (service: any) =>
+              service.name?.toLowerCase() ===
+              this.timelineData.service.service_name?.toLowerCase()
+          );
+          const timeBoundValue = matchedService?.time_bound_value;
+          if (
+            timeBoundValue !== undefined &&
+            timeBoundValue !== null &&
+            !isNaN(Number(timeBoundValue)) &&
+            Number(timeBoundValue) > 0
+          ) {
+            const expected = this.getExpectedTime(
+              this.timelineData.order_time,
+              Number(timeBoundValue)
+            );
+            this.expectedDelivery = expected || '-';
+          } else {
+            this.expectedDelivery = '-';
+          }
+        } else {
+          this.expectedDelivery = '-';
+        }
+      },
+      () => {
+        this.expectedDelivery = '-';
+      }
+    );
   }
 
   getExpectedTime(orderTime: string, minutesToAdd: number): string {
@@ -210,9 +308,9 @@ export class TimelineComponent {
       next: (response: any) => {
         if (response?.success && response.result?.data?.length > 0) {
           const customerData = response.result.data[0];
-          console.log('Customer Data:', customerData);
+          // console.log('Customer Data:', customerData);
           this.hotelLogoUrl = customerData.property_details.hotel_logo || null;
-          console.log('Customer logo fetched:', this.hotelLogoUrl);
+          // console.log('Customer logo fetched:', this.hotelLogoUrl);
         } else {
           console.warn('No customer logo found.');
           this.hotelLogoUrl = null;

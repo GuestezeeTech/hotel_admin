@@ -78,9 +78,11 @@
     (click)="nextTabService()">Next Service</button>
   <button type="submit" class="save_bt" *ngIf="this.activeTab == 3 && !paymentDone" (click)="handleSubmit()">Save &
     Continue</button> -->
-  <button type="submit" class="next_bt" *ngIf="((this.activeTab == 1 || this.activeTab == 2) && this.customerStatus !== 'approved')"
+  <button type="submit" class="next_bt"
+    *ngIf="((this.activeTab == 1 || this.activeTab == 2) && this.customerStatus !== 'approved')"
     (click)="nextTabService()">Next Service</button>
-  <button type="submit" class="save_bt" *ngIf="this.activeTab == 3 && this.customerStatus !== 'approved'" (click)="handleSubmit()">Save &
+  <button type="submit" class="save_bt" *ngIf="this.activeTab == 3 && this.customerStatus !== 'approved'"
+    (click)="handleSubmit()">Save &
     Continue</button>
   <!-- <button type="submit" class="next_bt" *ngIf="((this.activeTab == 1 || this.activeTab == 2) )"
     (click)="nextTabService()">Next Service</button>

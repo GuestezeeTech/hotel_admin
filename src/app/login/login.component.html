@@ -2,12 +2,14 @@
 <div class="container-fluid" style=" background-color: #FFFEFA; backdrop-filter: blur(638.83px);">
   <div class="row">
     <div class="col-xs-5 col-sm-5 col-md-5 col-lg-5  p-0" *ngIf="!login">
-      <img src="../../assets/images/guestezee/login-img.png" class="img-fluid" class="login-page_img">
+      <!-- <img src="../../assets/images/guestezee/login-img.png" class="img-fluid" class="login-page_img"> -->
+      <img src="https://images.ecbee.net/GuestEzee/Brand/login-img.webp" class="img-fluid" class="login-page_img">
     </div>
     <div class="col-xs-5 col-sm-5 col-md-5 col-lg-5  p-5" *ngIf="login">
-      <img
+      <!-- <img
         src="https://ecbee-labes-images1.s3.ap-south-1.amazonaws.com/Mayan/StoreGallery/1749548341599%20-%20login.png"
-        class="img-fluid" class="login-page_img">
+        class="img-fluid" class="login-page_img"> -->
+        <img src="https://ecbee-labes-images1.s3.ap-south-1.amazonaws.com/GuestEzee/Brand/1749548341599+-+login.webp" class="img-fluid" class="login-page_img">
     </div>
     <div class="col-xs-7 col-sm-7 col-md-7 col-lg-7 justify-content-center" style="text-align: center;">
       <img src="../../assets/images/guestezee/logo.png" class="img-fluid" class="login_logo_img">
@@ -29,7 +31,7 @@
           <div class="form-group">
             <input type="text" class="form-control login_content_color" id="usr" name="username"
               placeholder="Email or Employee ID Number" formControlName="email">
-            <div class="mt-1" style="color: red;"
+            <div class="mt-1" style="color: red; text-align: start"
               *ngIf="loginForm.controls['email'].touched && loginForm.controls['email'].errors">
               <div *ngIf="loginForm.controls['email'].errors?.['required']">
                 Email or Employee ID is required.
@@ -47,7 +49,7 @@
                 (click)="showPassword('login')" style="color: #878E96;"></i>
             </div>
             <div *ngIf="loginForm.controls['password'].invalid && loginForm.controls['password'].touched"
-              style="color: red;">
+              style="color: red; text-align: start">
               <div *ngIf="loginForm.controls['password'].errors?.['required']">
                 Password is required.
               </div>
@@ -76,7 +78,7 @@
             <input type="text" class="form-control login_content_color" id="usr" name="username" placeholder="Email"
               formControlName="email">
             <div *ngIf="signupForm.controls['email'].invalid && signupForm.controls['email'].touched"
-              class="error-message" style="color: red;">
+              class="error-message" style="color: red; text-align: start">
               Please enter a valid email address.
             </div>
           </div>
@@ -85,7 +87,7 @@
               <input type="number" class="form-control login_content_color" id="phone_number" name="phone_number"
                 placeholder="Phone Number" formControlName="phone_number">
               <div *ngIf="signupForm.controls['phone_number'].invalid && signupForm.controls['phone_number'].touched"
-                class="error-message" style="color: red;">
+                class="error-message" style="color: red; text-align: start">
                 Please enter a valid phone number.
               </div>
             </span>
@@ -106,18 +108,18 @@
               <input *ngFor="let box of otpArray; let i = index" type="tel" maxlength="1"
                 class="form-control text-center" [formControlName]="'otp' + i"
                 style="width: 45px; height: 45px; border-radius: 8px; border: 1px solid #ddd;"
-                (keyup)="onOtpKeyUp($event, i)" />
+                (keyup)="onOtpKeyUp($event, i)" (keydown)="preventSpace($event)" (input)="allowOnlyNumbers($event)"/>
             </div>
           </div>
           <div class="d-flex justify-content-between mt-3">
             <small class="fw-medium">Didn't Received OTP? <span style="color: #800020; cursor: pointer"
-                (click)="resendOtp()">Click Here</span></small>
+                (click)="resendOtp()">Resend OTP</span></small>
             <!-- <small style="color: #800020" class="fw-bold">00:30</small> -->
           </div>
           <button type="submit" class="btn btn-primary login_button mt-2" style="width: 100%;" *ngIf="!forgotPassword"
-            (click)="verifyOTP(phoneNumber)">Continue</button>
+            (click)="verifyOTP(phoneNumber)" [disabled]="otpForm.invalid">Continue</button>
           <button type="submit" class="btn btn-primary login_button mt-2" style="width: 100%;" *ngIf="forgotPassword"
-            (click)="forgotpasswordOtp()">Continue</button>
+            (click)="forgotpasswordOtp()" [disabled]="otpForm.invalid">Continue</button>
         </form>
       </div>
       <!-- Password Form -->
@@ -133,7 +135,7 @@
                 style="color: #878E96;"></i>
             </div>
             <div *ngIf="passwordForm.controls['new_password'].invalid && passwordForm.controls['new_password'].touched"
-              style="color: red;">
+              style="color: red; text-align: start">
               <div *ngIf="passwordForm.controls['new_password'].errors?.['required']">
                 Password is required.
               </div>
@@ -156,7 +158,7 @@
             </div>
             <div
               *ngIf="passwordForm.controls['confirm_password'].invalid && passwordForm.controls['confirm_password'].touched"
-              style="color: red;">
+              style="color: red; text-align: start">
               <div *ngIf="passwordForm.controls['confirm_password'].errors?.['required']">
                 Confirm Password is required.
               </div>
@@ -169,8 +171,8 @@
             </div>
           </div>
           <button type="submit" class="btn btn-primary login_button" style="width: 100%;" *ngIf="!forgotPassword"
-            (click)="setPassword()">
-            Login
+            (click)="setPassword()" [disabled]="isLoggingIn">
+            {{ isLoggingIn ? 'Logging in...' : 'Login' }}
           </button>
           <button type="submit" class="btn btn-primary login_button" style="width: 100%;" *ngIf="forgotPassword"
             (click)="setNewPassword()">

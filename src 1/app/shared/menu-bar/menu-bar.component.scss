@@ -1,0 +1,249 @@
+body {
+    font-family: 'Urbanist', sans-serif !important;
+}
+
+.sidenav {
+    height: 100%;
+    width: 19%;
+    position: fixed;
+    z-index: 1;
+    top: 0;
+    left: 0;
+    background-color: #6D575C;
+    // overflow-x: hidden;
+    padding-top: 20px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    /* ✅ Allow scroll but hide scrollbar visually */
+    padding-top: 20px;
+    scrollbar-width: none;
+    /* Firefox */
+    -ms-overflow-style: none;
+    /* IE, Edge */
+
+}
+
+.sidenav a {
+    text-decoration: none;
+    font-size: 14px;
+    color: #FFFFFF;
+    display: block;
+    // margin-left: 5%;
+    cursor: pointer;
+}
+
+// .sidenav a {
+//     color: #f1f1f1;
+//     background-color: #800020;
+// }
+
+
+
+@media screen and (max-height: 450px) {
+    .sidenav {
+        padding-top: 15px;
+    }
+
+    .sidenav a {
+        font-size: 14px;
+    }
+}
+
+hr {
+    border: 0;
+    height: 1px;
+    background-color: #fff;
+    margin: 10px 0;
+}
+
+.center-hr {
+    width: 80%;
+    margin: 20px auto;
+    /* This centers the hr element */
+    border: 1px solid #fff;
+    /* Style the horizontal line */
+}
+
+ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+.list_container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 14px;
+    margin-bottom: 10px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    /* Add transition for smoother hover effect */
+    font-family: 'Urbanist', sans-serif !important;
+}
+
+.list_container:hover,
+.list_container:active {
+    color: #f1f1f1;
+    background: #800020;
+    /* Change background on hover */
+    border-radius: 5px;
+}
+
+.active {
+    color: #f1f1f1;
+    background: #800020;
+    /* Change background on hover */
+    border-radius: 5px;
+}
+
+.list_container img {
+    height: 20px;
+    /* Set image size for consistency */
+}
+
+.list_container a {
+    color: #fff;
+    /* Default color for links */
+    text-decoration: none;
+    font-size: 15px;
+    /* Font size for links */
+    font-family: 'Urbanist', sans-serif !important;
+}
+
+.rotate {
+    transform: rotate(180deg);
+}
+
+.sub-menu {
+    font-size: 13px;
+    /* Font size for links */
+    font-family: 'Urbanist', sans-serif !important;
+
+}
+
+/* Submenu styles */
+// .submenu {
+//     list-style: none;
+//     padding-left: 40px;
+//     margin-top: 5px;
+//     overflow: hidden;
+//     transition: max-height 0.3s ease-in-out;
+// }
+
+// .submenu li {
+//     padding: 5px 0;
+// }
+
+// .submenu a {
+//     font-size: 14px;
+//     color: #555;
+// }
+
+// .submenu a:hover {
+//     color: #007bff;
+// }
+
+
+
+
+.sidebar {
+    width: 250px;
+    background-color: #4E3D3D;
+    padding: 20px;
+    border-radius: 10px;
+    color: white;
+}
+
+.menu-item {
+    padding: 10px 0;
+}
+
+.icon {
+    margin-right: 10px;
+}
+
+.menu-title {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.submenu {
+    margin-left: 40px;
+    border-left: 1px solid #bbb;
+    padding-left: 8px;
+    margin-top: -20px;
+    position: relative;
+    /* Required for absolute positioning of dots */
+}
+
+/* Top Dot */
+// .submenu::before {
+//     content: "";
+//     position: absolute;
+//     left: -3px; /* Align with the vertical line */
+//     top: 0;
+//     width: 6px;
+//     height: 6px;
+//     background: #bbb; /* Same color as the line */
+//     border-radius: 50%;
+// }
+
+/* Bottom Dot */
+// .submenu::after {
+//     content: "";
+//     position: absolute;
+//     left: -3px; /* Align with the vertical line */
+//     bottom: 0;
+//     width: 6px;
+//     height: 6px;
+//     background: #bbb; /* Same color as the line */
+//     border-radius: 50%;
+// }
+
+.submenu-item {
+    display: block;
+    text-decoration: none;
+    color: #ccc;
+    padding: 5px 0;
+    transition: color 0.3s ease-in-out;
+    text-align: left;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.submenu-item:hover {
+    color: white;
+}
+
+.dropdown-icon {
+    color: white;
+}
+
+/* Newly added */
+.list-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.left-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.dropdown-icon {
+    font-size: 14px;
+    color: white;
+    cursor: pointer;
+    transition: transform 0.3s ease-in-out;
+}
+
+.rotate {
+    transform: rotate(180deg);
+}
+
+.sidenav::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}

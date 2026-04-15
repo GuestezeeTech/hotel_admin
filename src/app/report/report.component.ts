@@ -41,9 +41,19 @@ export class ReportComponent implements AfterViewInit {
     // this.printReport();
   }
 
-  ngOnInit() {
-    const hotelId = Number(this.localStorageService.get('UserId'));
-    this.getCustomerById(hotelId);
+  async ngOnInit(): Promise<void> {
+    // Newly added for getting member id for customer type
+    // const hotelId = Number(this.localStorageService.get('UserId'));
+    // this.getCustomerById(hotelId);
+    this.roomNo = this.localStorageService.get('RoomNo');
+    this.startDate = this.localStorageService.get('StartDate');
+    this.endDate = this.localStorageService.get('EndDate');
+    this.memberId = this.localStorageService.get('MemberId');
+    // console.log('Member ID from report component:', this.memberId);
+    if (this.memberId !== undefined && this.memberId !== null && this.memberId !== '' && this.memberId !== 'undefined' && this.memberId !== 'null') {
+      const customer = await this.getCustomerById(this.memberId);
+    }
+    // End of newly added for getting member id for customer type
     // Get state data from router
     // const navigation = this.router.getCurrentNavigation();
     // const state = navigation?.extras.state as {
@@ -57,26 +67,29 @@ export class ReportComponent implements AfterViewInit {
     //   this.startDate = state.startDate;
     //   this.endDate = state.endDate;
     // }
-    this.roomNo = this.localStorageService.get('RoomNo');
+   /*  this.roomNo = this.localStorageService.get('RoomNo');
     this.startDate = this.localStorageService.get('StartDate');
-    this.endDate = this.localStorageService.get('EndDate');
+    this.endDate = this.localStorageService.get('EndDate'); */
     // console.log('Member id:', this.memberId);
     // this.getAllReport(this.roomNo, this.startDate, this.endDate);
   }
 
-  getCustomerById(hotelId: any): Promise<any> {
+  // getCustomerById(hotelId: any): Promise<any> {
+  getCustomerById(memberId: any): Promise<any> {
     let requestBody = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
-      extras: { find: { id: hotelId } }
+      extras: { find: { 
+        // id: hotelId 
+        "customer_member_id": memberId
+      } }
     };
     return new Promise((resolve, reject) => {
       this.hotelListService.getSignupAllCustomers(requestBody).subscribe({
         next: (resp: any) => {
           if (resp.success === 1 && resp.status_code === 200 && resp?.result?.data?.length > 0) {
             const userData = resp.result.data[0];
-            this.memberId = userData.customer_member_id;
-            console.log('Member id:', this.memberId);
+            // this.memberId = userData.customer_member_id;
             this.getAllReport(this.roomNo, this.startDate, this.endDate);
             resolve(userData);
           } else {
@@ -161,7 +174,7 @@ export class ReportComponent implements AfterViewInit {
               const guest = this.guestData[i];
               const guestId = guest.id;
               const tasksForGuest = resultData.task_data.filter((task: any) => task.guest_id === guestId);
-              console.log('Guest tasks:', tasksForGuest);
+              // console.log('Guest tasks:', tasksForGuest);
               if (tasksForGuest.length > 0) {
                 const ratingRequests = tasksForGuest.map((task: any) => {
                   const ratingRequestBody = {
@@ -192,13 +205,13 @@ export class ReportComponent implements AfterViewInit {
                       });
                     }
                     // Calculate average rating
-                    console.log('Guest requestedServices', guest.requestedServices);
+                    // console.log('Guest requestedServices', guest.requestedServices);
                     const totalRatings = guest.requestedServices.reduce((sum: any, s: any) => sum + s.rating, 0);
                     guest.averageRating = guest.requestedServices.length > 0 ? totalRatings / guest.requestedServices.length : 0;
                     // Match review ratings
-                    console.log('Guest all reviews', resultData.review_data);
+                    // console.log('Guest all reviews', resultData.review_data);
                     guest.guestRatings = resultData.review_data?.filter((r: any) => r.guest_id === guestId && r.checkout_feedback === true) || [];
-                    console.log('Guest checkout rveiew', guest.guestRatings);
+                    // console.log('Guest checkout rveiew', guest.guestRatings);
                     guestsProcessed++;
                     // If all guests processed, hide loading and trigger PDF/Print
                     if (guestsProcessed === this.guestData.length) {

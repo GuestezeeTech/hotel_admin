@@ -39,7 +39,7 @@ body {
   border-color: #800020;
   border-radius: 10px;
   // padding: 10px 10px
-    /* Border color for active tab */
+  /* Border color for active tab */
 }
 
 /* Optional: Style the tab content area */
@@ -51,7 +51,8 @@ body {
   /* 90% width of the parent */
   margin: 0 auto;
   /* This centers the container horizontally */
-  padding: 20px 0px;
+  // padding: 20px 0px;
+  padding: 10px 0px 20px 0px;
   // box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Optional, to add shadow */
   border-radius: 10px;
   /* Optional, for rounded corners */
@@ -79,7 +80,8 @@ body {
   padding-top: 5px;
 }
 
-.settings-container, .status-container {
+.settings-container,
+.status-container {
   background-color: white;
   padding: 20px;
   border-radius: 8px;
@@ -146,7 +148,8 @@ body {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.7); /* Semi-transparent black background */
+  background: rgba(0, 0, 0, 0.7);
+  /* Semi-transparent black background */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -170,8 +173,9 @@ body {
 }
 
 .modal-content {
-  background-image: url('../../assets/images/guestezee/Frame.png'); /* Change path as needed */
- 
+  background-image: url('../../assets/images/guestezee/Frame.png');
+  /* Change path as needed */
+
   background-size: cover;
   background-position: center;
 }
@@ -191,20 +195,48 @@ body {
   pointer-events: none;
 }
 
-.float{
+.float {
   float: inline-end;
   cursor: default;
 }
+
 .text-burgundy {
   color: #800020;
   font-weight: bold;
 }
 
+// Save hint  
+.save-hint-wrapper {
+  display: flex;
+  justify-content: flex-end;
 
+  .save-hint {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 8px 0 4px 0;
+    padding: 8px 14px;
+    font-size: 13px;
+    color: #800020;
+    border-left: 4px solid #800020;
+    border-radius: 4px;
+    background-color: #fff6f8;
+    font-family: urbanist;
+    font-weight: 500;
 
+    i {
+      color: #800020;
+      font-size: 15px;
+      flex-shrink: 0;
+    }
+  }
+}
 
+.payment-note{
+  background-color: #fff6f8;
+  border-left: 4px solid #800020;
+  padding: 10px 10px;
+  border-radius: 8px;
 
-
-
-
-
+  .p{}
+}

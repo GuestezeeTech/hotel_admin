@@ -17,6 +17,22 @@ input {
     font-size: 14px;
 }
 
+.form-control:disabled,
+input[disabled],
+select[disabled],
+textarea[disabled] {
+    background-color: #f5f5f5;
+    cursor: not-allowed;
+    opacity: 0.8;
+}
+
+/* Disabled state for Save / Save Changes buttons in view mode */
+.btn:disabled {
+    background-color: #b35a78 !important;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
 .add-role {
     table {
         width: 100%;

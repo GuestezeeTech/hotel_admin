@@ -45,61 +45,6 @@ export class HierarchyService {
   ) { }
 
   // private getNextId(): number {
-  //   //console.log( ++this.currentId," ++this.currentId")
-  //   return ++this.currentId;
-  // }
-
-  // setHierarchyData(data: HierarchyItem[], isTree: boolean = false, parentId?: number) {
-  //   const currentData = this.hierarchyData.value;
-
-  //   const normalizedParentId = (parentId === null || parentId === 0) ? undefined : parentId;
-
-  //   const newData = data.map(item => ({
-  //     ...item,
-  //     isTreeItem: isTree,
-  //     id: item.id ?? this.getNextId(),
-  //     parentId: item.parentId ?? normalizedParentId
-  //   }));
-
-  //   // 🔑 Merge without duplicates: replace if same id exists
-  //   const merged = [...currentData];
-  //   newData.forEach(item => {
-  //     const idx = merged.findIndex(x => x.id === item.id);
-  //     if (idx > -1) {
-  //       merged[idx] = { ...merged[idx], ...item }; // update
-  //     } else {
-  //       merged.push(item); // insert
-  //     }
-  //   });
-
-  //   this.hierarchyData.next(merged);
-  // }
-
-  // clearHierarchyData(): void {
-  //   this.hierarchyData.next([]); // Clears all hierarchy items
-  // }
-
-  // getHierarchyData(): HierarchyItem[] {
-  //   return this.hierarchyData.value;
-  // }
-
-
-
-  // apiCall(Obj: any, endpointUrl: string): Observable<any> {
-  //   if (this.authTokenService.isTokenExpired()) {
-  //     this.router.navigate(['/login'], { skipLocationChange: false });
-  //     return new Observable(); // ⚠️ Consider replacing with EMPTY or throwError as noted earlier
-  //   } else {
-  //     const headers = new HttpHeaders()
-  //       .set('Content-Type', 'application/json')
-  //       .set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken());
-
-  //     return this.http.post(endpointUrl, Obj, { headers });
-  //   }
-  // }
-
-  // private getNextId(): number {
-  //   //console.log( ++this.currentId," ++this.currentId")
   //   return ++this.currentId;
   // }
 
@@ -152,7 +97,6 @@ export class HierarchyService {
     }
   }
 
-
   // Newly added
   updateHierarchy(UpdateCustomerObj: any): Observable<any> {
     if (this.authTokenService.isTokenExpired()) {
@@ -173,5 +117,11 @@ export class HierarchyService {
       return this.http.post(ENDPOINTS.GET_HIERARCHY, jsonObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
     }
   }
+
+  addNewItem(item: HierarchyItem) {
+    const current = this.hierarchyData.getValue();
+    this.hierarchyData.next([...current, item]);
+  }
+
 }
 

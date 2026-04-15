@@ -1,0 +1,275 @@
+<div class="main">
+  <app-alerts></app-alerts>
+  <div [formGroup]="companyForm" class="company-details-form">
+    <!-- List of products section -->
+    <div class="section" *ngIf="this.newProduct">
+      <div class="add-btn-section">
+        <button class="back-btn submit mr-2" (click)="navigateToList()">Back</button>
+        <button class="add-btn submit" (click)="canAddRestaurants ? addProduct() : null" [disabled]="!canAddRestaurants" [style.cursor]="canAddRestaurants ? 'pointer' : 'not-allowed'" [style.opacity]="canAddRestaurants ? 1 : 0.4">Add Menu</button>
+      </div>
+      <div class="container mt-4">
+        <!-- <app-alerts></app-alerts> -->
+        <div class="row" *ngIf="allProductsData?.length">
+          <div class="col-md-3 mb-4" *ngFor="let product of allProductsData; let i = index">
+            <div class="card h-100 shadow-sm product-card">
+              <div class="d-flex justify-content-between">
+                <div class="product-price">
+                  <span class="price sale-tag">₹{{ product.pricing?.raw?.price }}</span>
+                </div>
+                <div class="product-actions">
+                  <i class="fa fa-eye me-3 cursor-pointer view-icon" 
+                     (click)="canReadRestaurants ? viewProduct(product.id) : null"
+                     [style.opacity]="canReadRestaurants ? 1 : 0.4"
+                    [style.cursor]="canReadRestaurants ? 'pointer' : 'not-allowed'"
+                     title="View"></i>
+                  <i class="fa fa-edit me-3 cursor-pointer edit-icon"
+                     (click)="canEditRestaurants ? editProduct(product.id) : null"
+                    [style.opacity]="canEditRestaurants ? 1 : 0.4"
+                     [style.cursor]="canEditRestaurants ? 'pointer' : 'not-allowed'"
+                     title="Edit"></i>
+                  <i class="fa fa-trash cursor-pointer delete-icon"
+                     (click)="canDeleteRestaurants ? deleteProduct(product.id) : null"
+                    [style.opacity]="canDeleteRestaurants ? 1 : 0.4"
+                     [style.cursor]="canDeleteRestaurants ? 'pointer' : 'not-allowed'"
+                     title="Delete"></i>
+                </div>
+              </div>
+              <div class="product-image mt-2">
+                <!-- Image -->
+                <img [src]="product.assets[0]?.image_source || this.defaultImageUrl" class="card-img product-image"
+                  alt="Product Image" />
+              </div>
+              <!-- Product Name -->
+              <div class="card-body text-center">
+                <h5 class="card-title product-name">{{ product.name }}</h5>
+              </div>
+            </div>
+          </div>
+          <!-- Pagination -->
+          <div class="pagination-container">
+            <button (click)="previousPage()" [disabled]="currentPage === 1" class="pagination-btn">
+              Previous
+            </button>
+            <input type="text" class="pagination-input" value={{currentPage}} readonly>
+            <button (click)="nextPage()" [disabled]="currentPage === totalPages" class="pagination-btn">
+              Next
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <div class="section" *ngIf="!this.newProduct">
+      <!-- Upload Product Images -->
+      <div class="upload-section">
+        <div style="width: 55%; border-right: 1.5px solid #e7e7e7; padding-right: 20px;">
+          <h3 style="font-size: 16px;">
+            UPLOAD IMAGES
+          </h3>
+          <div class="upload-box" style="display: grid;">
+            <i class="fa fa-file-arrow-up"
+              style="-webkit-text-fill-color: white; -webkit-text-stroke: 1px #883a01; font-size: 25px;"></i>
+            <div style="display: flex; justify-content: center;">
+              <!--  <button class="upload-btn" (click)="triggerFileInput()" [disabled]="isUploading">
+                <ng-container *ngIf="!isUploading">
+                  Upload {{ uploadedFiles[currentStage].name }}
+                </ng-container>
+                <ng-container *ngIf="isUploading">
+                  <i class="fa fa-spinner fa-spin"></i> Uploading...
+                </ng-container>
+              </button> -->
+              <button class="upload-btn" (click)="!isViewMode && triggerFileInput()"
+                [class.disabled]="isUploading || allFilesUploaded() || isViewMode"
+                [style.cursor]="isViewMode ? 'not-allowed' : 'pointer'"
+                [disabled]="isViewMode">
+                <ng-container *ngIf="!isUploading">
+                  {{getUploadButtonText()}}
+                </ng-container>
+                <ng-container *ngIf="isUploading">
+                  <i class="fa fa-spinner fa-spin"></i> Uploading...
+                </ng-container>
+              </button>
+              <input type="file" #fileInput (change)="onFileUpload($event)" hidden [disabled]="isViewMode">
+            </div>
+            <p style=" font-size: 11px; color: #777777;">Maximum file size 2MB</p>
+          </div>
+        </div>
+        <div class="file-list">
+          <div class="file-item" *ngFor="let file of uploadedFiles; let i = index;">
+            <div>
+              <span class="file-name fw-medium" style="font-size: 13px; color: #0a0a0a;">
+                Upload {{ file.name }} - {{ file.fileName || 'No file uploaded' }}
+              </span>
+              <p class="file-size" style=" font-size: 12px; color: #848484;">
+                Maximum File size • 2MB
+              </p>
+            </div>
+            <div class="file-actions">
+              <i class="fa fa-eye" [class.disabled]="!file.fileUrl"
+                style="-webkit-text-fill-color: white; -webkit-text-stroke: 1px #39c97c; font-size: 12px;"
+                (click)="openImageModal(file.fileUrl)">
+              </i>
+              <i class="fa fa-upload"
+                style="-webkit-text-fill-color: white; -webkit-text-stroke: 1px #883a01; font-size: 12px;"
+                (click)="!isViewMode && triggerFileInput1(fileInput)"
+                [style.opacity]="isViewMode ? 0.4 : 1"
+                [style.cursor]="isViewMode ? 'not-allowed' : 'pointer'">
+              </i>
+              <!-- File Input (Hidden) -->
+              <input type="file" #fileInput (change)="onIndividualFileUpload($event, i)" hidden [disabled]="isViewMode">
+              <i class="fa fa-trash" [class.disabled]="!file.fileUrl || isViewMode"
+                style="-webkit-text-fill-color: white; -webkit-text-stroke: 1px #888888; font-size: 12px;"
+                (click)="!isViewMode && removeFile(i)"
+                [style.opacity]="isViewMode ? 0.4 : 1"
+                [style.cursor]="isViewMode ? 'not-allowed' : 'pointer'"></i>
+              <!-- <i class="fa fa-upload" style="-webkit-text-fill-color: white; -webkit-text-stroke: 1px #883a01; font-size: 10px;"></i> -->
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-overlay" *ngIf="isModalOpen" (click)="closeModal()">
+        <div class="modal-content" (click)="$event.stopPropagation()">
+          <button (click)="closeModal()" class="close-btn">X</button>
+          <img [src]="selectedImageUrl" alt="Document Preview" class="modal-image">
+        </div>
+      </div>
+    </div>
+    <!-- Product Details -->
+    <section class="section products" *ngIf="!this.newProduct">
+      <div style="display: flex;justify-content: space-between;">
+        <h2 style="font-size: 16px;">{{ isViewMode ? 'VIEW MENU DETAILS' : 'MENU DETAILS' }}</h2>
+        <button class="submit fw-semibold" (click)="opencate()" [disabled]="isViewMode" [style.cursor]="isViewMode ? 'not-allowed' : 'pointer'" [style.opacity]="isViewMode ? 0.4 : 1">Add Category</button>
+      </div>
+      <div class="form-row">
+        <div class="form-group" [formGroup]="categoryForm">
+          <label style="font-size: 15px;">Category <span class="required">*</span></label>
+          <select class="form-control category-dropdown" formControlName="selectedCategory"
+            (change)="onCategoryChange($event)" [disabled]="isViewMode || (!isEditMode && !canAddRestaurants) || (isEditMode && !canEditRestaurants)">
+            <option value="" disabled selected>Select Category</option>
+            <option *ngFor="let category of categories" [ngValue]="category">
+              {{ category.name }}
+            </option>
+            <option [ngValue]="'othercat'">Other Category</option>
+          </select>
+          <!-- <div class="required"
+            *ngIf="categoryForm.get('selectedCategory')?.touched && categoryForm.get('selectedCategory')?.invalid">
+            Category is required
+          </div> -->
+          <div class="required">
+            {{ categoryForm.get('selectedCategory')?.touched && categoryForm.get('selectedCategory')?.invalid ?
+            'Category
+            is
+            required' : ' ' }}
+          </div>
+        </div>
+        <div class="form-group">
+          <label style="font-size: 15px;">Item <span class="required">*</span>
+          </label>
+          <input type="text" formControlName="name" placeholder="Machine" class="custom-input" [disabled]="isViewMode || (!isEditMode && !canAddRestaurants) || (isEditMode && !canEditRestaurants)" />
+          <!--  <div class="required" *ngIf="companyForm.get('name')?.touched && companyForm.get('name')?.invalid">
+             Item name is required
+           </div>  -->
+          <div class="required">
+            {{ companyForm.get('name')?.touched && companyForm.get('name')?.invalid ? 'Item name is
+            required' : ' ' }}
+          </div>
+        </div>
+      </div>
+      <div class="form-row">
+        <!-- <div class="form-group">
+        <label style="font-size: 15px;">SKU ID <span class="required">*</span>
+        </label>
+        <input type="text" formControlName="sku" placeholder="SKU-9085" class="custom-input" />
+      </div> -->
+        <div class="form-group">
+          <label style="font-size: 15px;">Price <span class="required">*</span>
+          </label>
+          <input type="text" formControlName="price" placeholder="400" class="custom-input"
+            (keypress)="allowOnlyNumbers($event)" (input)="0" (paste)="allowOnlyNumbers($event)" [disabled]="isViewMode || (!isEditMode && !canAddRestaurants) || (isEditMode && !canEditRestaurants)" />
+          <!-- <div class="required" *ngIf="companyForm.get('price')?.touched && companyForm.get('price')?.invalid">
+            Price is required
+          </div> -->
+          <div class="required">
+            {{ companyForm.get('price')?.touched && companyForm.get('price')?.invalid ? 'Price is required' : ' ' }}
+          </div>
+        </div>
+        <div class="form-group">
+          <label style="font-size: 15px;">Offer Price <span class="required">*</span>
+          </label>
+          <input type="text" formControlName="offer_price" placeholder="200" class="custom-input"
+            (keypress)="allowOnlyNumbers($event)" (input)="0" (paste)="allowOnlyNumbers($event)" [disabled]="isViewMode || (!isEditMode && !canAddRestaurants) || (isEditMode && !canEditRestaurants)" />
+          <!-- <div class="required"
+            *ngIf="companyForm.get('offer_price')?.touched && companyForm.get('offer_price')?.invalid">
+            Offer Price is required
+          </div> -->
+          <div class="required">
+            {{ companyForm.get('offer_price')?.touched && companyForm.get('offer_price')?.invalid ? 'Offer price is
+            required' : ' ' }}
+          </div>
+        </div>
+      </div>
+      <!-- [(ngModel)]="isAvailable" -->
+      <div class="form-group">
+        <label style="font-size: 15px;">Description
+        </label>
+        <textarea rows="5" formControlName="description" class="custom-input" [disabled]="isViewMode || (!isEditMode && !canAddRestaurants) || (isEditMode && !canEditRestaurants)"></textarea>
+      </div>
+    </section>
+    <!-- Product Availability -->
+    <section class="section availability" *ngIf="!this.newProduct">
+      <h2 style="font-size: 16px;">ITEM AVAILABILITY</h2>
+      <div style="display: flex;align-items: center">
+        <span class="label-text">Available</span>
+        <label class="switch mb-0">
+          <input type="checkbox" [checked]="isAvailable" (change)="toggleAvailability($event)" [disabled]="isViewMode || (!isEditMode && !canAddRestaurants) || (isEditMode && !canEditRestaurants)" />
+          <span class="slider round" [class.disabled-slider]="isViewMode || (!isEditMode && !canAddRestaurants) || (isEditMode && !canEditRestaurants)"></span>
+        </label>
+      </div>
+    </section>
+    <!-- Add Category section -->
+    <div [formGroup]="categoryForm" class="modal-overlay1" *ngIf="isModalOpen1" (click)="closeModal1()">
+      <div class="modal-content1" (click)="$event.stopPropagation()">
+        <div style="display: flex;">
+          <h2 style="font-size: 16px;text-align: left;">Category :</h2>
+        </div>
+        <p style="font-size: 15px;text-align: left;">Enter Category <span class="required fw-semibold">*</span></p>
+        <input type="text" formControlName="name" placeholder="Category" class="custom-input1" [disabled]="isViewMode" />
+        <div class="required"
+          *ngIf="categoryForm.get('name')?.touched && categoryForm.get('name')?.hasError('required')">
+          Category is required
+        </div>
+        <div class="form-actions category-btn-actions">
+          <button type="button" class="cancel1" (click)="closeModal1()">Cancel</button>
+          <button type="button" class="submit1" (click)="createcat()" [disabled]="isViewMode" [style.cursor]="isViewMode ? 'not-allowed' : 'pointer'" [style.opacity]="isViewMode ? 0.4 : 1">Save</button>
+        </div>
+      </div>
+    </div>
+    <!-- Submit and Cancel Buttons -->
+    <div class="form-actions" *ngIf="!this.newProduct">
+      <button type="button" class="cancel" (click)="openExitModal()">{{ isViewMode ? 'Close' : 'Cancel' }}</button>
+      <!-- <button type="submit" class="submit" (click)="onSubmit()"
+        [disabled]="!companyForm.valid || !categoryForm.valid ">Save</button> -->
+      <button type="submit" class="submit" *ngIf="!isViewMode" (click)="onSubmit()" [disabled]="(!isEditMode && !canAddRestaurants) || (isEditMode && !canEditRestaurants)" [style.cursor]="(!isEditMode && !canAddRestaurants) || (isEditMode && !canEditRestaurants) ? 'not-allowed' : 'pointer'" [style.opacity]="(!isEditMode && !canAddRestaurants) || (isEditMode && !canEditRestaurants) ? 0.6 : 1">Save</button>
+    </div>
+  </div>
+</div>
+<!-- Exit Confirmation Modal -->
+<div *ngIf="isExitModalOpen" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+           background: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center;">
+  <div style="background: white; padding: 30px; border-radius: 15px; width: 450px; text-align: center;
+              box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);">
+    <h2 style="margin-bottom: 10px; font-size: 20px; font-weight: bold;">
+      Are you sure you want to exit?
+    </h2>
+    <div style="display: flex; justify-content: space-around; margin-top: 25px;">
+      <button style="padding: 12px; background: #E1E2EB; color: black; border: none; cursor: pointer;
+                       width: 45%; border-radius: 8px;" (click)="closeExitModal()">
+        Cancel
+      </button>
+      <button style="padding: 12px; background: #800020; color: white; border: none; cursor: pointer;
+                       width: 45%; border-radius: 8px;" (click)="confirmExit()">
+        Exit
+      </button>
+    </div>
+  </div>
+</div>

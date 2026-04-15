@@ -10,6 +10,7 @@ import { AuthTokenService } from '../../auth-services/auth-token.service';
 import { Alert } from '../../shared/alerts/alerts.model';
 import { AlertsComponent } from '../../shared/alerts/alerts.component';
 import { FormsModule } from '@angular/forms';
+import { PermissionService, ModulePermission } from '../../services/permission.service';
 
 @Component({
   selector: 'app-role-listing',
@@ -38,30 +39,69 @@ export class RoleListingComponent implements OnInit {
   pageSize: number = 10; // Show 10 roles per page
   totalRoles: number = 0; // Total number of roles
   totalPages: number = 0; // Total number of pages
-
+  // Newly added
+  memberId: any;
 
   constructor(
     private roleListingService: RoleListingService,
     private alertService: AlertsService,
     private routeUrl: Router,
     private authTokenService: AuthTokenService,
-    private localStorageService:LocalStorageService
+    private localStorageService: LocalStorageService,
+    private permissionService: PermissionService
   ) {
   }
 
+  // Permission helpers for USER ACCESS
+  get canReadUserAccess(): boolean {
+    const permission = this.permissionService.getModulePermission('USER ACCESS');
+    return permission?.has_read_permission ?? false;
+  }
+
+  get canAddUserAccess(): boolean {
+    const permission = this.permissionService.getModulePermission('USER ACCESS');
+    return permission?.has_add_permission ?? false;
+  }
+
+  get canEditUserAccess(): boolean {
+    const permission = this.permissionService.getModulePermission('USER ACCESS');
+    return permission?.has_edit_permission ?? false;
+  }
+
+  get canDeleteUserAccess(): boolean {
+    const permission = this.permissionService.getModulePermission('USER ACCESS');
+    return permission?.has_delete_permission ?? false;
+  }
   ngOnInit(): void {
+    this.memberId = this.localStorageService.get('MemberId');
+    // console.log('Member ID:', this.memberId);
     // To initially load all role data's
-    this.getAllRoles();
+    // this.getAllRoles();
+    if (this.memberId) {
+      this.getAllRoles();
+    } else {
+      console.warn("Member ID not found — not fetching roles");
+    }
   }
 
   // To navigate to role page with id
   toggleAddRole() {
+    // Respect add permission
+    if (!this.canAddUserAccess) return;
     this.routeUrl.navigate(['/role']);
   }
 
   // To navigate to role page with id
   setInitialValues(roleId: any) {
+    // Respect edit permission
+    if (!this.canEditUserAccess) return;
     this.routeUrl.navigate(['/role', roleId]);
+  }
+
+  // View-only navigation for role (all fields disabled)
+  viewRole(roleId: any) {
+    if (!this.canReadUserAccess) return;
+    this.routeUrl.navigate(['/role', roleId], { state: { mode: 'view' } });
   }
 
   // To get all role data's
@@ -71,9 +111,13 @@ export class RoleListingComponent implements OnInit {
       "user_id": USER_ID,
       "extras": {
         "find": {
-          //  "member_id": this.localStorageService.get('MemberId')
+           "member_id": this.localStorageService.get('MemberId')
         },
         "pagination": false,
+        // "paginationDetails": {
+        //   limit: 10,
+        //   pageSize: 1
+        // },
         "sorting": true,
         "sortingDetails": {
           "id": -1
@@ -84,6 +128,7 @@ export class RoleListingComponent implements OnInit {
       next: (response) => {
         if (response?.success) {
           this.roles = response.result.data; //Full data
+          // console.log('All roles:', this.roles);
           this.allRoles = response.result.data; //For pagination
           this.totalRoles = this.roles.length;
           //console.log('Total Roles:', this.totalRoles);
@@ -130,8 +175,18 @@ export class RoleListingComponent implements OnInit {
 
   // This function opens the delete modal
   openDeleteModal() {
-    if (this.selectedRoleIds.length == 0) {
-      this.alertService.error("Please select at least one user to delete.", this.options);
+    // Respect delete permission
+    if (!this.canDeleteUserAccess) {
+      this.alertService.error('You do not have permission to delete roles.', this.options);
+      return;
+    }
+    if (!this.allRoles || this.allRoles.length === 0) {
+      this.alertService.error('No roles to delete.', this.options);
+      return;
+    }
+    if (!this.selectedRoleIds || this.selectedRoleIds.length === 0) {
+      this.alertService.error("Please select at least one role to delete.", this.options);
+      return;
     }
     else {
       this.isDeleteModalOpen = true;
@@ -146,7 +201,7 @@ export class RoleListingComponent implements OnInit {
   deleteSelectedRoles() {
     this.isDeleteModalOpen = false;
     if (this.selectedRoleIds.length === 0) {
-      this.alertService.error("Please select at least one user to delete.", this.options);
+      this.alertService.error("Please select at least one role to delete.", this.options);
       return;
     }
     //console.log(this.selectedRoleIds, "this.selectedRoleIds")

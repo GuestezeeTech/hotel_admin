@@ -47,6 +47,11 @@ body {
     color: white;
     padding: 0.50rem 0.75rem !important;
 }
+.login_button:disabled {
+    cursor: not-allowed !important;
+    opacity: 0.6;
+    pointer-events: all;
+}
 
 input::placeholder {
     color: #878E96;

@@ -13,6 +13,7 @@ import { TaskManagementService } from '../task-management.service';
 import { FormsModule } from '@angular/forms';
 import { HotelListService } from '../../hotel-list/hotel-list.service';
 import { firstValueFrom } from 'rxjs';
+import { shouldFilterByCategory } from '../task-category.util';
 import { deleteApp } from 'firebase/app';
 
 @Component({
@@ -78,6 +79,8 @@ export class AsapCartComponent implements OnInit, OnDestroy {
   showAmountInput = false;
   amountError: string | null = null; // track error
   private errorTimeout: any;
+  // Newly added for loader
+  isLoading: boolean = false;
   // Newly added - Menu
   isMenuModalOpen: boolean = false;
   selectedMenuItems: any[] = [];
@@ -107,9 +110,9 @@ export class AsapCartComponent implements OnInit, OnDestroy {
 
   async ngOnInit() {
     this.customerType = this.localService.get('CustomerType');
-    console.log('CustomerType:', this.customerType);
-    this.hotelId = Number(this.localService.get('UserId'));
-    console.log('Hotel Id:', this.hotelId);
+    // console.log('CustomerType:', this.customerType);
+
+    // console.log('Hotel Id:', this.hotelId);
     // this.firestoreListenerService.listenToHitServiceChange();
     // this.firestoreListenerService.hitServiceChanged$.subscribe((changed) => {
     //   if (changed) {
@@ -138,8 +141,17 @@ export class AsapCartComponent implements OnInit, OnDestroy {
 
     // Newly added
     // To load inital all tasks
+    // Newly added for getting member id for customer type
+    // this.hotelId = Number(this.localService.get('UserId'));
+    this.memberId = this.localService.get('MemberId');
+    // console.log('Member ID from asap cart component:', this.memberId);
     if (this.customerType == 'Customer') {
-      await this.getCustomerMemberId(this.hotelId);
+      // await this.getCustomerMemberId(this.hotelId);
+      this.member_id = this.memberId;
+      if (this.memberId !== undefined && this.memberId !== null && this.memberId !== '' && this.memberId !== 'undefined' && this.memberId !== 'null') {
+        await this.getCustomerMemberId(this.memberId);
+      }
+      // End of newly added for getting member id for customer type
     }
     else {
       this.member_id = this.localService.get('MemberId');
@@ -160,15 +172,27 @@ export class AsapCartComponent implements OnInit, OnDestroy {
     const hierarchyString = this.localService.get('hierarchy');
     if (hierarchyString) {
       this.escalationHierarchy = JSON.parse(hierarchyString);
-      console.log('Escalation Hierarchy(ASAP):', this.escalationHierarchy);
+      // console.log('Escalation Hierarchy(ASAP):', this.escalationHierarchy);
     } else {
       this.escalationHierarchy = [];
     }
     // Ended
+    // Newly added for userDepartment
+    if (this.customerType === 'Staff') {
+      let userData: any = this.localService.get('StaffData');
+      let userDataParse = JSON.parse(userData);
+      this.userDepartment = userDataParse?.hierarchy?.map((item: any) => item.department) || [];
+      // console.log('User Department(ASAP):', this.userDepartment);
+    }
+    // Ended
     this.member_id = this.member_id;
-    console.log('Member id in asap:', this.member_id);
+    // console.log('Member id in asap:', this.member_id);
     this.selfStaffId = Number(this.localService.get('UserId'));
-    console.log('Staff id', this.selfStaffId);
+    // console.log('Staff id', this.selfStaffId);
+    // Newly added for refresh update
+    this.intervalId = setInterval(() => {
+      this.getAllAsapTask();
+    }, 10000);
   }
 
   ngOnDestroy() {
@@ -203,7 +227,7 @@ export class AsapCartComponent implements OnInit, OnDestroy {
   //     // Newly added - parentId
   //     this.at_desk = staffDataParse.at_desk;
   //     this.member_id = staffDataParse.member_id;
-  //     console.log('User Data:', this.at_desk);
+  //     // console.log('User Data:', this.at_desk);
   //     if (hierarchy.department == '') {
   //       object = {
   //         "status": "ASAP",
@@ -283,21 +307,25 @@ export class AsapCartComponent implements OnInit, OnDestroy {
   // }
 
   // Newly added for getting room number based on label
-  getCustomerMemberId(hotelId: any): Promise<any> {
+  // getCustomerMemberId(hotelId: any): Promise<any> {
+  getCustomerMemberId(memberId: any): Promise<any> {
     return new Promise((resolve, reject) => {
       const requestBody = {
         domain_name: DOMAIN_NAME,
         user_id: USER_ID,
         extras: {
-          find: { id: hotelId }
+          find: {
+            // id: hotelId
+            "customer_member_id": memberId
+          }
         }
       };
       this.hotelListService.getSignupAllCustomers(requestBody).subscribe({
         next: (res: any) => {
           if (res && res.result.data.length > 0) {
             const customer = res.result.data[0];
-            console.log('Customer Data:', customer);
-            this.member_id = customer.customer_member_id;
+            // console.log('Customer Data:', customer);
+            // this.member_id = customer.customer_member_id;
             resolve(this.memberId); // resolves with memberId
           } else {
             reject('No customer found');
@@ -312,11 +340,11 @@ export class AsapCartComponent implements OnInit, OnDestroy {
 
   // Hits task api
   getAllAsapTask() {
-    console.log('Called getAllAsapTask');
+    // console.log('Called getAllAsapTask');
     this.customerType = this.localService.get('CustomerType');
-    console.log('Customer Type:', this.customerType);
+    // console.log('Customer Type:', this.customerType);
     let memberId = this.member_id;
-    console.log('Member Id:', memberId);
+    // console.log('Member Id:', memberId);
     if (this.customerType == 'Customer') {
       this.callTaskApi({
         status: ['ASAP', "Assigned"],
@@ -328,34 +356,68 @@ export class AsapCartComponent implements OnInit, OnDestroy {
     }
   }
 
+  // Newly added & commented for staff getting based on room number
   // Gets customer data based on member id
-  getCustomerData(memberId: any) {
-    let requestBody = {
-      "domain_name": DOMAIN_NAME,
-      "user_id": USER_ID,
-      "extras": {
-        "find": { "customer_member_id": memberId }
-      }
-    };
-    this.hotelListService.getSignupAllCustomers(requestBody).subscribe((res: any) => {
-      if (res && res.result.data.length > 0) {
-        const customer = res.result.data[0];
-        console.log('Customer Data:', customer);
-        if (customer && customer.settings?.room_range) {
-          this.mapStaffRooms(customer.settings.room_range);
-          // Now rooms are ready → hit task API
-          this.prepareAndCallTaskApi();
+  // getCustomerData(memberId: any) {
+  //   let requestBody = {
+  //     "domain_name": DOMAIN_NAME,
+  //     "user_id": USER_ID,
+  //     "extras": {
+  //       "find": { "customer_member_id": memberId }
+  //     }
+  //   };
+  //   this.hotelListService.getSignupAllCustomers(requestBody).subscribe((res: any) => {
+  //     if (res && res.result.data.length > 0) {
+  //       const customer = res.result.data[0];
+  //       // console.log('Customer Data:', customer);
+  //       if (customer && customer.settings?.room_range) {
+  //         this.mapStaffRooms(customer.settings.room_range);
+  //         // Now rooms are ready → hit task API
+  //         this.prepareAndCallTaskApi();
+  //       }
+  //     }
+  //   });
+  // }
+
+  getCustomerData(memberId: any): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const requestBody = {
+        domain_name: DOMAIN_NAME,
+        user_id: USER_ID,
+        extras: {
+          find: { customer_member_id: memberId }
         }
-      }
+      };
+      this.hotelListService.getSignupAllCustomers(requestBody).subscribe({
+        next: (res: any) => {
+          if (res && res.result.data.length > 0) {
+            const customer = res.result.data[0];
+            // console.log('Customer Data:', customer);
+            if (customer && customer.settings?.room_range) {
+              this.mapStaffRooms(customer.settings.room_range);
+              // Now rooms are ready → hit task API
+              this.prepareAndCallTaskApi();
+            }
+            resolve(customer); // resolve with customer data
+          } else {
+            resolve(null); // resolve with null if no customer found
+          }
+        },
+        error: (err) => {
+          console.error('Error fetching customer data:', err);
+          reject(err); // reject on error
+        }
+      });
     });
   }
+  // Ended
 
   // Gets room no based on label of staff from customer(hotel) settings
   mapStaffRooms(roomRange: any[]) {
     let staffData: any = this.localService.get('StaffData');
     let staffDataParse = JSON.parse(staffData);
     let staffRoomNo = staffDataParse.room_no; // [{ label: "Floor 1" }, { label: "Floor 3" }]
-    console.log('Staff Room No:', staffRoomNo);
+    // console.log('Staff Room No:', staffRoomNo);
     let finalRoomArray: string[] = [];
     staffRoomNo.forEach((staff: any) => {
       const matched = roomRange.find(r => r.label === staff.label);
@@ -363,7 +425,7 @@ export class AsapCartComponent implements OnInit, OnDestroy {
         finalRoomArray.push(`${matched.startRoom}-${matched.endRoom}`);
       }
     });
-    console.log('Final Room Array:', finalRoomArray); // ["1-100", "201-300"]
+    // console.log('Final Room Array:', finalRoomArray); // ["1-100", "201-300"]
     this.labelRoomArray = finalRoomArray;
   }
 
@@ -374,7 +436,7 @@ export class AsapCartComponent implements OnInit, OnDestroy {
     // Newly added & commented for combined - started
     // let department = hierarchyParse?.department;
     let department = hierarchyParse?.map((item: any) => item.department);
-    console.log('Staff department(ASAP):', department);
+    // console.log('Staff department(ASAP):', department);
     // Ended
     let staffData: any = this.localService.get('StaffData');
     let staffDataParse = JSON.parse(staffData);
@@ -455,7 +517,7 @@ export class AsapCartComponent implements OnInit, OnDestroy {
       }
     });
     this.labelRoomArray = roomList;
-    console.log('Room Number:', this.labelRoomArray);
+    // console.log('Room Number:', this.labelRoomArray);
     // Ended
     if (this.at_desk) {
       object = {
@@ -465,9 +527,7 @@ export class AsapCartComponent implements OnInit, OnDestroy {
         member_id: this.member_id
       };
     }
-    if (department && department !== 'Select') {
-      object["service.category"] = department;
-    }
+
     // if (department && department === 'Select') {
     //   object["service.category"] = 'Select';
     // }
@@ -490,12 +550,49 @@ export class AsapCartComponent implements OnInit, OnDestroy {
     //   }
     // }
     // console.log('Object:', object);
-    this.callTaskApi(object);
+    // Newly commented because no need of fo desk 
+    // const isFoStaffString = this.localService.get('frontOfficeDeskStaff'); // likely "true" or "false"
+    // console.log('Is front office staff string:', isFoStaffString);
+    // const isFoStaff = (isFoStaffString === 'true');
+    // End of newly commented code
+    // console.log('Is front office staff:', isFoStaff);
+    /*  if (isFoStaff) {
+       if (isFoStaff) {
+         // 1st Call → based on department
+         let catObj = { ...object, ["service.category"]: department };
+         // 2nd Call → based on belongs_to
+         let belongsObj = {
+           ...object,
+           ["service.belongs_to"]: ["Checkout", "Late checkout", "Help Service"]
+         };
+         // Make 2 API calls
+         this.callTaskApi(catObj);
+         // this.callTaskApi(belongsObj);
+         return; // stop here
+       }
+     }
+     // Newly commented while checkout / late checkout
+     // if (department && (department !== 'Select' || department !== '')) {
+     object["service.category"] = department;
+     // }
+     // Ended
+     this.callTaskApi(object); */
+    this.tasks = [];
+    this.filteredTasks = [];
+    // API call → category (category-based listing ONLY, when not Default)
+    const findObject = shouldFilterByCategory(department)
+      ? { ...object, "service.category": department }
+      : { ...object };
+    this.callTaskApi(findObject);
+    // Previously we fetched by assigned_department
+    // const assignedObj = { ...object, "assigned_department": department };
+    // this.callTaskApi(assignedObj, 'assigned_department');
   }
 
   // Final call for api
   callTaskApi(findObject: any) {
-    console.log('Find Object(ASAP):', findObject);
+    this.isLoading = true;
+    // console.log('Find Object(ASAP):', findObject);
     let requestBody = {
       "domain_name": DOMAIN_NAME,
       "user_id": USER_ID,
@@ -509,43 +606,76 @@ export class AsapCartComponent implements OnInit, OnDestroy {
     this.taskManagementService.getAllTask(requestBody).subscribe({
       next: (response) => {
         if (response?.success) {
-          // Newly added & commented for combined - started
-          // this.tasks = response.result.data.map((task: any) => ({
-          //   ...task,
-          //   remainingSeconds: undefined
-          // }));
-          // Filter only tasks not having scheduled_date & scheduled_time
-          // this.tasks = (response.result.data || [])
-          //   .filter((task: any) => !task.scheduled_date && !task.scheduled_time)
-          //   .map((task: any) => ({
-          //     ...task,
-          //     remainingSeconds: undefined
-          //   }));
-          this.tasks = (response.result.data || [])
+          const newTasks = (response.result.data || [])
             .filter((task: any) => !task.scheduled_date && !task.scheduled_time)
             .map((task: any) => {
-              // Match escalation time based on service.category
-              const matchedHierarchy = this.escalationHierarchy.find(
-                (h: any) => h.department?.toLowerCase() === task.service?.category?.toLowerCase()
-              );
-              const escalationTime = matchedHierarchy ? matchedHierarchy.escalationTime : 0; // fallback if not found
+              // Newly added - Check if logged-in staff's department is "Default"
+              // If "Default", skip department matching and directly use escalation time
+              const isDefaultDept = Array.isArray(this.userDepartment)
+                ? this.userDepartment.includes('Default')
+                : this.userDepartment === 'Default';
+
+              let escalationTime = 0;
+
+              if (isDefaultDept) {
+                // If department is "Default", directly use escalation time from hierarchy
+                // Use the escalation time from "Default" department hierarchy item, or first one if not found
+                const defaultHierarchy = this.escalationHierarchy.find(
+                  (h: any) => h.department?.toLowerCase() === 'default'
+                ) || this.escalationHierarchy[0];
+                escalationTime = defaultHierarchy ? defaultHierarchy.escalationTime : 0;
+              } else {
+                // Old code - Category-based matching ONLY (no assigned_department)
+                // const departmentToMatch = task.service?.category;
+                // const matchedHierarchy = this.escalationHierarchy.find(
+                //   (h: any) =>
+                //     h.department?.toLowerCase() ===
+                //     departmentToMatch?.toLowerCase()
+                // );
+                // const escalationTime = matchedHierarchy
+                //   ? matchedHierarchy.escalationTime
+                //   : 0;
+
+                // Category-based matching ONLY (no assigned_department)
+                const departmentToMatch = task.service?.category;
+                const matchedHierarchy = this.escalationHierarchy.find(
+                  (h: any) =>
+                    h.department?.toLowerCase() ===
+                    departmentToMatch?.toLowerCase()
+                );
+                escalationTime = matchedHierarchy
+                  ? matchedHierarchy.escalationTime
+                  : 0;
+              }
+              // Ended
               return {
                 ...task,
                 remainingSeconds: undefined,
                 escalationTime
               };
             });
-          console.log("Tasks with Escalation Time(ASAP):", this.tasks);
-          // Ended
+          // Merge and deduplicate by task id
+          const taskMap = new Map<number, any>();
+          // Add existing tasks to map
+          this.tasks.forEach((task: any) => taskMap.set(task.id, task));
+          // Add new tasks (will overwrite duplicates by id)
+          newTasks.forEach((task: any) => taskMap.set(task.id, task));
+          // Convert map back to array
+          this.tasks = Array.from(taskMap.values());
+          // Ensure newest ASAP tasks appear first
+          this.sortAsapTasksByMostRecent();
+          // console.log("Tasks with Escalation Time(ASAP):", this.tasks);
           this.filteredTasks = [...this.tasks];
           this.tasks.forEach(task => this.initializeTimer(task));
           this.totalTasks = this.tasks.length;
           this.totalPages = Math.ceil(this.totalTasks / this.pageSize);
           this.updatePaginatedTasks();
         }
+        this.isLoading = false;
       },
       error: (err) => {
         console.error('Task API Error:', err);
+        this.isLoading = false;
       }
     });
   }
@@ -563,7 +693,7 @@ export class AsapCartComponent implements OnInit, OnDestroy {
       ? this.tasks.filter((task: any) =>
         // task.room_no?.toString().toLowerCase().includes(searchTerm)
         task.room_no?.toString().toLowerCase().startsWith(searchTerm) ||
-        task.guest_name?.toString().toLowerCase().startsWith(searchTerm)
+        (task.guest_name || task.task_created_by)?.toString().toLowerCase().startsWith(searchTerm)
       )
       : this.tasks;
     const startIndex = (this.currentPage - 1) * this.pageSize;
@@ -814,7 +944,7 @@ export class AsapCartComponent implements OnInit, OnDestroy {
   //         this.deskStaff = resp.result.data;
   //         //store only ids
   //         this.deskStavesIds = this.deskStaff.map((staff: any) => staff.id);
-  //         console.log('Desk Staff:', this.deskStaff);
+  //         // console.log('Desk Staff:', this.deskStaff);
   //       } else {
   //         this.deskStaff = [];
   //       }
@@ -878,7 +1008,7 @@ export class AsapCartComponent implements OnInit, OnDestroy {
   //     const response: any = await firstValueFrom(this.taskManagementService.getAllTask(requestBody));
   //     if (response?.success && response.result.data?.length) {
   //       this.assigningTask = response.result.data[0];
-  //       console.log('Assigning Task:', this.assigningTask);
+  //       // console.log('Assigning Task:', this.assigningTask);
   //       // Await getStaffById() since it already returns a Promise
   //       await this.getStaffById(this.staffId);
   //       // Continue logic after staff is fetched
@@ -910,7 +1040,7 @@ export class AsapCartComponent implements OnInit, OnDestroy {
   //       (resp: any) => {
   //         if (resp?.success === 1 && resp.status_code === 200) {
   //           this.assignedStaff = resp.result.data[0];
-  //           console.log('Staff:', this.assignedStaff);
+  //           // console.log('Staff:', this.assignedStaff);
   //           resolve(this.assignedStaff); // resolve with data
   //         } else {
   //           const message = resp?.message || 'Something bad happened. Please try again!';
@@ -1025,18 +1155,18 @@ export class AsapCartComponent implements OnInit, OnDestroy {
       // If same staff clicked again → unselect
       this.selectedStaff = {};
       this.isStaffSelected = false;
-      console.log('Staff unselected');
+      // console.log('Staff unselected');
     } else {
       // Otherwise select new staff
       this.selectedStaff = staff;
       this.isStaffSelected = true;
-      console.log('Selected Staff:', this.selectedStaff);
+      // console.log('Selected Staff:', this.selectedStaff);
     }
   }
 
   openModal(task: any) {
     this.isModalOpen = true;
-    console.log('Task:', task);
+    // console.log('Task:', task);
     this.assigningTask = task;
     this.selectedRoom = task.room_no;
     this.getAllStaves(this.assigningTask);
@@ -1072,7 +1202,7 @@ export class AsapCartComponent implements OnInit, OnDestroy {
   //         const higherLevelIds = allStaves
   //           .map((staff: any) => staff.higher_level_officer?.id)
   //           .filter((id: any) => id !== null && id !== undefined);
-  //         console.log('Higher Level Officer IDs:', higherLevelIds);
+  //         // console.log('Higher Level Officer IDs:', higherLevelIds);
   //         // Filter by higherLevel + room_no.label
   //         this.staves = allStaves.filter((staff: any) => {
   //           // exclude if already a higher_level_officer
@@ -1088,7 +1218,7 @@ export class AsapCartComponent implements OnInit, OnDestroy {
   //           // check if any staff label exists in labelRoomArray
   //           return staffLabels.some((label: string) => this.labelRoomArray.includes(label));
   //         });
-  //         console.log('Filtered Staves:', this.staves);
+  //         // console.log('Filtered Staves:', this.staves);
   //         this.isModalOpen = true;
   //       } else {
   //         const message = resp?.message || 'Something bad happened. Please try again!';
@@ -1105,9 +1235,39 @@ export class AsapCartComponent implements OnInit, OnDestroy {
   //   );
   // }
 
-  getAllStaves(task: any): void {
+  async getAllStaves(task: any): Promise<void> {
+    // Newly added for staff getting based on room number
+    const customerData = await this.getCustomerData(this.member_id);
+    // Build label-to-room-values map from customer settings
+    const roomRanges: any = customerData.settings?.room_range || []; // Assuming you store customer object locally
+    // console.log('Room ranges of customer:', roomRanges);
+    // const customer = JSON.parse(customerSettings);
+    // const roomRanges = customer.settings?.room_range || [];
+    const labelToRoomsMap: { [label: string]: string[] } = {};
+    // console.log('Label to Rooms Map(Empty):', labelToRoomsMap);
+    roomRanges.forEach((range: any) => {
+      const start = parseInt(range.startRoom);
+      // console.log('Start Room:', start);
+      const end = parseInt(range.endRoom);
+      // console.log('End Room:', end);
+      const rooms: string[] = [];
+      for (let i = start; i <= end; i++) {
+        rooms.push(i.toString());
+      }
+      labelToRoomsMap[range.label] = rooms;
+    });
+    // console.log('Label to Rooms Map:', labelToRoomsMap);
+    // Find the label corresponding to the task's room_no
+    let taskRoomLabel = '';
+    Object.keys(labelToRoomsMap).forEach(label => {
+      if (labelToRoomsMap[label].includes(task.room_no)) {
+        taskRoomLabel = label;
+      }
+    });
+    // console.log('Task Room Label:', taskRoomLabel);
+    // Ended
     const currentUserId = Number(this.localService.get('UserId'));
-    console.log('Current User ID:', currentUserId);
+    // console.log('Current User ID:', currentUserId);
     let object: any = {
       // "hierarchy.department": task.service.category,
       "is_available": true,
@@ -1116,14 +1276,16 @@ export class AsapCartComponent implements OnInit, OnDestroy {
     };
     // Newly added & commented - started
     // if (this.userDepartment === 'Select') {
-    if (this.userDepartment.includes('Select')) {
-      object['hierarchy.department'] = 'Select'
-    }
+    // if (this.userDepartment.includes('Select')) {
+    // object['hierarchy.department'] = 'Select'
+    // }
     // Ended
-    else {
-      object['hierarchy.department'] = task.service.category
-    }
-    console.log('Object:', object);
+    // else {
+    object['hierarchy.department'] = task.service.category
+    // }
+    // Newly added & commented for checkout / late checkout- started
+    // Ended
+    // console.log('Object:', object);
     const requestBody = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
@@ -1133,7 +1295,7 @@ export class AsapCartComponent implements OnInit, OnDestroy {
       (resp: any) => {
         if (resp?.success === 1 && resp.status_code === 200) {
           const allStaves = resp.result.data;
-          console.log('All Staves:', allStaves);
+          // console.log('All Staves:', allStaves);
           // Keep only staff where either higher_level_officer.id OR id matches current user
           // Newly added & commented - started
           // const userRelatedStaves = allStaves.filter((staff: any) =>
@@ -1162,7 +1324,7 @@ export class AsapCartComponent implements OnInit, OnDestroy {
           //   return staffLabels.some((label: string) => this.labelRoomArray.includes(label));
           // });
           // this.getTotalStaffCount();
-          console.log('Filtered Staves:', this.staves);
+          // console.log('Filtered Staves:', this.staves);
           this.isModalOpen = true;
         } else {
           this.alertService.error(resp?.message || 'Something bad happened. Please try again!', this.options);
@@ -1193,7 +1355,7 @@ export class AsapCartComponent implements OnInit, OnDestroy {
         if (response?.success && response.result.data?.length) {
           // update with fresh task details
           this.assigningTask = response.result.data[0];
-          console.log('Assigning Task:', this.assigningTask);
+          // console.log('Assigning Task:', this.assigningTask);
           // assign if staff selected - if not assigned
           if (this.isStaffSelected) {
             this.updateStaffDetailsInTask(this.assigningTask);
@@ -1214,6 +1376,16 @@ export class AsapCartComponent implements OnInit, OnDestroy {
 
   async updateStaffDetailsInTask(task: any): Promise<void> {
     let deskStaffId = Number(this.localService.get('UserId'));
+    // Newly added for sending time_bound_value
+    const servicePayload: any = {};
+    if (task.service?.belongs_to != null) servicePayload.belongs_to = task.service.belongs_to;
+    if (task.service?.category != null) servicePayload.category = task.service.category;
+    if (task.service?.quantity != null) servicePayload.quantity = task.service.quantity;
+    if (task.service?.service_description != null) servicePayload.service_description = task.service.service_description;
+    if (task.service?.service_id != null) servicePayload.service_id = task.service.service_id;
+    if (task.service?.service_name != null) servicePayload.service_name = task.service.service_name;
+    if (task.service?.time_bound_value != null) servicePayload.time_bound_value = task.service.time_bound_value;
+    // End of newly added for sending time_bound_value
     const requestBody = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
@@ -1225,7 +1397,10 @@ export class AsapCartComponent implements OnInit, OnDestroy {
           "assigned_staff_id": this.selectedStaff.id,
           "assigned_staff_name": this.selectedStaff.full_name,
           "assigned_staff_employee_number": this.selectedStaff.staff_employee_number,
-          "department": task.service.category
+          "department": task.service.category,
+          // Newly added for sending time_bound_value
+          // service: servicePayload
+          // End of newly added for sending time_bound_value
         }
       },
       extras: {
@@ -1258,12 +1433,22 @@ export class AsapCartComponent implements OnInit, OnDestroy {
     const status = target.value;
     const staffDataString = this.localService.get('StaffData');
     const staffData = staffDataString ? JSON.parse(staffDataString) : null;
-    console.log('staffData:', staffData);
+    // console.log('staffData:', staffData);
     if (!status) return;
     // Newly added for late checkout
     // Generate current timestamp in ISO format with microseconds
     const now = new Date();
     const completed_time = now.toISOString().replace('Z', ''); // Removes trailing 'Z' for desired format
+    // Newly added for sending time_bound_value
+    const servicePayload: any = {};
+    if (task.service?.belongs_to != null) servicePayload.belongs_to = task.service.belongs_to;
+    if (task.service?.category != null) servicePayload.category = task.service.category;
+    if (task.service?.quantity != null) servicePayload.quantity = task.service.quantity;
+    if (task.service?.service_description != null) servicePayload.service_description = task.service.service_description;
+    if (task.service?.service_id != null) servicePayload.service_id = task.service.service_id;
+    if (task.service?.service_name != null) servicePayload.service_name = task.service.service_name;
+    if (task.service?.time_bound_value != null) servicePayload.time_bound_value = task.service.time_bound_value;
+    // End of newly added for sending time_bound_value
     const req = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
@@ -1277,7 +1462,10 @@ export class AsapCartComponent implements OnInit, OnDestroy {
           asigned_staff_employee_number: staffData.staff_employee_number,
           status: 'Completed',
           completed_time: completed_time,
-          department: task.service.category
+          department: task.service.category,
+          // Newly added for sending time_bound_value
+          // service: servicePayload
+          // End of newly added for sending time_bound_value
         }
       },
       extras: {
@@ -1287,10 +1475,10 @@ export class AsapCartComponent implements OnInit, OnDestroy {
         }
       }
     };
-    console.log('Final request:', req);
+    // console.log('Final request:', req);
     this.taskManagementService.updateTaskStatus(req).subscribe({
       next: (res) => {
-        console.log('Status updated successfully:', res);
+        // console.log('Status updated successfully:', res);
         task.checkout_status = status;
         this.refreshData();
       },
@@ -1352,7 +1540,7 @@ export class AsapCartComponent implements OnInit, OnDestroy {
   //   console.log('Final Approve/Reject Request:', req);
   //   this.taskManagementService.updateTaskStatus(req).subscribe({
   //     next: (res) => {
-  //       console.log('Checkout status updated successfully:', res);
+  //       // console.log('Checkout status updated successfully:', res);
   //       task.checkout_status = status;
   //       task.checkout_amount = amount;
   //       this.refreshData();
@@ -1444,6 +1632,16 @@ export class AsapCartComponent implements OnInit, OnDestroy {
     const staffData = staffDataString ? JSON.parse(staffDataString) : null;
     const now = new Date();
     const completed_time = now.toISOString().replace('Z', '');
+    // Newly added for sending time_bound_value
+    const servicePayload: any = {};
+    if (task.service?.belongs_to != null) servicePayload.belongs_to = task.service.belongs_to;
+    if (task.service?.category != null) servicePayload.category = task.service.category;
+    if (task.service?.quantity != null) servicePayload.quantity = task.service.quantity;
+    if (task.service?.service_description != null) servicePayload.service_description = task.service.service_description;
+    if (task.service?.service_id != null) servicePayload.service_id = task.service.service_id;
+    if (task.service?.service_name != null) servicePayload.service_name = task.service.service_name;
+    if (task.service?.time_bound_value != null) servicePayload.time_bound_value = task.service.time_bound_value;
+    // End of newly added for sending time_bound_value
     const updateTaskPayload: any = {
       guest_id: task.guest_id,
       staff_desk_id: deskStaffId,
@@ -1453,7 +1651,10 @@ export class AsapCartComponent implements OnInit, OnDestroy {
       assigned_staff_employee_number: staffData?.staff_employee_number,
       status: 'Completed',
       completed_time: completed_time,
-      department: task.service.category
+      department: task.service.category,
+      // Newly added for sending time_bound_value
+      // service: servicePayload
+      // End of newly added for sending time_bound_value
     };
     // Add late_checkout_amount only if status is Approved
     if (status === 'Price Updated') {
@@ -1548,7 +1749,7 @@ export class AsapCartComponent implements OnInit, OnDestroy {
         // console.log('Room Number in task:', task.room_no, task.guest_name);
         // return task.room_no?.toString().toLowerCase().includes(searchTerm);
         const roomValue = task.room_no?.toString().trim().toLowerCase();
-        const guestValue = task.guest_name?.toString().trim().toLowerCase();
+        const guestValue = (task.guest_name || task.task_created_by)?.toString().trim().toLowerCase();
         const roomMatch = roomValue?.startsWith(searchTerm);
         const guestMatch = guestValue?.startsWith(searchTerm);
         return roomMatch || guestMatch;
@@ -1561,6 +1762,16 @@ export class AsapCartComponent implements OnInit, OnDestroy {
     this.updatePaginatedTasks();
   }
 
+  // Newest ASAP tasks first (based on order_date + order_time)
+  private sortAsapTasksByMostRecent() {
+    if (!Array.isArray(this.tasks)) return;
+    this.tasks.sort((a: any, b: any) => {
+      const aTime = new Date(`${a?.order_date || ''} ${a?.order_time || ''}`).getTime();
+      const bTime = new Date(`${b?.order_date || ''} ${b?.order_time || ''}`).getTime();
+      return bTime - aTime;
+    });
+  }
+
   // formatSeconds(seconds: any): string {
   //   if (seconds === 'Assigned') return 'Assigned';
   //   const mins = Math.floor(seconds / 60);
@@ -1570,8 +1781,18 @@ export class AsapCartComponent implements OnInit, OnDestroy {
 
   // Newly added - checkout self assign(Initiate)
   async initiateCheckout(task: any) {
-    console.log('Initiating checkout for task:', task);
+    // console.log('Initiating checkout for task:', task);
     let deskStaffId = Number(this.localService.get('UserId'));
+    // Newly added for sending time_bound_value
+    const servicePayload: any = {};
+    if (task.service?.belongs_to != null) servicePayload.belongs_to = task.service.belongs_to;
+    if (task.service?.category != null) servicePayload.category = task.service.category;
+    if (task.service?.quantity != null) servicePayload.quantity = task.service.quantity;
+    if (task.service?.service_description != null) servicePayload.service_description = task.service.service_description;
+    if (task.service?.service_id != null) servicePayload.service_id = task.service.service_id;
+    if (task.service?.service_name != null) servicePayload.service_name = task.service.service_name;
+    if (task.service?.time_bound_value != null) servicePayload.time_bound_value = task.service.time_bound_value;
+    // End of newly added for sending time_bound_value
     await this.getDeskStaff(deskStaffId);
     const requestBody = {
       domain_name: DOMAIN_NAME,
@@ -1583,7 +1804,10 @@ export class AsapCartComponent implements OnInit, OnDestroy {
           "status": "Processing",
           "assigned_staff_id": this.deskStaffData.id,
           "assigned_staff_name": this.deskStaffData.full_name,
-          "department": task.service.category
+          "department": task.service.category,
+          // Newly added for sending time_bound_value
+          "service": servicePayload
+          // End of newly added for sending time_bound_value
         }
       },
       extras: {
@@ -1609,7 +1833,7 @@ export class AsapCartComponent implements OnInit, OnDestroy {
   }
 
   getDeskStaff(deskStaffId: number): Promise<void> {
-    console.log('Desk Staff ID:', deskStaffId);
+    // console.log('Desk Staff ID:', deskStaffId);
     const requestBody = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
@@ -1620,8 +1844,8 @@ export class AsapCartComponent implements OnInit, OnDestroy {
         (resp: any) => {
           if (resp?.success === 1 && resp.status_code === 200) {
             this.deskStaffData = resp.result.data[0];
-            console.log('Desk Staff:', this.deskStaffData);
-            resolve(); 
+            // console.log('Desk Staff:', this.deskStaffData);
+            resolve();
           } else {
             this.alertService.error(resp?.message || 'Something bad happened. Please try again!', this.options);
             reject(resp);

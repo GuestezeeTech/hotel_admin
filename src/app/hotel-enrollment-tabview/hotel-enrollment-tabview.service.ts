@@ -86,7 +86,6 @@ export class HotelEnrollmentTabviewService {
     // }
     // else {
     return this.http.post(ENDPOINTS.ADD_CUSTOMER_SIGNUP, AddCustomerObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
-    // }
   }
 
   getCustomerById(getCustomerObj: any): Observable<any> {
@@ -111,6 +110,16 @@ export class HotelEnrollmentTabviewService {
   // }
 
   updateCustomer(UpdateCustomerObj: any): Observable<any> {
+    if (this.authTokenService.isTokenExpired()) {
+      this.router.navigate([`/login`], { skipLocationChange: false });
+      return new Observable();
+    }
+    else {
+      return this.http.post(ENDPOINTS.UPDATE_LOGIN_CUSTOMER_FCM, UpdateCustomerObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
+    }
+  }
+
+  updateCustomerSettings(UpdateCustomerObj: any): Observable<any> {
     if (this.authTokenService.isTokenExpired()) {
       this.router.navigate([`/login`], { skipLocationChange: false });
       return new Observable();
@@ -296,6 +305,17 @@ export class HotelEnrollmentTabviewService {
     }
   }
 
+  updateCustomercFcmToken(UpdateCustomerObj: any): Observable<any> {
+    if (this.authTokenService.isTokenExpired()) {
+      this.router.navigate([`/login`], { skipLocationChange: false });
+      return new Observable();
+    }
+    else {
+      return this.http.post(ENDPOINTS.UPDATE_LOGIN_CUSTOMER, UpdateCustomerObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
+    }
+  }
+
+
   getOrderById(tokenObj: any): Observable<any> {
     if (this.authTokenService.isTokenExpired()) {
       this.router.navigate([`/login`], { skipLocationChange: false });
@@ -333,6 +353,27 @@ export class HotelEnrollmentTabviewService {
     }
     else {
       return this.http.post(ENDPOINTS.GENERATE_SMS_PHONE, tokenObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) })
+    }
+  }
+
+  // Newly added for user creation & updation
+  addUserCustomer(AddCustomerObj: any): Observable<any> {
+    // if (this.authTokenService.isTokenExpired()) {
+    //   console.log(AddCustomerObj, 'AddCustomerObj');
+    //   this.router.navigate([`/login`], { skipLocationChange: false });
+    //   return new Observable();
+    // }
+    // else {
+    return this.http.post(ENDPOINTS.CREATE_USERS, AddCustomerObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
+  }
+
+  updateUserCustomer(UpdateCustomerObj: any): Observable<any> {
+    if (this.authTokenService.isTokenExpired()) {
+      this.router.navigate([`/login`], { skipLocationChange: false });
+      return new Observable();
+    }
+    else {
+      return this.http.post(ENDPOINTS.UPDATE_USERS, UpdateCustomerObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
     }
   }
 

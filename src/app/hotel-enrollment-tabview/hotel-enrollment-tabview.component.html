@@ -16,6 +16,15 @@
 
 
     <div class="container" *ngIf="isReadyToRender">
+      <!-- Newly added for customer status(hint) -->
+      <div *ngIf="this.customerStatus !== 'approved'" class="save-hint-wrapper">
+        <div class="save-hint mb-2">
+          <i class="fas fa-info-circle"></i>
+          &nbsp;<strong>Note:</strong> Please save your changes in each respective tab; otherwise, your changes will be
+          lost.
+        </div>
+      </div>
+      <!-- End of newly added for customer status(hint) -->
       <div class="">
         <!-- <div class="d-flex justify-content-end mb-3 w-100">      
         </div> -->
@@ -29,8 +38,9 @@
           </li>
         </ul>
 
-        <div *ngIf="iscancelVisible" style="margin-top: 2%;">
-          <p style="color: #800020; font-weight: bold;">
+        <!-- <div *ngIf="iscancelVisible" style="margin-top: 2%;"> -->
+        <div *ngIf="iscancelVisible" class="payment-note" style="margin-top: 2%;">
+          <p style="color: #800020; font-weight: bold; margin-bottom: 0;">
             NOTE : Your payment was cancelled. Please click 'Save & Continue' to retry the payment process.
           </p>
         </div>
@@ -62,15 +72,15 @@
         <div [hidden]="currentTab !== 1"><app-property-details1 (continue)="handleContinue()"
             [paymentDone]="paymentDone"></app-property-details1>
         </div>
-        <div [hidden]="currentTab !== 2"><app-service-details (continue)="handleContinue()"
+        <!-- <div [hidden]="currentTab !== 2"><app-service-details (continue)="handleContinue()"
             [paymentDone]="paymentDone"></app-service-details></div>
         <div [hidden]="currentTab !== 3"><app-hierarchy-details (continue)="handleContinue()"
-            [paymentDone]="paymentDone"></app-hierarchy-details>
-        </div>
-        <div [hidden]="currentTab !== 4"><app-technical-info (continue)="handleContinue()"
-            [paymentDone]="paymentDone"></app-technical-info></div>
+            [paymentDone]="paymentDone"></app-hierarchy-details> 
+        </div>-->
+        <div [hidden]="currentTab !== 2"><app-technical-info (continue)="handleContinue()" [paymentDone]="paymentDone"
+            [parentLoaderDone]="parentLoaderDone"></app-technical-info></div>
         <!-- {{currentTab}}{{paymentDone}} -->
-        <div [hidden]="currentTab !== 5 || !paymentDone" class="status-container">
+        <div [hidden]="currentTab !== 3 || !paymentDone" class="status-container">
           <div class="enrollment-container">
             <h4>Thank you for enrolling with <span class="brand">GuestEzee</span>!</h4>
             <p style="margin-bottom: 0.5rem">Your application has been received and is currently under review by our

@@ -40,6 +40,11 @@ $logo-height:110px;
     margin-left: 19%;
 }
 
+/* Prevent page scroll when a fullscreen modal is open */
+body.no-scroll-in-restaurants-list {
+    overflow: hidden;
+}
+
 
 
 

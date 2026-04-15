@@ -98,7 +98,7 @@ export class TechnicalInfoService {
   payNow$ = this.payNowSubject.asObservable();
 
   triggerPayNow(index: number | null = null) {
-    console.log('triggerPayNow called with index:', index);
+    // console.log('triggerPayNow called with index:', index);
     this.payNowSubject.next(index);
   }
 
@@ -107,7 +107,7 @@ export class TechnicalInfoService {
   modalTrigger$ = this.modalTrigger.asObservable();
 
   openModal() {
-    console.log('open modal');
+    // console.log('open modal');
     this.modalTrigger.next();
   }
 

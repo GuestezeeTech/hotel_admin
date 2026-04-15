@@ -181,3 +181,19 @@ body {
         font-weight: 500;
     }
 }
+
+.truncate-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    // max-width: 140px; /* adjust as per your design */
+    display: inline-block;
+    // cursor: pointer;
+}
+
+// Loader color customization
+.timeline-loader {
+    color: #800020;
+    border-color: #800020;
+    border-right-color: transparent;
+}

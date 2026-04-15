@@ -246,6 +246,10 @@ export class ProfileComponent implements OnInit {
         }
       }
     })
+    //Reset file input
+    if (event.target) {
+      event.target.value = '';
+    }
   }
 
   deleteImage() {
@@ -455,20 +459,27 @@ export class ProfileComponent implements OnInit {
         this.alertService.error("Current Password is incorrect.", this.options);
         return;
       }
-
+      // Ensure passwords match
+      if (this.p['new_password'].value == storedPassword) {
+        // console.log("newPassword", this.p['new_password'].value, "storedPassword", storedPassword)
+        this.alertService.error(("New Password cannot be same as old Password"), this.options);
+        return;
+      }
       // Ensure passwords match
       if (this.p['new_password'].value !== this.p['confirm_password'].value) {
         this.p['confirm_password'].setErrors({ matchError: true });
         this.alertService.error("New Password and Confirm Password do not match.", this.options);
         return;
       }
-
-
-      let formData = {
-        new_password: this.p['new_password'].value,
+      let formData: any = {
+        new_password: this.p['new_password'].value
+        // password_to_customer: this.p['new_password'].value,
         // old_password: this.p['current_password'].value
       };
-
+      // Add password_to_customer only if NOT staff
+      if (this.customerType !== 'Staff') {
+        formData.password_to_customer = this.p['new_password'].value;
+      }
       let jsonObj = {
         domain_name: DOMAIN_NAME,
         user_id: USER_ID,
@@ -483,18 +494,18 @@ export class ProfileComponent implements OnInit {
       this.profileService.updatePassword(jsonObj).subscribe(
         resp => {
           if (resp?.success === 1) {
+            this.localService.set('Password', this.p['new_password'].value);
             this.passwordUpdateForm.reset();
             this.isPasswordModalOpen = false;
             this.alertService.success("Password updated successfully!", this.options);
-            this.localService.set('Password', this.p['new_password'].value);
-            setTimeout(() => {
-              this.alertService.clear(); // Clears the alert message
-            }, 2000);
+            // setTimeout(() => {
+            //   this.alertService.clear(); // Clears the alert message
+            // }, 2000);
           } else {
             this.alertService.error(resp?.message || "Something went wrong.", this.options);
-            setTimeout(() => {
-              this.alertService.clear(); // Clears the alert message
-            }, 2000);
+            // setTimeout(() => {
+            //   this.alertService.clear(); // Clears the alert message
+            // }, 2000);
           }
         },
         err => {
@@ -598,10 +609,10 @@ export class ProfileComponent implements OnInit {
     try {
       const userId = Number(this.localService.get('UserId'));
       const customerType = this.localService.get('CustomerType');
-      console.log('Logging out userId:', userId, 'customerType:', customerType);
+      // console.log('Logging out userId:', userId, 'customerType:', customerType);
       if (!userId) return;
       const currentToken = await this.pushService.getCurrentToken();
-      console.log('Current FCM token to remove:', currentToken);
+      // console.log('Current FCM token to remove:', currentToken);
       // Prepare Customer fetch body dynamically based on user type
       const customerFindKey = customerType === 'Staff' ? 'staff_id' : 'id';
       const customerFetchBody = {
@@ -613,7 +624,7 @@ export class ProfileComponent implements OnInit {
       const customerResp: any = await this.hotellistService.getSignupAllCustomers(customerFetchBody).toPromise();
       if (customerResp.success === 1 && customerResp.result.data.length > 0) {
         const customer = customerResp.result.data[0];
-        console.log('Fetched customer for FCM removal:', customer);
+        // console.log('Fetched customer for FCM removal:', customer);
         if (Array.isArray(customer.fcm_token)) {
           customer.fcm_token = customer.fcm_token.filter((t: string) => t !== currentToken);
           const updateBody = {
@@ -623,7 +634,7 @@ export class ProfileComponent implements OnInit {
             extras: { find: { [customerFindKey]: userId } }
           };
           await this.hotelenrollmenttabviewService.updateCustomerFcm(updateBody).toPromise();
-          console.log('FCM token removed for customer:', currentToken);
+          // console.log('FCM token removed for customer:', currentToken);
         }
       }
       // Remove FCM token from Staff table only if user is Staff
@@ -636,7 +647,7 @@ export class ProfileComponent implements OnInit {
         const staffResp: any = await this.taskManagementService.getAllStaves(staffFetchBody).toPromise();
         if (staffResp.success === 1 && staffResp.result.data.length > 0) {
           const staff = staffResp.result.data[0];
-          console.log('Fetched staff for FCM removal:', staff);
+          // console.log('Fetched staff for FCM removal:', staff);
           if (Array.isArray(staff.fcm_token)) {
             staff.fcm_token = staff.fcm_token.filter((t: string) => t !== currentToken);
             const updateBody = {
@@ -646,8 +657,18 @@ export class ProfileComponent implements OnInit {
               extras: { find: { id: userId } }
             };
             await this.staffService.updateStaff(updateBody).toPromise();
-            console.log('FCM token removed for staff:', currentToken);
+            // console.log('FCM token removed for staff:', currentToken);
           }
+          // Newly added is_available to false on staff logout
+          const availableUpdateBody = {
+            domain_name: DOMAIN_NAME,
+            user_id: USER_ID,
+            payload: { staff_updation: { is_available: false } },
+            extras: { find: { id: userId } }
+          };
+          await this.staffService.updateStaff(availableUpdateBody).toPromise();
+          // console.log('Staff is_available set to false on logout');
+          // End of newly added is_available to false on staff logout
         }
       }
       // await this.pushService.deleteCurrentToken();
@@ -681,8 +702,24 @@ export class ProfileComponent implements OnInit {
     this.localService.remove('payNowButtonState');
     this.localService.remove('isFirstStaff');
     this.localService.remove('defaultHierarchy');
+    // Newly commented because no need of fo desk 
+    // this.localService.remove('frontOfficeDeskStaff');
+    // End of newly commented code
+    // Newly added for role
+    this.localService.remove('Role');
+    this.localService.remove('roleId');
+    this.localService.remove('roleName');
+    this.localService.remove('roleModules');
+    this.localService.remove('outlet_id');
     this.router.navigate([''], { skipLocationChange: false });
     this.userAccessService.removeUserAccess();
+
+    // If using Angular Router
+    // this.router.navigate(['/login'], { replaceUrl: true });
+    this.router.navigate([''], { replaceUrl: true });
+    // Or using plain JavaScript
+    // window.location.replace('/login');
+
   }
 
 }

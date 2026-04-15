@@ -44,6 +44,17 @@ body {
     input[type="checkbox"] {
         accent-color: #800020;
     }
+
+  input[type="checkbox"]:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  /* Disabled state for top action buttons (Add / Delete) */
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 }
 
 .pagination-container {

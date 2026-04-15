@@ -1,0 +1,307 @@
+<div class="main">
+  <app-alerts></app-alerts>
+  <div class="centered-container">
+    <form [formGroup]="serviceForm">
+      <h3 class="form-title">
+        {{ isViewMode ? 'View Service' : (service_id ? 'Edit Service' : 'Create Service') }}
+      </h3>
+      <!-- Basic Info -->
+      <div class="form-grid">
+        <div class="form-group form1_div">
+          <label>Service Name</label>
+          <input class="input_box" type="text" formControlName="service_name"
+            [disabled]="isViewMode || (!service_id && !canAddSystemSettings) || (!!service_id && !canEditSystemSettings)" />
+          <div class="error"
+            *ngIf="serviceForm.get('service_name')?.invalid && serviceForm.get('service_name')?.touched">
+            Service name is required
+          </div>
+        </div>
+        <div class="form-group form1_div">
+          <label>Department</label>
+          <div *ngIf="isLoadingDepartments" class="d-flex align-items-center" style="min-height: 38px;">
+            <div class="spinner-border spinner-border-sm" role="status" style="color: #800020; margin-right: 8px;">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <span class="text-muted" style="font-size: 14px;">Loading departments...</span>
+          </div>
+          <select class="input_box" formControlName="department"
+            [disabled]="isViewMode || isLoadingDepartments || (!service_id && !canAddSystemSettings) || (!!service_id && !canEditSystemSettings)"
+            *ngIf="!isLoadingDepartments">
+            <option *ngFor="let dept of departments" [value]="dept">{{ dept }}</option>
+          </select>
+          <div class="error" *ngIf="serviceForm.get('department')?.invalid && serviceForm.get('department')?.touched">
+            Department is required
+          </div>
+        </div>
+      </div>
+      <!-- Service Type + Belongs To -->
+      <div class="form-grid">
+        <div class="form-group form1_div">
+          <label>Service Type</label>
+          <select class="input_box" formControlName="service_type"
+            [disabled]="isViewMode || (!service_id && !canAddSystemSettings) || (!!service_id && !canEditSystemSettings)"
+            (change)="selectedServiceType($event)">
+            <option *ngFor="let type of serviceTypes" [value]="type">{{ type }}</option>
+          </select>
+          <div class="error"
+            *ngIf="serviceForm.get('service_type')?.invalid && serviceForm.get('service_type')?.touched">
+            Service type is required
+          </div>
+        </div>
+        <div class="form-group form1_div">
+          <label>Belongs To</label>
+          <input class="input_box" type="text" formControlName="belongs_to"
+            [disabled]="isViewMode || (!service_id && !canAddSystemSettings) || (!!service_id && !canEditSystemSettings)" />
+          <div class="error" *ngIf="serviceForm.get('belongs_to')?.invalid && serviceForm.get('belongs_to')?.touched">
+            Belongs To is required
+          </div>
+        </div>
+      </div>
+      <!-- Hours Before (shown when Scheduled is selected) -->
+      <div class="form-grid" *ngIf="showHoursBefore">
+        <div class="form-group form1_div">
+          <label>Hours Before</label>
+          <input class="input_box" type="number" formControlName="hours_before"
+            [disabled]="isViewMode || (!service_id && !canAddSystemSettings) || (!!service_id && !canEditSystemSettings)"
+            min="1" (keydown)="preventInvalidNumberInput($event)" (input)="filterInvalidNumberInput($event)" />
+          <div class="error"
+            *ngIf="serviceForm.get('hours_before')?.invalid && serviceForm.get('hours_before')?.touched">
+            <span *ngIf="serviceForm.get('hours_before')?.hasError('required')">
+              Hours before is required when Scheduled service is selected.
+            </span>
+            <span *ngIf="serviceForm.get('hours_before')?.errors?.['minValue']">
+              Hours before should be at least 1
+            </span>
+          </div>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group form1_div">
+          <label>Service Tab</label>
+          <div *ngIf="isLoadingServiceTabs" class="d-flex align-items-center" style="min-height: 38px;">
+            <div class="spinner-border spinner-border-sm" role="status" style="color: #800020; margin-right: 8px;">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <span class="text-muted" style="font-size: 14px;">Loading service tabs...</span>
+          </div>
+          <select class="input_box" formControlName="service_tab"
+            [disabled]="isViewMode || isLoadingServiceTabs || (!service_id && !canAddSystemSettings) || (!!service_id && !canEditSystemSettings)"
+            *ngIf="!isLoadingServiceTabs">
+            <option *ngFor="let serviceTab of serviceTabs" [value]="serviceTab">{{ serviceTab }}</option>
+          </select>
+          <div class="error" *ngIf="serviceForm.get('service_tab')?.invalid && serviceForm.get('service_tab')?.touched">
+            Service Tab is required
+          </div>
+        </div>
+        <!-- Description -->
+        <div class="form-group form1_div">
+          <label>Description</label>
+          <textarea class="form-control input_box" formControlName="description" rows="4"
+            [disabled]="isViewMode || (!service_id && !canAddSystemSettings) || (!!service_id && !canEditSystemSettings)"
+            placeholder="Enter description" style="font-size: 14px;"></textarea>
+        </div>
+      </div>
+      <!-- Upload Sections -->
+      <div class="form-grid">
+        <!-- ICON Upload -->
+        <div class="form-group form1_div">
+          <div class="custom-file-upload" [ngClass]="{ 'disabled-upload': isViewMode }">
+            <input type="file" #iconInput formControlName="icon" accept="image/*" (change)="logoupload($event)"
+              [disabled]="isViewMode || (!service_id && !canAddSystemSettings) || (!!service_id && !canEditSystemSettings)" />
+            <label class="upload-label">
+              <div class="file-preview">
+                <div class="icon-tag">ICON</div>
+                <div>
+                  <div class="file-name" *ngIf="!logo_image" [class.disabled-text]="isViewMode">Choose file...</div>
+                  <div class="file-name" *ngIf="logo_image" [class.disabled-text]="isViewMode">Uploaded</div>
+                </div>
+              </div>
+              <div class="upload-actions">
+                <!-- Show delete only when there is an icon to delete -->
+                <i class="fas fa-trash-alt" *ngIf="logo_image" [class.disabled-icon]="isViewMode"
+                  (click)="!isViewMode && deleteIcon()"></i>
+                <!-- Show preview icon only when icon image exists -->
+                <i class="fas fa-eye" *ngIf="logo_image" (click)="openImagePreview('icon')">
+                </i>
+                <i class="fas fa-upload" [class.disabled-icon]="isViewMode" (click)="!isViewMode && openLogofile()"></i>
+              </div>
+            </label>
+            <p *ngIf="!isViewMode && !logo_image"
+              style="font-size: 12px; color: #666; font-style: italic; margin-bottom: 0;">Icon size
+              should exactly be 150x 150 pixels</p>
+          </div>
+        </div>
+        <!-- IMAGE Upload -->
+        <div class="form-group form1_div">
+          <div class="custom-file-upload" [ngClass]="{ 'disabled-upload': isViewMode }">
+            <input type="file" #imageInput formControlName="image" accept="image/*" (change)="imageupload($event)"
+              [disabled]="isViewMode || (!service_id && !canAddSystemSettings) || (!!service_id && !canEditSystemSettings)" />
+            <label class="upload-label">
+              <div class="file-preview">
+                <div class="icon-tag">IMAGE</div>
+                <div>
+                  <div class="file-name" *ngIf="!service_image" [class.disabled-text]="isViewMode">Choose file...</div>
+                  <div class="file-name" *ngIf="service_image" [class.disabled-text]="isViewMode">Uploaded</div>
+                </div>
+              </div>
+              <div class="upload-actions">
+                <!-- Show delete only when there is an image to delete -->
+                <i class="fas fa-trash-alt" *ngIf="service_image" [class.disabled-icon]="isViewMode"
+                  (click)="!isViewMode && deleteImage()"></i>
+                <!-- Show preview icon only when service image exists -->
+                <i class="fas fa-eye" *ngIf="service_image" (click)="openImagePreview('image')">
+                </i>
+                <i class="fas fa-upload" [class.disabled-icon]="isViewMode"
+                  (click)="!isViewMode && openImagefile()"></i>
+              </div>
+            </label>
+            <p style="font-size: 12px; color: #666; font-style: italic; margin-bottom: 0;"
+              *ngIf="!isViewMode && !service_image">Image
+              size should exactly be 1280 x 720 pixels</p>
+          </div>
+        </div>
+      </div>
+      <!-- Quantity Section -->
+      <div class="toggle-section">
+        <h5>Quantity</h5>
+        <label class="switch">
+          <input type="checkbox" formControlName="quantity" (change)="toggleChanged($event)"
+            [disabled]="isViewMode || (!service_id && !canAddSystemSettings) || (!!service_id && !canEditSystemSettings)" />
+          <span class="slider round"></span>
+        </label>
+        <div class="form-grid" *ngIf="quantityEnabled">
+          <div class="form-group form1_div">
+            <label>Minimum Quantity</label>
+            <input class="input_box" type="number" formControlName="minimum_quantity"
+              [disabled]="isViewMode || (!service_id && !canAddSystemSettings) || (!!service_id && !canEditSystemSettings)"
+              min="1" (keydown)="preventInvalidNumberInput($event)" (input)="filterInvalidNumberInput($event)" />
+            <div class="error"
+              *ngIf="serviceForm.get('minimum_quantity')?.invalid && serviceForm.get('minimum_quantity')?.touched">
+              <span *ngIf="serviceForm.get('minimum_quantity')?.errors?.['required']">Minimum quantity is
+                required</span>
+              <span *ngIf="serviceForm.get('minimum_quantity')?.errors?.['minValue']">Minimum quantity should be at
+                least 1</span>
+            </div>
+          </div>
+          <div class="form-group form1_div">
+            <label>Maximum Quantity</label>
+            <input class="input_box" type="number" formControlName="maximum_quantity"
+              [disabled]="isViewMode || (!service_id && !canAddSystemSettings) || (!!service_id && !canEditSystemSettings)"
+              min="1" (keydown)="preventInvalidNumberInput($event)" (input)="filterInvalidNumberInput($event)" />
+            <div class="error"
+              *ngIf="serviceForm.get('maximum_quantity')?.invalid && serviceForm.get('maximum_quantity')?.touched">
+              <span *ngIf="serviceForm.get('maximum_quantity')?.errors?.['required']">Maximum quantity is
+                required</span>
+              <span *ngIf="serviceForm.get('maximum_quantity')?.errors?.['maxQuantity']">Maximum quantity should be
+                greater than minimum quantity</span>
+              <span *ngIf="serviceForm.get('maximum_quantity')?.errors?.['invalidNumber']">Please enter a valid
+                number</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Time Bound Section -->
+      <div class="toggle-section">
+        <h5>Time Bound </h5>
+        <label class="switch">
+          <input type="checkbox" formControlName="is_time_bound" (change)="toggleTimeBound($event)"
+            [disabled]="isViewMode || (!service_id && !canAddSystemSettings) || (!!service_id && !canEditSystemSettings)"
+            [disabled]="isViewMode || (serviceForm.get('department')?.value && serviceForm.get('department')?.value !== 'Default')" />
+          <span class="slider round"></span>
+        </label>
+        <div class="error"
+          *ngIf="serviceForm.get('is_time_bound')?.invalid && serviceForm.get('is_time_bound')?.touched && serviceForm.get('department')?.value && serviceForm.get('department')?.value !== 'Default'">
+          Time bound is mandatory for this department
+        </div>
+        <div class="form-grid" *ngIf="timeBoundEnabled">
+          <div class="form-group form1_div">
+            <label>Minutes </label>
+            <input class="input_box" type="number" formControlName="time_bound_value"
+              [disabled]="isViewMode || (!service_id && !canAddSystemSettings) || (!!service_id && !canEditSystemSettings)"
+              min="1" (keydown)="preventInvalidNumberInput($event)" (input)="filterInvalidNumberInput($event)" />
+            <div class="error"
+              *ngIf="serviceForm.get('time_bound_value')?.invalid && serviceForm.get('time_bound_value')?.touched">
+              <span *ngIf="serviceForm.get('time_bound_value')?.errors?.['required']">Time bound value is
+                required</span>
+              <span *ngIf="serviceForm.get('time_bound_value')?.errors?.['minValue']">Time bound value should be at
+                least 1</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Active Toggle -->
+      <div class="form-grid">
+        <div class="toggle-section">
+          <h5>Active</h5>
+          <label class="switch">
+            <input type="checkbox" formControlName="is_active"
+              [disabled]="isViewMode || (!service_id && !canAddSystemSettings) || (!!service_id && !canEditSystemSettings)" />
+            <span class="slider round"></span>
+          </label>
+        </div>
+      </div>
+      <!-- Buttons -->
+      <div class="form-actions">
+        <button type="button" class="back_bt" (click)="openBackModal()">
+          Back
+        </button>
+        <button type="button" class="save_bt" (click)="isViewMode ? null : saveDta()"
+          [disabled]="isViewMode || (!service_id && !canAddSystemSettings) || (!!service_id && !canEditSystemSettings)">
+          Save
+        </button>
+      </div>
+    </form>
+  </div>
+  <!-- Custom Confirmation Modal -->
+  <div *ngIf="showBackModal"
+    style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center;">
+    <div
+      style="background: white; padding: 30px; border-radius: 15px; width: 350px; text-align: center; box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);">
+      <!-- Confirmation Text -->
+      <h2 style="margin-bottom: 8%; font-size: 20px; font-weight: bold;">Are you sure you want to exit?</h2>
+      <!-- Buttons: Cancel and Confirm -->
+      <div style="display: flex; justify-content: space-around;">
+        <button
+          style="padding: 10px; background: #E1E2EB; color: black; border: none; cursor: pointer; width: 40%; border-radius: 8px;"
+          (click)="closeBackModal()">
+          Cancel
+        </button>
+        <button
+          style="padding: 10px; background: #800020; color: white; border: none; cursor: pointer; width: 40%; border-radius: 8px;"
+          (click)="navigateBack()">
+          Exit
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Image Preview Modal -->
+  <div *ngIf="isPreviewOpen" class="image-preview-overlay">
+    <div class="image-preview-modal">
+      <img *ngIf="previewImageSrc" [src]="previewImageSrc" alt="Preview" />
+      <button type="button" class="close-preview-btn" (click)="closeImagePreview()">Close</button>
+    </div>
+  </div>
+  <div *ngIf="showBackModal"
+    style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center;">
+    <div
+      style="background: white; padding: 30px; border-radius: 15px; width: 350px; text-align: center; box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);">
+      <!-- Confirmation Text -->
+      <h2 style="margin-bottom: 8%; font-size: 20px; font-weight: bold;">Are you sure you want to exit?</h2>
+      <!-- Buttons: Cancel and Confirm -->
+      <div style="display: flex; justify-content: space-around;">
+        <button
+          style="padding: 10px; background: #E1E2EB; color: black; border: none; cursor: pointer; width: 40%; border-radius: 8px;"
+          (click)="closeBackModal()">
+          Cancel
+        </button>
+        <button
+          style="padding: 10px; background: #800020; color: white; border: none; cursor: pointer; width: 40%; border-radius: 8px;"
+          (click)="navigateBack()">
+          Exit
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>

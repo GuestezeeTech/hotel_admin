@@ -1,0 +1,268 @@
+<div *ngIf="isLoading" class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
+    <div class="text-center">
+        <div class="spinner-border" role="status" style="color: #800020;">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-3 text-muted">Loading tasks...</p>
+    </div>
+</div>
+<table class="delivered-table table" *ngIf="!isLoading">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Room No</th>
+            <th>Service</th>
+            <th>Qty</th>
+            <th>Service Date</th>
+            <th>Service Time</th>
+            <!-- <th>Delivered Time</th> -->
+            <th>Status</th>
+            <!-- <th>Assignee</th> -->
+            <!-- <th>Rating</th> -->
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr *ngIf="!allCancelledTasks || allCancelledTasks.length === 0">
+            <td colspan="8" class="text-center text-muted">No guest tasks found</td>
+        </tr>
+        <tr *ngFor="let task of allCancelledTasks">
+            <td (click)="navigateToTimeline(task.id)" style="cursor: pointer;">{{ task.guest_name || task.task_created_by }}</td>
+            <td>{{ task.room_no }}</td>
+            <!-- Newly added & commented for all department -->
+            <!-- <td>{{ task.service.service_name }}<span
+                    *ngIf="task.service.service_name === 'Late checkout' && task.service.category === 'FO'">({{
+                    task?.checkout_status}})</span></td> -->
+            <td>{{ task.service.service_name }}<span
+                    *ngIf="task.service.belongs_to === 'Late checkout'">({{
+                    task?.checkout_status}})</span></td>
+            <td>{{ task.service?.quantity || '-' }}</td>
+            <td>{{ task.order_date | date:'dd-MM-yyyy'}}</td>
+            <td>{{ task.order_time }}</td>
+            <!-- <td>{{ task.delivered_time | date:'HH:mm:ss' }}</td> -->
+            <td>
+                <div
+                    style="color: #dc3218; background-color: #e7bab3; border-radius: 50px; padding: 4px 12px; font-weight: 500; font-size: 12px; text-align: center; display: inline-block;">
+                    Cancelled
+                </div>
+            </td>
+            <!-- <td>{{ task.assigned_staff_name }}</td> -->
+            <!-- <td>
+                <span *ngFor="let filled of getStarArray(task.rating)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" [attr.fill]="filled ? '#FFB52D' : 'none'"
+                        [attr.stroke]="filled ? '#FFB52D' : '#D7E7FF'" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 
+                            12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                    </svg>
+                </span>
+            </td> -->
+            <td>
+                <button
+                    *ngIf="(this.customerType == 'Staff' || this.customerType == 'Customer') && task?.service?.belongs_to === 'Help Service'"
+                    style="color: #545460; border: none !important; cursor: pointer; text-decoration: underline;"
+                    (click)="openHelpServiceModal(task)">
+                    View Details
+                </button>
+                <button
+                    *ngIf="(this.customerType == 'Staff' || this.customerType == 'Customer') && task?.service?.belongs_to === 'Menu Ordering'"
+                    style="color: #545460; border: none !important; cursor: pointer; text-decoration: underline;"
+                    (click)="viewMenu(task)">View Menu
+                </button>
+                <!-- <button
+                    *ngIf="(this.customerType == 'Staff' || this.customerType == 'Customer') && task?.service?.service_name === 'Checkout' && task?.status === 'Delivered'"
+                    style="color: #545460; border: none !important; cursor: pointer; text-decoration: underline;"
+                    (click)="viewInvoice(task)">View Invoice
+                </button> -->
+            </td>
+            <!-- <td>
+                <button *ngIf="(this.customerType == 'Staff' || this.customerType == 'Customer') && task?.service?.service_name === 'Checkout' && task?.status === 'Delivered'"
+                    style="color: #545460; border: none !important; cursor: pointer; text-decoration: underline;"
+                    (click)="viewInvoice(task)">View Invoice
+                </button>
+            </td> -->
+        </tr>
+    </tbody>
+</table>
+<div class="pagination-container" *ngIf="!isLoading">
+    <button (click)="previousPage()" [disabled]="currentPage === 1" class="pagination-btn">
+        Previous
+    </button>
+    <input type="text" class="pagination-input" [(ngModel)]="currentPage" readonly>
+    <button (click)="nextPage()" [disabled]="currentPage === totalPages" class="pagination-btn">
+        Next
+    </button>
+</div>
+<!-- Newly added - Menu Modal -->
+<div class="d-flex justify-content-center align-items-center staff-modal" *ngIf="isMenuModalOpen"
+    style="height: 100vh; background: rgba(0,0,0,0.5); position: fixed; top: 0; left: 0; width: 100%; z-index: 9999;">
+    <div class="bg-white p-4 rounded" style="width: 35%; border-radius: 20px;">
+        <h5 class="fw-bold mb-4" style="font-size:18px;">Room No: {{ selectedMenuRoom }}</h5>
+        <div *ngIf="selectedMenuItems && selectedMenuItems.length > 0; else noItems">
+            <table class="table table-bordered text-center" style="font-size: 14px; background-color: white;">
+                <thead>
+                    <tr>
+                        <th>Item Name</th>
+                        <th>Qty</th>
+                        <th>Price</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let item of selectedMenuItems">
+                        <td>{{ item.itemName }}</td>
+                        <td>{{ item.quantity }}</td>
+                        <td>{{ (item.price + item.tax) | currency:'INR' }}</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="text-end fw-bold mt-3" style="font-size: 15px;">
+                Total Amount: <span style="color: #800020;">{{ selectedTotalAmount | currency:'INR' }}</span>
+            </div>
+        </div>
+        <ng-template #noItems>
+            <p class="text-center text-muted fw-semibold mt-3">No items found</p>
+        </ng-template>
+        <div class="mt-4 text-center">
+            <button class="btn fw-bold w-100 shadow-none" style="background-color: #800020; color: white;"
+                (click)="closeMenuModal()">Close</button>
+        </div>
+    </div>
+</div>
+<!-- Newly added - Invoice modal -->
+<!-- Invoice Modal -->
+<!-- <div class="d-flex justify-content-center align-items-center staff-modal" *ngIf="isInvoiceModalOpen"
+    style="height: 100vh; background: rgba(0,0,0,0.5); position: fixed; top: 0; left: 0; width: 100%; z-index: 9999;">
+    <div class="bg-white p-4 rounded shadow-sm"
+        style="width: 35%; max-width: 420px; border-radius: 16px; max-height: 90vh; overflow-y: auto;">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold mb-0" style="font-size:18px; color: #800020">Invoice #{{
+                invoice?.invoiceDetails?.invoiceNumber }}</h5>
+        </div>
+        <div style="font-size: 14px; line-height: 1.8;">
+            <div class="d-flex justify-content-between">
+                <span class="fw-semibold ">Reserve No</span>
+                <span>{{ invoice?.invoiceDetails?.Reserve_No }}</span>
+            </div>
+            <div class="d-flex justify-content-between">
+                <span class="fw-semibold ">Date</span>
+                <span>{{ invoice?.invoiceDetails?.invoiceDate | date:'yyyy-MM-dd HH:mm:ss' }}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-3">
+                <span class="fw-semibold ">Customer</span>
+                <span>{{ invoice?.invoiceDetails?.customerName }}</span>
+            </div>
+        </div>
+        <hr>
+        <h6 class="fw-bold mb-3">Items</h6>
+        <div class="px-2 py-1 rounded" style="background-color: #fff; border: 1px solid #eee;">
+            <div *ngFor="let item of invoice?.invoiceDetails?.items" class="mb-3 pb-2 border-bottom"
+                style="border-color: #f0f0f0;">
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="fw-bold">{{ item.revenue_Name }} ({{ item.revenue_Id }})</span>
+                </div>
+                <div class="d-flex justify-content-between ">
+                    <span class="fw-semibold" style="font-size: 14px">Taxable Amount</span>
+                    <span style="font-size: 14px">₹{{ item.taxableAmount | number:'1.2-2' }}</span>
+                </div>
+                <div class="d-flex justify-content-between ">
+                    <span class="fw-semibold" style="font-size: 14px">CGST ({{ item.cgstPercentage }}%)</span>
+                    <span style="font-size: 14px">₹{{ item.cgstAmount | number:'1.2-2' }}</span>
+                </div>
+                <div class="d-flex justify-content-between ">
+                    <span class="fw-semibold" style="font-size: 14px">SGST ({{ item.sgstPercentage }}%)</span>
+                    <span style="font-size: 14px">₹{{ item.sgstAmount | number:'1.2-2' }}</span>
+                </div>
+            </div>
+        </div>
+        <hr>
+        <div class="d-flex justify-content-between align-items-center fw-bold mt-3" style="font-size: 16px;">
+            <span>Final Amount</span>
+            <span style="color: #800020;">₹{{ getInvoiceTotal() | number:'1.2-2' }}</span>
+        </div>
+        <div class="mt-4 text-center">
+            <button class="btn fw-bold w-100 shadow-none"
+                style="background-color: #800020; color: white; border-radius: 8px; padding: 10px;"
+                (click)="closeInvoiceModal()">
+                Close
+            </button>
+        </div>
+    </div>
+</div> -->
+<!-- Newly added for help service -->
+<!-- Help Service Modal -->
+<div *ngIf="isHelpServiceModalOpen" class="d-flex justify-content-center align-items-center" style="
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.45);
+        z-index: 1050;
+     ">
+    <div style="
+        width: 400px;
+        background: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+        font-family: 'Poppins', sans-serif;
+        animation: fadeIn 0.25s ease;
+     ">
+        <!-- Header -->
+        <div style="
+          background-color: #800020;
+          color: #fff;
+          padding: 10px 16px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+      ">
+            <h5 style="margin: 0; font-weight: 600; font-size: 16px;">Help Service Details</h5>
+            <button (click)="closeHelpServiceModal()" style="
+                background: transparent;
+                border: none;
+                color: #fff;
+                font-size: 20px;
+                cursor: pointer;
+                line-height: 1;
+              ">&times;</button>
+        </div>
+
+        <!-- Content -->
+        <div style="padding: 14px 18px; color: #333; font-size: 14px; line-height: 1.5;">
+            <div style="margin-bottom: 4px;">
+                <strong style="color:#800020;">Guest:</strong>
+                <span>{{ selectedHelpServiceTask?.guest_name || selectedHelpServiceTask?.task_created_by }}</span>
+            </div>
+            <div style="margin-top: 6px;">
+                <strong style="color:#800020;">Description:</strong>
+                <span style="
+              margin-top: 3px;
+              font-size: 13.5px;
+              color: #444;
+              white-space: pre-wrap;
+              word-wrap: break-word;
+           ">
+                    {{ selectedHelpServiceTask?.task_description || 'No description provided' }}
+                </span>
+            </div>
+        </div>
+        <!-- Footer -->
+        <div style="
+          border-top: 1px solid #eee;
+          padding: 8px 0;
+          display: flex;
+          justify-content: center;
+          background: #fafafa;
+      ">
+            <button (click)="closeHelpServiceModal()" style="
+                background-color: #800020;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 5px 26px;
+                font-size: 13.5px;
+                font-weight: 500;
+                transition: all 0.3s ease;
+              " onmouseover="this.style.backgroundColor='#a52a3d'" onmouseout="this.style.backgroundColor='#800020'">
+                Close
+            </button>
+        </div>
+    </div>
+</div>

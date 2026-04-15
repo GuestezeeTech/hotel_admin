@@ -4,6 +4,7 @@ import { HierarchyFormComponent } from './hierarchy-form/hierarchy-form.componen
 import { HierarchyViewComponent } from './hierarchy-view/hierarchy-view.component';
 import { HierarchyDetailsComponent } from '../hotel-enrollment-tabview/hierarchy-details/hierarchy-details.component';
 import { HierarchyCustomerViewComponent } from './hierarchy-customer-view/hierarchy-customer-view.component';
+import { HierarchyListComponent } from './hierarchy-list/hierarchy-list.component';
 
 const routes: Routes = [
   { path: 'create-new-hierarchy', component: HierarchyFormComponent },
@@ -13,6 +14,7 @@ const routes: Routes = [
   { path: 'hierarchy-list', component: HierarchyDetailsComponent },
   // Newly added
   { path: 'view-customer-hierarchy/:id', component: HierarchyCustomerViewComponent },
+  { path: 'member-hierarchy', component: HierarchyListComponent }
 
 ];
 

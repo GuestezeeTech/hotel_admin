@@ -10,6 +10,7 @@ import { ENDPOINTS } from '../../app.config';
 // Newly added
 import { LocalStorageService } from '../../auth-services/local-storage.service';
 import { LoaderService } from './../../shared/loader/loader.service';
+import { PermissionService, ModulePermission } from '../../services/permission.service';
 
 @Component({
   selector: 'app-hierarchy-view',
@@ -46,7 +47,8 @@ export class HierarchyViewComponent {
     private authTokenService: AuthTokenService,
     private alertService: AlertsService,
     private activatedRoute: ActivatedRoute,
-    private localStorageService: LocalStorageService
+    private localStorageService: LocalStorageService,
+    private permissionService: PermissionService
   ) { }
 
   ngOnInit() {
@@ -67,8 +69,31 @@ export class HierarchyViewComponent {
       // this.getHierarchyById(this.hierarchyId);
     }
 
-    this.hotelId =  Number(this.localStorageService.get('UserId'));
+    this.hotelId = Number(this.localStorageService.get('UserId'));
     //console.log(this.hotelId, "this.hotelId")
+  }
+
+  // -------------
+  // Permission helpers for template bindings
+  // -------------
+  get canReadSystemSettings(): boolean {
+    const permission = this.permissionService.getModulePermission('SYSTEM SETTINGS');
+    return permission?.has_read_permission ?? false;
+  }
+
+  get canAddSystemSettings(): boolean {
+    const permission = this.permissionService.getModulePermission('SYSTEM SETTINGS');
+    return permission?.has_add_permission ?? false;
+  }
+
+  get canEditSystemSettings(): boolean {
+    const permission = this.permissionService.getModulePermission('SYSTEM SETTINGS');
+    return permission?.has_edit_permission ?? false;
+  }
+
+  get canDeleteSystemSettings(): boolean {
+    const permission = this.permissionService.getModulePermission('SYSTEM SETTINGS');
+    return permission?.has_delete_permission ?? false;
   }
 
   getHierarchyData(): HierarchyItem[] {
@@ -88,16 +113,28 @@ export class HierarchyViewComponent {
   }
 
   onAdd(parentId?: number, department?: string) {
+    // Respect add permission
+    if (!this.canAddSystemSettings) {
+      return;
+    }
     this.router.navigate(['/edit-hierarchy', this.hierarchyId], {
       state: { parentId, department }
     });
   }
 
   onAddRoot() {
+    // Respect add permission
+    if (!this.canAddSystemSettings) {
+      return;
+    }
     this.router.navigate(['/edit-hierarchy', this.hierarchyId]);
   }
 
   onEdit(id: number) {
+    // Respect edit permission
+    if (!this.canEditSystemSettings) {
+      return;
+    }
     this.router.navigate(['/edit-hierarchy', this.hierarchyId], {
       state: { editId: id }
     });
@@ -108,6 +145,10 @@ export class HierarchyViewComponent {
   }
 
   onDelete(id: number) {
+    // Respect delete permission
+    if (!this.canDeleteSystemSettings) {
+      return;
+    }
     if (confirm('Are you sure you want to delete this item? Only this item will be deleted; its children will be moved up one level.')) {
       const all = this.hierarchyService.getHierarchyData();
       // Find the item to delete

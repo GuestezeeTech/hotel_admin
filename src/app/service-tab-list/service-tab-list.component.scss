@@ -1,0 +1,338 @@
+body {
+    font-family: 'Urbanist', sans-serif;
+}
+
+.centered-container {
+    background-color: #ffffff;
+    min-height: 100vh;
+    width: 95%;
+    margin: 20px auto;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.header-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.intro {
+    font-size: 15px;
+    color: #827f7f;
+}
+
+.add-btn {
+    background-color: #800020;
+    color: #fff;
+    border: none;
+    padding: 10px 18px;
+    font-size: 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.3s ease;
+}
+
+.add-btn:hover {
+    background-color: #a02740;
+}
+
+.sub-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 0 !important;
+}
+
+.dept-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.dept-card {
+    background-color: #f9f4f4;
+    border-left: 4px solid #800020;
+    border-radius: 8px;
+    padding: 6px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
+}
+
+.dept-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 3px 8px rgba(128, 0, 32, 0.15);
+}
+
+.dept-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1a1a1a;
+}
+
+.error-text {
+    color: #d00000 !important;
+    font-size: 13px !important;
+    margin-top: -10px !important;
+    margin-bottom: 10px !important;
+    font-weight: 500;
+}
+
+.dept-desc {
+    display: block;
+    color: #555;
+    font-size: 13px;
+    margin-top: 3px;
+}
+
+
+.actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.edit-btn {
+    background: none;
+    border: none;
+    color: #800020;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.delete-btn {
+    background: none;
+    border: none;
+    color: #800020;
+    font-size: 12px;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.delete-btn:hover {
+    color: #a02740;
+}
+
+.view-btn {
+    background: none;
+    border: none;
+    color: #800020;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.add-btn:disabled,
+.edit-btn:disabled,
+.delete-btn:disabled,
+.view-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.no-dept {
+    color: #666;
+    font-style: italic;
+    margin-top: 5px;
+    font-size: 15px;
+}
+
+/* Modal Styling */
+.modal-wrapper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2000;
+}
+
+.modal-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(26, 26, 26, 0.5);
+    // backdrop-filter: blur(1px);
+}
+
+.modal-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #ffffff;
+    border-radius: 10px;
+    padding: 25px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+    animation: fadeIn 0.25s ease;
+    z-index: 2001;
+}
+
+.modal-title {
+    color: #800020;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 15px;
+}
+
+.dept-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    font-size: 14px;
+    outline: none;
+}
+
+.dept-input[readonly] {
+    background-color: #f5f5f5;
+    cursor: not-allowed;
+}
+
+.modal-content p {
+    font-size: 14px;
+    color: #1a1a1a;
+    margin-bottom: 10px;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.save-btn {
+    background-color: #800020;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    font-size: 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.3s ease;
+}
+
+.save-btn:hover {
+    background-color: #a02740;
+}
+
+.cancel-btn {
+    background-color: #ddd;
+    color: #1a1a1a;
+    border: none;
+    padding: 8px 16px;
+    font-size: 14px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.cancel-btn:hover {
+    background-color: #ccc;
+}
+
+.service-hint {
+    padding: 5px 10px;
+    background: #fff6f8;
+    border: 1px dashed #800020;
+    border-radius: 10px;
+    color: #800020;
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.service-hint i {
+    font-size: 14px;
+}
+
+.guest-app-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+    padding: 6px 12px;
+    color: #6d5000;
+    border-left: 4px solid #f9a825;
+    border-radius: 8px;
+    background-color: #fff8e1;
+    font-size: 13px;
+    font-weight: 500;
+
+    i {
+        font-size: 14px;
+        flex-shrink: 0;
+        color: #f9a825;
+    }
+}
+
+.dept-card.active {
+    background-color: #f0cbd5;
+    border-left: 4px solid #a02740;
+}
+
+.service-list {
+    margin-top: 25px;
+}
+
+.service-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.service-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px;
+}
+
+.service-card {
+    background-color: #f9f4f4;
+    border: 2px solid #800020;
+    border-radius: 8px;
+    padding: 6px 12px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.service-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+.service-card span {
+    font-weight: 600;
+    font-size: 14px;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.service-card small {
+    font-size: 12px;
+    color: #777;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -48%);
+    }
+
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+    }
+}

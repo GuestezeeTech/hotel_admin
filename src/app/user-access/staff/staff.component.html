@@ -2,27 +2,30 @@
     <app-alerts></app-alerts>
     <div class="centered-container">
         <div class="container">
-            <h5 class="fw-bolder" style="margin-bottom: 0">{{ enableEdit ? 'Edit Staff' : 'Create New Staff' }}</h5>
-            <p style="color: #9E9E9E; font-size: 14px; margin-bottom: 1%">{{ enableEdit ? 'Update Staff' : 'Create
-                Staff'}}</p>
+            <h5 class="fw-bolder" style="margin-bottom: 0">
+                {{ isViewMode ? 'View Staff' : (enableEdit ? 'Edit Staff' : 'Create New Staff') }}
+            </h5>
+            <p style="color: #9E9E9E; font-size: 14px; margin-bottom: 1%">
+                {{ isViewMode ? 'View Staff Details' : (enableEdit ? 'Update Staff' : 'Create Staff') }}
+            </p>
             <form [formGroup]="staffForm">
                 <div class="row">
                     <div class="col-md-4 form-group">
                         <label class="fw-semibold" style="font-size: 15px">Email<span
                                 class="text-danger">*</span></label>
-                        <input type="email" class="form-control shadow-none" formControlName="email" (input)="clearError('email')"
-                            [class.is-invalid]="validateForm && f['email'].errors"
+                        <input type="email" class="form-control shadow-none" formControlName="email"
+                            (input)="clearError('email')" [class.is-invalid]="validateForm && f['email'].errors"
                             style="background-color: white !important;">
                         <div class="invalid-feedback" *ngIf="f['email'].errors">
                             <div *ngIf="f['email'].errors['required']">please enter email</div>
-                            <div *ngIf="f['email'].errors['email']">invalid email</div>
+                            <div *ngIf="f['email'].errors['pattern']">invalid email</div>
                         </div>
                     </div>
                     <div class="col-md-4 form-group">
                         <label class="fw-semibold" style="font-size: 14px" placeholder="Elakkiya">Full
                             Name<span class="text-danger">*</span></label>
-                        <input type="text" class="form-control shadow-none" formControlName="full_name" (input)="clearError('full_name')"
-                            [class.is-invalid]="validateForm && f['full_name'].errors"
+                        <input type="text" class="form-control shadow-none" formControlName="full_name"
+                            (input)="clearError('full_name')" [class.is-invalid]="validateForm && f['full_name'].errors"
                             style="background-color: white !important;">
                         <div class="invalid-feedback" *ngIf="f['full_name'].errors">
                             <div *ngIf="f['full_name'].errors['required']">please enter full name</div>
@@ -35,8 +38,8 @@
                                 class="text-danger">*</span></label>
                         <input type="tel" class="form-control shadow-none" placeholder="+91"
                             (keypress)="allowOnlyNumbers($event)"
-                            [class.is-invalid]="validateForm && f['phone_number'].errors" formControlName="phone_number" (input)="clearError('phone_number')"
-                            style="background-color: white !important;">
+                            [class.is-invalid]="validateForm && f['phone_number'].errors" formControlName="phone_number"
+                            (input)="clearError('phone_number')" style="background-color: white !important;">
                         <div class="invalid-feedback" *ngIf="f['phone_number'].errors">
                             <div *ngIf="f['phone_number'].errors['required']">please enter phone number</div>
                             <div *ngIf="f['phone_number'].errors['pattern']">Please enter valid number</div>
@@ -63,8 +66,12 @@
                         </label>
                         <!-- Dropdown Trigger -->
                         <div (click)="!staffForm.get('higher_level_hierarchy')?.disabled && toggleDropdown($event,'hierarchy'); clearError('higher_level_hierarchy')"
-                            style="border: 1px solid #ccc; padding: 6px; border-radius: 5px; background: white; cursor: pointer;"
-                            [ngClass]="{'disabled-dropdown': staffForm.get('higher_level_hierarchy')?.disabled}">
+                            style="border: 1px solid #ccc; padding: 6px; border-radius: 5px; background: white;"
+                            [ngClass]="{'disabled-dropdown': staffForm.get('higher_level_hierarchy')?.disabled}"
+                            [ngStyle]="{
+                                cursor: isViewMode ? 'not-allowed' : 'pointer',
+                                opacity: isViewMode ? 0.6 : 1
+                            }">
                             <p class="mb-0" style="font-size: 15px;">
                                 <ng-container *ngIf="selectedHierarchies.length === 0">Select Hierarchy</ng-container>
                                 <ng-container *ngIf="selectedHierarchies.length > 0">
@@ -79,7 +86,7 @@
                             style="position: absolute; top: 74%; left: 4%; width: 92%; border: 1px solid #ccc; background: white; z-index: 1000; max-height: 200px; overflow-y: auto; margin-top: 5px;">
                             <div *ngFor="let supervisor of supervisorList" style="padding: 5px;">
                                 <input type="checkbox" [checked]="isHierarchySelected(supervisor)"
-                                    (change)="onHierarchySelect(supervisor, $event); clearError('higher_level_hierarchy')"  />
+                                    (change)="onHierarchySelect(supervisor, $event); clearError('higher_level_hierarchy')" />
                                 <label style="margin-left: 5px;">
                                     {{ supervisor.designation + ' - ' + supervisor.department }}
                                 </label>
@@ -99,8 +106,12 @@
                         </label>
 
                         <!-- Dropdown Trigger -->
-                        <div (click)="toggleDropdown($event,'staffHierarchy'); clearError('staffHierarchy')"
-                            style="border: 1px solid #ccc; padding: 6px; border-radius: 5px; background: white; cursor: pointer;">
+                        <div (click)="!staffForm.get('hierarchy')?.disabled && toggleDropdown($event,'staffHierarchy'); clearError('staffHierarchy')"
+                            style="border: 1px solid #ccc; padding: 6px; border-radius: 5px; background: white;"
+                            [ngClass]="{'disabled-dropdown': staffForm.get('hierarchy')?.disabled}" [ngStyle]="{
+                                cursor: isViewMode ? 'not-allowed' : 'pointer',
+                                opacity: isViewMode ? 0.6 : 1
+                            }">
                             <p class="mb-0" style="font-size: 15px;">
                                 <ng-container *ngIf="selectedStaffHierarchies.length === 0">Select Staff
                                     Hierarchy</ng-container>
@@ -137,7 +148,8 @@
                     <div class="col-md-4 mb-4 form-group pb-3">
                         <label class="fw-semibold" style="font-size: 14px">Desk<span
                                 class="text-danger">*</span></label>
-                        <select class="form-control shadow-none" formControlName="at_desk" (change)="onDeskChange(); clearError('at_desk')"
+                        <select class="form-control shadow-none" formControlName="at_desk"
+                            (change)="onDeskChange(); clearError('at_desk')"
                             [class.is-invalid]="validateForm && f['at_desk'].errors" (click)="closeAllDropdowns()"
                             style="appearance: auto; background-color: white !important; cursor: pointer;">
                             <option value="" style="font-size: 14px;">Please select</option>
@@ -155,8 +167,13 @@
                         </label>
 
                         <!-- Trigger -->
-                        <div (click)="toggleDropdown($event,'officer'); clearError('officer')"
-                            style="border: 1px solid #ccc; padding: 6px; border-radius: 5px; background: white; cursor: pointer;">
+                        <div (click)="!staffForm.get('higher_level_officer')?.disabled && toggleDropdown($event,'officer'); clearError('officer')"
+                            style="border: 1px solid #ccc; padding: 6px; border-radius: 5px; background: white;"
+                            [ngClass]="{'disabled-dropdown': staffForm.get('higher_level_officer')?.disabled}"
+                            [ngStyle]="{
+                                cursor: isViewMode ? 'not-allowed' : 'pointer',
+                                opacity: isViewMode ? 0.6 : 1
+                            }">
                             <p class="mb-0" style="font-size: 15px;">
                                 <ng-container *ngIf="selectedOfficers.length === 0">Select Officer</ng-container>
                                 <ng-container *ngIf="selectedOfficers.length > 0">
@@ -179,7 +196,8 @@
                                 </label>
                             </div>
                         </div>
-                        <div class="invalid-feedback d-block" *ngIf="f['higher_level_officer'].errors?.['noStaff']">
+                        <div class="invalid-feedback d-block"
+                            *ngIf="!officerDropdownOpen && f['higher_level_officer'].errors?.['noStaff']">
                             {{ f['higher_level_officer'].errors?.['message'] }}
                         </div>
                     </div>
@@ -187,8 +205,12 @@
                         <label class="fw-semibold" style="font-size: 14px">Room No<span
                                 class="text-danger">*</span></label>
                         <!-- Dropdown Trigger -->
-                        <div (click)="toggleDropdown($event,'room'); clearError('room')"
-                            style="border: 1px solid #ccc; padding: 6px; border-radius: 5px; background: white; cursor: pointer;">
+                        <div (click)="!staffForm.get('room_no')?.disabled && toggleDropdown($event,'room'); clearError('room')"
+                            style="border: 1px solid #ccc; padding: 6px; border-radius: 5px; background: white;"
+                            [ngClass]="{'disabled-dropdown': staffForm.get('room_no')?.disabled}" [ngStyle]="{
+                                cursor: isViewMode ? 'not-allowed' : 'pointer',
+                                opacity: isViewMode ? 0.6 : 1
+                            }">
                             <p class="mb-0" style="font-size: 15px;">
                                 <ng-container *ngIf="selectedRooms.length === 0">Select Room No</ng-container>
                                 <ng-container *ngIf="selectedRooms.length > 0">
@@ -218,8 +240,9 @@
                     <div style="position: relative;" class="col-md-4 mb-4 form-group pb-3">
                         <label class="fw-semibold" style="font-size: 14px">Shift Time<span
                                 class="text-danger">*</span></label>
-                        <div (click)="toggleDropdown($event,'shift'); clearError('shift')"
-                            style="border: 1px solid #ccc; padding: 6px; border-radius: 5px; background: white; cursor: pointer;">
+                        <div (click)="!staffForm.get('shift_time')?.disabled && toggleDropdown($event,'shift'); clearError('shift')"
+                            style="border: 1px solid #ccc; padding: 6px; border-radius: 5px; background: white; cursor: pointer;"
+                            [ngClass]="{'disabled-dropdown': staffForm.get('shift_time')?.disabled}">
                             <p class="mb-0" style="font-size: 15px;">
                                 <ng-container *ngIf="selectedShiftTimes.length === 0">Select Shift Time</ng-container>
                                 <ng-container *ngIf="selectedShiftTimes.length > 0">
@@ -256,6 +279,23 @@
                             </div>
                         </div>
                     </div>
+                    <!-- Newly commented because no need of fo desk -->
+                    <!--  <div class="col-md-4 mb-4 form-group pb-3">
+                        <label class="fw-semibold" style="font-size: 14px;">Front Office Desk</label>
+                        <div style="display: flex; align-items: center; gap: 25px; margin-top: 5px;">
+                            <label
+                                style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 14px;">
+                                <input type="radio" formControlName="front_office_desk" [value]="true" />
+                                Yes
+                            </label>
+                            <label
+                                style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 14px;">
+                                <input type="radio" formControlName="front_office_desk" [value]="false" />
+                                No
+                            </label>
+                        </div>
+                    </div> -->
+                    <!-- End of newly commented code -->
                     <!-- <div style="position: relative;" class="col-md-4  mb-4 form-group pb-3">
                         <label class="fw-semibold" style="font-size: 14px">Shift Time</label>
                         <select class="form-control shadow-none" formControlName="shift_time"
@@ -286,11 +326,12 @@
                             <input type="checkbox" formControlName="is_staff_active" hidden #isActivatedCheckbox>
                             <!-- Icon that updates the hidden checkbox -->
                             <i [ngClass]="isActivatedCheckbox.checked ? 'bi bi-toggle-on' : 'bi bi-toggle-off'"
-                                (click)="isActivatedCheckbox.click()" [ngStyle]="{ 
-                                    'cursor': 'pointer', 
+                                (click)="!isViewMode && isActivatedCheckbox.click()" [ngStyle]="{ 
+                                    'cursor': isViewMode ? 'not-allowed' : 'pointer', 
                                     'font-size': '25px', 
                                     'margin-left': '10%', 
-                                    'color': isActivatedCheckbox.checked ? '#1AA080' : 'rgb(212, 14, 14)'}">
+                                    'color': isActivatedCheckbox.checked ? '#1AA080' : 'rgb(212, 14, 14)',
+                                    'opacity': isViewMode ? 0.6 : 1}">
                             </i>
                         </div>
                     </div>
@@ -306,11 +347,17 @@
             </div>
             <div class="col-md-2" *ngIf="!enableEdit">
                 <button class="btn w-100 ms-2 fw-semibold save_bt" style="color: white; background-color: #800020;"
-                    (click)="saveForm()">Save</button>
+                    (click)="saveForm()" [disabled]="isViewMode" [ngStyle]="{
+                        cursor: isViewMode ? 'not-allowed' : 'pointer',
+                        opacity: isViewMode ? 0.8 : 1
+                    }">Save</button>
             </div>
             <div class="col-md-2" *ngIf="enableEdit">
                 <button class="btn ms-2 fw-semibold save_bt" style="color: white; background-color: #800020;"
-                    (click)="saveFormChanges()">
+                    (click)="saveFormChanges()" [disabled]="isViewMode" [ngStyle]="{
+                        cursor: isViewMode ? 'not-allowed' : 'pointer',
+                        opacity: isViewMode ? 0.8 : 1
+                    }">
                     Save Changes</button>
             </div>
         </div>
