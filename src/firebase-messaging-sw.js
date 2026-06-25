@@ -224,7 +224,7 @@ messaging.onBackgroundMessage(function (payload) {
       // Tell app which tab to highlight
       client.postMessage({
         action: 'highlightTab',
-        title,
+        title,// wrong 
         body
       });
     });
