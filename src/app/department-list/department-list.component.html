@@ -89,36 +89,22 @@
                             <td>
                                 <select class="dept-select" [(ngModel)]="svc.assignedDept"
                                     [disabled]="!canAddSystemSettings">
-                                    <option  value="">Choose department</option>
+                                    <option *ngIf="departments.length === 0" value="">No departments created</option>
+                                    <option *ngIf="departments.length > 0" value="">Choose department</option>
                                     <option *ngFor="let d of departments" [value]="d.name">
                                         {{ d.name }}
                                     </option>
                                 </select>
-                                <!-- for multiple department selection -->
-                                <!-- <div class="dropdown custom-multi-select">
-                                    <button class="btn btn-sm dropdown-toggle text-start border bg-white" type="button" data-bs-toggle="dropdown">
-                                        Select Departments
-                                    </button>
-                                    <ul class="dropdown-menu p-3 shadow">
-                                        <li *ngFor="let d of departments" class="mb-2">
-                                            <label class="d-flex align-items-center mb-0 cursor-pointer" style="font-size: 14px;"> -->
-                                                <!-- Inline logic toggles the name within the comma-separated string -->
-                                                <!-- <input type="checkbox" [checked]="svc.assignedDept?.includes(d.name)" (change)="onCheckboxChange(svc, d.name, $event)" class="me-2 accent-maroon">
-                                                {{ d.name }}
-                                            </label>
-                                        </li>
-                                    </ul>
-                                </div> -->
                             </td>
                             <td class="action-icons">
                                 <i class="fa-regular fa-circle-check confirm-icon"
                                     [class.disabled]="!svc.assignedDept || !canAddSystemSettings"
                                     (click)="canAddSystemSettings ? assignDepartmentToService(svc) : null"
                                     title="Assign"></i>
-                                <i class="fa-solid fa-circle-xmark remove-icon"
+                                <!--   <i class="fa-solid fa-circle-xmark remove-icon"
                                     [class.disabled]="!isServiceAssigned(svc) || !canDeleteSystemSettings"
                                     (click)="canDeleteSystemSettings ? removeDepartmentFromService(svc) : null"
-                                    title="Remove"></i>
+                                    title="Remove"></i> -->
                             </td>
                         </tr>
                     </tbody>
@@ -137,7 +123,7 @@
         </h4>
         <!-- Department Name -->
         <input type="text" placeholder="Enter department name" [(ngModel)]="newDepartmentName"
-            (input)="onNameInputChange()" class="dept-input" [minlength]="3" [maxlength]="50"
+            (input)="onNameInputChange()" class="dept-input"
             [readonly]="isViewMode || (!isEditMode && !canAddSystemSettings) || (isEditMode && !canEditSystemSettings)" />
         <p *ngIf="nameError" class="error-text">Department name is required.</p>
         <!-- Department Description (optional) -->

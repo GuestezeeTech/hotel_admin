@@ -1,0 +1,273 @@
+<div class="main">
+  <app-alerts></app-alerts>
+  <div class="centered-container">
+    <form [formGroup]="outletForm" (ngSubmit)="onSubmit()">
+      <div class="section">
+        <h3>{{ isViewMode ? 'View ' + upsellName : (outlet_id === 0 ? upsellName + ' Creation' : 'Edit ' + upsellName)
+          }}</h3>
+        <div class="form-grid">
+          <!-- Multi-purpose Name (Owner/Manager) -->
+          <div class="form-group form1_div">
+            <label>Name<span class="required-asterisk">*</span></label>
+            <input type="text" class="input_box" formControlName="owner_name"
+              [placeholder]="'Responsible Person Name'" />
+            <p class="error"
+              *ngIf="(submitted || outletForm.controls['owner_name'].touched) && outletForm.controls['owner_name'].hasError('required')">
+              Name is required
+            </p>
+          </div>
+          <!-- Email -->
+          <div class="form-group form1_div">
+            <label>Email<span class="required-asterisk">*</span></label>
+            <input type="email" class="input_box" formControlName="email" placeholder="Email" />
+            <p class="error"
+              *ngIf="(submitted || outletForm.controls['email'].touched) && outletForm.controls['email'].hasError('required')">
+              Email is required
+            </p>
+            <p class="error"
+              *ngIf="(submitted || outletForm.controls['email'].touched) && outletForm.controls['email'].hasError('pattern')">
+              Invalid email format
+            </p>
+          </div>
+          <!-- Phone -->
+          <div class="form-group form1_div">
+            <label>Phone Number<span class="required-asterisk">*</span></label>
+            <input type="text" class="input_box" formControlName="phone" placeholder="Phone"
+              (input)="validateNumberInput('phone')" />
+            <p class="error"
+              *ngIf="(submitted || outletForm.controls['phone'].touched) && outletForm.controls['phone'].hasError('required')">
+              Phone number is
+              required </p>
+            <p class="error"
+              *ngIf="(submitted || outletForm.controls['phone'].touched) && (outletForm.controls['phone'].hasError('minlength') || outletForm.controls['phone'].hasError('maxlength'))">
+              Phone number must be exactly 10 digits </p>
+            <p class="error"
+              *ngIf="(submitted || outletForm.controls['phone'].touched) && outletForm.controls['phone'].hasError('numbersOnly')">
+              Numbers only
+            </p>
+          </div>
+          <!-- Company Phone -->
+          <div class="form-group form1_div">
+            <label>Company Phone Number<span></span></label>
+            <input type="text" class="input_box" formControlName="companyphone" placeholder="Company Phone"
+              (input)="validateNumberInput('companyphone')" />
+            <!-- <p class="error" *ngIf="(submitted || outletForm.controls['companyphone'].touched) && outletForm.controls['companyphone'].hasError('required')"> Company phone
+              is required </p> -->
+            <!-- <p class="error" *ngIf="(submitted || outletForm.controls['companyphone'].touched) && (outletForm.controls['companyphone'].hasError('minlength') || outletForm.controls['companyphone'].hasError('maxlength'))">
+              Company phone must be exactly 10 digits </p> -->
+            <p class="error"
+              *ngIf="(submitted || outletForm.controls['companyphone'].touched) && outletForm.controls['companyphone'].hasError('numbersOnly')">
+              Numbers
+              only </p>
+          </div>
+          <!-- Specific Feature Name -->
+          <div class="form-group form1_div">
+            <label>{{upsellName}} Name<span class="required-asterisk">*</span></label>
+            <input type="text" class="input_box" formControlName="name" [placeholder]="upsellName + ' Name'"
+              maxlength="50" />
+            <p class="error"
+              *ngIf="(submitted || outletForm.controls['name'].touched) && outletForm.controls['name'].hasError('required')">
+              {{ upsellName }}
+              name is required </p>
+            <p class="error"
+              *ngIf="(submitted || outletForm.controls['name'].touched) && outletForm.controls['name'].hasError('maxlength')">
+              {{ upsellName }}
+              name cannot exceed 50 characters </p>
+          </div>
+          <!-- GST -->
+          <div class="form-group form1_div">
+            <label>GST No
+              <!-- <span class="required-asterisk">*</span> -->
+            </label>
+            <input type="text" class="input_box" formControlName="gstno" placeholder="GST Number" />
+            <!-- <p class="error" *ngIf="(submitted || outletForm.controls['gstno'].touched) && outletForm.controls['gstno'].hasError('required')"> GST Number is
+              required </p> -->
+            <p class="error"
+              *ngIf="(submitted || outletForm.controls['gstno'].touched) && outletForm.controls['gstno'].hasError('invalidGST')">
+              {{
+              outletForm.controls['gstno'].errors?.['invalidGST']?.message }} </p>
+          </div>
+          <!-- Address 1 -->
+          <div class="form-group form1_div">
+            <label>Address Line 1
+              <!-- <span class="required-asterisk">*</span> -->
+            </label>
+            <input type="text" class="input_box" formControlName="address" placeholder="Address" />
+            <!-- <p class="error" *ngIf="(submitted || outletForm.controls['address'].touched) && outletForm.controls['address'].hasError('required')"> Address is
+              required </p> -->
+          </div>
+          <!-- Address 2 -->
+          <div class="form-group form1_div">
+            <label>Address Line 2</label>
+            <input type="text" class="input_box" formControlName="address1" placeholder="Address 1" />
+          </div>
+          <!-- Door No -->
+          <div class="form-group form1_div">
+            <label>Door No
+              <!-- <span class="required-asterisk">*</span> -->
+            </label>
+            <input type="text" class="input_box" formControlName="doorno" placeholder="Door No / Area" />
+            <!-- <p class="error" *ngIf="(submitted || outletForm.controls['doorno'].touched) && outletForm.controls['doorno'].hasError('required')"> Door No is
+              required </p> -->
+          </div>
+          <!-- Location -->
+          <div class="form-group form1_div">
+            <label>Location
+              <span class="required-asterisk">*</span>
+            </label>
+            <input type="text" class="input_box" formControlName="location" placeholder="Location" />
+            <p class="error"
+              *ngIf="(submitted || outletForm.controls['location'].touched) && outletForm.controls['location'].hasError('required')">
+              Location is required </p>
+          </div>
+          <!-- Pincode -->
+          <div class="form-group form1_div">
+            <label>Pincode
+              <!-- <span class="required-asterisk">*</span> -->
+            </label>
+            <input type="text" class="input_box" formControlName="pincode" placeholder="Pincode"
+              (input)="validateNumberInput('pincode')" />
+            <!-- <p class="error" *ngIf="(submitted || outletForm.controls['pincode'].touched) && outletForm.controls['pincode'].hasError('required')"> Pincode is
+              required </p> -->
+            <p class="error"
+              *ngIf="(submitted || outletForm.controls['pincode'].touched) && (outletForm.controls['pincode'].hasError('minlength') || outletForm.controls['pincode'].hasError('maxlength'))">
+              Pincode must be exactly 6 digits </p>
+            <p class="error"
+              *ngIf="(submitted || outletForm.controls['pincode'].touched) && outletForm.controls['pincode'].hasError('numbersOnly')">
+              Numbers only
+            </p>
+          </div>
+          <!-- Country -->
+          <div class="form-group form1_div">
+            <label>Country
+              <!-- <span class="required-asterisk">*</span> -->
+            </label>
+            <select class="input_box" formControlName="country">
+              <option value="" disabled selected>Select Country</option>
+              <option *ngFor="let c of countryDropdownList" [value]="c.country">{{c.country}}</option>
+            </select>
+            <!-- <p class="error" *ngIf="(submitted || outletForm.controls['country'].touched) && outletForm.controls['country'].hasError('required')"> Country is
+              required </p> -->
+          </div>
+          <div class="form-group form1_div">
+            <label>Open Time<span class="required-asterisk">*</span></label>
+            <div class="time-dropdown-container">
+              <select class="input_box time_select" formControlName="open_hour">
+                <option *ngFor="let h of hours" [value]="h">{{h}}</option>
+              </select>
+              <select class="input_box time_select" formControlName="open_minute">
+                <option *ngFor="let m of minutes" [value]="m">{{m}}</option>
+              </select>
+              <select class="input_box time_select" formControlName="open_period">
+                <option *ngFor="let p of periods" [value]="p">{{p}}</option>
+              </select>
+            </div>
+            <p class="error"
+              *ngIf="submitted && (outletForm.controls['open_hour'].errors || outletForm.controls['open_minute'].errors || outletForm.controls['open_period'].errors)">
+              Open time is required
+            </p>
+          </div>
+          <!-- Close Time -->
+          <div class="form-group form1_div">
+            <label>Close Time<span class="required-asterisk">*</span></label>
+            <div class="time-dropdown-container">
+              <select class="input_box time_select" formControlName="close_hour">
+                <option *ngFor="let h of hours" [value]="h">{{h}}</option>
+              </select>
+              <select class="input_box time_select" formControlName="close_minute">
+                <option *ngFor="let m of minutes" [value]="m">{{m}}</option>
+              </select>
+              <select class="input_box time_select" formControlName="close_period">
+                <option *ngFor="let p of periods" [value]="p">{{p}}</option>
+              </select>
+            </div>
+            <p class="error"
+              *ngIf="submitted && (outletForm.controls['close_hour'].errors || outletForm.controls['close_minute'].errors || outletForm.controls['close_period'].errors)">
+              Close time is required
+            </p>
+          </div>
+          <!-- WINHMS -->
+          <div class="form-group form1_div">
+            <label>Third Party Outlet ID<span class="required-asterisk">*</span></label>
+            <input type="text" class="input_box" formControlName="third_party_outlet_id" />
+            <!-- <p class="error" *ngIf="(submitted || outletForm.controls['winhms_outlet_id'].touched) && outletForm.controls['winhms_outlet_id'].hasError('required')"> Third Party Outlet ID is
+              required </p> -->
+            <p class="error"
+              *ngIf="(submitted || outletForm.controls['third_party_outlet_id'].touched) && outletForm.controls['third_party_outlet_id'].hasError('required')">
+              Third Party Outlet ID is required </p>
+          </div>
+          <!-- Property Name -->
+          <!-- <div class="form-group form1_div">
+            <label>Property Name<span class="required-asterisk">*</span></label>
+            <input type="text" class="input_box" formControlName="property_name" />
+            <p class="error" *ngIf="(submitted || outletForm.controls['property_name'].touched) && outletForm.controls['property_name'].hasError('required')"> Property name
+              is required </p>
+          </div> -->
+          <!-- Hotel Code -->
+          <!-- <div class="form-group form1_div">
+            <label>Hotel Code<span class="required-asterisk">*</span></label> 
+            <input type="text" class="input_box" formControlName="Hotel_Code"/> -->
+          <!--newly added for hotel_code value static-->
+          <!-- <p class="error" *ngIf="(submitted || outletForm.controls['Hotel_Code'].touched) && outletForm.controls['Hotel_Code'].hasError('required')"> Hotel Code is
+              required </p>
+          </div> -->
+          <!-- API Key -->
+          <!-- <div class="form-group form1_div">
+            <label>X API Key<span class="required-asterisk">*</span></label>
+            <input type="text" class="input_box" formControlName="x_api_key" />
+            <p class="error" *ngIf="(submitted || outletForm.controls['x_api_key'].touched) && outletForm.controls['x_api_key'].hasError('required')"> API Key is
+              required </p>
+          </div> -->
+        </div>
+        <!-- IMAGE UPLOAD -->
+        <div class="form-group form1_div">
+          <label>Outlet Photo</label>
+          <input type="file" id="photoInput" #photoInput (change)="onPhotoUpload($event)" accept="image/*"
+            class="input_box" [disabled]="isViewMode" />
+          <div *ngIf="!photoPreview" class="photo-upload-hint">
+            Upload an image (max {{ maxSizeMB }}MB)
+          </div>
+          <div *ngIf="photoPreview" class="photo-preview-container">
+            <img [src]="photoPreview" alt="preview" class="photo-preview-img" />
+            <div class="photo-info-actions">
+              <span class="photo-filename">{{ photoName }}</span>
+              <div class="photo-buttons">
+                <button type="button" (click)="removePhoto()" class="btn-remove" [disabled]="isViewMode">Remove</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="form-group form1_div"
+          style="display: flex; align-items: center; border: 1px solid #ddd; padding: 6px; border-radius: 10px; width: 15%">
+          <p style="font-weight: 600; font-size: 14px;" class="mb-0">Active</p>
+          <input type="checkbox" formControlName="is_active" hidden #isActivatedCheckbox [disabled]="isViewMode">
+          <i [ngClass]="isActivatedCheckbox.checked ? 'bi bi-toggle-on' : 'bi bi-toggle-off'"
+            (click)="!isViewMode && isActivatedCheckbox.click()"
+            [ngStyle]="{ 'cursor': isViewMode ? 'not-allowed' : 'pointer', 'font-size': '25px', 'margin-left': '10%'}"></i>
+        </div>
+        <div class="btn_div">
+          <button type="button" class="btn cancel_bt mr-2" (click)="openExitModal()">{{ isViewMode ? 'Close' : 'Cancel'
+            }}</button>
+          <button type="submit" class="btn save_bt" *ngIf="!isViewMode">Save {{ upsellName }}</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Exit Confirmation Modal (Standard) -->
+<div *ngIf="isExitModalOpen"
+  style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center; z-index: 9999;">
+  <div
+    style="background: white; padding: 30px; border-radius: 15px; width: 450px; text-align: center; box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);">
+    <h2 style="margin-bottom: 10px; font-size: 20px; font-weight: bold;">Are you sure you want to exit?</h2>
+    <div style="display: flex; justify-content: space-around; margin-top: 25px;">
+      <button
+        style="padding: 12px; background: #E1E2EB; color: black; border: none; cursor: pointer; width: 45%; border-radius: 8px;"
+        (click)="closeExitModal()">Cancel</button>
+      <button
+        style="padding: 12px; background: #800020; color: white; border: none; cursor: pointer; width: 45%; border-radius: 8px;"
+        (click)="confirmExit()">Exit</button>
+    </div>
+  </div>
+</div>

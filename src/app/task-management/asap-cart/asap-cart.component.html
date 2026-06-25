@@ -59,7 +59,7 @@
                 {{
                 task.remainingSeconds }}</td>
             <td
-                *ngIf='(this.customerType == "Staff" && task.checkout_status === "Approved" && task.service.belongs_to === "Late checkout")'>
+                *ngIf='(this.customerType == "Staff" && task.checkout_status == "Approved" && task.service.belongs_to === "Late checkout")'>
                 Approved</td>
             <td>
                 <!-- <button *ngIf="task.assigned_staff_name==undefined && this.customerType == 'Staff' && task.checkout_status != 'Pending'"

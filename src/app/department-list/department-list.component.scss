@@ -407,55 +407,6 @@ table.table tbody td select.dept-select:focus {
     cursor: not-allowed !important;
 }
 
-// Dropdown styling for multiple department assignment
-// .custom-multi-select {
-//     position: relative;
-
-    
-//     .dropdown-toggle {
-//         color: #800020;
-//         border-radius: 6px;
-//         padding: 6px 12px;
-
-//         &::after {
-//             float: right;
-//             margin-top: 8px;
-//         }
-//     }
-
-    // .dropdown-menu {
-    //     border-radius: 12px;
-        // animation: fadeIn 0.2s ease-out;
-    // }
-
-    // .accent-maroon {
-    //     accent-color: #800020;
-        /* Matches your theme #800020 */
-//         width: 17px;
-//         height: 17px;
-//         cursor: pointer;
-//     }
-
-//     .cursor-pointer {
-//         cursor: pointer;
-
-//         &:hover {
-//             color: #800020;
-//         }
-//     }
-// }
-
-// Critical for showing the dropdown over table rows
-// .table-responsive,
-// table {
-//     overflow: visible !important;
-// }
-
-// td {
-//     overflow: visible !important;
-//     vertical-align: middle;
-// }
-
 @media (max-width: 768px) {
 
     table.table th,

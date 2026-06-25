@@ -9,7 +9,7 @@ import { AlertsService } from '../../shared/alerts/alerts.service';
 import { ActivatedRoute, Router, NavigationEnd } from '@angular/router';
 import { HotelEnrollmentTabviewComponent } from '../hotel-enrollment-tabview.component';
 import { AlertsComponent } from '../../shared/alerts/alerts.component';
-import { CustomValidators } from '../validators';
+import { CustomValidators, PINCODE_RULES } from '../validators';
 import { DOMAIN_NAME, ENDPOINTS, USER_ID } from '../../app.config';
 import { CheckoutApiService } from '../checkout.service';
 import { LocalStorageService } from '../../auth-services/local-storage.service';
@@ -17,6 +17,8 @@ import { LocalStorageService } from '../../auth-services/local-storage.service';
 import { HttpHeaders } from '@angular/common/http';
 import { ProfileService } from '../../profile/profile.service';
 import { HierarchyService } from '../../hierarchy/hierarchy.service';
+import { COUNTRY_STATES, CountryState } from '../../shared/constants/countries';
+import { SharedDataService } from '../../shared/shared-data.service';
 
 @Component({
   selector: 'app-property-details1',
@@ -31,7 +33,7 @@ export class PropertyDetails1Component {
   @Output() close = new EventEmitter<void>();
   customerProprtyDetailsForm: FormGroup = new FormGroup({});
   hotelId: Number | null = null;
-  countryDropdownList: any;
+  countryDropdownList: any = [];
   customerId: string | null = null;
   orderData: any;
   memberId: any | null = null;
@@ -42,10 +44,28 @@ export class PropertyDetails1Component {
     keepAfterRouteChange: false
   };
   states: any;
-  statesDropdownList: any;
+  statesDropdownList: any = [];
   upsertData: any;
   // Newly added
   @Output() continue = new EventEmitter<void>();
+
+  taxSectionTitle = '';
+  taxField1Label = '';
+  taxField2Label = '';
+  taxField1Key = '';
+  taxField2Key = '';
+  showTaxSection = false;
+  maxPincodeLength = 10;
+  isInitialLoad = false;
+
+  get taxControl1(): FormControl {
+    return this.customerProprtyDetailsForm.get(this.taxField1Key) as FormControl;
+  }
+
+  get taxControl2(): FormControl {
+    return this.customerProprtyDetailsForm.get(this.taxField2Key) as FormControl;
+  }
+
   companyStatusOptions = [
     { id: 'radio1', label: 'Private Limited / Public Limited Company' },
     { id: 'radio2', label: 'Sole Proprietor' },
@@ -159,7 +179,8 @@ export class PropertyDetails1Component {
     // Newly added
     private profileService: ProfileService,
     // Newly added fo hierarchy member_id update
-    private hierarchyService: HierarchyService
+    private hierarchyService: HierarchyService,
+    private sharedDataService: SharedDataService
   ) {
     this.router.events.subscribe(event => {
       if (event instanceof NavigationEnd) {
@@ -187,22 +208,22 @@ export class PropertyDetails1Component {
     this.executeFunctions();
     this.customerProprtyDetailsForm = new FormGroup({
       hotel_name: new FormControl('', [Validators.required, CustomValidators.noWhitespaceValidator]),
-      contact_person: new FormControl('', [Validators.required, CustomValidators.noWhitespaceValidator]),
+      // contact_person: new FormControl('', [Validators.required, CustomValidators.noWhitespaceValidator]),
+      contact_person: new FormControl('', [Validators.required, Validators.pattern(/^([^0-9]*)$/), CustomValidators.noWhitespaceValidator]),
       designation: new FormControl('', [Validators.required, CustomValidators.noWhitespaceValidator]),
       primary_phone_number: new FormControl('', [Validators.required, Validators.pattern(/^[0-9\s\-+()]+$/), CustomValidators.noWhitespaceValidator]),
       secondary_phone_number: new FormControl('', [Validators.required, Validators.pattern(/^[0-9\s\-+()]+$/), CustomValidators.noWhitespaceValidator]),
       // email: new FormControl('', [Validators.required, Validators.email]), 
-        email: new FormControl('', [Validators.required, Validators.pattern(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)]),  
+      email: new FormControl('', [Validators.required, Validators.pattern(/^[a-zA-Z0-9_%+-]+@[a-zA-Z0-9-]+\.[a-zA-Z]{2,}$/)]),
       brand: new FormControl('', Validators.required),
       property_doorno: new FormControl('', [Validators.required, CustomValidators.noWhitespaceValidator]),
       property_address: new FormControl('', [Validators.required, CustomValidators.noWhitespaceValidator]),
-      property_city: new FormControl('', [Validators.required, CustomValidators.noWhitespaceValidator]),
+      // property_city: new FormControl('', [Validators.required, CustomValidators.noWhitespaceValidator]),
+      property_city: new FormControl('', [Validators.required, Validators.pattern(/^[a-zA-Z0-9\s.'-]*$/), CustomValidators.noWhitespaceValidator]),
       property_state: new FormControl('', Validators.required),
       property_location: new FormControl('', [Validators.required, CustomValidators.noWhitespaceValidator]),
       property_country: new FormControl('', Validators.required),
-      property_pincode: new FormControl('', [Validators.required, CustomValidators.pincodeValidator]),
-      property_pan: new FormControl('', [Validators.required, CustomValidators.panValidator, CustomValidators.noWhitespaceValidator]),
-      property_gst: new FormControl('', [Validators.required, CustomValidators.gstValidator, CustomValidators.noWhitespaceValidator]),
+      property_pincode: new FormControl('', [Validators.required, CustomValidators.dynamicPincodeValidator()]),
       property_size: new FormControl('', Validators.required),
       // Newly added
       company_status: new FormControl('', Validators.required),
@@ -241,6 +262,75 @@ export class PropertyDetails1Component {
     }
     // this.getCountries();
     this.getCustomerDataAfterConfirmation();
+
+    // Initialize countries list from the shared constant
+    this.countryDropdownList = COUNTRY_STATES;
+    this.statesDropdownList = [];
+
+    // Disable state initially
+    this.customerProprtyDetailsForm.get('property_state')?.disable();
+
+    // Listen to changes on the country select dropdown
+    this.customerProprtyDetailsForm.get('property_country')?.valueChanges.subscribe((selectedCountryName) => {
+      if (selectedCountryName) {
+        // Find the matching country object
+        const selectedCountry = COUNTRY_STATES.find(
+          (c) => c.country === selectedCountryName
+        );
+
+        if (selectedCountry) {
+          // The template expects objects with a 'state' property
+          this.statesDropdownList = selectedCountry.states.map(s => ({ state: s, code: '', flag: '' }));
+          if (this.customerProprtyDetailsForm.disabled || this.customerStatus === 'approved') {
+            this.customerProprtyDetailsForm.get('property_state')?.disable();
+          } else {
+            this.customerProprtyDetailsForm.get('property_state')?.enable();
+          }
+        } else {
+          this.statesDropdownList = [];
+          this.customerProprtyDetailsForm.get('property_state')?.disable();
+        }
+      } else {
+        this.statesDropdownList = [];
+        this.customerProprtyDetailsForm.get('property_state')?.disable();
+      }
+
+      // Reset the state value whenever the country changes
+      if (!this.isInitialLoad) {
+        const stateCtrl = this.customerProprtyDetailsForm.get('property_state');
+        if (stateCtrl) {
+          stateCtrl.setValue('');
+          const selectedCountry = COUNTRY_STATES.find((c) => c.country === selectedCountryName);
+          if (selectedCountry && !stateCtrl.disabled) {
+            stateCtrl.markAsTouched();
+          }
+        }
+      }
+
+      // Re-validate and mark pincode as touched when country changes
+      const pincodeCtrl = this.customerProprtyDetailsForm.get('property_pincode');
+      const rule = PINCODE_RULES[selectedCountryName || 'default'] || PINCODE_RULES['default'];
+      this.maxPincodeLength = rule.maxLength;
+      if (pincodeCtrl) {
+        pincodeCtrl.updateValueAndValidity();
+        if (!this.isInitialLoad && pincodeCtrl.value) {
+          pincodeCtrl.markAsTouched();
+        }
+      }
+
+      // Setup dynamic tax controls
+      if (!this.isInitialLoad) {
+        this.onCountryOrStateChange(selectedCountryName, this.customerProprtyDetailsForm.get('property_state')?.value, false);
+      }
+    });
+
+    // Listen to changes on the state select dropdown
+    this.customerProprtyDetailsForm.get('property_state')?.valueChanges.subscribe((selectedStateName) => {
+      if (!this.isInitialLoad) {
+        this.onCountryOrStateChange(this.customerProprtyDetailsForm.get('property_country')?.value, selectedStateName, false);
+      }
+    });
+
   }
 
   // Newly added for disabling form on payment done
@@ -279,285 +369,283 @@ export class PropertyDetails1Component {
 
     }
 
-    this.countryDropdownList = [{ "country": "Afghanistan", "code": "", "flag": "" },
-    { "country": "Åland (Finland)", "code": "", "flag": "" },
-    { "country": "Albania", "code": "", "flag": "" },
-    { "country": "Algeria", "code": "", "flag": "" },
-    { "country": "American Samoa (US)", "code": "", "flag": "" },
-    { "country": "Andorra", "code": "", "flag": "" },
-    { "country": "Angola", "code": "", "flag": "" },
-    { "country": "Anguilla (BOT)", "code": "", "flag": "" },
-    { "country": "Antigua and Barbuda", "code": "", "flag": "" },
-    { "country": "Argentina", "code": "", "flag": "" },
-    { "country": "Armenia", "code": "", "flag": "" },
-    { "country": "Artsakh", "code": "", "flag": "" },
-    { "country": "Aruba (Netherlands)", "code": "", "flag": "" },
-    { "country": "Australia", "code": "", "flag": "" },
-    { "country": "Austria", "code": "", "flag": "" },
-    { "country": "Azerbaijan", "code": "", "flag": "" },
-    { "country": "Bahamas", "code": "", "flag": "" },
-    { "country": "Bahrain", "code": "", "flag": "" },
-    { "country": "Bangladesh", "code": "", "flag": "" },
-    { "country": "Barbados", "code": "", "flag": "" },
-    { "country": "Belarus", "code": "", "flag": "" },
-    { "country": "Belgium", "code": "", "flag": "" },
-    { "country": "Belize", "code": "", "flag": "" },
-    { "country": "Benin", "code": "", "flag": "" },
-    { "country": "Bermuda (BOT)", "code": "", "flag": "" },
-    { "country": "Bhutan", "code": "", "flag": "" },
-    { "country": "Bolivia", "code": "", "flag": "" },
-    { "country": "Bonaire (Netherlands)", "code": "", "flag": "" },
-    { "country": "Bosnia and Herzegovina", "code": "", "flag": "" },
-    { "country": "Botswana", "code": "", "flag": "" },
-    { "country": "Brazil", "code": "", "flag": "" },
-    { "country": "British Virgin Islands (BOT)", "code": "", "flag": "" },
-    { "country": "Brunei", "code": "", "flag": "" },
-    { "country": "Bulgaria", "code": "", "flag": "" },
-    { "country": "Burkina Faso", "code": "", "flag": "" },
-    { "country": "Burundi", "code": "", "flag": "" },
-    { "country": "Cambodia", "code": "", "flag": "" },
-    { "country": "Cameroon", "code": "", "flag": "" },
-    { "country": "Canada", "code": "", "flag": "" },
-    { "country": "Cape Verde", "code": "", "flag": "" },
-    { "country": "Cayman Islands (BOT)", "code": "", "flag": "" },
-    { "country": "Central African Republic", "code": "", "flag": "" },
-    { "country": "Chad", "code": "", "flag": "" },
-    { "country": "Chile", "code": "", "flag": "" },
-    { "country": "China", "code": "", "flag": "" },
-    { "country": "Christmas Island (Australia)", "code": "", "flag": "" },
-    { "country": "Cocos (Keeling) Islands (Australia)", "code": "", "flag": "" },
-    { "country": "Colombia", "code": "", "flag": "" },
-    { "country": "Comoros", "code": "", "flag": "" },
-    { "country": "Congo", "code": "", "flag": "" },
-    { "country": "Cook Islands", "code": "", "flag": "" },
-    { "country": "Costa Rica", "code": "", "flag": "" },
-    { "country": "Croatia", "code": "", "flag": "" },
-    { "country": "Cuba", "code": "", "flag": "" },
-    { "country": "Curaçao (Netherlands)", "code": "", "flag": "" },
-    { "country": "Cyprus", "code": "", "flag": "" },
-    { "country": "Czech Republic", "code": "", "flag": "" },
-    { "country": "Denmark", "code": "", "flag": "" },
-    { "country": "Djibouti", "code": "", "flag": "" },
-    { "country": "Dominica", "code": "", "flag": "" },
-    { "country": "Dominican Republic", "code": "", "flag": "" },
-    { "country": "DR Congo", "code": "", "flag": "" },
-    { "country": "East Timor", "code": "", "flag": "" },
-    { "country": "Ecuador", "code": "", "flag": "" },
-    { "country": "Egypt", "code": "", "flag": "" },
-    { "country": "El Salvador", "code": "", "flag": "" },
-    { "country": "Equatorial Guinea", "code": "", "flag": "" },
-    { "country": "Eritrea", "code": "", "flag": "" },
-    { "country": "Estonia", "code": "", "flag": "" },
-    { "country": "Eswatini", "code": "", "flag": "" },
-    { "country": "Ethiopia", "code": "", "flag": "" },
-    { "country": "Falkland Islands (BOT)", "code": "", "flag": "" },
-    { "country": "Faroe Islands (Denmark)", "code": "", "flag": "" },
-    { "country": "Fiji", "code": "", "flag": "" },
-    { "country": "Finland", "code": "", "flag": "" },
-    { "country": "France", "code": "", "flag": "" },
-    { "country": "French Guiana (France)", "code": "", "flag": "" },
-    { "country": "French Polynesia (France)", "code": "", "flag": "" },
-    { "country": "Gabon", "code": "", "flag": "" },
-    { "country": "Gambia", "code": "", "flag": "" },
-    { "country": "Georgia", "code": "", "flag": "" },
-    { "country": "Germany", "code": "", "flag": "" },
-    { "country": "Ghana", "code": "", "flag": "" },
-    { "country": "Gibraltar (BOT)", "code": "", "flag": "" },
-    { "country": "Greece", "code": "", "flag": "" },
-    { "country": "Greenland (Denmark)", "code": "", "flag": "" },
-    { "country": "Grenada", "code": "", "flag": "" },
-    { "country": "Guadeloupe (France)", "code": "", "flag": "" },
-    { "country": "Guam (US)", "code": "", "flag": "" },
-    { "country": "Guatemala", "code": "", "flag": "" },
-    { "country": "Guernsey (Crown Dependency)", "code": "", "flag": "" },
-    { "country": "Guinea", "code": "", "flag": "" },
-    { "country": "Guinea-Bissau", "code": "", "flag": "" },
-    { "country": "Guyana", "code": "", "flag": "" },
-    { "country": "Haiti", "code": "", "flag": "" },
-    { "country": "Honduras", "code": "", "flag": "" },
-    { "country": "Hong Kong", "code": "", "flag": "" },
-    { "country": "Hungary", "code": "", "flag": "" },
-    { "country": "Iceland", "code": "", "flag": "" },
-    { "country": "India", "code": "", "flag": "" },
-    { "country": "Indonesia", "code": "", "flag": "" },
-    { "country": "Iran", "code": "", "flag": "" },
-    { "country": "Iraq", "code": "", "flag": "" },
-    { "country": "Ireland", "code": "", "flag": "" },
-    { "country": "Isle of Man (Crown Dependency)", "code": "", "flag": "" },
-    { "country": "Israel", "code": "", "flag": "" },
-    { "country": "Italy", "code": "", "flag": "" },
-    { "country": "Ivory Coast", "code": "", "flag": "" },
-    { "country": "Jamaica", "code": "", "flag": "" },
-    { "country": "Japan", "code": "", "flag": "" },
-    { "country": "Jersey (Crown Dependency)", "code": "", "flag": "" },
-    { "country": "Jordan", "code": "", "flag": "" },
-    { "country": "Kazakhstan", "code": "", "flag": "" },
-    { "country": "Kenya", "code": "", "flag": "" },
-    { "country": "Kiribati", "code": "", "flag": "" },
-    { "country": "Kosovo", "code": "", "flag": "" },
-    { "country": "Kuwait", "code": "", "flag": "" },
-    { "country": "Kyrgyzstan", "code": "", "flag": "" },
-    { "country": "Laos", "code": "", "flag": "" },
-    { "country": "Latvia", "code": "", "flag": "" },
-    { "country": "Lebanon", "code": "", "flag": "" },
-    { "country": "Lesotho", "code": "", "flag": "" },
-    { "country": "Liberia", "code": "", "flag": "" },
-    { "country": "Libya", "code": "", "flag": "" },
-    { "country": "Liechtenstein", "code": "", "flag": "" },
-    { "country": "Lithuania", "code": "", "flag": "" },
-    { "country": "Luxembourg", "code": "", "flag": "" },
-    { "country": "Macau", "code": "", "flag": "" },
-    { "country": "Madagascar", "code": "", "flag": "" },
-    { "country": "Malawi", "code": "", "flag": "" },
-    { "country": "Malaysia", "code": "", "flag": "" },
-    { "country": "Maldives", "code": "", "flag": "" },
-    { "country": "Mali", "code": "", "flag": "" },
-    { "country": "Malta", "code": "", "flag": "" },
-    { "country": "Marshall Islands", "code": "", "flag": "" },
-    { "country": "Martinique (France)", "code": "", "flag": "" },
-    { "country": "Mauritania", "code": "", "flag": "" },
-    { "country": "Mauritius", "code": "", "flag": "" },
-    { "country": "Mayotte (France)", "code": "", "flag": "" },
-    { "country": "Mexico", "code": "", "flag": "" },
-    { "country": "Micronesia", "code": "", "flag": "" },
-    { "country": "Moldova", "code": "", "flag": "" },
-    { "country": "Monaco", "code": "", "flag": "" },
-    { "country": "Mongolia", "code": "", "flag": "" },
-    { "country": "Montenegro", "code": "", "flag": "" },
-    { "country": "Montserrat (BOT)", "code": "", "flag": "" },
-    { "country": "Morocco", "code": "", "flag": "" },
-    { "country": "Mozambique", "code": "", "flag": "" },
-    { "country": "Myanmar", "code": "", "flag": "" },
-    { "country": "Namibia", "code": "", "flag": "" },
-    { "country": "Nauru", "code": "", "flag": "" },
-    { "country": "Nepal", "code": "", "flag": "" },
-    { "country": "Netherlands", "code": "", "flag": "" },
-    { "country": "New Caledonia (France)", "code": "", "flag": "" },
-    { "country": "New Zealand", "code": "", "flag": "" },
-    { "country": "Nicaragua", "code": "", "flag": "" },
-    { "country": "Niger", "code": "", "flag": "" },
-    { "country": "Nigeria", "code": "", "flag": "" },
-    { "country": "Niue", "code": "", "flag": "" },
-    { "country": "Norfolk Island (Australia)", "code": "", "flag": "" },
-    { "country": "North Korea", "code": "", "flag": "" },
-    { "country": "North Macedonia", "code": "", "flag": "" },
-    { "country": "Northern Cyprus", "code": "", "flag": "" },
-    { "country": "Northern Mariana Islands (US)", "code": "", "flag": "" },
-    { "country": "Norway", "code": "", "flag": "" },
-    { "country": "Oman", "code": "", "flag": "" },
-    { "country": "Pakistan", "code": "", "flag": "" },
-    { "country": "Palau", "code": "", "flag": "" },
-    { "country": "Palestine", "code": "", "flag": "" },
-    { "country": "Panama", "code": "", "flag": "" },
-    { "country": "Papua New Guinea", "code": "", "flag": "" },
-    { "country": "Paraguay", "code": "", "flag": "" },
-    { "country": "Peru", "code": "", "flag": "" },
-    { "country": "Philippines", "code": "", "flag": "" },
-    { "country": "Pitcairn Islands (BOT)", "code": "", "flag": "" },
-    { "country": "Poland", "code": "", "flag": "" },
-    { "country": "Portugal", "code": "", "flag": "" },
-    { "country": "Puerto Rico (US)", "code": "", "flag": "" },
-    { "country": "Qatar", "code": "", "flag": "" },
-    { "country": "Réunion (France)", "code": "", "flag": "" },
-    { "country": "Romania", "code": "", "flag": "" },
-    { "country": "Russia", "code": "", "flag": "" },
-    { "country": "Rwanda", "code": "", "flag": "" },
-    { "country": "Saba (Netherlands)", "code": "", "flag": "" },
-    { "country": "Saint Barthélemy (France)", "code": "", "flag": "" },
-    { "country": "Saint Helena, Ascension and Tristan da Cunha (BOT)", "code": "", "flag": "" },
-    { "country": "Saint Kitts and Nevis", "code": "", "flag": "" },
-    { "country": "Saint Lucia", "code": "", "flag": "" },
-    { "country": "Saint Martin (France)", "code": "", "flag": "" },
-    { "country": "Saint Pierre and Miquelon (France)", "code": "", "flag": "" },
-    { "country": "Saint Vincent and the Grenadines", "code": "", "flag": "" },
-    { "country": "Samoa", "code": "", "flag": "" },
-    { "country": "San Marino", "code": "", "flag": "" },
-    { "country": "São Tomé and Príncipe", "code": "", "flag": "" },
-    { "country": "Saudi Arabia", "code": "", "flag": "" },
-    { "country": "Senegal", "code": "", "flag": "" },
-    { "country": "Serbia", "code": "", "flag": "" },
-    { "country": "Seychelles", "code": "", "flag": "" },
-    { "country": "Sierra Leone", "code": "", "flag": "" },
-    { "country": "Singapore", "code": "", "flag": "" },
-    { "country": "Sint Eustatius (Netherlands)", "code": "", "flag": "" },
-    { "country": "Sint Maarten (Netherlands)", "code": "", "flag": "" },
-    { "country": "Slovakia", "code": "", "flag": "" },
-    { "country": "Slovenia", "code": "", "flag": "" },
-    { "country": "Solomon Islands", "code": "", "flag": "" },
-    { "country": "Somalia", "code": "", "flag": "" },
-    { "country": "South Africa", "code": "", "flag": "" },
-    { "country": "South Korea", "code": "", "flag": "" },
-    { "country": "South Sudan", "code": "", "flag": "" },
-    { "country": "Spain", "code": "", "flag": "" },
-    { "country": "Sri Lanka", "code": "", "flag": "" },
-    { "country": "Sudan", "code": "", "flag": "" },
-    { "country": "Suricountry", "code": "", "flag": "" },
-    { "country": "Svalbard and Jan Mayen (Norway)", "code": "", "flag": "" },
-    { "country": "Sweden", "code": "", "flag": "" },
-    { "country": "Switzerland", "code": "", "flag": "" },
-    { "country": "Syria", "code": "", "flag": "" },
-    { "country": "Taiwan", "code": "", "flag": "" },
-    { "country": "Tajikistan", "code": "", "flag": "" },
-    { "country": "Tanzania", "code": "", "flag": "" },
-    { "country": "Thailand", "code": "", "flag": "" },
-    { "country": "Togo", "code": "", "flag": "" },
-    { "country": "Tokelau (NZ)", "code": "", "flag": "" },
-    { "country": "Tonga", "code": "", "flag": "" },
-    { "country": "Transnistria", "code": "", "flag": "" },
-    { "country": "Trinidad and Tobago", "code": "", "flag": "" },
-    { "country": "Tunisia", "code": "", "flag": "" },
-    { "country": "Turkey", "code": "", "flag": "" },
-    { "country": "Turkmenistan", "code": "", "flag": "" },
-    { "country": "Turks and Caicos Islands (BOT)", "code": "", "flag": "" },
-    { "country": "Tuvalu", "code": "", "flag": "" },
-    { "country": "U.S. Virgin Islands (US)", "code": "", "flag": "" },
-    { "country": "Uganda", "code": "", "flag": "" },
-    { "country": "Ukraine", "code": "", "flag": "" },
-    { "country": "United Arab Emirates", "code": "", "flag": "" },
-    { "country": "United Kingdom", "code": "", "flag": "" },
-    { "country": "United States", "code": "", "flag": "" },
-    { "country": "Uruguay", "code": "", "flag": "" },
-    { "country": "Uzbekistan", "code": "", "flag": "" },
-    { "country": "Vanuatu", "code": "", "flag": "" },
-    { "country": "Vatican City", "code": "", "flag": "" },
-    { "country": "Venezuela", "code": "", "flag": "" },
-    { "country": "Vietnam", "code": "", "flag": "" },
-    { "country": "Wallis and Futuna (France)", "code": "", "flag": "" },
-    { "country": "Western Sahara", "code": "", "flag": "" },
-    { "country": "Yemen", "code": "", "flag": "" }]
+    // this.countryDropdownList = [{ "country": "Afghanistan", "code": "", "flag": "" },
+    // { "country": "Åland (Finland)", "code": "", "flag": "" },
+    // { "country": "Albania", "code": "", "flag": "" },
+    // { "country": "Algeria", "code": "", "flag": "" },
+    // { "country": "American Samoa (US)", "code": "", "flag": "" },
+    // { "country": "Andorra", "code": "", "flag": "" },
+    // { "country": "Angola", "code": "", "flag": "" },
+    // { "country": "Anguilla (BOT)", "code": "", "flag": "" },
+    // { "country": "Antigua and Barbuda", "code": "", "flag": "" },
+    // { "country": "Argentina", "code": "", "flag": "" },
+    // { "country": "Armenia", "code": "", "flag": "" },
+    // { "country": "Artsakh", "code": "", "flag": "" },
+    // { "country": "Aruba (Netherlands)", "code": "", "flag": "" },
+    // { "country": "Australia", "code": "", "flag": "" },
+    // { "country": "Austria", "code": "", "flag": "" },
+    // { "country": "Azerbaijan", "code": "", "flag": "" },
+    // { "country": "Bahamas", "code": "", "flag": "" },
+    // { "country": "Bahrain", "code": "", "flag": "" },
+    // { "country": "Bangladesh", "code": "", "flag": "" },
+    // { "country": "Barbados", "code": "", "flag": "" },
+    // { "country": "Belarus", "code": "", "flag": "" },
+    // { "country": "Belgium", "code": "", "flag": "" },
+    // { "country": "Belize", "code": "", "flag": "" },
+    // { "country": "Benin", "code": "", "flag": "" },
+    // { "country": "Bermuda (BOT)", "code": "", "flag": "" },
+    // { "country": "Bhutan", "code": "", "flag": "" },
+    // { "country": "Bolivia", "code": "", "flag": "" },
+    // { "country": "Bonaire (Netherlands)", "code": "", "flag": "" },
+    // { "country": "Bosnia and Herzegovina", "code": "", "flag": "" },
+    // { "country": "Botswana", "code": "", "flag": "" },
+    // { "country": "Brazil", "code": "", "flag": "" },
+    // { "country": "British Virgin Islands (BOT)", "code": "", "flag": "" },
+    // { "country": "Brunei", "code": "", "flag": "" },
+    // { "country": "Bulgaria", "code": "", "flag": "" },
+    // { "country": "Burkina Faso", "code": "", "flag": "" },
+    // { "country": "Burundi", "code": "", "flag": "" },
+    // { "country": "Cambodia", "code": "", "flag": "" },
+    // { "country": "Cameroon", "code": "", "flag": "" },
+    // { "country": "Canada", "code": "", "flag": "" },
+    // { "country": "Cape Verde", "code": "", "flag": "" },
+    // { "country": "Cayman Islands (BOT)", "code": "", "flag": "" },
+    // { "country": "Central African Republic", "code": "", "flag": "" },
+    // { "country": "Chad", "code": "", "flag": "" },
+    // { "country": "Chile", "code": "", "flag": "" },
+    // { "country": "China", "code": "", "flag": "" },
+    // { "country": "Christmas Island (Australia)", "code": "", "flag": "" },
+    // { "country": "Cocos (Keeling) Islands (Australia)", "code": "", "flag": "" },
+    // { "country": "Colombia", "code": "", "flag": "" },
+    // { "country": "Comoros", "code": "", "flag": "" },
+    // { "country": "Congo", "code": "", "flag": "" },
+    // { "country": "Cook Islands", "code": "", "flag": "" },
+    // { "country": "Costa Rica", "code": "", "flag": "" },
+    // { "country": "Croatia", "code": "", "flag": "" },
+    // { "country": "Cuba", "code": "", "flag": "" },
+    // { "country": "Curaçao (Netherlands)", "code": "", "flag": "" },
+    // { "country": "Cyprus", "code": "", "flag": "" },
+    // { "country": "Czech Republic", "code": "", "flag": "" },
+    // { "country": "Denmark", "code": "", "flag": "" },
+    // { "country": "Djibouti", "code": "", "flag": "" },
+    // { "country": "Dominica", "code": "", "flag": "" },
+    // { "country": "Dominican Republic", "code": "", "flag": "" },
+    // { "country": "DR Congo", "code": "", "flag": "" },
+    // { "country": "East Timor", "code": "", "flag": "" },
+    // { "country": "Ecuador", "code": "", "flag": "" },
+    // { "country": "Egypt", "code": "", "flag": "" },
+    // { "country": "El Salvador", "code": "", "flag": "" },
+    // { "country": "Equatorial Guinea", "code": "", "flag": "" },
+    // { "country": "Eritrea", "code": "", "flag": "" },
+    // { "country": "Estonia", "code": "", "flag": "" },
+    // { "country": "Eswatini", "code": "", "flag": "" },
+    // { "country": "Ethiopia", "code": "", "flag": "" },
+    // { "country": "Falkland Islands (BOT)", "code": "", "flag": "" },
+    // { "country": "Faroe Islands (Denmark)", "code": "", "flag": "" },
+    // { "country": "Fiji", "code": "", "flag": "" },
+    // { "country": "Finland", "code": "", "flag": "" },
+    // { "country": "France", "code": "", "flag": "" },
+    // { "country": "French Guiana (France)", "code": "", "flag": "" },
+    // { "country": "French Polynesia (France)", "code": "", "flag": "" },
+    // { "country": "Gabon", "code": "", "flag": "" },
+    // { "country": "Gambia", "code": "", "flag": "" },
+    // { "country": "Georgia", "code": "", "flag": "" },
+    // { "country": "Germany", "code": "", "flag": "" },
+    // { "country": "Ghana", "code": "", "flag": "" },
+    // { "country": "Gibraltar (BOT)", "code": "", "flag": "" },
+    // { "country": "Greece", "code": "", "flag": "" },
+    // { "country": "Greenland (Denmark)", "code": "", "flag": "" },
+    // { "country": "Grenada", "code": "", "flag": "" },
+    // { "country": "Guadeloupe (France)", "code": "", "flag": "" },
+    // { "country": "Guam (US)", "code": "", "flag": "" },
+    // { "country": "Guatemala", "code": "", "flag": "" },
+    // { "country": "Guernsey (Crown Dependency)", "code": "", "flag": "" },
+    // { "country": "Guinea", "code": "", "flag": "" },
+    // { "country": "Guinea-Bissau", "code": "", "flag": "" },
+    // { "country": "Guyana", "code": "", "flag": "" },
+    // { "country": "Haiti", "code": "", "flag": "" },
+    // { "country": "Honduras", "code": "", "flag": "" },
+    // { "country": "Hong Kong", "code": "", "flag": "" },
+    // { "country": "Hungary", "code": "", "flag": "" },
+    // { "country": "Iceland", "code": "", "flag": "" },
+    // { "country": "India", "code": "", "flag": "" },
+    // { "country": "Indonesia", "code": "", "flag": "" },
+    // { "country": "Iran", "code": "", "flag": "" },
+    // { "country": "Iraq", "code": "", "flag": "" },
+    // { "country": "Ireland", "code": "", "flag": "" },
+    // { "country": "Isle of Man (Crown Dependency)", "code": "", "flag": "" },
+    // { "country": "Israel", "code": "", "flag": "" },
+    // { "country": "Italy", "code": "", "flag": "" },
+    // { "country": "Ivory Coast", "code": "", "flag": "" },
+    // { "country": "Jamaica", "code": "", "flag": "" },
+    // { "country": "Japan", "code": "", "flag": "" },
+    // { "country": "Jersey (Crown Dependency)", "code": "", "flag": "" },
+    // { "country": "Jordan", "code": "", "flag": "" },
+    // { "country": "Kazakhstan", "code": "", "flag": "" },
+    // { "country": "Kenya", "code": "", "flag": "" },
+    // { "country": "Kiribati", "code": "", "flag": "" },
+    // { "country": "Kosovo", "code": "", "flag": "" },
+    // { "country": "Kuwait", "code": "", "flag": "" },
+    // { "country": "Kyrgyzstan", "code": "", "flag": "" },
+    // { "country": "Laos", "code": "", "flag": "" },
+    // { "country": "Latvia", "code": "", "flag": "" },
+    // { "country": "Lebanon", "code": "", "flag": "" },
+    // { "country": "Lesotho", "code": "", "flag": "" },
+    // { "country": "Liberia", "code": "", "flag": "" },
+    // { "country": "Libya", "code": "", "flag": "" },
+    // { "country": "Liechtenstein", "code": "", "flag": "" },
+    // { "country": "Lithuania", "code": "", "flag": "" },
+    // { "country": "Luxembourg", "code": "", "flag": "" },
+    // { "country": "Macau", "code": "", "flag": "" },
+    // { "country": "Madagascar", "code": "", "flag": "" },
+    // { "country": "Malawi", "code": "", "flag": "" },
+    // { "country": "Malaysia", "code": "", "flag": "" },
+    // { "country": "Maldives", "code": "", "flag": "" },
+    // { "country": "Mali", "code": "", "flag": "" },
+    // { "country": "Malta", "code": "", "flag": "" },
+    // { "country": "Marshall Islands", "code": "", "flag": "" },
+    // { "country": "Martinique (France)", "code": "", "flag": "" },
+    // { "country": "Mauritania", "code": "", "flag": "" },
+    // { "country": "Mauritius", "code": "", "flag": "" },
+    // { "country": "Mayotte (France)", "code": "", "flag": "" },
+    // { "country": "Mexico", "code": "", "flag": "" },
+    // { "country": "Micronesia", "code": "", "flag": "" },
+    // { "country": "Moldova", "code": "", "flag": "" },
+    // { "country": "Monaco", "code": "", "flag": "" },
+    // { "country": "Mongolia", "code": "", "flag": "" },
+    // { "country": "Montenegro", "code": "", "flag": "" },
+    // { "country": "Montserrat (BOT)", "code": "", "flag": "" },
+    // { "country": "Morocco", "code": "", "flag": "" },
+    // { "country": "Mozambique", "code": "", "flag": "" },
+    // { "country": "Myanmar", "code": "", "flag": "" },
+    // { "country": "Namibia", "code": "", "flag": "" },
+    // { "country": "Nauru", "code": "", "flag": "" },
+    // { "country": "Nepal", "code": "", "flag": "" },
+    // { "country": "Netherlands", "code": "", "flag": "" },
+    // { "country": "New Caledonia (France)", "code": "", "flag": "" },
+    // { "country": "New Zealand", "code": "", "flag": "" },
+    // { "country": "Nicaragua", "code": "", "flag": "" },
+    // { "country": "Niger", "code": "", "flag": "" },
+    // { "country": "Nigeria", "code": "", "flag": "" },
+    // { "country": "Niue", "code": "", "flag": "" },
+    // { "country": "Norfolk Island (Australia)", "code": "", "flag": "" },
+    // { "country": "North Korea", "code": "", "flag": "" },
+    // { "country": "North Macedonia", "code": "", "flag": "" },
+    // { "country": "Northern Cyprus", "code": "", "flag": "" },
+    // { "country": "Northern Mariana Islands (US)", "code": "", "flag": "" },
+    // { "country": "Norway", "code": "", "flag": "" },
+    // { "country": "Oman", "code": "", "flag": "" },
+    // { "country": "Pakistan", "code": "", "flag": "" },
+    // { "country": "Palau", "code": "", "flag": "" },
+    // { "country": "Palestine", "code": "", "flag": "" },
+    // { "country": "Panama", "code": "", "flag": "" },
+    // { "country": "Papua New Guinea", "code": "", "flag": "" },
+    // { "country": "Paraguay", "code": "", "flag": "" },
+    // { "country": "Peru", "code": "", "flag": "" },
+    // { "country": "Philippines", "code": "", "flag": "" },
+    // { "country": "Pitcairn Islands (BOT)", "code": "", "flag": "" },
+    // { "country": "Poland", "code": "", "flag": "" },
+    // { "country": "Portugal", "code": "", "flag": "" },
+    // { "country": "Puerto Rico (US)", "code": "", "flag": "" },
+    // { "country": "Qatar", "code": "", "flag": "" },
+    // { "country": "Réunion (France)", "code": "", "flag": "" },
+    // { "country": "Romania", "code": "", "flag": "" },
+    // { "country": "Russia", "code": "", "flag": "" },
+    // { "country": "Rwanda", "code": "", "flag": "" },
+    // { "country": "Saba (Netherlands)", "code": "", "flag": "" },
+    // { "country": "Saint Barthélemy (France)", "code": "", "flag": "" },
+    // { "country": "Saint Helena, Ascension and Tristan da Cunha (BOT)", "code": "", "flag": "" },
+    // { "country": "Saint Kitts and Nevis", "code": "", "flag": "" },
+    // { "country": "Saint Lucia", "code": "", "flag": "" },
+    // { "country": "Saint Martin (France)", "code": "", "flag": "" },
+    // { "country": "Saint Pierre and Miquelon (France)", "code": "", "flag": "" },
+    // { "country": "Saint Vincent and the Grenadines", "code": "", "flag": "" },
+    // { "country": "Samoa", "code": "", "flag": "" },
+    // { "country": "San Marino", "code": "", "flag": "" },
+    // { "country": "São Tomé and Príncipe", "code": "", "flag": "" },
+    // { "country": "Saudi Arabia", "code": "", "flag": "" },
+    // { "country": "Senegal", "code": "", "flag": "" },
+    // { "country": "Serbia", "code": "", "flag": "" },
+    // { "country": "Seychelles", "code": "", "flag": "" },
+    // { "country": "Sierra Leone", "code": "", "flag": "" },
+    // { "country": "Singapore", "code": "", "flag": "" },
+    // { "country": "Sint Eustatius (Netherlands)", "code": "", "flag": "" },
+    // { "country": "Sint Maarten (Netherlands)", "code": "", "flag": "" },
+    // { "country": "Slovakia", "code": "", "flag": "" },
+    // { "country": "Slovenia", "code": "", "flag": "" },
+    // { "country": "Solomon Islands", "code": "", "flag": "" },
+    // { "country": "Somalia", "code": "", "flag": "" },
+    // { "country": "South Africa", "code": "", "flag": "" },
+    // { "country": "South Korea", "code": "", "flag": "" },
+    // { "country": "South Sudan", "code": "", "flag": "" },
+    // { "country": "Spain", "code": "", "flag": "" },
+    // { "country": "Sri Lanka", "code": "", "flag": "" },
+    // { "country": "Sudan", "code": "", "flag": "" },
+    // { "country": "Suricountry", "code": "", "flag": "" },
+    // { "country": "Svalbard and Jan Mayen (Norway)", "code": "", "flag": "" },
+    // { "country": "Sweden", "code": "", "flag": "" },
+    // { "country": "Switzerland", "code": "", "flag": "" },
+    // { "country": "Syria", "code": "", "flag": "" },
+    // { "country": "Taiwan", "code": "", "flag": "" },
+    // { "country": "Tajikistan", "code": "", "flag": "" },
+    // { "country": "Tanzania", "code": "", "flag": "" },
+    // { "country": "Thailand", "code": "", "flag": "" },
+    // { "country": "Togo", "code": "", "flag": "" },
+    // { "country": "Tokelau (NZ)", "code": "", "flag": "" },
+    // { "country": "Tonga", "code": "", "flag": "" },
+    // { "country": "Transnistria", "code": "", "flag": "" },
+    // { "country": "Trinidad and Tobago", "code": "", "flag": "" },
+    // { "country": "Tunisia", "code": "", "flag": "" },
+    // { "country": "Turkey", "code": "", "flag": "" },
+    // { "country": "Turkmenistan", "code": "", "flag": "" },
+    // { "country": "Turks and Caicos Islands (BOT)", "code": "", "flag": "" },
+    // { "country": "Tuvalu", "code": "", "flag": "" },
+    // { "country": "U.S. Virgin Islands (US)", "code": "", "flag": "" },
+    // { "country": "Uganda", "code": "", "flag": "" },
+    // { "country": "Ukraine", "code": "", "flag": "" },
+    // { "country": "United Arab Emirates", "code": "", "flag": "" },
+    // { "country": "United Kingdom", "code": "", "flag": "" },
+    // { "country": "United States", "code": "", "flag": "" },
+    // { "country": "Uruguay", "code": "", "flag": "" },
+    // { "country": "Uzbekistan", "code": "", "flag": "" },
+    // { "country": "Vanuatu", "code": "", "flag": "" },
+    // { "country": "Vatican City", "code": "", "flag": "" },
+    // { "country": "Venezuela", "code": "", "flag": "" },
+    // { "country": "Vietnam", "code": "", "flag": "" },
+    // { "country": "Wallis and Futuna (France)", "code": "", "flag": "" },
+    // { "country": "Western Sahara", "code": "", "flag": "" },
+    // { "country": "Yemen", "code": "", "flag": "" }]
 
-
-
-    this.statesDropdownList = [
-      { "state": "Andhra Pradesh", "code": "", "flag": "" },
-      { "state": "Arunachal Pradesh", "code": "", "flag": "" },
-      { "state": "Assam", "code": "", "flag": "" },
-      { "state": "Bihar", "code": "", "flag": "" },
-      { "state": "Chhattisgarh", "code": "", "flag": "" },
-      { "state": "Goa", "code": "", "flag": "" },
-      { "state": "Gujarat", "code": "", "flag": "" },
-      { "state": "Haryana", "code": "", "flag": "" },
-      { "state": "Himachal Pradesh", "code": "", "flag": "" },
-      { "state": "Jharkhand", "code": "", "flag": "" },
-      { "state": "Karnataka", "code": "", "flag": "" },
-      { "state": "Kerala", "code": "", "flag": "" },
-      { "state": "Madhya Pradesh", "code": "", "flag": "" },
-      { "state": "Maharashtra", "code": "", "flag": "" },
-      { "state": "Manipur", "code": "", "flag": "" },
-      { "state": "Meghalaya", "code": "", "flag": "" },
-      { "state": "Mizoram", "code": "", "flag": "" },
-      { "state": "Nagaland", "code": "", "flag": "" },
-      { "state": "Odisha", "code": "", "flag": "" },
-      { "state": "Punjab", "code": "", "flag": "" },
-      { "state": "Rajasthan", "code": "", "flag": "" },
-      { "state": "Sikkim", "code": "", "flag": "" },
-      { "state": "Tamil Nadu", "code": "", "flag": "" },
-      { "state": "Telangana", "code": "", "flag": "" },
-      { "state": "Tripura", "code": "", "flag": "" },
-      { "state": "Uttar Pradesh", "code": "", "flag": "" },
-      { "state": "Uttarakhand", "code": "", "flag": "" },
-      { "state": "West Bengal", "code": "", "flag": "" }
-    ]
+    // this.statesDropdownList = [
+    //   { "state": "Andhra Pradesh", "code": "", "flag": "" },
+    //   { "state": "Arunachal Pradesh", "code": "", "flag": "" },
+    //   { "state": "Assam", "code": "", "flag": "" },
+    //   { "state": "Bihar", "code": "", "flag": "" },
+    //   { "state": "Chhattisgarh", "code": "", "flag": "" },
+    //   { "state": "Goa", "code": "", "flag": "" },
+    //   { "state": "Gujarat", "code": "", "flag": "" },
+    //   { "state": "Haryana", "code": "", "flag": "" },
+    //   { "state": "Himachal Pradesh", "code": "", "flag": "" },
+    //   { "state": "Jharkhand", "code": "", "flag": "" },
+    //   { "state": "Karnataka", "code": "", "flag": "" },
+    //   { "state": "Kerala", "code": "", "flag": "" },
+    //   { "state": "Madhya Pradesh", "code": "", "flag": "" },
+    //   { "state": "Maharashtra", "code": "", "flag": "" },
+    //   { "state": "Manipur", "code": "", "flag": "" },
+    //   { "state": "Meghalaya", "code": "", "flag": "" },
+    //   { "state": "Mizoram", "code": "", "flag": "" },
+    //   { "state": "Nagaland", "code": "", "flag": "" },
+    //   { "state": "Odisha", "code": "", "flag": "" },
+    //   { "state": "Punjab", "code": "", "flag": "" },
+    //   { "state": "Rajasthan", "code": "", "flag": "" },
+    //   { "state": "Sikkim", "code": "", "flag": "" },
+    //   { "state": "Tamil Nadu", "code": "", "flag": "" },
+    //   { "state": "Telangana", "code": "", "flag": "" },
+    //   { "state": "Tripura", "code": "", "flag": "" },
+    //   { "state": "Uttar Pradesh", "code": "", "flag": "" },
+    //   { "state": "Uttarakhand", "code": "", "flag": "" },
+    //   { "state": "West Bengal", "code": "", "flag": "" }
+    // ]
   }
 
   onSubmit() {
@@ -793,10 +881,15 @@ export class PropertyDetails1Component {
         property_location: formValues.property_location,
         property_country: formValues.property_country,
         property_pincode: formValues.property_pincode,
-        property_pan: formValues.property_pan,
-        property_gst: formValues.property_gst,
         property_size: formValues.property_size,
-        number_of_rooms: formValues.number_of_rooms
+        number_of_rooms: formValues.number_of_rooms,
+        ...(formValues.property_country === 'India' ? {
+          property_pan: formValues.property_pan,
+          property_gst: formValues.property_gst
+        } : {
+          property_vat: formValues.property_vat,
+          property_tin: formValues.property_tin
+        })
       },
       // Newly added
       kyc_documents: {
@@ -958,6 +1051,168 @@ export class PropertyDetails1Component {
     );
   }
 
+  onCountryOrStateChange(country: string, state: string, isInitialLoad = false) {
+    if (!country) {
+      this.showTaxSection = false;
+      if (this.taxField1Key) this.customerProprtyDetailsForm.removeControl(this.taxField1Key);
+      if (this.taxField2Key) this.customerProprtyDetailsForm.removeControl(this.taxField2Key);
+      this.taxField1Key = '';
+      this.taxField2Key = '';
+      return;
+    }
+
+    this.showTaxSection = true;
+    const isIndia = country === 'India';
+    const newField1Key = isIndia ? 'property_pan' : 'property_vat';
+    const newField2Key = isIndia ? 'property_gst' : 'property_tin';
+
+    // Calculate new title and labels first
+    let newTaxSectionTitle = '';
+    let newTaxField1Label = '';
+    let newTaxField2Label = '';
+
+    if (isIndia) {
+      newTaxSectionTitle = 'PAN & GST Details';
+      newTaxField1Label = 'PAN Number';
+      newTaxField2Label = 'GST';
+    } else {
+      newTaxSectionTitle = 'VAT & TIN Details';
+      newTaxField1Label = 'VAT Number';
+      newTaxField2Label = 'Tax Identification Number (TIN)';
+
+      if (country === 'Spain') {
+        newTaxField2Label = 'Tax ID (NIF / NIE)';
+        if (state === 'Canary Islands') {
+          newTaxSectionTitle = 'IGIC & Tax ID Details';
+          newTaxField1Label = 'IGIC Number';
+        } else {
+          newTaxSectionTitle = 'VAT & Tax ID Details';
+          newTaxField1Label = 'VAT Number (IVA)';
+        }
+      } else if (country === 'Switzerland') {
+        newTaxSectionTitle = 'VAT & Business ID Details';
+        newTaxField1Label = 'VAT Number (MWST/TVA/IVA)';
+        newTaxField2Label = 'Business ID (UID)';
+      } else if (country === 'Germany') {
+        newTaxSectionTitle = 'VAT & Tax Number Details';
+        newTaxField1Label = 'VAT Number (USt-IdNr.)';
+        newTaxField2Label = 'Tax Number (Steuernummer)';
+      } else if (country === 'Austria') {
+        newTaxSectionTitle = 'VAT & Tax Number Details';
+        newTaxField1Label = 'VAT Number (UID)';
+        newTaxField2Label = 'Tax Number (Steuernummer)';
+      } else if (country === 'Poland') {
+        newTaxSectionTitle = 'VAT & Tax ID Details';
+        newTaxField1Label = 'VAT Number (NIP)';
+        newTaxField2Label = 'Tax ID (NIP / PESEL)';
+      } else if (country === 'Romania') {
+        newTaxSectionTitle = 'VAT & Tax ID Details';
+        newTaxField1Label = 'VAT Number (CIF)';
+        newTaxField2Label = 'Tax ID (CIF / CNP)';
+      } else if (country === 'United Kingdom') {
+        newTaxSectionTitle = 'VAT & Tax Reference Details';
+        newTaxField1Label = 'VAT Number';
+        newTaxField2Label = 'Unique Taxpayer Reference (UTR)';
+      }
+    }
+
+    // Determine if the tax system configuration actually changed
+    const taxSystemChanged =
+      this.taxField1Key !== newField1Key ||
+      this.taxField2Key !== newField2Key ||
+      this.taxSectionTitle !== newTaxSectionTitle ||
+      this.taxField1Label !== newTaxField1Label ||
+      this.taxField2Label !== newTaxField2Label;
+
+    if (this.taxField1Key && this.taxField1Key !== newField1Key) {
+      this.customerProprtyDetailsForm.removeControl(this.taxField1Key);
+    }
+    if (this.taxField2Key && this.taxField2Key !== newField2Key) {
+      this.customerProprtyDetailsForm.removeControl(this.taxField2Key);
+    }
+
+    this.taxField1Key = newField1Key;
+    this.taxField2Key = newField2Key;
+    this.taxSectionTitle = newTaxSectionTitle;
+    this.taxField1Label = newTaxField1Label;
+    this.taxField2Label = newTaxField2Label;
+
+    if (!this.customerProprtyDetailsForm.contains(newField1Key)) {
+      const existingVal1 = isInitialLoad
+        ? (isIndia
+          ? (this.customerdata?.property_details?.property_address?.property_pan || '')
+          : (this.customerdata?.property_details?.property_address?.property_vat || ''))
+        : '';
+
+      const ctrl1 = new FormControl(existingVal1, [
+        Validators.required,
+        CustomValidators.noWhitespaceValidator,
+        CustomValidators.dynamicTaxValidator('VAT')
+      ]);
+      this.customerProprtyDetailsForm.addControl(newField1Key, ctrl1);
+    } else {
+      const ctrl1 = this.customerProprtyDetailsForm.get(newField1Key);
+      if (ctrl1) {
+        ctrl1.setValidators([
+          Validators.required,
+          CustomValidators.noWhitespaceValidator,
+          CustomValidators.dynamicTaxValidator('VAT')
+        ]);
+        if (!isInitialLoad && taxSystemChanged) {
+          ctrl1.setValue('');
+        }
+        ctrl1.updateValueAndValidity();
+      }
+    }
+
+    if (!this.customerProprtyDetailsForm.contains(newField2Key)) {
+      const existingVal2 = isInitialLoad
+        ? (isIndia
+          ? (this.customerdata?.property_details?.property_address?.property_gst || '')
+          : (this.customerdata?.property_details?.property_address?.property_tin || ''))
+        : '';
+
+      const ctrl2 = new FormControl(existingVal2, [
+        Validators.required,
+        CustomValidators.noWhitespaceValidator,
+        CustomValidators.dynamicTaxValidator('TIN')
+      ]);
+      this.customerProprtyDetailsForm.addControl(newField2Key, ctrl2);
+    } else {
+      const ctrl2 = this.customerProprtyDetailsForm.get(newField2Key);
+      if (ctrl2) {
+        ctrl2.setValidators([
+          Validators.required,
+          CustomValidators.noWhitespaceValidator,
+          CustomValidators.dynamicTaxValidator('TIN')
+        ]);
+        if (!isInitialLoad && taxSystemChanged) {
+          ctrl2.setValue('');
+        }
+        ctrl2.updateValueAndValidity();
+      }
+    }
+
+    if (this.customerProprtyDetailsForm.disabled || this.customerStatus === 'approved') {
+      this.customerProprtyDetailsForm.get(newField1Key)?.disable();
+      this.customerProprtyDetailsForm.get(newField2Key)?.disable();
+    }
+
+    // Programmatic error triggering on country/state changes
+    const ctrl1 = this.customerProprtyDetailsForm.get(newField1Key);
+    if (ctrl1) {
+      if ((!isInitialLoad && taxSystemChanged) || (isInitialLoad && ctrl1.value)) {
+        ctrl1.markAsTouched();
+      }
+    }
+    const ctrl2 = this.customerProprtyDetailsForm.get(newField2Key);
+    if (ctrl2) {
+      if ((!isInitialLoad && taxSystemChanged) || (isInitialLoad && ctrl2.value)) {
+        ctrl2.markAsTouched();
+      }
+    }
+  }
+
   getCustomerById(): Promise<void> {
     return new Promise((resolve, reject) => {
       let requestBody = {
@@ -994,7 +1249,11 @@ export class PropertyDetails1Component {
               //  Store company logo URL from API
               if (resp?.result?.data[0]?.property_details?.hotel_logo) {
                 this.hotelLogoUrl = resp?.result?.data[0]?.property_details?.hotel_logo;
+                this.sharedDataService.setHotelLogo(this.hotelLogoUrl);
                 // console.log('Existing company logo:', this.hotelLogoUrl);
+              } else {
+                this.hotelLogoUrl = null;
+                this.sharedDataService.setHotelLogo(null);
               }
               this.status = this.customerdata.status;
               this.customerStatus = this.customerdata.status;
@@ -1003,7 +1262,7 @@ export class PropertyDetails1Component {
                 this.customerProprtyDetailsForm.get('property_size')?.disable();
                 this.customerProprtyDetailsForm.get('number_of_rooms')?.disable();
               }
-              if (this.status === 'approved') {
+              if (this.status == 'approved') {
                 // Disable the form if not approved
                 this.customerProprtyDetailsForm.disable();
               }
@@ -1110,6 +1369,7 @@ export class PropertyDetails1Component {
       this.customerdata?.property_details?.property_address &&
       this.customerdata?.property_details?.kyc_documents
     ) {
+      this.isInitialLoad = true;
       const docs = this.customerdata.property_details?.kyc_documents?.uploaded_documents;
       //console.log( this.uploadedDocumentsApi,'this.uploadedDocumentsApi');
       //console.log( this.uploadedDocumentsApi,'this.uploadedDocumentsApi')
@@ -1130,7 +1390,11 @@ export class PropertyDetails1Component {
       ) {
         this.hotelLogoUrl = this.customerdata.property_details?.hotel_logo
       }
-      this.customerProprtyDetailsForm.patchValue({
+      const country = this.customerdata?.property_details.property_address?.property_country || '';
+      const state = this.customerdata.property_details.property_address?.property_state || '';
+      this.onCountryOrStateChange(country, state, this.isInitialLoad);
+
+      const patchData: any = {
         hotel_name: this.customerdata?.property_details?.contact_details?.hotel_name,
         contact_person: this.customerdata.property_details?.contact_details?.contact_person,
         designation: this.customerdata.property_details?.contact_details?.designation,
@@ -1148,8 +1412,6 @@ export class PropertyDetails1Component {
         property_location: this.customerdata.property_details.property_address?.property_location,
 
         property_pincode: this.customerdata.property_details.property_address?.property_pincode,
-        property_pan: this.customerdata.property_details.property_address?.property_pan,
-        property_gst: this.customerdata.property_details.property_address?.property_gst,
         property_size: this.customerdata.property_details.property_address.property_size,
 
         // Newly added
@@ -1157,7 +1419,21 @@ export class PropertyDetails1Component {
         uploaded_documents: this.customerdata.property_details?.kyc_documents?.uploaded_documents,
         // Newly added for room no
         number_of_rooms: this.customerdata.property_details?.property_address?.number_of_rooms
-      });
+      };
+
+      if (this.taxField1Key) {
+        patchData[this.taxField1Key] = this.taxField1Key === 'property_pan'
+          ? this.customerdata.property_details.property_address?.property_pan
+          : this.customerdata.property_details.property_address?.property_vat;
+      }
+      if (this.taxField2Key) {
+        patchData[this.taxField2Key] = this.taxField2Key === 'property_gst'
+          ? this.customerdata.property_details.property_address?.property_gst
+          : this.customerdata.property_details.property_address?.property_tin;
+      }
+
+      this.customerProprtyDetailsForm.patchValue(patchData);
+      this.isInitialLoad = false;
       // Sync selectedPropertySize so range validation works correctly on load
       const savedSize = this.customerdata.property_details?.property_address?.property_size;
       if (savedSize) {
@@ -1223,23 +1499,40 @@ export class PropertyDetails1Component {
 
   // getStates(country_id: number) {
   //   let statesRequest = {
-  //     "domain_name": DOMAIN_NAME,
-  //     "user_id": USER_ID,
-  //     "extras": {
-  //       "find": {
-  //         "countryid": country_id
-  //       },
+  //         "domain_name": "https://www.guestezee.com",
+  //   "user_id": 16,
+  //   "extras": {
+  //       "find": {},
   //       "pagination": false,
   //       "paginationDetails": {
-  //         "limit": 0,
-  //         "pageSize": 2
+  //           "limit": 10000000,
+  //           "pageSize": 2
   //       },
   //       "sorting": true,
   //       "sortingDetails": {
-  //         "sortfield": "",
-  //         "sortorder": -1
+  //           "sortfield": "",
+  //           "sortorder": -1
   //       }
-  //     }
+  //   }
+
+
+  //     // "domain_name": DOMAIN_NAME,
+  //     // "user_id": USER_ID,
+  //     // "extras": {
+  //     //   "find": {
+  //     //     "countryid": country_id
+  //     //   },
+  //     //   "pagination": false,
+  //     //   "paginationDetails": {
+  //     //     "limit": 0,
+  //     //     "pageSize": 2
+  //     //   },
+  //     //   "sorting": true,
+  //     //   "sortingDetails": {
+  //     //     "sortfield": "",
+  //     //     "sortorder": -1
+  //     //   }
+  //     // }
   //   }
   //   this.hotelenrollmenttabviewService.getStatesById(statesRequest).subscribe(resp => {
   //     if (resp.success === 1) {
@@ -1265,9 +1558,9 @@ export class PropertyDetails1Component {
   //     else if (err.error.message) {
   //       this.alertService.error(err.error.message, this.options)
   //     }
-  //     else {
-  //       this.alertService.error('Something bad happened while loading customer group. Please try again!', this.options);
-  //     }
+  //     // else {
+  //     //   this.alertService.error('Something bad happened while loading customer group. Please try again!', this.options);
+  //     // }
   //     this.states = []
   //   })
   // }
@@ -1472,9 +1765,6 @@ export class PropertyDetails1Component {
     } else {
       //console.log('Country not found');
     }
-
-
-
   }
 
   // getOrderData(customer_id: number) {
@@ -1518,21 +1808,7 @@ export class PropertyDetails1Component {
           this.orderData = element;
           this.memberId = element.customer.member_id != null ? element.customer.member_id : "    "
           // this.memberId = element.status;
-
-
-
-
-
-
-
-
-
-
         }
-
-
-
-
       }
     )
   }
@@ -1622,7 +1898,18 @@ export class PropertyDetails1Component {
             //Push new object
             this.uploaded_documents.push(docObject);
             //console.log('Uploaded Docs:', this.uploaded_documents)
-
+            // Newly added for document error
+            // Also update uploadedDocumentsApi so that if the view switches to the API view, it remains in sync
+            const apiIndex = this.uploadedDocumentsApi.findIndex((doc: any) => doc.document_name === currentDoc);
+            if (apiIndex !== -1) {
+              this.uploadedDocumentsApi[apiIndex].document_url = imgVariable.location;
+            } else {
+              this.uploadedDocumentsApi.push({
+                document_name: currentDoc,
+                document_url: imgVariable.location
+              });
+            }
+            // Ended for document error
             // Only show success after server confirms ALL docs are uploaded
             if (!this.nextPendingDocument) {
               this.alertService.success('All required documents uploaded successfully.', this.options);
@@ -1718,6 +2005,12 @@ export class PropertyDetails1Component {
     if (this.uploadedDocuments[docName]) {
       delete this.uploadedDocuments[docName];
       this.uploaded_documents = this.uploaded_documents.filter(doc => doc.document_name !== docName);
+      // Newly added for document error
+      const apiIndex = this.uploadedDocumentsApi.findIndex((doc: any) => doc.document_name === docName);
+      if (apiIndex !== -1) {
+        this.uploadedDocumentsApi[apiIndex].document_url = '';
+      }
+      // Ended for document error
       // this.alertService.success(`${docName} removed.`, this.options);
     }
     else {
@@ -1817,24 +2110,37 @@ export class PropertyDetails1Component {
   //   }
   // }
 
-  // Allow only numbers for pincode
-  onlyAllowSixDigits(event: KeyboardEvent) {
-    const input = event.target as HTMLInputElement;
-    // Blocks non-digit characters
-    if (event.key < '0' || event.key > '9') {
+  // Allow pincode characters dynamically
+  allowPincodeInput(event: KeyboardEvent) {
+    const country = this.customerProprtyDetailsForm.get('property_country')?.value || 'default';
+    const rule = PINCODE_RULES[country] || PINCODE_RULES['default'];
+
+    // Check digits-only
+    if (rule.digitsOnly && (event.key < '0' || event.key > '9')) {
       event.preventDefault();
       return;
     }
-    // Prevent typing more than 6 digits
-    if (input.value.length >= 6) {
-      event.preventDefault();
+
+    if (!rule.digitsOnly) {
+      const allowedChars = /^[a-zA-Z0-9\s\-]$/;
+      if (event.key.length === 1 && !allowedChars.test(event.key)) {
+        event.preventDefault();
+        return;
+      }
     }
   }
 
   handlePaste(event: ClipboardEvent) {
     const pasted = event.clipboardData?.getData('text') ?? '';
-    if (!/^\d{1,6}$/.test(pasted)) {
-      event.preventDefault(); // Block non-numeric or >6-digit pastes
+    const country = this.customerProprtyDetailsForm.get('property_country')?.value || 'default';
+    const rule = PINCODE_RULES[country] || PINCODE_RULES['default'];
+
+    let regex = /^[a-zA-Z0-9\s\-]+$/;
+    if (rule.digitsOnly) {
+      regex = /^\d+$/;
+    }
+    if (!regex.test(pasted) || pasted.length > rule.maxLength) {
+      event.preventDefault();
     }
   }
 
@@ -1847,44 +2153,74 @@ export class PropertyDetails1Component {
       // Validate type
       if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
         this.alertService.error('Only JPG, JPEG, or PNG files are allowed.', this.options);
+        input.value = '';
         return;
       }
       // Validate size
       if (file.size > 2 * 1024 * 1024) {
         this.alertService.error('File size must be less than 2MB.', this.options);
+        input.value = '';
         return;
       }
-      this.logoUploading = true;
-      this.hotelLogo = file;
-      // Preview locally
-      const reader = new FileReader();
-      reader.onload = (e: any) => {
-        this.hotelLogoUrl = e.target.result;
+
+      // Validate dimensions
+      const img = new Image();
+      img.src = window.URL.createObjectURL(file);
+      img.onload = () => {
+        const width = img.naturalWidth;
+        const height = img.naturalHeight;
+        window.URL.revokeObjectURL(img.src);
+
+        if (width !== 200 || height !== 200) {
+          this.alertService.error(`Image dimensions must be exactly 200 × 200 pixels. (Uploaded image: ${width} × ${height} pixels)`, this.options);
+          input.value = '';
+          return;
+        }
+
+        // Upload and Preview
+        this.uploadAndPreviewLogo(file);
       };
-      reader.readAsDataURL(file);
-      // Upload to API
-      const headers = new HttpHeaders().set('source', 'Brand').set('domain_name', DOMAIN_NAME);
-      const formData = new FormData();
-      formData.append('upload', file);
-      this.profileService.sendImage(formData, headers).subscribe({
-        next: (resp: any) => {
-          if (resp && resp.success === 1 && resp.status_code === 200) {
-            const imgVariable = resp.result.data[0];
-            this.hotelLogoUrl = imgVariable.location;
-            this.alertService.success('Logo uploaded successfully.', this.options);
-          } else {
-            this.alertService.error('Failed to upload logo. Please try again.', this.options);
-          }
-          this.logoUploading = false;
-        },
-        error: () => {
-          this.alertService.error('Error uploading logo.', this.options);
-          this.logoUploading = false;
-        },
-      });
+
+      img.onerror = () => {
+        window.URL.revokeObjectURL(img.src);
+        this.alertService.error('Invalid image file.', this.options);
+        input.value = '';
+      };
+
       // Reset file input
       input.value = '';
     }
+  }
+
+  uploadAndPreviewLogo(file: File) {
+    this.logoUploading = true;
+    this.hotelLogo = file;
+    // Preview locally
+    const reader = new FileReader();
+    reader.onload = (e: any) => {
+      this.hotelLogoUrl = e.target.result;
+    };
+    reader.readAsDataURL(file);
+    // Upload to API
+    const headers = new HttpHeaders().set('source', 'Brand').set('domain_name', DOMAIN_NAME);
+    const formData = new FormData();
+    formData.append('upload', file);
+    this.profileService.sendImage(formData, headers).subscribe({
+      next: (resp: any) => {
+        if (resp && resp.success === 1 && resp.status_code === 200) {
+          const imgVariable = resp.result.data[0];
+          this.hotelLogoUrl = imgVariable.location;
+          this.alertService.success('Logo uploaded successfully.', this.options);
+        } else {
+          this.alertService.error('Failed to upload logo. Please try again.', this.options);
+        }
+        this.logoUploading = false;
+      },
+      error: () => {
+        this.alertService.error('Error uploading logo.', this.options);
+        this.logoUploading = false;
+      },
+    });
   }
 
   previewLogo() {
@@ -2302,6 +2638,38 @@ export class PropertyDetails1Component {
     // Clear locally selected files so documents uploaded under one option
     // are not shown as "Uploaded" in a different option's document list.
     this.uploadedDocuments = {};
+  }
+
+  // Allow only alphabets for contact person (no numbers)
+  onlyAllowAlphabets(event: KeyboardEvent) {
+    const charCode = event.key;
+    // Block digits 0-9
+    if (/^[0-9]$/.test(charCode)) {
+      event.preventDefault();
+    }
+  }
+
+  handleAlphabetsPaste(event: ClipboardEvent) {
+    const pasted = event.clipboardData?.getData('text') ?? '';
+    if (/[0-9]/.test(pasted)) {
+      event.preventDefault(); // Block strings with numbers
+    }
+  }
+
+  // Allow alphanumeric characters, spaces, hyphens, and dots for tax fields
+  onlyAllowAlphaNumeric(event: KeyboardEvent) {
+    const charCode = event.key;
+    // Allow letters, numbers, spaces, hyphens, and dots
+    if (!/^[a-zA-Z0-9\s.\-]$/.test(charCode)) {
+      event.preventDefault();
+    }
+  }
+
+  handleAlphaNumericPaste(event: ClipboardEvent) {
+    const pasted = event.clipboardData?.getData('text') ?? '';
+    if (!/^[a-zA-Z0-9\s.\-]*$/.test(pasted)) {
+      event.preventDefault(); // Block strings with other special characters
+    }
   }
 
 

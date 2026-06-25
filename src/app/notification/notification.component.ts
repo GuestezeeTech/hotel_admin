@@ -196,7 +196,8 @@ export class NotificationComponent {
     let targetTab = 'ASAP'; // default fallback
     if (title === 'Task Created' && body === 'Please assign the staff') {
       targetTab = 'ASAP';
-    } else if (title === 'Escalated' && body === 'Immediate attention needed') {
+    }
+    else if (title === 'Escalated' && body === 'Immediate attention needed') {
       targetTab = 'Priority';
     } else if (title === 'Escalated' && body === 'Your task is escalated') {
       targetTab = 'My Escalation';
@@ -210,6 +211,10 @@ export class NotificationComponent {
     }
     else if (title === 'Assigned' && body === 'Please accept the task') {
       targetTab = 'ASAP';
+    }
+    // Newly added for task allocation purpose
+    else if (title === 'Processing') {
+      targetTab = 'Processing';
     }
     // console.log('Highlighting tab:', targetTab);
     this.taskManagementService.setSelectedTab(targetTab);
@@ -241,6 +246,10 @@ export class NotificationComponent {
     }
     else if (notify.title === 'Assigned' && notify.body === 'Please accept the task') {
       targetTab = 'ASAP';
+    }
+    // Newly added for task allocation purpose
+    else if (notify.title === 'Processing') {
+      targetTab = 'Processing';
     }
     this.taskManagementService.setSelectedTab(targetTab);
     this.router.navigate(['/task-management']);

@@ -3,11 +3,30 @@
     <div class="centered-container">
         <div class="container">
             <div class="section">
-                <div class="add-btn-section">
-                    <button class="add-btn submit"
-                        style="font-size:14px; float: inline-end; margin-bottom: 20px; background: #800020; color: white; border-radius: 5px; border: 1px solid white; padding: 5px 20px;"
-                        (click)="canAddRestaurants ? navigateToOutlet() : null" [disabled]="!canAddRestaurants">Add
-                        Restaurant</button>
+                <div class="add-btn-section d-flex justify-content-between align-items-center mb-3">
+                    <!-- Warning Hint for Hotel Code -->
+                    <!--  <div *ngIf="customerdata && !customerdata.Hotel_Code && !customerdata.hotel_code"
+                        style="color: #d9534f; font-size: 13px; font-weight: 500; background: #fff5f5; padding: 8px 12px; border-radius: 8px; border: 1px solid #ff000026;">
+                        <i class="bi bi-info-circle-fill me-1"></i>
+                        Please set Hotel Code in Technical Info before adding any Outlet.
+                    </div>
+                    <div *ngIf="customerdata && (customerdata.Hotel_Code || customerdata.hotel_code)"></div> -->
+                    <!-- Spacer if no warning -->
+                    <div class="upsell-header-note" style="width: fit-content;">
+                        <i class="fas fa-info-circle"></i>
+                        <span>
+                            Menus can be added only for Restaurants.
+                            <span *ngIf="customerdata && !customerdata.Hotel_Code && !customerdata.hotel_code"
+                                style="font-weight: 600;">
+                                Please set Hotel Code in Technical Info before adding any Outlet.
+                            </span>
+                        </span>
+                    </div>
+                    <button class="add-btn submit" *ngIf="!isLoading"
+                        style="font-size:14px; background: #800020; color: white; border-radius: 5px; border: 1px solid white; padding: 5px 20px;"
+                        (click)="canAddOutlets ? navigateToOutlet() : null" [disabled]="!canAddOutlets">
+                        + Add Outlet
+                    </button>
                 </div>
                 <!-- Loader -->
                 <div *ngIf="isLoading" class="d-flex justify-content-center align-items-center"
@@ -44,20 +63,27 @@
                                     <td>{{data.location}}</td>
                                     <td>{{data.phone}}</td>
                                     <td>
-                                        <i class="fa fa-eye view-icon" (click)="viewProducts(data.id)"
-                                            title="View"></i>
+                                        <!-- <i class="fa fa-eye view-icon" (click)="viewProducts(data.id)" title="View"></i> -->
+                                        <!-- Menu icon: enabled only for restaurant outlet types -->
+                                        <span [style.color]="isRestaurantType(data.outlet_type) ? '#800020' : '#cccccc'"
+                                            [style.cursor]="isRestaurantType(data.outlet_type) ? 'pointer' : 'not-allowed !important'"
+                                            (click)="isRestaurantType(data.outlet_type) && viewProducts(data.id)"
+                                            style="display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 500;">
+                                            <i class="fa-regular fa-rectangle-list"
+                                                style="font-size: 14px; cursor: inherit !important;"></i>
+                                        </span>
                                         <!-- <img src="../../assets/images/guestezee/25px.png" (click)="viewProducts(data.id)"> -->
                                     </td>
                                     <td>
                                         <i class="fa fa-eye me-3 view-icon"
-                                            (click)="canReadRestaurants ? viewOutlet(data.id) : null"
-                                            [style.opacity]="canReadRestaurants ? 1 : 0.4"
-                                            [style.cursor]="canReadRestaurants ? 'pointer' : 'not-allowed'"
+                                            (click)="canReadOutlets ? viewOutlet(data.id) : null"
+                                            [style.opacity]="canReadOutlets ? 1 : 0.4"
+                                            [style.cursor]="canReadOutlets ? 'pointer' : 'not-allowed'"
                                             title="View"></i>
                                         <i class="fas fa-edit edit-icon"
-                                            (click)="canEditRestaurants ? navigateById(data.id) : null"
-                                            [style.opacity]="canEditRestaurants ? 1 : 0.4"
-                                            [style.cursor]="canEditRestaurants ? 'pointer' : 'not-allowed'"
+                                            (click)="canEditOutlets ? navigateById(data.id) : null"
+                                            [style.opacity]="canEditOutlets ? 1 : 0.4"
+                                            [style.cursor]="canEditOutlets ? 'pointer' : 'not-allowed'"
                                             title="Edit"></i>
                                     </td>
                                     <!-- <td>

@@ -9,7 +9,10 @@
       <div class="form-grid">
         <div class="form-group form1_div">
           <label>Service Name</label>
-          <input class="input_box" type="text" formControlName="service_name" (keypress)="restrictSpecialChars($event)"
+          <!-- <input class="input_box" type="text" formControlName="service_name" (keypress)="restrictSpecialChars($event)"
+            [disabled]="isViewMode || (!service_id && !canAddSystemSettings) || (!!service_id && !canEditSystemSettings)" /> -->
+          <input class="input_box" type="text" formControlName="service_name" (keypress)="blockNumbersOnly($event)"
+            (paste)="handleServiceNamePaste($event)"
             [disabled]="isViewMode || (!service_id && !canAddSystemSettings) || (!!service_id && !canEditSystemSettings)" />
           <div class="error"
             *ngIf="serviceForm.get('service_name')?.invalid && serviceForm.get('service_name')?.touched">
@@ -56,6 +59,24 @@
             Belongs To is required
           </div>
         </div>
+        <!-- Service Tab (newly chnaged its position due to the removal of service_type)-->
+        <!-- <div class="form-group form1_div">
+          <label>Service Tab</label>
+          <div *ngIf="isLoadingServiceTabs" class="d-flex align-items-center" style="min-height: 38px;">
+            <div class="spinner-border spinner-border-sm" role="status" style="color: #800020; margin-right: 8px;">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <span class="text-muted" style="font-size: 14px;">Loading service tabs...</span>
+          </div>
+          <select class="input_box" formControlName="service_tab"
+            [disabled]="isViewMode || isLoadingServiceTabs || (!service_id && !canAddSystemSettings) || (!!service_id && !canEditSystemSettings)"
+            *ngIf="!isLoadingServiceTabs">
+            <option *ngFor="let serviceTab of serviceTabs" [value]="serviceTab">{{ serviceTab }}</option>
+          </select>
+          <div class="error" *ngIf="serviceForm.get('service_tab')?.invalid && serviceForm.get('service_tab')?.touched">
+            Service Tab is required
+          </div>
+        </div> -->
       </div>
       <!-- Hours Before (shown when Scheduled is selected) -->
       <div class="form-grid" *ngIf="showHoursBefore">
@@ -126,8 +147,12 @@
                 <i class="fas fa-upload" [class.disabled-icon]="isViewMode" (click)="!isViewMode && openLogofile()"></i>
               </div>
             </label>
-            <p *ngIf="!logo_image && !isViewMode" style="font-size: 12px; color: #666; font-style: italic; margin-bottom: 0;">Icon size
-              should exactly be 150x 150 pixels</p>
+            <!-- <p *ngIf="!logo_image && !isViewMode" style="font-size: 12px; color: #666; font-style: italic; margin-bottom: 0;">Icon size
+              should exactly be 150x 150 pixels</p> -->
+            <p *ngIf="!logo_image && !isViewMode"
+              style="font-size: 11px; color: #666; font-style: italic; margin-bottom: 0;">
+              * Allowed formats: JPG, JPEG, PNG. Max size: 2MB. Dimensions: 150 x 150 pixels.
+            </p>
           </div>
         </div>
         <!-- IMAGE Upload -->
@@ -141,7 +166,6 @@
                 <div>
                   <div class="file-name" *ngIf="!service_image" [class.disabled-text]="isViewMode">Choose file...</div>
                   <div class="file-name" *ngIf="service_image" [class.disabled-text]="isViewMode">Uploaded</div>
-                  <!-- Max 2MB (JPG, PNG, PDF) -->
                 </div>
               </div>
               <div class="upload-actions">
@@ -155,8 +179,12 @@
                   (click)="!isViewMode && openImagefile()"></i>
               </div>
             </label>
-            <p *ngIf="!service_image && !isViewMode" style="font-size: 12px; color: #666; font-style: italic; margin-bottom: 0;">Image
-              size should exactly be 1280 x 720 pixels</p>
+            <!-- <p *ngIf="!service_image && !isViewMode" style="font-size: 12px; color: #666; font-style: italic; margin-bottom: 0;">Image
+              size should exactly be 1280 x 720 pixels</p> -->
+            <p *ngIf="!service_image && !isViewMode"
+              style="font-size: 11px; color: #666; font-style: italic; margin-bottom: 0;">
+              * Allowed formats: JPG, JPEG, PNG. Max size: 2MB. Dimensions: 1280 x 720 pixels.
+            </p>
           </div>
         </div>
       </div>
@@ -201,7 +229,8 @@
       </div>
       <!-- Time Bound Section -->
       <div class="toggle-section">
-        <h5>Time Bound </h5>
+        <!-- <h5>Time Bound </h5> -->
+        <h5>Escalation Time</h5>
         <label class="switch">
           <input type="checkbox" formControlName="is_time_bound" (change)="toggleTimeBound($event)"
             [disabled]="isViewMode || (!service_id && !canAddSystemSettings) || (!!service_id && !canEditSystemSettings)"

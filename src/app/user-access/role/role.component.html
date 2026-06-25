@@ -239,7 +239,7 @@
                         </tbody>
                     </table>
                 </form>
-                <form [formGroup]="restaurantsForm">
+                <!-- <form [formGroup]="restaurantsForm">
                     <table>
                         <tbody>
                             <tr
@@ -258,7 +258,41 @@
                             </tr>
                         </tbody>
                     </table>
+                </form> -->
+                 <form [formGroup] = "outletsForm">
+                    <table>
+                        <tbody>
+                            <tr style="border-top: 1px solid #6E6E6E !important;">
+                                <td style="border-left: 1px solid #6E6E6E !important;" class="fw-semibold">Outlets</td>
+                                <td><input type="checkbox" formControlName="create" (change)="allOptionsToggle('specOutlets')">
+                                </td>
+                                <td><input type="checkbox" formControlName="edit" (change)="allOptionsToggle('specOutlets')">
+                                </td>
+                                <td><input type="checkbox" formControlName="read" (change)="allOptionsToggle('specOutlets')">
+                                </td>
+                                <td><input type="checkbox" formControlName="delete" (change)="allOptionsToggle('specOutlets')">
+                                </td>
+                                <td style="border-right: 1px solid #6E6E6E !important;"><input type="checkbox" formControlName="all"
+                                        (change)="allOptionsToggle('outlets')"></td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </form>
+                <form [formGroup] = "duePaymentsForm">
+                    <table>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid #6E6E6E !important; border-top: 1px solid #6E6E6E !important;">
+                                <td style="border-left: 1px solid #6E6E6E !important;" class="fw-semibold">Due Payments</td>
+                                <td><input type="checkbox" formControlName="create"></td>
+                                <td><input type="checkbox" formControlName="edit"></td>
+                                <td><input type="checkbox" formControlName="read"></td>
+                                <td><input type="checkbox" formControlName="delete"></td>
+                                <td style="border-right: 1px solid #6E6E6E !important;"><input type="checkbox" formControlName="all"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </form>
+
             </div>
         </div>
         <!-- Buttons placed outside of the container but still inside the *ngIf block -->

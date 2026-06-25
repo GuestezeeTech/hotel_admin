@@ -1,0 +1,154 @@
+<div class="main">
+    <app-alerts></app-alerts>
+    <div class="centered-container">
+        <div class="header-section">
+            <div>
+                <h4 class="title mb-0">Department Management</h4>
+                <p class="intro">
+                    Manage your departments — add, edit, or remove existing ones easily.
+                </p>
+            </div>
+            <!-- Add Department -->
+            <div class="add-department-section">
+                <button class="add-btn" (click)="canAddSystemSettings ? openAddModal() : null"
+                    [disabled]="!canAddSystemSettings || !canReadSystemSettings">
+                    + Add Department
+                </button>
+            </div>
+        </div>
+        <!-- Loader -->
+        <div *ngIf="isLoading" class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
+            <div class="text-center">
+                <div class="spinner-border" role="status" style="color: #800020;">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-3 text-muted">Loading departments...</p>
+            </div>
+        </div>
+        <!-- Department List -->
+        <div class="department-list" *ngIf="departments.length > 0 && !isLoading && canReadSystemSettings">
+            <p class="sub-title">Existing Departments</p>
+            <div *ngIf="departments.length > 0; else noDept" class="dept-grid">
+                <div class="dept-card" *ngFor="let dept of departments; let i = index">
+                    <div class="dept-info">
+                        <span class="dept-name">{{ dept.name }}</span>
+                    </div>
+                    <div class="actions">
+                        <!-- View icon: always allowed when read permission is present -->
+                        <button class="view-btn" (click)="canReadSystemSettings ? openViewModal(dept, dept.id) : null"
+                            [disabled]="!canReadSystemSettings" title="View">
+                            <i class="fa-regular fa-eye"></i>
+                        </button>
+                        <button class="edit-btn" (click)="canEditSystemSettings ? openEditModal(dept, dept.id) : null"
+                            [disabled]="!canEditSystemSettings" title="Edit">
+                            Edit
+                        </button>
+                        <button class="delete-btn"
+                            (click)="canDeleteSystemSettings ? openDeleteModal(dept, dept.id) : null"
+                            [disabled]="!canDeleteSystemSettings" title="Delete">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <ng-template #noDept>
+                <p class="no-dept">No departments added yet.</p>
+            </ng-template>
+        </div>
+        <div class="mt-3" *ngIf="assignableServices.length && !isLoadingServices && canReadSystemSettings">
+            <p class="dept-assign-note" *ngIf="unassignedServiceNames.length">
+                <i class="fa fa-exclamation-triangle"></i>
+                Please assign a department to: {{ unassignedServiceNames.join(', ')
+                }}. Without this, guest requests for these services won't reach the right staff.
+            </p>
+            <!-- Loader for Services -->
+            <div *ngIf="isLoadingServices" class="d-flex justify-content-center align-items-center py-5">
+                <div class="text-center">
+                    <div class="spinner-border spinner-border-sm" role="status" style="color: #800020;">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2 text-muted" style="font-size: 14px;">Loading services...</p>
+                </div>
+            </div>
+            <div class="table-container" *ngIf="assignableServices.length && !isLoadingServices">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Service Name</th>
+                            <th>Belongs To</th>
+                            <th>Assigned Department</th>
+                            <th>Change / Assign Department</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let svc of assignableServices">
+                            <td>{{ svc.name }}</td>
+                            <td>{{ svc.belongs_to }}</td>
+                            <td>{{ getCurrentDepartmentName(svc) }}</td>
+                            <td>
+                                <select class="dept-select" [(ngModel)]="svc.assignedDept"
+                                    [disabled]="!canAddSystemSettings">
+                                    <option value="">Choose department</option>
+                                    <option *ngFor="let d of departments" [value]="d.name">
+                                        {{ d.name }}
+                                    </option>
+                                </select>
+                            </td>
+                            <td class="action-icons">
+                                <i class="fa-regular fa-circle-check confirm-icon"
+                                    [class.disabled]="!svc.assignedDept || !canAddSystemSettings"
+                                    (click)="canAddSystemSettings ? assignDepartmentToService(svc) : null"
+                                    title="Assign"></i>
+                                <!--   <i class="fa-solid fa-circle-xmark remove-icon"
+                                    [class.disabled]="!isServiceAssigned(svc) || !canDeleteSystemSettings"
+                                    (click)="canDeleteSystemSettings ? removeDepartmentFromService(svc) : null"
+                                    title="Remove"></i> -->
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ADD/EDIT MODAL -->
+<div *ngIf="isModalOpen" class="modal-wrapper">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content" (click)="$event.stopPropagation()">
+        <h4 class="modal-title">
+            {{ isViewMode ? 'View Department' : (isEditMode ? 'Edit Department' : 'Add Department') }}
+        </h4>
+        <!-- Department Name -->
+        <input type="text" placeholder="Enter department name" [(ngModel)]="newDepartmentName"
+            (input)="onNameInputChange()" class="dept-input"
+            [readonly]="isViewMode || (!isEditMode && !canAddSystemSettings) || (isEditMode && !canEditSystemSettings)" />
+        <p *ngIf="nameError" class="error-text">Department name is required.</p>
+        <!-- Department Description (optional) -->
+        <textarea placeholder="Enter description (optional)" [(ngModel)]="newDepartmentDescription" class="dept-input"
+            rows="3"
+            [readonly]="isViewMode || (!isEditMode && !canAddSystemSettings) || (isEditMode && !canEditSystemSettings)"></textarea>
+        <div class="modal-actions">
+            <button class="save-btn" (click)="isViewMode ? closeModal() : saveDepartment()"
+                [disabled]="!isViewMode && ((!isEditMode && !canAddSystemSettings) || (isEditMode && !canEditSystemSettings))">
+                {{ isViewMode ? 'Close' : (isEditMode ? 'Update' : 'Add') }}
+            </button>
+            <button *ngIf="!isViewMode" class="cancel-btn" (click)="closeModal()">
+                Cancel
+            </button>
+        </div>
+    </div>
+</div>
+<!-- DELETE CONFIRMATION MODAL -->
+<div *ngIf="isDeleteModalOpen" class="modal-wrapper">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content" (click)="$event.stopPropagation()">
+        <h4 class="modal-title">Confirm Delete</h4>
+        <p>Are you sure you want to delete <b>{{ selectedDepartment?.name }}</b>?</p>
+        <div class="modal-actions">
+            <button class="save-btn" (click)="confirmDelete()">Yes, Delete</button>
+            <button class="cancel-btn" (click)="closeDeleteModal()">Cancel</button>
+        </div>
+    </div>
+</div>

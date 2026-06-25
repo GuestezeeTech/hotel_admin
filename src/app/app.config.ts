@@ -11,7 +11,10 @@ export const appConfig: ApplicationConfig = {
 export const API_URL = environment.devURL
 export const API_URL1 = "https://www.guestezee.com"
 export const API_URL2 = "http://www.guestezee.com"
+// export const API_URL1 = "https://ssltest.ecbee.net"
+// export const API_URL2 = "http://ssltest.ecbee.net"
 export const API_URL3 = "http://164.52.214.114"
+// export const API_URL3 = "http://40.192.104.15"
 
 export const DOMAIN_NAME = "https://www.guestezee.com"
 export const USER_ID = 16
@@ -52,7 +55,7 @@ export const ENDPOINTS = {
   ADD_CUSTOMER_GROUP: API_URL + ':5429/customergroup/create',
   UPDATE_CUSTOMER_GROUP: API_URL + ':5429/customergroup/update',
   // ADD_CATEGORY: API_URL1 + ':5434/category/create',
-  UPDATE_CATEGORY: API_URL + ':5434/category/update',
+  // UPDATE_CATEGORY: API_URL + ':5434/category/update',
   ADD_STORE_PROFILE: API_URL + ':5407/store/upsert',
   ADD_STORE_SETTINGS: API_URL + ':5408/storesettings/upsert',
   ADD_SHIPPING_SETTINGS: API_URL + ':5423/shippingsettings/create',
@@ -220,7 +223,6 @@ export const ENDPOINTS = {
   SEARCH_LOYALTY_PRPGRAM_MEMBER: API_URL + ":9489/loyalityprogrammember/getbyname",
   OUTLET_CREATE: API_URL1 + ":6570/outlet/create",
   OUTLET_UPDATE: API_URL1 + ":6570/outlet/update",
-  OUTLET_DELETE: API_URL1 + ":6570/outlet/delete",
   // OUTLET_GETALL: API_URL1 + ":9454/outlet/getall",
   // OUTLET_GETBYID: API_URL1 + ":9454/outlet/getbyid",
   GET_ORDERDELIVERIES_BY_ID: API_URL + ":9464/orderdeliverylogs/getbyid",
@@ -484,12 +486,10 @@ export const ENDPOINTS = {
 
   // Newly added APIs
   GETSIGNUPALLCUSTOMER: API_URL + ':9526/customer/getall',
-  ADD_CUSTOMER_SIGNUP: API_URL + ':5447/customer/create',
   SEND_OTP: API_URL + ':5622/sms/GenerateOtpSMS',
   VERIFY_OTP: API_URL + ':5622/sms/verifyotp',
   LOGIN_TWO: API_URL + ":5202/login ",
   GET_LOGIN_CUSTOMER: API_URL + ':9526/customer/getbyid',
-  UPDATE_LOGIN_CUSTOMER_FCM: API_URL + ':5447/customer/updatecustomer',
   CHANGE_PASSWORD: API_URL + ':5447/customer/updatepassword',
   RESET_PASSWORD: API_URL + ':5447/customer/resetpassword',
   // CREATE_SERVICE: API_URL + ':7780/services/create',
@@ -499,9 +499,12 @@ export const ENDPOINTS = {
   CREATE_HIERARCHY: API_URL + ':3391/hierarchy/create',
   UPDATE_HIERARCHY: API_URL + ':3391/hierarchy/update',
   GETBYID_HIERARCHY: API_URL + ':3390/hierarchy/getbyid',
-  CREATE_STAFF: API_URL + ':3404/staff/create',
-  DELETE_STAFF: API_URL + ':3404/staff/delete',
-  UPDATE_STAFF: API_URL + ":3404/staff/update",
+  // CREATE_STAFF: API_URL + ':3404/staff/create',
+  // DELETE_STAFF: API_URL + ':3404/staff/delete',
+  // UPDATE_STAFF: API_URL + ":3404/staff/update",
+  CREATE_STAFF: API_URL + ':8100/staff/create',
+  DELETE_STAFF: API_URL + ':8100/staff/delete',
+  UPDATE_STAFF: API_URL + ":8100/staff/update",
   GET_All_STAVES: API_URL + ':3406/staff/getall',
   GET_STAFF_BYID: API_URL + ":3406/staff/getbyid",
   GET_ALL_TECHNICAL_INFO: API_URL + ":9533/ecomintegrationsettings/getall",
@@ -511,7 +514,6 @@ export const ENDPOINTS = {
   CREATE_TASK: API_URL + ':3410/task/create',
   UPDATE_TASK: API_URL + ':3410/task/update',
   GET_ALL_BOOKINGS: API_URL + ':4676/reservation/getall',
-  UPDATE_LOGIN_CUSTOMER: API_URL + ':5447/customer/updateguestezeecustomer',
   GET_ALL_DASHBOARD: API_URL + ':1217/dashboard/getall',
   GET_ALL_REPORTS: API_URL + ':1218/report/getall',
   GET_TASK_RATINGS: API_URL + ':9545/productreviews/getall',
@@ -519,7 +521,6 @@ export const ENDPOINTS = {
   GET_CHECKOUT_BY_ID: API_URL + ':1220/checkout/getbyid',
   GENERATE_SMS_PHONE: API_URL + ':5622/sms/GenerateSMS',
   GET_ALL_SUBSCRIPTION: API_URL + ':1250/paymentsubscription/getall',
-  GENERRATE_NAME_PASSWORD: API_URL + ':5622/sms/SendUserDataSms',
   STAFF_LOGIN: API_URL + ':1215/login',
   CREATE_SERVICE: API_URL1 + ':7780/services/create',
   UPDATE_SERVICE: API_URL1 + ':7780/services/update',
@@ -552,12 +553,20 @@ export const ENDPOINTS = {
   DELETE_USER: API_URL3 + ":5403/user/delete",
   DELETE_CUSTOMER_SIGNUP: API_URL3 + ':5430/customer/delete',
   OUTLET_GETALL: API_URL3 + ":9454/outlet/getall",
-  OUTLET_GETBYID: API_URL3 + ":9454/outlet/getbyid",
-  ADD_CATEGORY: API_URL3 + ':5434/category/create',
-  GET_ALL_CATEGORY: API_URL3 + ":9420/category/getall",
-  ADD_PRODUCT: API_URL3 + ':5436/product/create',
-  UPDATE_PRODUCT: API_URL3 + ':5436/product/update',
-  GET_ALL_PRODUCTS: API_URL3 + ':9422/product/getall',
+  // OUTLET_GETBYID: API_URL3 + ":9454/outlet/getbyid",
+  OUTLET_GETBYID: API_URL1 + ":9514/outlet/getbyid",//newly added for IP issue
+  // ADD_CATEGORY: API_URL3 + ':5434/category/create',
+  ADD_CATEGORY: API_URL1 + ":7900/category/create",//newly added for IP issue
+  UPDATE_CATEGORY: API_URL1 + ":7900/category/update",//newly added for IP issue
+  DELETE_CATEGORY: API_URL1 + ":7900/category/delete",//newly added for IP issue
+  // GET_ALL_CATEGORY: API_URL3 + ":9420/category/getall",
+  GET_ALL_CATEGORY: API_URL1 + ":7901/category/getall",//newly added for IP issue
+  // ADD_PRODUCT: API_URL3 + ':5436/product/create',
+  ADD_PRODUCT: API_URL1 + ":7902/product/create",//newly added for IP issue
+  UPDATE_PRODUCT: API_URL1 + ":7902/product/update",//newly added for IP issue
+  // UPDATE_PRODUCT: API_URL3 + ':5436/product/update',
+  // GET_ALL_PRODUCTS: API_URL3 + ':9422/product/getall',
+  GET_ALL_PRODUCTS: API_URL1 + ':7903/product/getall',// newly added for IP issue
   GET_GUEST_DETAILS: API_URL1 + ':1218/report/getallevent',
   GET_ALL_OUTLETS: API_URL1 + ":9514/outlet/getall",
   GET_PRODUCT_BY_OUTLET: API_URL1 + ":9674/product/getall",
@@ -582,7 +591,31 @@ export const ENDPOINTS = {
   GETBYID_ROLES: API_URL + ":1306/roles/getbyid",
   DELETE_ROLE: API_URL + ':1305/roles/delete',
   GET_ALL_ROLES: API_URL + ":1306/roles/getall",
-  CREATE_USERS: API_URL + ':5447/customer/createcustomer ',
-  UPDATE_USERS: API_URL + ':5447/customer/guestezeecustomerupdate',
+  UPSELL_CREATE: API_URL + ':4001/upsell/create',
+  UPSELL_UPDATE: API_URL + ':4001/upsell/update',
+  UPSELL_GETALL: API_URL + ':4002/upsell/getall',
+  UPSELL_DELETE: API_URL + ':4001/upsell/delete',
+
+  // Newly commanding & updating for port change
+  // ADD_CUSTOMER_SIGNUP: API_URL + ':5447/customer/create',
+  //  UPDATE_LOGIN_CUSTOMER: API_URL + ':5447/customer/updateguestezeecustomer',
+  // UPDATE_LOGIN_CUSTOMER_FCM: API_URL + ':5447/customer/updatecustomer',
+  //  CREATE_USERS: API_URL + ':5447/customer/createcustomer ',
+  // UPDATE_USERS: API_URL + ':5447/customer/guestezeecustomerupdate',
+  // OUTLET_DELETE: API_URL1 + ":6570/outlet/delete",
+  ADD_CUSTOMER_SIGNUP: API_URL + ':8006/customer/create',
+  UPDATE_LOGIN_CUSTOMER: API_URL + ':8006/customer/updateguestezeecustomer',
+  UPDATE_LOGIN_CUSTOMER_FCM: API_URL + ':8006/customer/updatecustomer',
+  CREATE_USERS: API_URL + ':8006/customer/createcustomer ',
+  UPDATE_USERS: API_URL + ':8006/customer/guestezeecustomerupdate',
+  OUTLET_DELETE: API_URL1 + ":6570/outlet/deleterestaurant",
+
+  // Newly added for Technical info
+  ECOMINTEGRATIONSETTINGS_UPDATE: API_URL + ':3352/ecomintegrationsettings/update',
+
+  //Newly added for username & password
+  // GENERRATE_NAME_PASSWORD: API_URL + ':5622/sms/SendUserDataSms',
+  GENERRATE_NAME_PASSWORD: API_URL + ':8009/sms/send-customer-credentials'
+
 }
 

@@ -23,7 +23,6 @@ interface AssignableService {
   name: string;
   belongs_to: string;
   assignedDept?: string; // selected department
-  tempAssignedDept?: string;
 }
 
 @Component({
@@ -80,14 +79,10 @@ export class DepartmentListComponent {
   }
 
   // Show current saved department for a service in the table
-  // getCurrentDepartmentName(service: AssignableService): string {
-  //   const dept = this.departments.find(d => d.default_services?.includes(service.name));
-  //   return dept ? dept.name : 'Not Assigned';
-  // }
   getCurrentDepartmentName(service: AssignableService): string {
-    return service.assignedDept || 'Not Assigned';
+    const dept = this.departments.find(d => d.default_services?.includes(service.name));
+    return dept ? dept.name : 'Not Assigned';
   }
-  
 
   ngOnInit() {
     this.member_id = this.localService.get('MemberId');
@@ -326,18 +321,15 @@ export class DepartmentListComponent {
   // Map services to assigned departments for UI
   // ------------------------
   private mapAssignedDepartments() {
-    if (!this.departments.length || !this.assignableServices.length) return;
+    if (!this.assignableServices.length) return;
 
     this.assignableServices.forEach(service => {
       const dept = this.departments.find(d =>
         d.default_services?.includes(service.name)
       );
       service.assignedDept = dept ? dept.name : '';
-      service.tempAssignedDept = service.assignedDept; //for showing updated department changes in UI
     });
   }
-
-  
 
   // ------------------------
   // Create / Update Department
@@ -406,9 +398,21 @@ export class DepartmentListComponent {
     this.departmentService.updateDepartment(jsonObj).subscribe(
       (resp: any) => {
         if (resp.success === 1 && resp.status_code === 200) {
+          // Update local state for immediate UI feedback
+          // newly changed for department not updated issue
+          if (this.editingIndex !== null) {
+            const dept = this.departments.find(d => d.id === this.editingIndex);
+            if (dept) {
+              dept.name = name;
+              dept.description = description;
+            }
+            this.mapAssignedDepartments();
+          }
           this.alertsService.success('Department updated successfully!', this.alertOptions);
           this.closeModal();
-          this.getDepartmentById(this.member_id);
+          // this.getDepartmentById(this.member_id);
+          // newly changed for department not updated issue
+          // We rely on the local state update and skip immediate refresh to avoid stale data flicker.
         } else if (resp.success === 0 && resp.status_code === 200) {
           this.alertsService.error(resp.message, this.alertOptions);
         } else {
@@ -491,51 +495,6 @@ export class DepartmentListComponent {
   // ------------------------
   // Assign / Remove service to department
   // ------------------------
-  // assignDepartmentToService(service: AssignableService) {
-  //   if (!service.assignedDept) {
-  //     this.alertsService.error('Please choose a department to assign!', this.alertOptions);
-  //     return;
-  //   }
-  //   const dept = this.departments.find(d => d.name === service.assignedDept);
-  //   if (!dept) {
-  //     this.alertsService.error('Selected department not found!', this.alertOptions);
-  //     return;
-  //   }
-  //   dept.default_services = dept.default_services || [];
-  //   if (!dept.default_services.includes(service.name)) {
-  //     dept.default_services.push(service.name);
-  //   }
-  //   service.assignedDept = dept.name;
-  //   const { _id, ...payloadData } = { ...dept, default_services: dept.default_services };
-  //   const jsonObj = {
-  //     domain_name: DOMAIN_NAME,
-  //     user_id: USER_ID,
-  //     extras: { find: { id: dept.id } },
-  //     payload: { department_updation: payloadData }
-  //   };
-  //   this.departmentService.updateDepartment(jsonObj).subscribe(
-  //     (resp: any) => {
-  //       if (resp.success === 1 && resp.status_code === 200) {
-  //         service.assignedDept = service.tempAssignedDept;// updating UI after successful assignment
-  //         this.alertsService.success(`"${service.name}" service is assigned to "${dept.name}" department!`, this.alertOptions);
-  //         this.getDepartmentById(this.member_id); // refresh
-  //         this.getAssignableServices(); 
-  //       } 
-        
-  //       else {
-  //         this.alertsService.error(resp.message || 'Failed to assign service!', this.alertOptions);
-  //         dept.default_services = dept.default_services.filter(s => s !== service.name);
-  //         service.assignedDept = '';
-  //       }
-  //     },
-  //     () => {
-  //       this.alertsService.error('Error assigning service!', this.alertOptions);
-  //       dept.default_services = dept.default_services.filter(s => s !== service.name);
-  //       service.assignedDept = '';
-  //     }
-  //   );
-  // }
-
   assignDepartmentToService(service: AssignableService) {
     if (!service.assignedDept) {
       this.alertsService.error('Please choose a department to assign!', this.alertOptions);
@@ -546,10 +505,13 @@ export class DepartmentListComponent {
       this.alertsService.error('Selected department not found!', this.alertOptions);
       return;
     }
+    // Find the old department before we remove the service from other departments locally
+    const oldDept = this.departments.find(d => d.default_services?.includes(service.name));
 
-    // Remove the service from any other department locally so the UI updates properly
+    // Locally remove this service from any other department it might be in
+    // newly changed for department not updated issue
     this.departments.forEach(d => {
-      if (d.name !== dept.name && d.default_services?.includes(service.name)) {
+      if (d.name !== dept.name && d.default_services) {
         d.default_services = d.default_services.filter(s => s !== service.name);
       }
     });
@@ -559,41 +521,59 @@ export class DepartmentListComponent {
       dept.default_services.push(service.name);
     }
     service.assignedDept = dept.name;
+    // newly changed for department not updated issue
+    this.mapAssignedDepartments(); // Update mapping immediately for UI feedback
 
-    const { _id, ...payloadData } = { ...dept, default_services: dept.default_services };
+    //newly added for department not updated issue
+    const payloadObj: any = { ...dept, default_services: dept.default_services };
+    if (oldDept && oldDept.id !== dept.id) {
+      payloadObj.old_id = oldDept.id;
+      payloadObj.old_service = service.name;
+    }
+
+    const { _id, ...payloadData } = payloadObj;
     const jsonObj = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
       extras: { find: { id: dept.id } },
       payload: { department_updation: payloadData }
     };
-
     this.departmentService.updateDepartment(jsonObj).subscribe(
       (resp: any) => {
         if (resp.success === 1 && resp.status_code === 200) {
           this.alertsService.success(`"${service.name}" service is assigned to "${dept.name}" department!`, this.alertOptions);
-          this.getDepartmentById(this.member_id); // refresh
-          this.getAssignableServices();
+          // newly changed for department not updated issue
+          // this.getDepartmentById(this.member_id);
+
+          // We rely on the local optimistic update and skip the immediate refresh 
+          // to prevent stale backend data from overwriting the UI state.
+          this.mapAssignedDepartments();
         } else {
           this.alertsService.error(resp.message || 'Failed to assign service!', this.alertOptions);
-          dept.default_services = dept.default_services.filter(s => s !== service.name);
-          service.assignedDept = '';
+          //newly removed for department not updated issue
+          // dept.default_services = dept.default_services.filter(s => s !== service.name);
+          // service.assignedDept = '';
+          // newly changed for department not updated issue
+          // Revert local change on failure
+          this.getDepartmentById(this.member_id);
         }
       },
       () => {
         this.alertsService.error('Error assigning service!', this.alertOptions);
-        dept.default_services = dept.default_services.filter(s => s !== service.name);
-        service.assignedDept = '';
+        // newly changed for department not updated issue
+        this.getDepartmentById(this.member_id);
       }
     );
   }
 
-
   removeDepartmentFromService(service: AssignableService) {
     const dept = this.departments.find(d => d.default_services?.includes(service.name));
     if (!dept) return;
+    dept.default_services = dept.default_services || []; //newly added
     dept.default_services = dept.default_services.filter(s => s !== service.name);
     service.assignedDept = '';
+    // newly changed for department not updated issue
+    this.mapAssignedDepartments(); // Update mapping immediately for UI feedback
     const { _id, ...payloadData } = { ...dept, default_services: dept.default_services };
     const jsonObj = {
       domain_name: DOMAIN_NAME,
@@ -605,16 +585,28 @@ export class DepartmentListComponent {
       (resp: any) => {
         if (resp.success === 1 && resp.status_code === 200) {
           this.alertsService.success(`"${service.name}" service is removed from "${dept.name}" department!`, this.alertOptions);
+          // newly changed for department not updated issue
+          // this.getDepartmentById(this.member_id);
+          // We rely on the local optimistic update and skip the immediate refresh
+          // to prevent stale backend data from overwriting the UI state.
+          this.mapAssignedDepartments();
+          this.getDepartmentById(this.member_id);
         } else {
           this.alertsService.error(resp.message || 'Failed to remove service!', this.alertOptions);
-          dept.default_services.push(service.name);
-          service.assignedDept = dept.name;
+          //newly removed for department not updated issue
+          // dept.default_services.push(service.name);
+          // service.assignedDept = dept.name;
+          // newly changed for department not updated issue
+          this.getDepartmentById(this.member_id);
         }
       },
       () => {
         this.alertsService.error('Error removing service!', this.alertOptions);
-        dept.default_services.push(service.name);
-        service.assignedDept = dept.name;
+        //newly removed for department not updated issue
+        // dept.default_services.push(service.name);
+        // service.assignedDept = dept.name;
+        // newly changed for department not updated issue
+        this.getDepartmentById(this.member_id);
       }
     );
   }

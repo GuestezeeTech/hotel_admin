@@ -90,8 +90,10 @@
             <app-escalated-from *ngIf="selectedTab === 'Priority'" (openAssigneeModal)="openModal($event)"
                 #highPriority></app-escalated-from>
             <app-processing *ngIf="selectedTab === 'Processing'" #processing></app-processing>
-            <app-scheduled *ngIf="selectedTab === 'Schedule'" (openAssigneeModal)="openModal($event)"
-                #scheduled></app-scheduled>
+            <!-- Newly commented -->
+            <!-- <app-scheduled *ngIf="selectedTab === 'Schedule'" (openAssigneeModal)="openModal($event)"
+                #scheduled></app-scheduled> -->
+            <!-- Ended -->
             <app-delivered *ngIf="selectedTab === 'Delivered'" #delivered></app-delivered>
             <!-- Newly added - Completed -->
             <app-staff-delivered *ngIf="selectedTab === 'Staff Delivered'" #staff_delivered></app-staff-delivered>
@@ -122,7 +124,10 @@
                         <!-- Show staff list if available -->
                         <span *ngFor="let staff of staves" class="px-2 py-1 rounded" style="font-size: 13px"
                             (click)="selectStaff(staff)" [ngStyle]="getCompleteStaffStyle(staff)">
-                            {{ staff.full_name }}
+                            <!-- Newly added for task allocation purpose     -->
+                            <!-- {{ staff.full_name }} -->
+                            {{ staff.id == selfStaffId ? 'Self Assign': staff.full_name}}
+                            <!-- Ended -->
                         </span>
                     </div>
                     <!-- Buttons -->

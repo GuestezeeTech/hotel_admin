@@ -4,18 +4,14 @@
         <div class="container user">
             <!-- Tabs Navigation -->
             <div style="display: flex; justify-content: space-between;">
-                <button
-                    class="fw-semibold"
-                    (click)="openDeleteModal()"
+                <button class="fw-semibold" (click)="openDeleteModal()"
                     style="background-color: #800020;font-weight: 500;color: white; padding: 10px 20px; border-radius: 5px; font-size: 14px; border: none;"
                     [disabled]="!canDeleteUserAccess">
                     Delete Selected
                 </button>
-                <button
-                    class="fw-semibold"
+                <button class="fw-semibold"
                     style="background-color: #800020; color: white; padding: 10px 20px; border-radius: 5px; font-size: 14px; border: none;"
-                    (click)="toggleAddUser()"
-                    [disabled]="!canAddUserAccess">
+                    (click)="toggleAddUser()" [disabled]="!canAddUserAccess">
                     Add User
                 </button>
             </div>
@@ -29,41 +25,31 @@
                         <th>Email</th>
                         <th>Name</th>
                         <th>Role Name</th>
-                        <th>Last Login</th>
+                        <!-- <th>Last Login</th> -->
                         <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
                     <!-- <tr *ngFor="let user of users" style="background-color: white;"> -->
                     <tr *ngFor="let user of usersWithRoles" style="background-color: white;">
-                    <td>
-                        <input type="checkbox"
-                            [id]="user.fullName"
-                            [name]="user.fullName"
-                            [value]="user.fullName"
-                            (change)="toggleSelection($event, user.id)"
-                            style="cursor: pointer;"
-                            [disabled]="!canDeleteUserAccess">
-                    </td>
-                    <td>{{ user.email }}</td>
-                    <td>{{ user.first_name + ' ' + user.last_name }}</td>
-                    <td>{{ user.role_name }}</td>
-                    <td>{{ user.lastLogin }}</td>
+                        <td>
+                            <input type="checkbox" [id]="user.fullName" [name]="user.fullName" [value]="user.fullName"
+                                (change)="toggleSelection($event, user.id)" style="cursor: pointer;"
+                                [disabled]="!canDeleteUserAccess">
+                        </td>
+                        <td>{{ user.email }}</td>
+                        <td>{{ user.first_name + ' ' + user.last_name }}</td>
+                        <td>{{ user.role_name }}</td>
+                        <!-- <td>{{ user.lastLogin }}</td> -->
                         <td>
                             <!-- View icon: requires read permission -->
-                            <i class="fa fa-eye me-3"
-                                style="color: #800020; cursor: pointer;"
-                                [style.opacity]="canReadUserAccess ? 1 : 0.4"
-                                (click)="viewUser(user.id)"
-                                [style.cursor]="canReadUserAccess ? 'pointer' : 'not-allowed'"
-                                title="View"></i>
+                            <i class="fa fa-eye me-3" style="color: #800020; cursor: pointer;"
+                                [style.opacity]="canReadUserAccess ? 1 : 0.4" (click)="viewUser(user.id)"
+                                [style.cursor]="canReadUserAccess ? 'pointer' : 'not-allowed'" title="View"></i>
                             <!-- Edit icon: requires edit permission -->
-                            <i class="fa fa-pen-to-square"
-                                style="color: #800020; cursor: pointer;"
-                                [style.opacity]="canEditUserAccess ? 1 : 0.4"
-                                (click)="setInitialValues(user.id)"
-                                [style.cursor]="canEditUserAccess ? 'pointer' : 'not-allowed'"
-                                title="Edit"></i>
+                            <i class="fa fa-pen-to-square" style="color: #800020; cursor: pointer;"
+                                [style.opacity]="canEditUserAccess ? 1 : 0.4" (click)="setInitialValues(user.id)"
+                                [style.cursor]="canEditUserAccess ? 'pointer' : 'not-allowed'" title="Edit"></i>
                         </td>
                     </tr>
                     <tr *ngIf="usersWithRoles.length === 0">

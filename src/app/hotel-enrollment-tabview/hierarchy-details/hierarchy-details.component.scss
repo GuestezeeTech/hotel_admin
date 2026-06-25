@@ -52,6 +52,9 @@ h3 {
 .card-header {
   font-size: 1.1rem;
   border: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .isSelected {

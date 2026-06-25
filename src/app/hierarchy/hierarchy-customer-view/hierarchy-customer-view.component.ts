@@ -130,7 +130,7 @@ export class HierarchyCustomerViewComponent {
     const updated = all.map(item =>
       item.parentId === id ? { ...item, parentId: itemToDelete.parentId } : item
     ).filter(item => item.id !== id);
-    this.hierarchyService['hierarchyData'].next(updated);
+    // this.hierarchyService['hierarchyData'].next(updated); // newly added to Removed premature UI update to prevent items from disappearing if deletion fails on the server
     let tempdata: any;
     tempdata = updated;
     this.updateHierarchyData(tempdata);
@@ -141,8 +141,9 @@ export class HierarchyCustomerViewComponent {
     if (!this.canDeleteSystemSettings) {
       return;
     }
+    this.deleteId = id; // newly added
     this.showDeleteModal = true;
-    this.deleteId = id;
+    // this.deleteId = id;
   }
 
   hasTreeChildren(parentId: number | undefined): boolean {
@@ -336,6 +337,7 @@ export class HierarchyCustomerViewComponent {
           if (resp.success === 1 && resp.status_code === 200) {
             this.hierarchyService.clearHierarchyData();
             this.deleteId = null;
+            this.showDeleteModal = false; //newly added to close the delete modal
             // Navigate first, then show success so alert is visible on the target page
             this.router.navigateByUrl('/', { skipLocationChange: true }).then(() => {
               this.router.navigate(['/view-customer-hierarchy', this.hierarchyId]).then(() => {
@@ -344,7 +346,8 @@ export class HierarchyCustomerViewComponent {
                   // this.alertService.success('Hierarchy item deleted successfully', this.options);
                   if (resp.message.includes('Record successfully updated')) {
                     this.alertService.success('Hierarchy item deleted successfully', this.options);
-                  } else {
+                  }
+                  else {
                     this.alertService.success(resp.message, this.options);
                   }
                   // End of newly added for deletion resp message 
@@ -353,19 +356,23 @@ export class HierarchyCustomerViewComponent {
             });
           }
           else if (resp.success === 0) {
+            this.showDeleteModal = false; //newly added to close the delete modal
             if (resp.message) {
               this.alertService.error(resp.message, this.options);
             }
           }
           else if (resp.message && resp.status_code !== 200) {
+            this.showDeleteModal = false; //newly added to close the delete modal
             this.alertService.error(resp.message, this.options);
           }
           else {
+            this.showDeleteModal = false; //newly added to close the delete modal
             this.alertService.error('Something bad happened. Please try again!', this.options);
           }
         }
       },
       err => {
+        this.showDeleteModal = false; //newly added to close the delete modal
         if (err.error.statusCode === 403) {
           this.alertService.error('Session Time Out! Please login Again', this.options)
           this.router.navigate([`/login`], { skipLocationChange: false });
@@ -425,10 +432,10 @@ export class HierarchyCustomerViewComponent {
     });
   }
 
-  onDelete(id: number) {
-    this.deleteId = id;
-    this.showDeleteModal = true;   // Open custom modal
-  }
+  // onDelete(id: number) {
+  //   this.deleteId = id;
+  //   this.showDeleteModal = true;   // Open custom modal
+  // }
 
   closeDeleteModal() {
     this.showDeleteModal = false;  // Simply close

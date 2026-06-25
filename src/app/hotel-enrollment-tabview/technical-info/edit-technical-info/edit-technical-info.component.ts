@@ -335,7 +335,7 @@ export class EditTechnicalInfoComponent implements OnInit {
     }
 
 
-    let headers = new HttpHeaders().set("source", "Brand").set("domain_name", this.authTokenService.getDomain())
+    let headers = new HttpHeaders().set("source", "Brand").set("domain_name", DOMAIN_NAME)
     let formData_imageCate = new FormData();
     if (this.imgFile !== null) {
       formData_imageCate.append('upload', this.imgFile)

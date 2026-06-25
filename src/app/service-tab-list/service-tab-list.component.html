@@ -51,17 +51,17 @@
                     <div class="actions">
                         <!-- View icon: allowed when read permission is present -->
                         <button class="view-btn"
-                            (click)="canReadSystemSettings ? openViewModal(serviceTab, serviceTab.id) : null"
+                            (click)="$event.stopPropagation(); canReadSystemSettings ? openViewModal(serviceTab, serviceTab.id) : null"
                             [disabled]="!canReadSystemSettings" title="View">
                             <i class="fa-regular fa-eye"></i>
                         </button>
                         <button class="edit-btn"
-                            (click)="canEditSystemSettings ? openEditModal(serviceTab, serviceTab.id) : null"
+                            (click)="$event.stopPropagation(); canEditSystemSettings ? openEditModal(serviceTab, serviceTab.id) : null"
                             [disabled]="!canEditSystemSettings" title="Edit">
                             Edit
                         </button>
                         <button class="delete-btn"
-                            (click)="canDeleteSystemSettings ? openDeleteModal(serviceTab, serviceTab.id) : null"
+                            (click)="$event.stopPropagation(); canDeleteSystemSettings ? openDeleteModal(serviceTab, serviceTab.id) : null"
                             [disabled]="!canDeleteSystemSettings" title="Delete">
                             <i class="fa-solid fa-trash"></i>
                         </button>
@@ -84,15 +84,15 @@
                         <p class="mt-2 text-muted" style="font-size: 14px;">Loading services...</p>
                     </div>
                 </div>
-                <div class="service-grid" *ngIf="services.length > 0 && !isLoadingServices; else noServices">
+                <div class="service-grid" *ngIf="services && services.length > 0 && !isLoadingServices">
                     <div class="service-card" *ngFor="let service of services">
                         <span>{{ service.name }}</span>
                         <!-- <small>{{ service.description }}</small> -->
                     </div>
                 </div>
-                <ng-template #noServices>
+                <div *ngIf="(!services || services.length === 0) && !isLoadingServices">
                     <p class="no-dept">No services found for this tab.</p>
-                </ng-template>
+                </div>
             </div>
         </div>
     </div>
@@ -106,13 +106,21 @@
             {{ isViewMode ? 'View Service Tab' : (isEditMode ? 'Edit Service Tab' : 'Add Service Tab') }}
         </h4>
         <!-- Service Tab Name -->
-        <input type="text" placeholder="Enter service tab name" [(ngModel)]="newServiceTabName" maxlength="50"
+        <!-- <input type="text" placeholder="Enter service tab name" [(ngModel)]="newServiceTabName" maxlength="50"
             (input)="onNameInputChange()" class="dept-input" (keydown)="restrictSpecialChars($event)"
+            [readonly]="isViewMode || (!isEditMode && !canAddSystemSettings) || (isEditMode && !canEditSystemSettings)" /> -->
+        <input type="text" placeholder="Enter service tab name" [(ngModel)]="newServiceTabName" maxlength="50"
+            (input)="onNameInputChange()" class="dept-input" (keypress)="blockNumbersOnly($event)"
+            (paste)="handleNamePaste($event)" [attr.maxlength]="isViewMode || (!isEditMode && !canAddSystemSettings) || (isEditMode && !canEditSystemSettings) ? 50 : null"
             [readonly]="isViewMode || (!isEditMode && !canAddSystemSettings) || (isEditMode && !canEditSystemSettings)" />
+           <p *ngIf="maxlengthError" class="error-text">Maximum 50 characters allowed.</p>
         <p *ngIf="nameError" class="error-text">Service tab name is required.</p>
         <!-- Service Tab Description (optional) -->
-        <textarea placeholder="Enter description (optional)" [(ngModel)]="newServiceTabDescription" class="dept-input"
+        <!-- <textarea placeholder="Enter description (optional)" [(ngModel)]="newServiceTabDescription" class="dept-input"
             rows="3" (keypress)="restrictSpecialChars($event)" 
+            [readonly]="isViewMode || (!isEditMode && !canAddSystemSettings) || (isEditMode && !canEditSystemSettings)"></textarea> -->
+        <textarea placeholder="Enter description (optional)" [(ngModel)]="newServiceTabDescription" class="dept-input"
+            rows="3"
             [readonly]="isViewMode || (!isEditMode && !canAddSystemSettings) || (isEditMode && !canEditSystemSettings)"></textarea>
         <div class="modal-actions">
             <button class="save-btn" (click)="isViewMode ? closeModal() : saveServiceTab()"

@@ -1,20 +1,23 @@
 <header class="header">
   <div class="menu-name">
     <h1 style="color:black; font-size: 20px;">
-      <img src="../../../assets/images/guestezee/menu.png" alt="Menu Icon">&nbsp;&nbsp;{{selectedMenu }}
+      <!--newly commented and added-->
+      <!-- <img src="../../../assets/images/guestezee/menu.png" alt="Menu Icon">&nbsp;&nbsp;{{selectedMenu }} --> 
+      <img src="../../../assets/images/guestezee/menu.png" alt="Menu Icon">&nbsp;&nbsp;{{activeMenu}}
     </h1>
   </div>
   <!-- User Info Section -->
   <div class="user-info d-flex align-items-center">
-    <button class="pay-button" *ngIf="payNowButtonState.show && (this.customerType=='Customer')" [ngClass]="{'disabled-btn': !payNowButtonState.enabled}"
+    <button class="pay-button" *ngIf="payNowButtonState.show && this.customerType == 'Customer' && permissionService.hasReadPermission('DUE PAYMENTS')" [ngClass]="{'disabled-btn': !payNowButtonState.enabled}"
       [disabled]="!payNowButtonState.enabled" (click)="onPayNowClick()">{{ payNowButtonState.installmentText ?
       (payNowButtonState.installmentText + ' - Pay') : 'Pay Now' }}</button>
     <img class="notification-icon" src="../../../assets/images/guestezee/notify.png" alt="Notification"
       (click)="toggleNotification()" *ngIf="(this.customerType=='Staff')">
     <div #accountToggle (click)="toggleLogout($event)" style="cursor: pointer;">
-      <img class="profile-icon" [src]="profile_image" alt="Profile" class="rounded-circle border mr-2"
-        style="width: 35px; height: 35px; object-fit: cover;">
+      <img [src]="profile_image" alt="Profile" class="profile-icon border mr-2"
+        style="width: 35px; height: 35px; object-fit: contain; background-color: #ffffff; border-radius: 4px;">
       <span class="username d-none d-md-inline">{{profile_name}}</span>
+        <i class="bi bi-chevron-down" style="color:black; font-size: 12px; margin-left:3px;"></i>
       <!-- Display username only on medium screens and larger -->
     </div>
   </div>

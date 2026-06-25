@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-// import { authGuard } from './auth-services/auth.guard';
+import { NotFoundComponent } from './not-found/not-found.component';
 
 export const routes: Routes = [
   {
@@ -13,42 +13,34 @@ export const routes: Routes = [
   {
     path: '',
     loadChildren: () => import('./admin-dashboard/admin-dashboard.module').then(m => m.AdminDashboarModule),
-    // canActivate: [authGuard] //for after logout, back button should not navigate to dashboard without login
   },
   {
     path: '',
     loadChildren: () => import('./report/report.module').then(m => m.ReportModule),  // Lazy-load LoginModule
-    // canActivate: [authGuard] //for after logout, back button should not navigate to dashboard without login
   },
   {
     path: '',
     loadChildren: () => import('./hotel-enrollment-tabview/hotel-enrollment-tabview.module').then(m => m.HotelEnrollmentTabviewModule),  // Lazy-load LoginModule
-    // canActivate: [authGuard] //for after logout, back button should not navigate to dashboard without login
   },
   {
     path: '',
     loadChildren: () => import('./user-access/role/role.module').then(m => m.RoleModule),
-    // canActivate: [authGuard] //for after logout, back button should not navigate to dashboard without login
   },
   {
     path: '',
     loadChildren: () => import('./user-access/role-listing/role-listing.module').then(m => m.RoleListingModule),
-    // canActivate: [authGuard] //for after logout, back button should not navigate to dashboard without login
   },
   {
     path: '',
     loadChildren: () => import('./profile/profile.module').then(m => m.ProfileModule),  // Lazy-load LoginModule
-    // canActivate: [authGuard] //for after logout, back button should not navigate to dashboard without login
   },
   {
     path: '',
     loadChildren: () => import('./settings/settings.module').then(m => m.SettingsModule),  // Lazy-load LoginModule
-    // canActivate: [authGuard] //for after logout, back button should not navigate to dashboard without login
   },
   {
     path: '',
     loadChildren: () => import('./payment-subscription-management/payment-subscription-management.module').then(m => m.PaymentSubscriptionManagementModule),  // Lazy-load LoginModule
-    // canActivate: [authGuard] //for after logout, back button should not navigate to dashboard without login
   },
   {
     path: '',
@@ -95,7 +87,7 @@ export const routes: Routes = [
     loadChildren: () => import('./late-checkout/late-checkout.module').then(m => m.LateCheckoutModule),
   },
   {
-    path: '',
+    path: 'outlet-creation',
     loadChildren: () => import('./Outlet/outlet-creation/outlet-creation.module').then(m => m.OutletCreationModule),
   },
   {
@@ -137,8 +129,21 @@ export const routes: Routes = [
     path: '',
     loadChildren: () => import('./features/features.module').then(m => m.FeaturesModule)
   },
+  // {
+  //   path: '',
+  //   loadChildren: () => import('./restaurants-list/restaurants-list.module').then(m => m.RestaurantsListModule)
+  // },
   {
-    path: '',
-    loadChildren: () => import('./restaurants-list/restaurants-list.module').then(m => m.RestaurantsListModule)
+    path: 'feature-creation',
+    loadChildren: () => import('./features-list/feature-creation/feature-creation.module').then(m => m.FeatureCreationModule)
+  },
+  {
+    path: 'features-list',
+    loadChildren: () => import('./features-list/features-list.module').then(m => m.FeaturesListModule)
+  },
+  {
+    path: '**',
+    component: NotFoundComponent
   }
 ];
+

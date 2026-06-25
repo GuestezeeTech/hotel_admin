@@ -1,3 +1,8 @@
+.main {
+  background-color: #ffffff !important;
+  min-height: 100vh;
+}
+
 body {
   font-family: urbanist !important;
 }
@@ -11,9 +16,20 @@ h3 {
 .company-details-form {
   max-width: 1200px;
   padding: 20px 5px;
-  background-color: #f9f9f9;
+  background-color: #ffffff !important;
   padding-bottom: 20px;
   border-radius: 8px;
+
+  &.empty-state {
+    padding-top: 10px;
+    background-color: #ffffff !important;
+    
+    .section {
+      background: #ffffff !important;
+      padding-top: 10px;
+      box-shadow: none;
+    }
+  }
 }
 
 .tabs {
@@ -96,6 +112,17 @@ h3 {
   border-radius: 4px;
 }
 
+.original-price {
+  text-decoration: line-through;
+  opacity: 0.8;
+  font-size: 12px;
+}
+
+.sale-price {
+  color: #ffeb3b; /* Highlighted yellow */
+  font-size: 14px;
+}
+
 // .msrp {
 //   text-decoration: line-through;
 //   color: #ccc;
@@ -144,17 +171,17 @@ option {
 }
 
 /* Add New Brand Button */
-.add-btn {
-  // background-color: #8B4513;
-  /* Brown color */
-  // color: white;
-  // padding: 8px 12px;
-  // border: none;
-  // border-radius: 5px;
-  // font-size: 14px;
-  // cursor: pointer;
-  // margin-top: 10px;
-}
+// .add-btn {
+//   // background-color: #8B4513;
+//   /* Brown color */
+//   // color: white;
+//   // padding: 8px 12px;
+//   // border: none;
+//   // border-radius: 5px;
+//   // font-size: 14px;
+//   // cursor: pointer;
+//   // margin-top: 10px;
+// }
 
 .add-btn:hover {
   background-color: #6A2E0A;
@@ -192,7 +219,8 @@ option {
 .cancel {
   background: #ccc;
   color: #000;
-  margin-right: 20px;
+  // margin-right: 20px;
+  margin-right: 10px;
   padding: 10px 15px;
   // height: 35px;
   border: none;
@@ -363,7 +391,8 @@ option {
   padding: 20px;
   border-radius: 5px;
   position: relative;
-  width: 300px;
+  width: 600px;
+  max-width: 90vw;
   text-align: center;
   z-index: 10000;
 }
@@ -448,8 +477,8 @@ textarea {
 .switch {
   position: relative;
   display: inline-block;
-  width: 40px;
-  height: 20px;
+  width: 44px;
+  height: 22px;
   margin-left: 10px;
 }
 
@@ -474,22 +503,23 @@ textarea {
 .slider:before {
   position: absolute;
   content: "";
-  height: 14px;
-  width: 15px;
+  height: 16px;
+  width: 16px;
   left: 3px;
   bottom: 3px;
   background-color: white;
   transition: 0.4s;
   border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-input:checked+.slider {
+input:checked + .slider {
   background-color: #219653;
   /* Greenish */
 }
 
-input:checked+.slider:before {
-  transform: translateX(24px);
+input:checked + .slider:before {
+  transform: translateX(22px);
 }
 
 .label-text {
@@ -617,13 +647,48 @@ input[type="checkbox"]:disabled + .slider {
     cursor: not-allowed;
 }
 
-.submit:disabled,
-.submit1:disabled {
-    // cursor: not-allowed;
-    // opacity: 0.6;
-}
+// .submit:disabled,
+// .submit1:disabled {
+//     // cursor: not-allowed;
+//     // opacity: 0.6;
+// }
 
 .upload-btn:disabled {
     opacity: 0.3;
     cursor: not-allowed;
+}
+
+/* Custom Dropdown Styles to match Native Select */
+.custom-dropdown {
+  .dropdown-menu {
+    padding: 0;
+    margin: 0;
+    border-radius: 4px;
+    min-width: 100%;
+    background-color: #ffffff !important;
+    border: 1px solid #ccc;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  }
+  
+  .custom-option {
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #333;
+    transition: none;
+    border-bottom: none;
+    background-color: transparent;
+  }
+  
+  .custom-option:hover,
+  .custom-option:focus {
+    background-color: #1a73e8 !important; /* native select hover blue */
+    color: white !important;
+  }
+  
+  /* Make icons white when option is hovered for visibility */
+  .custom-option:hover .edit-cat-icon,
+  .custom-option:hover .delete-cat-icon {
+    color: white !important;
+  }
 }

@@ -45,15 +45,6 @@ export class TechnicalInfoService {
     }
   }
 
-  updateTechnicalInfo(UpdateCustomerObj: any): Observable<any> {
-    if (this.authTokenService.isTokenExpired()) {
-      this.router.navigate([`/login`], { skipLocationChange: false });
-      return new Observable();
-    }
-    else {
-      return this.http.post(ENDPOINTS.UPDATE_TECHNICAL_INFO, UpdateCustomerObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
-    }
-  }
   getToken(tokenObj: any): Observable<any> {
     if (this.authTokenService.isTokenExpired()) {
       this.router.navigate([`/login`], { skipLocationChange: false });
@@ -117,6 +108,26 @@ export class TechnicalInfoService {
 
   updatePayNowButton(show: boolean, enabled: boolean, installmentText: string = '') {
     this.payNowButtonSubject.next({ show, enabled, installmentText });
+  }
+
+  /*   updateTechnicalInfo(UpdateCustomerObj: any): Observable<any> {
+    if (this.authTokenService.isTokenExpired()) {
+      this.router.navigate([`/login`], { skipLocationChange: false });
+      return new Observable();
+    }
+    else {
+      return this.http.post(ENDPOINTS.UPDATE_TECHNICAL_INFO, UpdateCustomerObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
+    }
+  } */
+
+  updateTechnicalInfo(UpdateCustomerObj: any): Observable<any> {
+    if (this.authTokenService.isTokenExpired()) {
+      this.router.navigate([`/login`], { skipLocationChange: false });
+      return new Observable();
+    }
+    else {
+      return this.http.post(ENDPOINTS.ECOMINTEGRATIONSETTINGS_UPDATE, UpdateCustomerObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
+    }
   }
 
 }

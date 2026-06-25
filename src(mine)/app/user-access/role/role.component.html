@@ -1,0 +1,338 @@
+<!-- <app-alerts *ngIf="showalertmsg"></app-alerts> -->
+<div class="main">
+    <app-alerts></app-alerts>
+    <div class="centered-container">
+        <div class="container">
+            <h5 class="fw-bolder" style="margin-bottom: 0">
+                {{ isViewMode ? 'View Role Permission For Module' : (enableEdit ? 'Edit Role Permission For Module' : 'Add Role Permission For Module') }}
+            </h5>
+            <p style="color: #9E9E9E; font-size: 14px; margin-bottom: 1%">
+                {{ isViewMode ? 'View Role Permission For Module' : (enableEdit ? 'Update Role Permission For Module' : 'Create Role Permission For Module') }}
+            </p>
+            <!-- Role Name and Toggle Switches -->
+            <form [formGroup]="roleForm">
+                <div class="mb-3 mt-3 row d-flex align-items-center">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Role Name*</label>
+                        <input type="text" class="form-control bg-white" formControlName="role_name"
+                            [class.is-invalid]="validateForm && f['role_name'].errors" value="Admin"
+                            style="color: #000">
+                        <div class="invalid-feedback" *ngIf="f['role_name'].errors">
+                            <div *ngIf="f['role_name'].errors['required']">Please enter role Name.</div>
+                            <div *ngIf="f['role_name'].errors['minlength']">role Name should not be less than 3
+                                characters.</div>
+                            <div *ngIf="f['role_name'].errors['maxlength']">role Name should not be more than 40
+                                characters.</div>
+                        </div>
+                    </div>
+                    <!-- Standard Role Toggle -->
+                    <div class="col-md-2">
+                        <div
+                            style="display: flex; align-items: center; border: 1px solid #ddd; padding: 2px 5px; border-radius: 10px; margin-top: 19%; width: 105%">
+                            <span style="font-weight: 600; font-size: 15px; ">Standard Role</span>
+                            <!-- Hidden checkbox that controls the form value -->
+                            <input type="checkbox" formControlName="is_standard" hidden #isStandardCheckbox>
+                            <!-- Icon that updates the hidden checkbox -->
+                            <i [ngClass]="isStandardCheckbox.checked ? 'bi bi-toggle-on' : 'bi bi-toggle-off'"
+                                (click)="!isViewMode && isStandardCheckbox.click()" [ngStyle]="{
+                                cursor: isViewMode ? 'not-allowed' : 'pointer',
+                                fontSize: '25px',
+                                marginLeft: '8px',
+                                color: isStandardCheckbox.checked ? '#1AA080' : 'rgb(212, 14, 14)',
+                                opacity: isViewMode ? 0.6 : 1
+                              }">
+                            </i>
+                        </div>
+                    </div>
+                    <!-- Active Toggle -->
+                    <div class="col-md-2">
+                        <div
+                            style="display: flex; align-items: center; border: 1px solid #ddd; padding: 2px 4px; border-radius: 10px; margin-top: 19%">
+                            <span style="font-weight: 600; font-size: 15px;">Active</span>
+                            <!-- Hidden checkbox that controls the form value -->
+                            <input type="checkbox" formControlName="is_active" hidden #isActiveCheckbox>
+                            <!-- Icon that updates the hidden checkbox -->
+                            <i [ngClass]="isActiveCheckbox.checked ? 'bi bi-toggle-on' : 'bi bi-toggle-off'"
+                                (click)="!isViewMode && isActiveCheckbox.click()" [ngStyle]="{
+                                cursor: isViewMode ? 'not-allowed' : 'pointer',
+                                fontSize: '25px',
+                                marginLeft: '8px',
+                                color: isActiveCheckbox.checked ? '#1AA080' : 'rgb(212, 14, 14)',
+                                opacity: isViewMode ? 0.6 : 1
+                              }">
+                            </i>
+                        </div>
+                    </div>
+                </div>
+            </form>
+            <!-- Permissions Table -->
+            <div class="table-responsive add-role mt-5">
+                <form [formGroup]="dashboardForm">
+                    <div style="border-top-left-radius: 10px; border-top-right-radius: 10px; overflow: hidden; ">
+                        <table style="width: 100%; border-collapse: separate; border-spacing: 0;">
+                            <thead>
+                                <tr>
+                                    <th style="border-top-left-radius: 10px; border-left: 1px solid #6E6E6E;">Modules
+                                    </th>
+                                    <th>Create</th>
+                                    <th>Edit</th>
+                                    <th>Read</th>
+                                    <th>Delete</th>
+                                    <th style="border-top-right-radius: 10px; border-right: 1px solid #6E6E6E;">All</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td style="border-left: 1px solid #6E6E6E;" class="fw-semibold">Dashboard</td>
+                                    <td><input type="checkbox" formControlName="create"
+                                            (change)="allOptionsToggle('specdashboard')"></td>
+                                    <td><input type="checkbox" formControlName="edit"
+                                            (change)="allOptionsToggle('specdashboard')"></td>
+                                    <td><input type="checkbox" formControlName="read"
+                                            (change)="allOptionsToggle('specdashboard')"></td>
+                                    <td><input type="checkbox" formControlName="delete"
+                                            (change)="allOptionsToggle('specdashboard')"></td>
+                                    <td style="border-right: 1px solid #6E6E6E;"><input type="checkbox"
+                                            formControlName="all" (change)="allOptionsToggle('dashboard')"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </form>
+                <form [formGroup]="hotelsForm">
+                    <table>
+                        <tbody>
+                            <tr>
+                                <td style="border-left: 1px solid #6E6E6E !important;" class="fw-semibold">Hotel
+                                </td>
+                                <td><input type="checkbox" formControlName="create" (change)="allOptionsToggle('specHotel')">
+                                </td>
+                                <td><input type="checkbox" formControlName="edit" (change)="allOptionsToggle('specHotel')">
+                                </td>
+                                <td><input type="checkbox" formControlName="read" (change)="allOptionsToggle('specHotel')">
+                                </td>
+                                <td><input type="checkbox" formControlName="delete" (change)="allOptionsToggle('specHotel')">
+                                </td>
+                                <td style="border-right: 1px solid #6E6E6E !important;"><input type="checkbox"
+                                        formControlName="all" (change)="allOptionsToggle('hotel')"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </form>
+                <form [formGroup]="taskManagementForm">
+                    <table>
+                        <tbody>
+                            <tr>
+                                <td style="border-left: 1px solid #6E6E6E !important;" class="fw-semibold">Task
+                                    Management
+                                </td>
+                                <td><input type="checkbox" formControlName="create"
+                                        (change)="allOptionsToggle('specTaskManagement')"></td>
+                                <td><input type="checkbox" formControlName="edit"
+                                        (change)="allOptionsToggle('specTaskManagement')"></td>
+                                <td><input type="checkbox" formControlName="read"
+                                        (change)="allOptionsToggle('specTaskManagement')"></td>
+                                <td><input type="checkbox" formControlName="delete"
+                                        (change)="allOptionsToggle('specTaskManagement')"></td>
+                                <td style="border-right: 1px solid #6E6E6E !important;"><input type="checkbox"
+                                        formControlName="all" (change)="allOptionsToggle('taskManagement')"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </form>
+                <form [formGroup]="paymentForm">
+                    <table>
+                        <tbody>
+                            <tr>
+                                <td style="border-left: 1px solid #6E6E6E !important;" class="fw-semibold">Payment</td>
+                                <td><input type="checkbox" formControlName="create"
+                                        (change)="allOptionsToggle('specPayment')"></td>
+                                <td><input type="checkbox" formControlName="edit" (change)="allOptionsToggle('specPayment')">
+                                </td>
+                                <td><input type="checkbox" formControlName="read" (change)="allOptionsToggle('specPayment')">
+                                </td>
+                                <td><input type="checkbox" formControlName="delete"
+                                        (change)="allOptionsToggle('specPayment')"></td>
+                                <td style="border-right: 1px solid #6E6E6E !important;"><input type="checkbox"
+                                        formControlName="all" (change)="allOptionsToggle('payment')"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </form>
+                <form [formGroup]="userAccessForm">
+                    <table>
+                        <tbody>
+                            <tr>
+                                <td style="border-left: 1px solid #6E6E6E !important;" class="fw-semibold">User Access
+                                </td>
+                                <td><input type="checkbox" formControlName="create"
+                                        (change)="allOptionsToggle('specUserAccess')"></td>
+                                <td><input type="checkbox" formControlName="edit"
+                                        (change)="allOptionsToggle('specUserAccess')"></td>
+                                <td><input type="checkbox" formControlName="read"
+                                        (change)="allOptionsToggle('specUserAccess')"></td>
+                                <td><input type="checkbox" formControlName="delete"
+                                        (change)="allOptionsToggle('specUserAccess')"></td>
+                                <td style="border-right: 1px solid #6E6E6E !important;"><input type="checkbox"
+                                        formControlName="all" (change)="allOptionsToggle('userAccess')"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </form>
+                <form [formGroup]="systemSettingsForm">
+                    <table>
+                        <tbody>
+                            <tr style=" border-top: 1px solid #6E6E6E !important;">
+                                <td style="border-left: 1px solid #6E6E6E !important;" class="fw-semibold">System
+                                    Settings</td>
+                                <td><input type="checkbox" formControlName="create"
+                                        (change)="allOptionsToggle('specSystemSettings')"></td>
+                                <td><input type="checkbox" formControlName="edit"
+                                        (change)="allOptionsToggle('specSystemSettings')"></td>
+                                <td><input type="checkbox" formControlName="read"
+                                        (change)="allOptionsToggle('specSystemSettings')"></td>
+                                <td><input type="checkbox" formControlName="delete"
+                                        (change)="allOptionsToggle('specSystemSettings')"></td>
+                                <td style="border-right: 1px solid #6E6E6E !important;"><input type="checkbox"
+                                        formControlName="all" (change)="allOptionsToggle('systemSettings')"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </form>
+                <form [formGroup]="bookingsForm">
+                    <table>
+                        <tbody>
+                            <tr>
+                                <td style="border-left: 1px solid #6E6E6E !important;" class="fw-semibold">Bookings
+                                </td>
+                                <td><input type="checkbox" formControlName="create"
+                                        (change)="allOptionsToggle('specBookings')"></td>
+                                <td><input type="checkbox" formControlName="edit" (change)="allOptionsToggle('specBookings')">
+                                </td>
+                                <td><input type="checkbox" formControlName="read" (change)="allOptionsToggle('specBookings')">
+                                </td>
+                                <td><input type="checkbox" formControlName="delete"
+                                        (change)="allOptionsToggle('specBookings')"></td>
+                                <td style="border-right: 1px solid #6E6E6E !important;"><input type="checkbox"
+                                        formControlName="all" (change)="allOptionsToggle('bookings')"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </form>
+                <form [formGroup]="featuresForm">
+                    <table>
+                        <tbody>
+                            <tr
+                                style=" border-top: 1px solid #6E6E6E !important;">
+                                <td style="border-left: 1px solid #6E6E6E !important;" class="fw-semibold">Features</td>
+                                <td><input type="checkbox" formControlName="create" (change)="allOptionsToggle('specFeatures')">
+                                </td>
+                                <td><input type="checkbox" formControlName="edit" (change)="allOptionsToggle('specFeatures')">
+                                </td>
+                                <td><input type="checkbox" formControlName="read" (change)="allOptionsToggle('specFeatures')">
+                                </td>
+                                <td><input type="checkbox" formControlName="delete" (change)="allOptionsToggle('specFeatures')">
+                                </td>
+                                <td style="border-right: 1px solid #6E6E6E !important;"><input type="checkbox"
+                                        formControlName="all" (change)="allOptionsToggle('features')"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </form>
+                <!-- <form [formGroup]="restaurantsForm">
+                    <table>
+                        <tbody>
+                            <tr
+                                style="border-bottom: 1px solid #6E6E6E !important; border-top: 1px solid #6E6E6E !important;">
+                                <td style="border-left: 1px solid #6E6E6E !important;" class="fw-semibold">Restaurants</td>
+                                <td><input type="checkbox" formControlName="create" (change)="allOptionsToggle('specRestaurant')">
+                                </td>
+                                <td><input type="checkbox" formControlName="edit" (change)="allOptionsToggle('specRestaurant')">
+                                </td>
+                                <td><input type="checkbox" formControlName="read" (change)="allOptionsToggle('specRestaurant')">
+                                </td>
+                                <td><input type="checkbox" formControlName="delete" (change)="allOptionsToggle('specRestaurant')">
+                                </td>
+                                <td style="border-right: 1px solid #6E6E6E !important;"><input type="checkbox"
+                                        formControlName="all" (change)="allOptionsToggle('restaurant')"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </form> -->
+                <form [formGroup] = "outletsForm">
+                    <table>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid #6E6E6E !important; border-top: 1px solid #6E6E6E !important;">
+                                <td style="border-left: 1px solid #6E6E6E !important;" class="fw-semibold">Outlets</td>
+                                <td><input type="checkbox" formControlName="create" (change)="allOptionsToggle('specOutlets')">
+                                </td>
+                                <td><input type="checkbox" formControlName="edit" (change)="allOptionsToggle('specOutlets')">
+                                </td>
+                                <td><input type="checkbox" formControlName="read" (change)="allOptionsToggle('specOutlets')">
+                                </td>
+                                <td><input type="checkbox" formControlName="delete" (change)="allOptionsToggle('specOutlets')">
+                                </td>
+                                <td style="border-right: 1px solid #6E6E6E !important;"><input type="checkbox" formControlName="all"
+                                        (change)="allOptionsToggle('outlets')"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </form>
+
+            </div>
+        </div>
+        <!-- Buttons placed outside of the container but still inside the *ngIf block -->
+        <div class="row my-4  me-1">
+            <div class="col-md-12 d-flex justify-content-end">
+                <div class="col-md-2">
+                    <button class="btn w-100 fw-semibold" style="color: #4E4E4E; background-color: #C6C6C6"
+                        (click)="openExitModal()">Cancel</button>
+                </div>
+                <div class="col-md-2" *ngIf="!enableEdit">
+                    <button class="btn w-100 ms-2 fw-semibold"
+                        style="color: white; background-color: #800020;"
+                        (click)="saveForm()"
+                        [disabled]="isViewMode"
+                        [ngStyle]="{
+                            cursor: isViewMode ? 'not-allowed' : 'pointer',
+                            opacity: isViewMode ? 0.8 : 1
+                        }">Save</button>
+                </div>
+                <div class="col-md-2" *ngIf="enableEdit" style="padding-right: 0;">
+                    <button class="btn w-100 ms-2 fw-semibold"
+                        style="color: white; background-color: #800020;"
+                        (click)="saveFormChanges()"
+                        [disabled]="isViewMode"
+                        [ngStyle]="{
+                            cursor: isViewMode ? 'not-allowed' : 'pointer',
+                            opacity: isViewMode ? 0.6 : 1
+                        }">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Confirmation Modal for Exiting -->
+    <div *ngIf="isExitModalOpen"
+        style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center;">
+        <div
+            style="background: white; padding: 30px; border-radius: 15px; width: 450px; text-align: center; box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);">
+            <!-- Confirmation Text -->
+            <h2 style="margin-bottom: 10px; font-size: 20px; font-weight: bold;">Are you sure you want to exit?</h2>
+            <!-- Warning Text (optional) -->
+            <p style="font-size: 16px; margin-bottom: 20px;">{{ enableEdit ? 'Any unsaved changes will be lost.' :
+                'Entered details will be lost.'}}</p>
+            <!-- Buttons: Cancel and Confirm -->
+            <div style="display: flex; justify-content: space-around;">
+                <button
+                    style="padding: 12px; background: #E1E2EB; color: black; border: none; cursor: pointer; width: 45%; border-radius: 8px;"
+                    (click)="closeExitModal()">
+                    Cancel
+                </button>
+                <button
+                    style="padding: 12px; background: #800020; color: white; border: none; cursor: pointer; width: 45%; border-radius: 8px;"
+                    (click)="cancelForm()">
+                    Exit
+                </button>
+            </div>
+        </div>
+    </div>

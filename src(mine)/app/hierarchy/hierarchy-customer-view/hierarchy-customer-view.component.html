@@ -1,0 +1,63 @@
+<div class="container">
+  <app-alerts></app-alerts>
+  <button (click)="back()" class="back-btn mt-2">Back</button>
+  <div class="hierarchy-container">
+    <ng-template #recursiveCard let-item let-level="level">
+      <div class="hierarchy-card">
+        <div class="card-header">
+          <div class="card-title-row">
+            <span class="chevron" *ngIf="getChildren(item.id).length > 0" (click)="toggleExpand(item.id)"
+              [attr.title]="isExpanded(item.id) ? 'Collapse' : 'Expand'">
+              <i class="fas" [ngClass]="isExpanded(item.id) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+            </span>
+            <span class="card-title highlight-designation">{{ item.designation }}
+              <span class="escalation-time"><i class="fas fa-clock"></i> {{ item.escalationTime }}</span>
+            </span>
+          </div>
+          <div class="icons">
+            <button (click)="onEdit(item.id)" class="icon-button" title="Edit" [disabled]="!canEditSystemSettings">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button (click)="onDeleteClick(item.id)" class="icon-button" title="Delete"
+              [disabled]="!canDeleteSystemSettings">
+              <i class="fas fa-trash"></i>
+            </button>
+            <button (click)="onAdd(item.id, item.department)" class="icon-button" title="Add Child"
+              [disabled]="!canAddSystemSettings">
+              <i class="fas fa-plus"></i>
+            </button>
+          </div>
+        </div>
+        <div class="vertical-connector" *ngIf="getChildren(item.id).length > 0 && isExpanded(item.id)"></div>
+        <div class="children-container" *ngIf="getChildren(item.id).length > 0 && isExpanded(item.id)">
+          <div class="tree-row">
+            <ng-container *ngFor="let child of getChildren(item.id)">
+              <ng-container
+                *ngTemplateOutlet="recursiveCard; context: { $implicit: child, level: level + 1 }"></ng-container>
+            </ng-container>
+          </div>
+        </div>
+      </div>
+    </ng-template>
+    <div class="root-list">
+      <ng-container *ngFor="let root of getChildren(undefined)">
+        <ng-container *ngTemplateOutlet="recursiveCard; context: { $implicit: root, level: 0 }"></ng-container>
+      </ng-container>
+    </div>
+  </div>
+</div>
+
+<!-- [class.disabled]="(this.customerStatus === 'approved')" -->
+<!-- DELETE CONFIRMATION MODAL -->
+<div class="delete-modal-backdrop" *ngIf="showDeleteModal">
+  <div class="delete-modal">
+    <h3>Delete Item</h3>
+    <p>Are you sure you want to delete this item?<br>
+      <!-- <b>Only this item will be deleted; its children will be moved up one level.</b> -->
+    </p>
+    <div class="modal-buttons">
+      <button class="btn-cancel" (click)="closeDeleteModal()">Cancel</button>
+      <button class="btn-delete" (click)="deleteHierarchy(this.deleteId)">Delete</button>
+    </div>
+  </div>
+</div>

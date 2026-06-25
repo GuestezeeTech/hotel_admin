@@ -1,7 +1,25 @@
 <div class="main">
+    <app-alerts></app-alerts>
     <div class="centered-container">
         <div class="container mt-2">
-            <div class="card p-3 mb-1 settings-item" (click)="navigateToRestaurants()" *ngIf="this.customerType == 'Customer'">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <!-- User-Friendly Workflow Note -->
+                <div class="upsell-header-note">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Create and manage features to list your hotel's outlets and set up exclusive offers for each
+                        feature.</span>
+                </div>
+
+                <button class="add-upsell-btn" (click)="canAddFeatures ? openModal() : null"
+                    [disabled]="!canAddFeatures" [style.opacity]="canAddFeatures ? 1 : 0.6"
+                    [style.cursor]="canAddFeatures ? 'pointer' : 'not-allowed'">
+                    + Add New Upselling
+                </button>
+            </div>
+
+            <!-- Static Restaurant Card (acting as a basic shell) -->
+            <!-- <div class="card p-3 mb-1 settings-item" (click)="navigateToRestaurants()"
+                *ngIf="this.customerType == 'Customer'">
                 <div class="d-flex align-items-center justify-content-between">
                     <div class="d-flex align-items-center">
                         <i class="fa-solid fa-door-open me-3" style="font-size: 16px; color:#800020"></i>
@@ -12,7 +30,219 @@
                     </div>
                     <i class="bi bi-chevron-right"></i>
                 </div>
+            </div> -->
+
+            <!-- Dynamic Upselling Features List -->
+            <div *ngIf="upsellList && upsellList.length > 0 && this.customerType == 'Customer'" class="mt-1">
+                <!-- <div class="card p-3 mb-1 settings-item" *ngFor="let item of upsellList" (click)="navigateToUpsell(item)"> -->
+                <div class="card p-3 mb-1 settings-item" *ngFor="let item of upsellList">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <!-- Icon/Placeholder -->
+                            <div class="me-3 d-flex align-items-center justify-content-center"
+                                style="width: 40px; height: 40px; background: #f8f9fa; border-radius: 8px; border: 1px solid #eee;">
+                                <img *ngIf="item.icon" [src]="item.icon"
+                                    style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 4px;">
+                                <!-- <i *ngIf="!item.icon" class="fa-solid fa-door-open me-3" style="color: #800020; font-size: 16px;"></i> -->
+                                <i *ngIf="!item.icon" class="fa-solid fa-store" style="color: #800020;"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1 fw-bold">{{ item.name }}</h6>
+                                <p class="mb-0 fw-medium small text-muted text-truncate" style="max-width: 300px;">
+                                    {{ item.description || 'No description provided.' }}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-3">
+                            <!-- Edit/View Icon -->
+                            <i class="fa-solid fa-pen text-secondary" style="font-size: 15px;"
+                                (click)="(canEditFeatures || canReadFeatures) ? editUpsell(item) : null; $event.stopPropagation()"
+                                [style.opacity]="(canEditFeatures || canReadFeatures) ? 1 : 0.4"
+                                [style.cursor]="(canEditFeatures || canReadFeatures) ? 'pointer' : 'not-allowed'"
+                                [title]="canEditFeatures ? 'Edit Feature' : 'View Feature'"></i>
+                            <!-- Delete Icon -->
+                            <!-- <i class="fa-solid fa-trash-can text-secondary" style="font-size: 16px;"
+                                (click)="canDeleteFeatures ? deleteUpsell(item) : null; $event.stopPropagation()"
+                                [style.opacity]="canDeleteFeatures ? 1 : 0.4"
+                                [style.cursor]="canDeleteFeatures ? 'pointer' : 'not-allowed'"
+                                title="Delete Feature"></i> -->
+                            <i class="bi bi-chevron-right text-muted" (click)="navigateToUpsell(item)"
+                                style="cursor: pointer;"></i>
+                        </div>
+                    </div>
+                </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Custom Delete Confirmation Modal -->
+<div *ngIf="isDeleteModalOpen"
+    style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center; z-index: 1100;">
+    <div
+        style="background: white; padding: 30px; border-radius: 20px; width: 450px; max-width: 90%; box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.2);">
+
+        <h4 class="fw-bold mb-2" style="color: #800020; font-family: 'Urbanist', sans-serif;">Confirm Delete</h4>
+
+        <p class="mb-3" style="font-size: 16px !important; color: #333;">
+            Are you sure you want to delete <strong>{{ itemToDelete?.name }}</strong>?
+        </p>
+
+        <div class="d-flex justify-content-end gap-3">
+            <button class="btn px-4 py-2 text-white" (click)="confirmDelete()"
+                style="background-color: #800020; border-radius: 12px; font-weight: 600; font-size: 15px; min-width: 130px;">
+                {{ isLoading ? 'Deleting...' : 'Yes, Delete' }}
+            </button>
+            <button class="btn px-4 py-2" (click)="closeDeleteModal()"
+                style="background-color: #E2E2E2; color: #333; border-radius: 12px; font-weight: 600; font-size: 15px; min-width: 100px;">
+                Cancel
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Custom Modal -->
+<div *ngIf="isModalOpen"
+    style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center; z-index: 1050;">
+    <div #modalContainer
+        style="background: white; padding: 25px; border-radius: 12px; width: 500px; max-width: 90%; box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.2); max-height: 90vh; overflow-y: auto;">
+        <app-alerts id="modal-alert"></app-alerts>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h5 class="fw-bold mb-0" style="color: #1A1A1A;">{{ isModalViewOnly ? 'View' : (selectedUpsellId ? 'Edit' :
+                'Add New') }} Upselling</h5>
+            <button type="button" (click)="closeModal()"
+                style="background: none; border: none; font-size: 22px; line-height: 1; color: #666; cursor: pointer; padding: 0 4px;"
+                title="Close">&times;</button>
+        </div>
+
+        <!-- Name Field -->
+        <div class="mb-3">
+            <label class="form-label fw-semibold" style="font-size: 13px;">Name</label>
+            <select class="form-select shadow-none" [(ngModel)]="restaurantData.name" (change)="nameError = ''"
+                [disabled]="isModalViewOnly"
+                style="border-radius: 8px; color: #1a1a1a; background-color: #fff; border: 1px solid #ced4da;">
+                <option value="" disabled selected>Select a feature</option>
+                <option *ngFor="let feature of upsellingFeaturesList" [value]="feature">{{ feature }}</option>
+            </select>
+            <p *ngIf="submitted && nameError"
+                style="font-size: 12px; color: #dc3545; margin-bottom: 0; margin-top: 4px;">
+                {{ nameError }}
+            </p>
+        </div>
+        <!-- Description Field -->
+        <div class="mb-3">
+            <label class="form-label fw-semibold" style="font-size: 13px;">Description</label>
+            <textarea class="form-control shadow-none" rows="3" [(ngModel)]="restaurantData.description"
+                placeholder="Enter description" [readonly]="isModalViewOnly"
+                style="border-radius: 8px; color: #1a1a1a; background-color: #fff; border: 1px solid #ced4da;"></textarea>
+        </div>
+        <!-- ICON FIELD ROW -->
+        <div class="mb-3">
+            <label class="form-label fw-semibold" style="font-size: 13px;">Icon</label>
+            <div class="d-flex align-items-center justify-content-between px-3 py-2 border bg-white shadow-sm"
+                style="height: 55px; border-radius: 12px; border-color: #dee2eb !important;">
+
+                <div class="d-flex align-items-center">
+                    <!-- Orange Indicator Badge -->
+                    <span class="badge rounded-2 me-2 px-2 py-2"
+                        style="background-color: #800020; font-size: 10px; font-weight: 800; min-width: 50px;">ICON</span>
+                    <!-- Status/Placeholder Text -->
+                    <span class="text-secondary small fw-medium" style="font-family: 'Urbanist', sans-serif;">
+                        {{ iconPreview ? 'Uploaded' : 'Choose file...' }}
+                    </span>
+                </div>
+
+                <div class="d-flex align-items-center gap-3 pe-1">
+                    <!-- Trash and Eye icons appear only when a file is uploaded -->
+                    <i class="fa-solid fa-trash text-secondary" *ngIf="iconPreview && !isModalViewOnly"
+                        style="font-size: 16px; cursor: pointer;" (click)="$event.stopPropagation(); removeIcon()"
+                        title="Delete"></i>
+                    <i class="fa-solid fa-eye text-secondary" *ngIf="iconPreview"
+                        style="font-size: 16px; cursor: pointer;"
+                        (click)="$event.stopPropagation(); viewFile(iconPreview, true)" title="View"></i>
+                    <!-- Always visible upload icon, disabled when already uploaded or view-only -->
+                    <i class="fa-solid fa-cloud-arrow-up"
+                        [style.color]="(iconPreview || isModalViewOnly) ? '#cccccc' : '#800020'"
+                        [style.cursor]="(iconPreview || isModalViewOnly) ? 'not-allowed' : 'pointer'"
+                        [style.pointer-events]="(iconPreview || isModalViewOnly) ? 'none' : 'auto'"
+                        style="font-size: 18px;" (click)="!iconPreview && !isModalViewOnly && openLogofile()"></i>
+                </div>
+
+                <input type="file" #iconInput (change)="logoupload($event)" accept="image/*" hidden>
+            </div>
+            <p *ngIf="!iconPreview"
+                style="font-size: 12px; color: #666; font-style: italic; margin-bottom: 0; margin-top: 4px;">
+                Icon size should exactly be 150 x 150 pixels (Max Size 2MB | JPG, JPEG, PNG)
+            </p>
+
+
+            <!-- Inline Icon Preview -->
+            <div *ngIf="iconPreview && showInlineIconPreview" class="mt-3 text-center animate-fade-in position-relative"
+                style="border: 1px solid #eee; border-radius: 12px; padding: 10px; background: #fafafa;">
+                <button type="button" (click)="showInlineIconPreview = false"
+                    style="position: absolute; top: 5px; right: 8px; background: none; border: none; font-size: 18px; color: #666; cursor: pointer;"
+                    title="Close Preview">&times;</button>
+                <img [src]="iconPreview"
+                    style="max-width: 100%; max-height: 150px; border-radius: 8px; object-fit: contain;">
+            </div>
+        </div>
+
+        <!-- IMAGE FIELD ROW -->
+        <div class="mb-4">
+            <label class="form-label fw-semibold" style="font-size: 13px;">Image</label>
+            <div class="d-flex align-items-center justify-content-between px-3 py-2 border bg-white shadow-sm"
+                style="height: 55px; border-radius: 12px; border-color: #dee2eb !important;">
+
+                <div class="d-flex align-items-center">
+                    <span class="badge rounded-2 me-2 px-2 py-2"
+                        style="background-color: #800020; font-size: 10px; font-weight: 800; min-width: 50px;">IMAGE</span>
+                    <span class="text-secondary small fw-medium" style="font-family: 'Urbanist', sans-serif;">
+                        {{ imagePreview ? 'Uploaded' : 'Choose file...' }}
+                    </span>
+                </div>
+
+                <div class="d-flex align-items-center gap-3 pe-1">
+                    <i class="fa-solid fa-trash text-secondary" *ngIf="imagePreview && !isModalViewOnly"
+                        style="font-size: 16px; cursor: pointer;" (click)="$event.stopPropagation(); removeImage()"
+                        title="Delete"></i>
+                    <i class="fa-solid fa-eye text-secondary" *ngIf="imagePreview"
+                        style="font-size: 16px; cursor: pointer;"
+                        (click)="$event.stopPropagation(); viewFile(imagePreview)" title="View"></i>
+                    <i class="fa-solid fa-cloud-arrow-up"
+                        [style.color]="(imagePreview || isModalViewOnly) ? '#cccccc' : '#800020'"
+                        [style.cursor]="(imagePreview || isModalViewOnly) ? 'not-allowed' : 'pointer'"
+                        [style.pointer-events]="(imagePreview || isModalViewOnly) ? 'none' : 'auto'"
+                        style="font-size: 18px;" (click)="!imagePreview && !isModalViewOnly && openImagefile()"></i>
+                </div>
+
+                <input type="file" #imageInput (change)="imageupload($event)" accept="image/*" hidden>
+            </div>
+            <p *ngIf="!imagePreview"
+                style="font-size: 12px; color: #666; font-style: italic; margin-bottom: 0; margin-top: 4px;">
+                Image size should exactly be 1280 x 720 pixels (Max Size 2MB | JPG, JPEG, PNG)
+            </p>
+
+
+            <!--newly added for image preview close btn in modal Inline Image Preview -->
+            <div *ngIf="imagePreview && showInlineImagePreview"
+                class="mt-3 text-center animate-fade-in position-relative"
+                style="border: 1px solid #eee; border-radius: 12px; padding: 10px; background: #fafafa;">
+                <button type="button" (click)="showInlineImagePreview = false"
+                    style="position: absolute; top: 5px; right: 8px; background: none; border: none; font-size: 18px; color: #666; cursor: pointer;"
+                    title="Close Preview">&times;</button>
+                <img [src]="imagePreview"
+                    style="max-width: 100%; max-height: 250px; border-radius: 8px; object-fit: contain;">
+            </div>
+        </div>
+
+
+
+        <!-- Action Buttons -->
+        <div class="d-flex justify-content-end gap-2 mt-2">
+            <button class="btn btn-light px-4" (click)="closeModal()"
+                style="border-radius: 8px; font-weight: 500;">Cancel</button>
+            <button *ngIf="!isModalViewOnly" class="btn px-4 text-white" (click)="saveFeature()"
+                style="background-color: #800020; border-radius: 8px; font-weight: 500;">Save</button>
         </div>
     </div>
 </div>

@@ -9,6 +9,8 @@ import { CommonModule } from '@angular/common';
 import { LocalStorageService } from '../../auth-services/local-storage.service';
 import { FormsModule } from '@angular/forms';
 import { PermissionService, ModulePermission } from '../../services/permission.service';
+import { HotelEnrollmentTabviewService } from '../../hotel-enrollment-tabview/hotel-enrollment-tabview.service';
+
 
 @Component({
   selector: 'app-outlet-list',
@@ -32,35 +34,47 @@ export class OutletListComponent implements OnInit {
   totalPages: number = 0; // Total number of pages
   // Newly added for loader
   isLoading: boolean = false;
+  customerdata: any = null;
+
 
   constructor(private outletCreationService: OutletCreationService,
     private loaderService: LoaderService,
     private alertService: AlertsService,
     private router: Router,
     private localService: LocalStorageService,
-    private permissionService: PermissionService
+    private permissionService: PermissionService,
+    private hotelenrollmenttabviewService: HotelEnrollmentTabviewService
   ) { }
+
 
   ngOnInit(): void {
     this.member_id = this.localService.get('MemberId');
     // console.log('Member id:', this.member_id);
     if (this.member_id) {
       this.outletGetAll();
+      this.getCustomerById();
     }
   }
 
-  get canReadRestaurants(): boolean {
-    const permission = this.permissionService.getModulePermission('RESTAURANTS');
+
+  // get canReadRestaurants(): boolean {
+  get canReadOutlets(): boolean {
+    // const permission = this.permissionService.getModulePermission('RESTAURANTS');
+    const permission = this.permissionService.getModulePermission('OUTLETS');
     return permission?.has_read_permission ?? false;
   }
 
-  get canAddRestaurants(): boolean {
-    const permission = this.permissionService.getModulePermission('RESTAURANTS');
+  // get canAddRestaurants(): boolean {
+  get canAddOutlets(): boolean {
+    // const permission = this.permissionService.getModulePermission('RESTAURANTS');
+    const permission = this.permissionService.getModulePermission('OUTLETS');
     return permission?.has_add_permission ?? false;
   }
 
-  get canEditRestaurants(): boolean {
-    const permission = this.permissionService.getModulePermission('RESTAURANTS');
+  // get canEditRestaurants(): boolean {
+  get canEditOutlets(): boolean {
+    // const permission = this.permissionService.getModulePermission('RESTAURANTS');
+    const permission = this.permissionService.getModulePermission('OUTLETS');
     return permission?.has_edit_permission ?? false;
   }
 
@@ -80,7 +94,14 @@ export class OutletListComponent implements OnInit {
         this.loaderService.emitComplete();
         if (resp) {
           if (resp.success === 1 && resp.status_code === 200) {
-            this.outletdata = resp.result.data;
+            // this.outletdata = resp.result.data;
+            // Previously filtered to restaurant types only — now showing all outlet types
+            // this.outletdata = (resp.result.data || []).filter((outlet: any) => {
+            //   const type = (outlet.outlet_type || '').trim().toLowerCase();
+            //   // Only include if type is a restaurant variation OR if it's empty (legacy records)
+            //   return ['restaurant', 'restaruant', 'restaurants', ''].includes(type);
+            // });
+            this.outletdata = resp.result.data || [];
             // console.log('Outlets:', this.outletdata);
             this.totalOutlets = this.outletdata.length;
             // total pages calculated
@@ -140,15 +161,22 @@ export class OutletListComponent implements OnInit {
   }
 
   navigateToOutlet() {
-    this.router.navigate(['/create-outlet']);
+    this.router.navigate(['/outlet-creation'], 
+      // { queryParams: { outlet_type: 'Restaurant' } }
+    );
   }
 
   navigateById(id: number) {
-    this.router.navigate(['/view-outlet', id]);
+    this.router.navigate(['/outlet-creation', id], 
+      // { queryParams: { outlet_type: 'Restaurant' } }
+    );
   }
 
   viewOutlet(id: number) {
-    this.router.navigate(['/view-outlet', id], { state: { mode: 'view' } });
+    this.router.navigate(['/outlet-creation', id], 
+      { 
+        // queryParams: { outlet_type: 'Restaurant' }, 
+      state: { mode: 'view' } });
   }
 
   viewProducts(outlet_id: number) {
@@ -156,5 +184,33 @@ export class OutletListComponent implements OnInit {
     this.router.navigate(['/product-list', outlet_id]);
   }
 
+  // Returns true if the outlet_type is a restaurant variant (or legacy empty type)
+  isRestaurantType(outlet_type: string): boolean {
+    const type = (outlet_type || '').trim().toLowerCase();
+    return ['restaurant', 'restaruant', 'restaurants', ''].includes(type);
+  }
+
+  getCustomerById() {
+    let requestBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: {
+        find: {
+          customer_member_id: this.member_id
+        }
+      }
+    };
+    this.hotelenrollmenttabviewService.getLoginCustomerById(requestBody).subscribe(
+      (resp: any) => {
+        if (resp && resp.success === 1) {
+          this.customerdata = resp.result.data[0];
+        }
+      },
+      (err: any) => {
+        // Silent error for background data fetch
+      }
+    );
+  }
 
 }
+

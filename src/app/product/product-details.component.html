@@ -1,37 +1,40 @@
 <div class="main">
   <app-alerts></app-alerts>
-  <div [formGroup]="companyForm" class="company-details-form">
+  <div [formGroup]="companyForm" class="company-details-form" [class.empty-state]="newProduct && !allProductsData?.length">
     <!-- List of products section -->
     <div class="section" *ngIf="this.newProduct">
       <div class="add-btn-section">
         <button class="back-btn submit mr-2" (click)="navigateToList()">Back</button>
-        <button class="add-btn submit" (click)="canAddRestaurants ? addProduct() : null" [disabled]="!canAddRestaurants" [style.cursor]="canAddRestaurants ? 'pointer' : 'not-allowed'" [style.opacity]="canAddRestaurants ? 1 : 0.4">Add Menu</button>
+        <button class="add-btn submit" (click)="canAddOutlets ? addProduct() : null" [disabled]="!canAddOutlets"
+          [style.cursor]="canAddOutlets ? 'pointer' : 'not-allowed'" [style.opacity]="canAddOutlets ? 1 : 0.4">Add
+          Menu</button>
       </div>
       <div class="container mt-4">
         <!-- <app-alerts></app-alerts> -->
-        <div class="row" *ngIf="allProductsData?.length">
+        <div class="row" *ngIf="!allProductsData?.length">
+          <div class="text-center mt-2" style="font-size: 13px;">
+            No Menu available.
+          </div>
+        </div>
+        <div class="row" *ngIf="allProductsData?.length > 0">
           <div class="col-md-3 mb-4" *ngFor="let product of allProductsData; let i = index">
             <div class="card h-100 shadow-sm product-card">
               <div class="d-flex justify-content-between">
                 <div class="product-price">
-                  <span class="price sale-tag">₹{{ product.pricing?.raw?.price }}</span>
+                  <span class="price original-price">₹{{ product.pricing?.raw?.price }}</span>
+                  <span class="price sale-price">₹{{ product.pricing?.raw?.sale_price }}</span>
                 </div>
                 <div class="product-actions">
-                  <i class="fa fa-eye me-3 cursor-pointer view-icon" 
-                     (click)="canReadRestaurants ? viewProduct(product.id) : null"
-                     [style.opacity]="canReadRestaurants ? 1 : 0.4"
-                    [style.cursor]="canReadRestaurants ? 'pointer' : 'not-allowed'"
-                     title="View"></i>
+                  <i class="fa fa-eye me-3 cursor-pointer view-icon"
+                    (click)="canReadOutlets ? viewProduct(product.id) : null" [style.opacity]="canReadOutlets ? 1 : 0.4"
+                    [style.cursor]="canReadOutlets ? 'pointer' : 'not-allowed'" title="View"></i>
                   <i class="fa fa-edit me-3 cursor-pointer edit-icon"
-                     (click)="canEditRestaurants ? editProduct(product.id) : null"
-                    [style.opacity]="canEditRestaurants ? 1 : 0.4"
-                     [style.cursor]="canEditRestaurants ? 'pointer' : 'not-allowed'"
-                     title="Edit"></i>
+                    (click)="canEditOutlets ? editProduct(product.id) : null" [style.opacity]="canEditOutlets ? 1 : 0.4"
+                    [style.cursor]="canEditOutlets ? 'pointer' : 'not-allowed'" title="Edit"></i>
                   <i class="fa fa-trash cursor-pointer delete-icon"
-                     (click)="canDeleteRestaurants ? deleteProduct(product.id) : null"
-                    [style.opacity]="canDeleteRestaurants ? 1 : 0.4"
-                     [style.cursor]="canDeleteRestaurants ? 'pointer' : 'not-allowed'"
-                     title="Delete"></i>
+                    (click)="canDeleteOutlets ? deleteProduct(product.id) : null"
+                    [style.opacity]="canDeleteOutlets ? 1 : 0.4"
+                    [style.cursor]="canDeleteOutlets ? 'pointer' : 'not-allowed'" title="Delete"></i>
                 </div>
               </div>
               <div class="product-image mt-2">
@@ -80,8 +83,7 @@
               </button> -->
               <button class="upload-btn" (click)="!isViewMode && triggerFileInput()"
                 [class.disabled]="isUploading || allFilesUploaded() || isViewMode"
-                [style.cursor]="isViewMode ? 'not-allowed' : 'pointer'"
-                [disabled]="isViewMode">
+                [style.cursor]="isViewMode ? 'not-allowed' : 'pointer'" [disabled]="isViewMode">
                 <ng-container *ngIf="!isUploading">
                   {{getUploadButtonText()}}
                 </ng-container>
@@ -89,9 +91,9 @@
                   <i class="fa fa-spinner fa-spin"></i> Uploading...
                 </ng-container>
               </button>
-              <input type="file" #fileInput (change)="onFileUpload($event)" hidden [disabled]="isViewMode">
+              <input type="file" #fileInput (change)="onFileUpload($event)" accept="image/png, image/jpeg, image/jpg, image/pdf" hidden [disabled]="isViewMode">
             </div>
-            <p style=" font-size: 11px; color: #777777;">Maximum file size 2MB</p>
+            <p style=" font-size: 11px; color: #777777;">Maximum file size 2MB, Dimensions: 500 x 500px | (jpg, jpeg, png, pdf)</p>
           </div>
         </div>
         <div class="file-list">
@@ -101,7 +103,7 @@
                 Upload {{ file.name }} - {{ file.fileName || 'No file uploaded' }}
               </span>
               <p class="file-size" style=" font-size: 12px; color: #848484;">
-                Maximum File size • 2MB
+                Maximum File size • 2MB, Dimensions: 500 x 500px | (jpg, jpeg, png, pdf)
               </p>
             </div>
             <div class="file-actions">
@@ -111,16 +113,14 @@
               </i>
               <i class="fa fa-upload"
                 style="-webkit-text-fill-color: white; -webkit-text-stroke: 1px #883a01; font-size: 12px;"
-                (click)="!isViewMode && triggerFileInput1(fileInput)"
-                [style.opacity]="isViewMode ? 0.4 : 1"
+                (click)="!isViewMode && triggerFileInput1(fileInput)" [style.opacity]="isViewMode ? 0.4 : 1"
                 [style.cursor]="isViewMode ? 'not-allowed' : 'pointer'">
               </i>
               <!-- File Input (Hidden) -->
-              <input type="file" #fileInput (change)="onIndividualFileUpload($event, i)" hidden [disabled]="isViewMode">
+              <input type="file" #fileInput (change)="onIndividualFileUpload($event, i)" accept="image/png, image/jpeg, image/jpg, image/pdf" hidden [disabled]="isViewMode">
               <i class="fa fa-trash" [class.disabled]="!file.fileUrl || isViewMode"
                 style="-webkit-text-fill-color: white; -webkit-text-stroke: 1px #888888; font-size: 12px;"
-                (click)="!isViewMode && removeFile(i)"
-                [style.opacity]="isViewMode ? 0.4 : 1"
+                (click)="!isViewMode && removeFile(i)" [style.opacity]="isViewMode ? 0.4 : 1"
                 [style.cursor]="isViewMode ? 'not-allowed' : 'pointer'"></i>
               <!-- <i class="fa fa-upload" style="-webkit-text-fill-color: white; -webkit-text-stroke: 1px #883a01; font-size: 10px;"></i> -->
             </div>
@@ -138,19 +138,40 @@
     <section class="section products" *ngIf="!this.newProduct">
       <div style="display: flex;justify-content: space-between;">
         <h2 style="font-size: 16px;">{{ isViewMode ? 'VIEW MENU DETAILS' : 'MENU DETAILS' }}</h2>
-        <button class="submit fw-semibold" (click)="opencate()" [disabled]="isViewMode" [style.cursor]="isViewMode ? 'not-allowed' : 'pointer'" [style.opacity]="isViewMode ? 0.4 : 1">Add Category</button>
+        <button class="submit fw-semibold" (click)="opencate()" [disabled]="isViewMode"
+          [style.cursor]="isViewMode ? 'not-allowed' : 'pointer'" [style.opacity]="isViewMode ? 0.4 : 1">Add
+          Category</button>
       </div>
       <div class="form-row">
         <div class="form-group" [formGroup]="categoryForm">
           <label style="font-size: 15px;">Category <span class="required">*</span></label>
-          <select class="form-control category-dropdown" formControlName="selectedCategory"
-            (change)="onCategoryChange($event)" [disabled]="isViewMode || (!isEditMode && !canAddRestaurants) || (isEditMode && !canEditRestaurants)">
-            <option value="" disabled selected>Select Category</option>
-            <option *ngFor="let category of categories" [ngValue]="category">
-              {{ category.name }}
-            </option>
-            <option [ngValue]="'othercat'">Other Category</option>
-          </select>
+          <div class="dropdown custom-dropdown w-100" [class.disabled]="isViewMode || (!isEditMode && !canAddOutlets) || (isEditMode && !canEditOutlets)">
+            <button class="form-control text-start d-flex justify-content-between align-items-center" 
+              type="button" 
+              data-bs-toggle="dropdown" 
+              aria-expanded="false"
+              style="background-color: white; font-size: 14px; color: #333; box-shadow: none;"
+              [disabled]="isViewMode || (!isEditMode && !canAddOutlets) || (isEditMode && !canEditOutlets)">
+              <span class="text-truncate">{{ categoryForm.get('selectedCategory')?.value?.name || (categoryForm.get('selectedCategory')?.value === 'othercat' ? 'Other Category' : 'Select Category') }}</span>
+              <i class="fa fa-angle-down ms-2" style="font-size: 14px;"></i>
+            </button>
+            <ul class="dropdown-menu w-100 p-0 shadow-sm" style="max-height: 250px; overflow-y: auto; background-color: #ffffff; border: 1px solid #ccc; border-radius: 4px;">
+              <li *ngFor="let category of categories">
+                <div class="dropdown-item d-flex justify-content-between align-items-center custom-option" (click)="selectCategory(category)">
+                  <span class="text-truncate" style="flex: 1;" [title]="category.name">{{ category.name }}</span>
+                  <div class="action-icons ms-2" *ngIf="!isViewMode">
+                    <i class="fa fa-edit me-3 edit-cat-icon" style="color: #883a01;" (click)="editCategory(category, $event)" title="Edit"></i>
+                    <i class="fa fa-trash delete-cat-icon" style="color: #883a01;" (click)="deleteCategory(category, $event)" title="Delete"></i>
+                  </div>
+                </div>
+              </li>
+              <li>
+                <div class="dropdown-item custom-option" (click)="selectCategory('othercat')">
+                  Other Category
+                </div>
+              </li>
+            </ul>
+          </div>
           <!-- <div class="required"
             *ngIf="categoryForm.get('selectedCategory')?.touched && categoryForm.get('selectedCategory')?.invalid">
             Category is required
@@ -163,9 +184,10 @@
           </div>
         </div>
         <div class="form-group">
-          <label style="font-size: 15px;">Item <span class="required">*</span>
+          <label style="font-size: 15px;">Item Name <span class="required">*</span>
           </label>
-          <input type="text" formControlName="name" placeholder="Machine" class="custom-input" [disabled]="isViewMode || (!isEditMode && !canAddRestaurants) || (isEditMode && !canEditRestaurants)" />
+          <input type="text" formControlName="name" placeholder="Enter item name" class="custom-input"
+            [disabled]="isViewMode || (!isEditMode && !canAddOutlets) || (isEditMode && !canEditOutlets)" />
           <!--  <div class="required" *ngIf="companyForm.get('name')?.touched && companyForm.get('name')?.invalid">
              Item name is required
            </div>  -->
@@ -184,8 +206,9 @@
         <div class="form-group">
           <label style="font-size: 15px;">Price <span class="required">*</span>
           </label>
-          <input type="text" formControlName="price" placeholder="400" class="custom-input"
-            (keypress)="allowOnlyNumbers($event)" (input)="0" (paste)="allowOnlyNumbers($event)" [disabled]="isViewMode || (!isEditMode && !canAddRestaurants) || (isEditMode && !canEditRestaurants)" />
+          <input type="text" formControlName="price" placeholder="Enter price" class="custom-input"
+            (keypress)="allowOnlyNumbers($event)" (input)="0" (paste)="allowOnlyNumbers($event)"
+            [disabled]="isViewMode || (!isEditMode && !canAddOutlets) || (isEditMode && !canEditOutlets)" />
           <!-- <div class="required" *ngIf="companyForm.get('price')?.touched && companyForm.get('price')?.invalid">
             Price is required
           </div> -->
@@ -196,8 +219,9 @@
         <div class="form-group">
           <label style="font-size: 15px;">Offer Price <span class="required">*</span>
           </label>
-          <input type="text" formControlName="offer_price" placeholder="200" class="custom-input"
-            (keypress)="allowOnlyNumbers($event)" (input)="0" (paste)="allowOnlyNumbers($event)" [disabled]="isViewMode || (!isEditMode && !canAddRestaurants) || (isEditMode && !canEditRestaurants)" />
+          <input type="text" formControlName="offer_price" placeholder="Enter offer price" class="custom-input"
+            (keypress)="allowOnlyNumbers($event)" (input)="0" (paste)="allowOnlyNumbers($event)"
+            [disabled]="isViewMode || (!isEditMode && !canAddOutlets) || (isEditMode && !canEditOutlets)" />
           <!-- <div class="required"
             *ngIf="companyForm.get('offer_price')?.touched && companyForm.get('offer_price')?.invalid">
             Offer Price is required
@@ -212,7 +236,8 @@
       <div class="form-group">
         <label style="font-size: 15px;">Description
         </label>
-        <textarea rows="5" formControlName="description" class="custom-input" [disabled]="isViewMode || (!isEditMode && !canAddRestaurants) || (isEditMode && !canEditRestaurants)"></textarea>
+        <textarea rows="5" formControlName="description" placeholder="Enter description" class="custom-input"
+          [disabled]="isViewMode || (!isEditMode && !canAddOutlets) || (isEditMode && !canEditOutlets)"></textarea>
       </div>
     </section>
     <!-- Product Availability -->
@@ -221,8 +246,10 @@
       <div style="display: flex;align-items: center">
         <span class="label-text">Available</span>
         <label class="switch mb-0">
-          <input type="checkbox" [checked]="isAvailable" (change)="toggleAvailability($event)" [disabled]="isViewMode || (!isEditMode && !canAddRestaurants) || (isEditMode && !canEditRestaurants)" />
-          <span class="slider round" [class.disabled-slider]="isViewMode || (!isEditMode && !canAddRestaurants) || (isEditMode && !canEditRestaurants)"></span>
+          <input type="checkbox" [checked]="isAvailable" (change)="toggleAvailability($event)"
+            [disabled]="isViewMode || (!isEditMode && !canAddOutlets) || (isEditMode && !canEditOutlets)" />
+          <span class="slider round"
+            [class.disabled-slider]="isViewMode || (!isEditMode && !canAddOutlets) || (isEditMode && !canEditOutlets)"></span>
         </label>
       </div>
     </section>
@@ -233,14 +260,16 @@
           <h2 style="font-size: 16px;text-align: left;">Category :</h2>
         </div>
         <p style="font-size: 15px;text-align: left;">Enter Category <span class="required fw-semibold">*</span></p>
-        <input type="text" formControlName="name" placeholder="Category" class="custom-input1" [disabled]="isViewMode" />
+        <input type="text" formControlName="name" placeholder="Enter category name" class="custom-input1"
+          [disabled]="isViewMode" />
         <div class="required"
           *ngIf="categoryForm.get('name')?.touched && categoryForm.get('name')?.hasError('required')">
           Category is required
         </div>
         <div class="form-actions category-btn-actions">
           <button type="button" class="cancel1" (click)="closeModal1()">Cancel</button>
-          <button type="button" class="submit1" (click)="createcat()" [disabled]="isViewMode" [style.cursor]="isViewMode ? 'not-allowed' : 'pointer'" [style.opacity]="isViewMode ? 0.4 : 1">Save</button>
+          <button type="button" class="submit1" (click)="createcat()" [disabled]="isViewMode"
+            [style.cursor]="isViewMode ? 'not-allowed' : 'pointer'" [style.opacity]="isViewMode ? 0.4 : 1">Save</button>
         </div>
       </div>
     </div>
@@ -249,7 +278,10 @@
       <button type="button" class="cancel" (click)="openExitModal()">{{ isViewMode ? 'Close' : 'Cancel' }}</button>
       <!-- <button type="submit" class="submit" (click)="onSubmit()"
         [disabled]="!companyForm.valid || !categoryForm.valid ">Save</button> -->
-      <button type="submit" class="submit" *ngIf="!isViewMode" (click)="onSubmit()" [disabled]="(!isEditMode && !canAddRestaurants) || (isEditMode && !canEditRestaurants)" [style.cursor]="(!isEditMode && !canAddRestaurants) || (isEditMode && !canEditRestaurants) ? 'not-allowed' : 'pointer'" [style.opacity]="(!isEditMode && !canAddRestaurants) || (isEditMode && !canEditRestaurants) ? 0.6 : 1">Save</button>
+      <button type="submit" class="submit" *ngIf="!isViewMode" (click)="onSubmit()"
+        [disabled]="(!isEditMode && !canAddOutlets) || (isEditMode && !canEditOutlets)"
+        [style.cursor]="(!isEditMode && !canAddOutlets) || (isEditMode && !canEditOutlets) ? 'not-allowed' : 'pointer'"
+        [style.opacity]="(!isEditMode && !canAddOutlets) || (isEditMode && !canEditOutlets) ? 0.6 : 1">Save</button>
     </div>
   </div>
 </div>
@@ -269,6 +301,27 @@
       <button style="padding: 12px; background: #800020; color: white; border: none; cursor: pointer;
                        width: 45%; border-radius: 8px;" (click)="confirmExit()">
         Exit
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Category Delete Confirmation Modal -->
+<div *ngIf="isDeleteCategoryModalOpen" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+           background: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center; z-index: 10000;">
+  <div style="background: white; padding: 30px; border-radius: 15px; width: 450px; text-align: center;
+              box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);">
+    <h2 style="margin-bottom: 10px; font-size: 20px; font-weight: bold;">
+      Are you sure you want to delete category '{{categoryToDelete?.name}}'?
+    </h2>
+    <div style="display: flex; justify-content: space-around; margin-top: 25px;">
+      <button style="padding: 12px; background: #E1E2EB; color: black; border: none; cursor: pointer;
+                       width: 45%; border-radius: 8px;" (click)="closeDeleteCategoryModal()">
+        Cancel
+      </button>
+      <button style="padding: 12px; background: #800020; color: white; border: none; cursor: pointer;
+                       width: 45%; border-radius: 8px;" (click)="confirmDeleteCategory()">
+        Delete
       </button>
     </div>
   </div>

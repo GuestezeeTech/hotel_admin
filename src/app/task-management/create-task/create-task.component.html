@@ -30,7 +30,8 @@
               </select>
               <span *ngIf="selectedGuest" class="clear-guest" (click)="clearGuest()">✕</span>
             </div>
-            <small class="text-muted guest-message" style="font-size: 12px; display: block; min-height: 16px;">{{ guestMessage }}</small>
+            <small class="text-muted guest-message" style="font-size: 12px; display: block; min-height: 16px;">{{
+              guestMessage }}</small>
           </div>
           <div class="col-md-4 form-group">
             <label class="fw-semibold" style="font-size: 14px">Category<span class="text-danger">*</span></label>
@@ -81,19 +82,18 @@
           <div class="col-md-4 form-group" *ngIf="service_name?.quantity === true">
             <label class="fw-semibold" style="font-size: 14px; display: block; margin-bottom: 4px;">
               Quantity
-              <span *ngIf="service_name?.minimum_quantity || service_name?.maximum_quantity" class="text-muted" style="font-size: 12px;">
+              <span *ngIf="service_name?.minimum_quantity || service_name?.maximum_quantity" class="text-muted"
+                style="font-size: 12px;">
                 (Min: {{ service_name?.minimum_quantity || 0 }}, Max: {{ service_name?.maximum_quantity || '∞' }})
               </span>
             </label>
             <div class="service-qty-control">
-              <button type="button" class="service-qty-btn" 
-                (click)="decreaseServiceQuantity()"
+              <button type="button" class="service-qty-btn" (click)="decreaseServiceQuantity()"
                 [disabled]="serviceQuantity <= (service_name?.minimum_quantity || 0)">
                 −
               </button>
               <span class="service-qty-value">{{ serviceQuantity }}</span>
-              <button type="button" class="service-qty-btn"
-                (click)="increaseServiceQuantity()"
+              <button type="button" class="service-qty-btn" (click)="increaseServiceQuantity()"
                 [disabled]="service_name?.maximum_quantity && serviceQuantity >= service_name.maximum_quantity">
                 +
               </button>
@@ -118,7 +118,7 @@
               <div class="outlet-card" *ngFor="let outlet of menuOutlets" (click)="selectOutlet(outlet)"
                 [class.selected]="selectedOutlet?.id === outlet.id">
                 <div class="card-image-wrapper">
-                  <img [src]="outlet.takePhoto || fallbackOutletImage" alt="Outlet" />
+                  <img [src]="outlet.takephoto || fallbackOutletImage" alt="Outlet" />
                 </div>
                 <div class="outlet-name">{{ outlet.name }}</div>
               </div>
@@ -150,8 +150,9 @@
             <!-- SEARCH BAR -->
             <div class="product-search-wrapper mb-3" *ngIf="!loadingProducts">
               <input type="text" class="form-control shadow-none product-search-input" name="productSearchText"
-                [disabled]="!products.length" [placeholder]="products.length ? 'Search product name...' : 'No products to search'" [(ngModel)]="productSearchText"
-                (input)="onProductSearch()" />
+                [disabled]="!products.length"
+                [placeholder]="products.length ? 'Search product name...' : 'No products to search'"
+                [(ngModel)]="productSearchText" (input)="onProductSearch()" />
             </div>
             <div class="product-grid mt-2" *ngIf="!loadingProducts">
               <div class="product-card" *ngFor="let product of paginatedProducts">
@@ -238,7 +239,9 @@
               </div>
               <span *ngFor="let staff of staves" class="px-2 py-1 rounded" style="font-size: 13px"
                 (click)="selectStaff(staff)" [ngStyle]="getCompleteStaffStyle(staff)">
-                {{ staff.full_name }}
+                <!-- {{ staff.full_name }} -->
+                <!-- Newly added for task allocation purpose -->
+                {{ staff.id == selfStaffId ? 'Self Assign': staff.full_name}}
               </span>
             </div>
             <div class="invalid-feedback d-block" *ngIf="validateForm && (!isStaffSelected || !selectedStaff)">
@@ -269,7 +272,8 @@
 <div *ngIf="isClearMenuModalOpen" class="custom-modal-backdrop">
   <div class="custom-modal">
     <h2>Change Restaurant?</h2>
-    <p>You have already selected menu items from another restaurant. Changing the restaurant will remove all selected items. Do you want to continue?</p>
+    <p>You have already selected menu items from another restaurant. Changing the restaurant will remove all selected
+      items. Do you want to continue?</p>
     <div class="modal-buttons">
       <button class="btn-cancel" (click)="closeClearMenuModal()">Cancel</button>
       <button class="btn-confirm" (click)="confirmChangeRestaurant()">Yes, Continue</button>

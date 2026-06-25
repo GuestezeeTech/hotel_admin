@@ -13,6 +13,7 @@ import html2pdf from 'html2pdf.js';
 import { DOMAIN_NAME, USER_ID } from '../app.config';
 import { FormsModule } from '@angular/forms';
 import { HostListener } from '@angular/core';
+import { LoaderService } from '../shared/loader/loader.service';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -23,6 +24,8 @@ import { HostListener } from '@angular/core';
 })
 
 export class AdminDashboardComponent implements OnInit {
+  pendingRequests: number = 0;
+
   constructor(
     private route: ActivatedRoute,
     private alerts: AlertsService,
@@ -31,7 +34,15 @@ export class AdminDashboardComponent implements OnInit {
     private bookingService: BookingsService,
     private routerUrl: Router,
     private eRef: ElementRef,
-    private hotellistService: HotelListService) { }
+    private hotellistService: HotelListService,
+    private loaderService: LoaderService) { }
+
+  decrementPendingRequests() {
+    this.pendingRequests--;
+    if (this.pendingRequests <= 0) {
+      this.loaderService.emitComplete();
+    }
+  }
 
   summaryCards = [
     { label: 'Guest Logged', count: '087' },
@@ -115,6 +126,7 @@ export class AdminDashboardComponent implements OnInit {
     // this.memberId = this.localStorageService.get('MemberId');
     // console.log('Member ID:', this.localStorageService.get('UserId'));
     const hotelId = Number(this.localStorageService.get('UserId'));
+    this.loaderService.emitLoading();
     try {
       // Newly added for getting member id for customer type
       // const customer = await this.getCustomerById(hotelId);
@@ -126,16 +138,18 @@ export class AdminDashboardComponent implements OnInit {
       }
       // End of newly added for getting member id for customer type
       // this.getAllAsapTask();
+      this.pendingRequests = 3;
       this.guestActivity(this.selectedYear, this.selectedReviewYear);
       this.getAllBookings();
+      this.selectButton('asap', false);
     } catch (err) {
       console.error('Error fetching customer:', err);
+      this.loaderService.emitComplete();
     }
     // this.getCustomerById(hotelId)
     // Load chart for default year
     // this.guestActivity(this.selectedYear, this.selectedReviewYear);
     // this.createGuestUsageChart();
-    this.selectButton('asap');
     // this.getAllBookings();
     const currentYear = 2026;
     for (let year = currentYear; year <= 3026; year++) {
@@ -188,6 +202,8 @@ export class AdminDashboardComponent implements OnInit {
     // console.log('Selected Year:', this.selectedYear);
     this.isUsageDropdownOpen = false; // close dropdown
     // Reload chart for selected year
+    this.loaderService.emitLoading();
+    this.pendingRequests = 1;
     this.guestActivity(this.selectedYear, this.selectedReviewYear);
   }
 
@@ -198,6 +214,8 @@ export class AdminDashboardComponent implements OnInit {
   setReviewYear(year: number) {
     this.selectedReviewYear = year;
     this.isReviewDropdownOpen = false;
+    this.loaderService.emitLoading();
+    this.pendingRequests = 1;
     this.guestActivity(this.selectedYear, this.selectedReviewYear);
   }
 
@@ -274,15 +292,15 @@ export class AdminDashboardComponent implements OnInit {
       user_id: USER_ID,
       extras: {
         find: { member_id: this.memberId },
-        pagination: true,
-        paginationDetails: {
-          limit: 0,
-          pageSize: 10
-        },
-        sorting: true,
-        sortingDetails: {
-          email: -1
-        }
+        /*  pagination: true,
+         paginationDetails: {
+           limit: 0,
+           pageSize: 10
+         },
+         sorting: true,
+         sortingDetails: {
+           email: -1
+         } */
       }
     };
     // console.log(requestBody);
@@ -318,6 +336,7 @@ export class AdminDashboardComponent implements OnInit {
           this.review = { reviews_count: 0, avg_rating: 0 };
         }
         this.getStarArray(this.review.avg_rating);
+        this.decrementPendingRequests();
       },
       err => {
         if (err.error?.statusCode === 403) {
@@ -328,6 +347,7 @@ export class AdminDashboardComponent implements OnInit {
         } else {
           this.alerts.error('Something bad happened. Please try again!', this.options);
         }
+        this.decrementPendingRequests();
       }
     );
   }
@@ -471,8 +491,12 @@ export class AdminDashboardComponent implements OnInit {
     }
   }
 
-  selectButton(button: string): void {
+  selectButton(button: string, showLoader: boolean = true): void {
     this.selectedButton = button; // Sets the selected button
+    if (showLoader) {
+      this.loaderService.emitLoading();
+      this.pendingRequests = 1;
+    }
     switch (this.selectedButton) {
       case 'asap':
         this.getAllAsapTask();
@@ -486,6 +510,9 @@ export class AdminDashboardComponent implements OnInit {
       default:
         // Optionally handle unknown button
         console.warn(`Unknown button selected: ${this.selectedButton}`);
+        if (showLoader) {
+          this.loaderService.emitComplete();
+        }
         break;
     }
   }
@@ -518,9 +545,11 @@ export class AdminDashboardComponent implements OnInit {
           this.tasks = response.result.data.slice(0, 10);
           // console.log('Tasks:', this.tasks);
         }
+        this.decrementPendingRequests();
       },
       error: (err) => {
         console.error('Task API Error:', err);
+        this.decrementPendingRequests();
       }
     });
 
@@ -547,9 +576,11 @@ export class AdminDashboardComponent implements OnInit {
           this.tasks = response.result.data.slice(0, 10);
           // console.log('Delivered Tasks:', this.tasks);
         }
+        this.decrementPendingRequests();
       },
       error: (err) => {
         console.error('Task API Error:', err);
+        this.decrementPendingRequests();
       }
     });
   }
@@ -575,9 +606,11 @@ export class AdminDashboardComponent implements OnInit {
           this.tasks = response.result.data.slice(0, 10);
           // console.log('Escalated Tasks:', this.tasks);
         }
+        this.decrementPendingRequests();
       },
       error: (err) => {
         console.error('Task API Error:', err);
+        this.decrementPendingRequests();
       }
     });
   }
@@ -590,11 +623,11 @@ export class AdminDashboardComponent implements OnInit {
         "find": {
           "member_id": this.memberId
         },
-        "pagination": true,
-        "paginationDetails": {
+        "pagination": false,
+        /* "paginationDetails": {
           "limit": 0,
           "pageSize": 10
-        },
+        }, */
         "sorting": true,
         "sortingDetails": {
           "email": -1
@@ -607,6 +640,7 @@ export class AdminDashboardComponent implements OnInit {
           this.allBookings = resp.result.data;
           // console.log(this.allBookings, this.allBookings.length,  "Bookings List")
         }
+        this.decrementPendingRequests();
       },
       (err: any) => {
         if (err.error.statusCode === 403) {
@@ -619,6 +653,7 @@ export class AdminDashboardComponent implements OnInit {
         else {
           this.alerts.error('Something bad happened. Please try again!', this.options);
         }
+        this.decrementPendingRequests();
       }
     )
   }
@@ -635,11 +670,11 @@ export class AdminDashboardComponent implements OnInit {
           "member_id": this.memberId,
           "room_no": roomNo
         },
-        "pagination": true,
-        "paginationDetails": {
+        "pagination": false,
+        /* "paginationDetails": {
           "limit": 0,
           "pageSize": 10
-        },
+        }, */
         "sorting": true,
         "sortingDetails": {
           "email": -1

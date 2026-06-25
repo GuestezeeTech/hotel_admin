@@ -25,6 +25,7 @@ export class MenuBarComponent implements OnInit {
   @Output() continue = new EventEmitter<void>();
 
   customerdata: any;
+  hotelLogoUrl: string | null = null;
   customerType: any;
   hotelId: number | null = null;
   navigationHotelId: number | null = null; // ID to use for Hotels menu navigation
@@ -35,6 +36,9 @@ export class MenuBarComponent implements OnInit {
   isUserAccessSubmenuOpen = false;
   isSettingsSubmenuOpen = false;
   roleModules: any;
+  // Newlya dded for submenu active
+  currentHotelTab: number = 0;
+  // End for submenu active
 
   constructor(
     private router: Router,
@@ -53,6 +57,34 @@ export class MenuBarComponent implements OnInit {
     // console.log('menu bar init');
     this.customerType = this.localService.get('CustomerType');
     this.hotelId = Number(this.localService.get('UserId'));
+    this.fetchHotelLogo();
+
+    this.sharedDataService.hotelLogo$.subscribe((logoUrl) => {
+      if (logoUrl !== undefined) {
+        this.hotelLogoUrl = logoUrl;
+      }
+    });
+    // Newlya dded for submenu active
+    this.sharedDataService.tab$.subscribe((tabIndex) => {
+      this.currentHotelTab = tabIndex;
+      const currentUrl = this.router.url;
+      if (currentUrl.includes('/edit-new-hotel') || currentUrl.includes('/hotel') || currentUrl.includes('cancellation') || currentUrl.includes('confirmation')) {
+        if (this.isApproved()) {
+          if (tabIndex === 0) {
+            this.activeMenu = 'hotel-0';
+          } else if (tabIndex === 1) {
+            this.activeMenu = 'hotel-1';
+          } else if (tabIndex === 2) {
+            this.activeMenu = 'hotel-4';
+          } else {
+            this.activeMenu = 'hotel';
+          }
+        } else {
+          this.activeMenu = 'hotel';
+        }
+      }
+    });
+    // End for submenu active
     // Initialize navigationHotelId with hotelId initially
     // this.navigationHotelId = this.hotelId;
     // Fetch any server data if required (keeps your original flow)
@@ -70,6 +102,7 @@ export class MenuBarComponent implements OnInit {
           else if (this.customerType === 'Customer' && this.customerdata?.customer_member_id) {
             this.navigationHotelId = this.hotelId;
           }
+          this.updateActiveMenu(this.router.url);
         });
       }
       // Ended for getting customer id for customer type
@@ -85,6 +118,7 @@ export class MenuBarComponent implements OnInit {
           this.refreshComponentLogic();
         }
       }
+      this.updateActiveMenu(this.router.url); //newly added
     });
 
     // console.log('Hotel Id:', this.hotelId);
@@ -116,6 +150,7 @@ export class MenuBarComponent implements OnInit {
     // Newly added for highlighting profile
     // Reset active menu to prevent stale highlights
     this.activeMenu = '';
+    // console.log('url', url);
     // End of newly added for highlighting profile
     // close all first (we'll open the relevant one)
     this.resetAllSubmenus();
@@ -135,10 +170,25 @@ export class MenuBarComponent implements OnInit {
     } else if (url.includes('/staff')) {
       this.activeMenu = 'staff';
       this.isUserAccessSubmenuOpen = true;
-
-    } else if (url.includes('/edit-new-hotel') || url.includes('/hotel')) {
-      // catches /edit-new-hotel/:id and generic hotel routes
-      this.activeMenu = 'hotel';
+      //  } else if (url.includes('/edit-new-hotel') || url.includes('/hotel')) {
+      //       // catches /edit-new-hotel/:id and generic hotel routes
+    } else if (url.includes('/edit-new-hotel') || url.includes('/hotel') || url.includes('cancellation') || url.includes('confirmation')) {
+      // catches /edit-new-hotel/:id, generic hotel routes, and payment status routes
+      // Newlya dded for submenu active
+      if (this.isApproved()) {
+        if (this.currentHotelTab === 0) {
+          this.activeMenu = 'hotel-0';
+        } else if (this.currentHotelTab === 1) {
+          this.activeMenu = 'hotel-1';
+        } else if (this.currentHotelTab === 2) {
+          this.activeMenu = 'hotel-4';
+        } else {
+          this.activeMenu = 'hotel';
+        }
+      } else {
+        this.activeMenu = 'hotel';
+      }
+      // End for submenu active
       this.isHotelSubmenuOpen = true;
 
     } else if (url.includes('/settings') || url.includes('/privacy-policy') || url.includes('/terms-conditions')) {
@@ -151,15 +201,15 @@ export class MenuBarComponent implements OnInit {
     } else if (url.includes('/payment-details')) {
       this.activeMenu = 'payment';
 
-    } else if (url.includes('/dashboard')) {
+    } else if (url.includes('/dashboard') || url.includes('report')) {
       this.activeMenu = 'dashboard';
 
     } else if (url.includes('/task-management')) {
       this.activeMenu = 'task';
 
-    } else if (url.includes('/outlet-list') || url.includes('/create-outlet')) {
-      this.activeMenu = 'restaurant';
-
+    }
+    else if (url.includes('/outlet-list') || url.includes('/outlet-creation') || url.includes('/create-outlet') || url.includes('/product') || url.includes('/add-product')) {
+      this.activeMenu = 'outlet';
     }
     // Newly added for dynamic department, service and hierarchy
     else if (url.includes('/department')) {
@@ -178,7 +228,7 @@ export class MenuBarComponent implements OnInit {
       this.activeMenu = 'hierarchy';
       this.isSettingsSubmenuOpen = true;
     }
-    else if (url.includes('/features') || url.includes('/restaurants-list')) {
+    else if (url.includes('/features') || url.includes('/restaurants-list') || url.includes('/features-list') || url.includes('/feature-creation')) {
       this.activeMenu = 'features';
     }
     // Newly added for highlighting profile
@@ -238,6 +288,7 @@ export class MenuBarComponent implements OnInit {
           this.loaderService.emitComplete();
           if (resp) {
             this.customerdata = resp.result.data[0];
+            this.localService.set('Status', this.customerdata?.status);
             resolve();
           } else {
             reject('No customer data found');
@@ -295,34 +346,48 @@ export class MenuBarComponent implements OnInit {
   // Ended for getting customer id for customer type
 
   async getCustomerType(): Promise<void> {
-    const isPayment = this.isPaymentRoute();
-    const requestBody = {
-      domain_name: DOMAIN_NAME,
-      user_id: USER_ID,
-      extras: {
-        find: isPayment
-          ? { id: this.hotelId }
-          : (this.customerType === 'Staff'
-            ? { staff_id: this.hotelId }
-            : { id: this.hotelId })
-      }
-    };
-    this.hotelenrollmentservice.getLoginCustomerById(requestBody).subscribe({
-      next: (resp: any) => {
-        this.loaderService.emitComplete();
-        if (resp) {
-          this.customerdata = resp.result.data[0];
-          this.customerType = this.customerdata.staff_employee_number == undefined ? 'Customer' : 'Staff';
-          this.localService.set('CustomerType', this.customerType);
+    return new Promise((resolve, reject) => { //newly added
+      const isPayment = this.isPaymentRoute();
+      const requestBody = {
+        domain_name: DOMAIN_NAME,
+        user_id: USER_ID,
+        extras: {
+          find: isPayment
+            ? { id: this.hotelId }
+            : (this.customerType === 'Staff'
+              ? { staff_id: this.hotelId }
+              : { id: this.hotelId })
         }
-      },
-      error: err => this.handleError(err)
+      };
+      this.hotelenrollmentservice.getLoginCustomerById(requestBody).subscribe({
+        next: (resp: any) => {
+          this.loaderService.emitComplete();
+          // if (resp) {
+          if (resp && resp.result && resp.result.data && resp.result.data.length > 0) { //newly added
+            this.customerdata = resp.result.data[0];
+            this.customerType = this.customerdata.staff_employee_number == undefined ? 'Customer' : 'Staff';
+            this.localService.set('CustomerType', this.customerType);
+            this.localService.set('Status', this.customerdata?.status);
+            resolve(); //newly added
+          } else {
+            resolve();//newly added
+          }
+        },
+        error: err => {
+          this.handleError(err);
+          reject(err);//newly added
+        }
+      });
     });
   }
 
   isPaymentRoute(): boolean {
     const url = this.router.url.toLowerCase();
     return url.includes('confirmation') || url.includes('cancellation');
+  }
+
+  isApproved(): boolean {
+    return this.customerdata?.status === 'approved' || this.localService.get('Status') === 'approved';
   }
 
   handleError(err: any) {
@@ -385,6 +450,10 @@ export class MenuBarComponent implements OnInit {
       this.isSettingsSubmenuOpen = false;
       // ensure highlight for Hotels (parent key)
       this.activeMenu = 'hotel';
+      const id = this.navigationHotelId ?? this.hotelId;
+      if (id != null) {
+        this.router.navigate(['/edit-new-hotel', id]);
+      }
     } else if (menu === 'User Access') {
       this.isUserAccessSubmenuOpen = !this.isUserAccessSubmenuOpen;
       this.isHotelSubmenuOpen = false;
@@ -504,6 +573,7 @@ export class MenuBarComponent implements OnInit {
   // Newly added for refreshing after payment
   refreshComponentLogic() {
     console.log('refreshComponentLogic called');
+    this.fetchHotelLogo();
     // console.log('Refreshing component logic...');
     // console.log('Role id:', this.localService.get('roleId'));
     this.getCustomerType().then(() => {
@@ -521,10 +591,63 @@ export class MenuBarComponent implements OnInit {
           if (this.customerdata?.role_id) {
             this.getRoleById(this.customerdata.role_id);
           }
+          this.updateActiveMenu(this.router.url);
         });
       }
     });
   }
 
 
+  fetchHotelLogo() {
+    const memberId = this.localService.get('MemberId');
+    if (!memberId) {
+      this.hotelLogoUrl = null;
+      return;
+    }
+    const requestBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: {
+        find: {
+          customer_member_id: memberId
+        },
+        pagination: false,
+        sorting: true,
+        sortingDetails: { id: -1 }
+      }
+    };
+    this.hotelenrollmentservice.getLoginCustomerById(requestBody).subscribe({
+      next: (response: any) => {
+        if (response?.success && response.result?.data?.length > 0) {
+          const customerData = response.result.data[0];
+          this.hotelLogoUrl = customerData.property_details?.hotel_logo || null;
+        } else {
+          this.hotelLogoUrl = null;
+        }
+      },
+      error: (err) => {
+        console.error('Error fetching customer logo in menu bar:', err);
+        this.hotelLogoUrl = null;
+      }
+    });
+  }
+
+  // Newly added for checking any permission
+  hasAnyPermission(moduleName: string): boolean {
+    if (!this.roleModules || !Array.isArray(this.roleModules)) {
+      return false;
+    }
+    const moduleObj = this.roleModules.find(
+      (m: any) => m.module_name === moduleName
+    );
+    if (!moduleObj || !moduleObj.permission) {
+      return false;
+    }
+    const p = moduleObj.permission;
+    return p.has_read_permission === true ||
+      p.has_add_permission === true ||
+      p.has_edit_permission === true ||
+      p.has_delete_permission === true;
+  }
+  // Ended for checking any permission
 }

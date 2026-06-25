@@ -965,7 +965,7 @@ export class PropertyDetails1Component {
                 this.customerProprtyDetailsForm.get('property_size')?.disable();
                 this.customerProprtyDetailsForm.get('number_of_rooms')?.disable();
               }
-              if (this.status === 'approved') {
+              if (this.status == 'approved') {
                 // Disable the form if not approved
                 this.customerProprtyDetailsForm.disable();
               }

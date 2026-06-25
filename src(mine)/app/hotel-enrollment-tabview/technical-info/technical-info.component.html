@@ -1,0 +1,305 @@
+<app-alerts></app-alerts>
+<!-- Only show Technical Info after parent Hotels loader is hidden (avoid two loaders at once) -->
+<div class="container mt-5" style="display: unset;background: white;" *ngIf="parentLoaderDone">
+  <!-- Tabs Navigation -->
+  <ul class="nav nav-tabs flex-wrap" id="myTabs" role="tablist">
+    <li class="nav-item Custom-tab-spacing" role="presentation">
+      <a class="nav-link" id="lock-tab" data-toggle="tab" href="#lock" role="tab" aria-controls="lock"
+        [class.active]="selectedTab === 'lock'" aria-selected="true" (click)="selectTab('lock');firstTabCount()">Lock
+        Integration</a>
+    </li>
+    <li class="nav-item" role="presentation">
+      <a class="nav-link Custom-tab-spacing" id="pos-tab" data-toggle="tab" href="#pos" role="tab" aria-controls="pos"
+        [class.active]="selectedTab === 'pos'" aria-selected="false" (click)="selectTab('pos');secondTabCount()">PMS</a>
+    </li>
+    <!-- <li class="nav-item" role="presentation">
+      <a class="nav-link Custom-tab-spacing" id="sms-tab" data-toggle="tab" href="#sms" role="tab" aria-controls="sms"
+        aria-selected="false" (click)="selectTab('SMS')">SMS</a>
+    </li> -->
+    <!-- <li class="nav-item" role="presentation">
+      <a class="nav-link Custom-tab-spacing" id="payment-tab" data-toggle="tab" href="#payment" role="tab"
+        aria-controls="payment" aria-selected="false" (click)="selectTab('Payment')">Payment</a>
+    </li> -->
+    <!-- <li class="nav-item" role="presentation">
+                <a class="nav-link Custom-tab-spacing" id="logistics-tab" data-toggle="tab" href="#logistics" role="tab" aria-controls="logistics" aria-selected="false"  (click)="selectTab('Logistics')">Logistics</a>
+              </li> -->
+    <li class="nav-item" role="presentation">
+      <a class="nav-link Custom-tab-spacing" id="other-tab" data-toggle="tab" href="#other" role="tab"
+        [class.active]="selectedTab === 'other'" aria-controls="other" aria-selected="false"
+        (click)="selectTab('other');thirdTabCount()">Other Integration</a>
+    </li>
+  </ul>
+  <!-- Loader: show until tab data is loaded (same pattern as service tab / department) -->
+  <div *ngIf="isLoading" class="technical-info-loader d-flex justify-content-center align-items-center"
+    style="min-height: 400px;">
+    <div class="text-center">
+      <div class="spinner-border" role="status" style="color: #800020; width: 3rem; height: 3rem;">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <p class="mt-3 text-muted">Loading technical info...</p>
+    </div>
+  </div>
+  <!-- Tab Content (visible when data is loaded) -->
+  <div class="tab-content" id="myTabContent" *ngIf="!isLoading">
+    <div class="tab-pane fade show active" id="lock" role="tabpanel" aria-labelledby="lock-tab">
+      <div class="mb-4">
+        <!-- Single-selection hint for lock and pos tabs -->
+        <div
+          *ngIf="(selectedTab === 'lock' || selectedTab === 'pos') && generalTechInfoData?.length > 1 && this.customerStatus !== 'approved'"
+          class="tech-single-select-hint">
+          <i class="fas fa-info-circle"></i>
+          &nbsp;<strong>Note:</strong> You can select only one {{ selectedTab === 'lock' ? 'Lock' : 'PMS' }}
+          integration. Turning on a new one will automatically turn off the previously selected one.
+          <br>
+          Enable and save to configure {{ selectedTab === 'lock' ? 'Lock' : 'PMS' }} settings.
+        </div>
+        <div class="container">
+          <div class="card" *ngFor="let data of generalTechInfoData; trackBy: trackById">
+            <div>
+              <div style="display: flex;justify-content: space-between;">
+                <!-- Card image with shimmer skeleton while loading -->
+                <div class="card-img-wrapper">
+                  <div class="img-skeleton-shimmer"></div>
+                  <img [src]="data.image" class="card-img-load" (load)="$any($event.target).classList.add('img-loaded')"
+                    (error)="$any($event.target).classList.add('img-loaded')" />
+                </div>
+                <!-- <button *ngIf="showEdit==true" type="button" class="btn btn-primary" data-toggle="modal"
+                  data-target="#techInfoUpdate" (click)="setTechInfo(data.type)"
+                  style="    background: #800020;border: none;height: 2rem;    padding: revert;">
+                  Edit Keys
+                </button> -->
+                <!-- <i class="fas fa-cog settings outlined-icon" style="font-size: 26px;    font-weight: 600;" type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#techInfoUpdate"    ></i> -->
+                <!-- Ecom Integration Settings (old behavior - commented out)
+                <i
+                  class="fas fa-cog ecom-settings-icon"
+                  [ngClass]="{'ecom-settings-disabled': !isEcomSettingsEnabled(data) || this.customerStatus === 'approved'}"
+                  [style.cursor]="isEcomSettingsEnabled(data) && this.customerStatus == 'approved' ? 'pointer' : 'not-allowed'"
+                  (click)="isEcomSettingsEnabled(data) && this.customerStatus == 'approved' ? onEcomSettingsClick(data) : null"
+                  [title]="isEcomSettingsEnabled(data) ? 'Ecom Integration Settings' : 'Enable & save to configure Ecom settings'">
+                </i>
+                -->
+                <!-- Ecom Integration Settings (new behavior) -->
+                <i class="fas fa-cog ecom-settings-icon"
+                  [ngClass]="{'ecom-settings-disabled': !isEcomSettingsEnabled(data) || this.customerStatus === 'approved'}"
+                  [style.cursor]="isEcomSettingsEnabled(data) && this.customerStatus !== 'approved' ? 'pointer' : 'not-allowed'"
+                  (click)="isEcomSettingsEnabled(data) && this.customerStatus !== 'approved' ? onEcomSettingsClick(data) : null"
+                  [title]="isEcomSettingsEnabled(data) ? 'Ecom Integration Settings' : 'Enable & save to configure Ecom settings'">
+                </i>
+                <!-- End of Ecom Integration Settings -->
+              </div>
+            </div>
+            <div style="display: flex;justify-content: space-between;margin-top: 5%;">
+              <h5>{{data.name}} </h5>
+              <!-- Newly added - paymentDone for disabling button -->
+              <!-- Newly added for disabling form on payment done to approving the customer -->
+              <label class="switch" *ngIf="isCustomerChoosen==false"
+                [title]="(data.type === 'lock' || data.type === 'pos') ? 'Only one integration can be enabled at a time' : ''">
+                <input type="checkbox" (change)="onCustomerToggleSwitch($event, data)" [checked]="data.is_enabled==true"
+                  [disabled]="this.customerStatus === 'approved'" />
+                <span class="slider round"></span>
+              </label>
+              <label class="switch" *ngIf="isCustomerChoosen==true"
+                [title]="(data.type === 'lock' || data.type === 'pos') ? 'Only one integration can be enabled at a time' : ''">
+                <input type="checkbox" (change)="onCustomerToggleSwitch($event, data)" [checked]="data.is_enabled==true"
+                  [disabled]="this.customerStatus === 'approved'" />
+                <span class="slider round"></span>
+              </label>
+            </div>
+          </div>
+          <!-- <div class="card">
+        <h5>Square</h5>
+        <i class="fas fa-cog settings"></i>
+        <div class="toggle-switch" onclick="toggleSwitch(this)"></div>
+    </div> -->
+        </div>
+        <!-- [ngClass]="{
+                'isSelected': technicalInfo.customer_id == hotelId ,
+                'isNotSelected disabled-card': (isTechnicalInfoExists && (technicalInfo.customer_id != hotelId || technicalInfo.customer_id == undefined))
+              }" -->
+        <!-- <div class="card p-3" >
+                <div class="d-flex mb-3">
+                    <div>
+                        <img src="../../../assets/images/guestezee/lock.png" alt="Lock Icon">
+                        <i class="fas fa-cog settings outlined-icon" style="font-size: 26px; font-weight: 600;"></i>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <h6 class="mb-0">{{technicalInfo.title || technicalInfo.name}}</h6>
+                    <label class="switch">
+                        <input type="checkbox" [checked]="getIsActive(technicalInfo)" (change)="chooseTechnicalInfo(technicalInfo)">
+                        <span class="slider round" ></span>
+                    </label>
+                </div>
+            </div> -->
+      </div>
+    </div>
+  </div>
+  <!-- new modal  -->
+  <div class="modal" id="techInfoUpdate">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <!-- Modal Header -->
+        <div class="modal-header">
+          <h4 class="modal-title">{{selectedTechInfo}}</h4>
+          <button type="button" class="btn-close" data-dismiss="modal" id="closetechInfo"></button>
+        </div>
+        <!-- Modal body -->
+        <div class="modal-body">
+          <app-edit-technical-info [infoData]="selectedTechInfo"></app-edit-technical-info>
+        </div>
+        <!-- Modal footer -->
+        <!-- <div class="modal-footer">
+        <button type="button" class="btn btn-danger" data-dismiss="modal">Close</button>
+      </div> -->
+      </div>
+    </div>
+  </div>
+  <!--  Newly added & commented for Payment modal -->
+  <!-- component template -->
+  <div class="modal fade" #paymentModal tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content" style="background-color:white;">
+        <div class="modal-header">
+          <h4 class="modal-title" style="color:#800020;">Payment Type</h4>
+          <button type="button" class="btn-close" (click)="closeModal()"></button>
+        </div>
+        <div class="modal-body">
+          <div *ngFor="let item of paymentoptions; let i = index" style="padding:2px;">
+            <input type="radio" [checked]="selectedIndex===i" (change)="selectOnlyOne(i)"> {{item}}
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-danger" style="color:#800020;background:white;border:2px solid #8b1633;"
+            (click)="closeModal()">Close</button>
+          <button type="button" class="btn btn-danger" style="color:white;background:#800020;"
+            (click)="executePayment()">Pay</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- <div class="modal" id="paymentType">
+    <div class="modal-dialog">
+      <div class="modal-content" style="background-color: white; z-index: 1050;">
+        <div class="modal-header">
+          <h4 class="modal-title" style="color: #800020;">Payment Type</h4>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div *ngFor="let item of paymentoptions; let i = index" style="padding: 2px;">
+            <input type="radio" [checked]="selectedIndex === i" (change)="selectOnlyOne(i)" style="color: black;"> {{
+            item }}
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-danger" data-bs-dismiss="modal"
+            style="color: #800020;background: white; border-radius: none;    border: 2px solid #8b1633;" (click)="closeModal()" >Close</button>
+          <button type="button" class="btn btn-danger" style="color: white;background: #800020; border-radius: none;"
+            (click)="executePayment()">Pay</button>
+        </div>
+      </div>
+    </div>
+  </div> -->
+</div>
+<!-- Newly added -->
+<div class="d-flex justify-content-end mt-3">
+  <button type="submit" class="cancel_bt" (click)="back()">Back</button>&nbsp;&nbsp;
+  <!-- <button type="submit" class="next_bt" *ngIf="((this.activeTab == 1 || this.activeTab == 2)  && !paymentDone)"
+    (click)="nextTabInfo()">Next Info</button> -->
+  <button type="submit" class="next_bt"
+    *ngIf="((this.activeTab == 1 || this.activeTab == 2)  && this.customerStatus !== 'approved')"
+    (click)="nextTabInfo()">Next Info</button>
+  <!-- <button type="submit" class="save_bt" data-toggle="modal" data-target="#paymentType" *ngIf="this.activeTab == 3 "
+    (click)="save()">Save &
+    Continue</button> -->
+  <button type="submit" class="save_bt" *ngIf="this.activeTab == 3 && this.customerStatus !== 'approved'"
+    (click)="save()">Save &
+    Continue</button>
+  <!-- <button *ngIf="isMemberid" type="submit" class="save_bt" (click)="save()" data-toggle="modal"
+    data-target="#paymentType">Save &
+    Continue</button> -->
+  <!-- <button *ngIf="!isMemberid" class="save_bt" (click)="next()">
+    Continue</button> -->
+</div>
+<!-- Ecom Integration Settings Modal -->
+<div class="modal ecom-integration-modal" #ecomIntegrationModal tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog ecom-modal-dialog">
+    <div class="modal-content ecom-modal-content">
+      <div class="modal-header ecom-modal-header">
+        <h4 class="modal-title ecom-modal-title">Ecom Integration Settings</h4>
+        <button type="button" class="ecom-header-close" (click)="closeEcomIntegrationModal()">&times;</button>
+      </div>
+      <div class="modal-body ecom-modal-body">
+        <div class="ecom-scrollable-content">
+          <div class="ecom-section">
+            <form [formGroup]="ecomIntegrationForm" class="ecom-form">
+              <div class="ecom-form-row">
+                <div class="ecom-form-group">
+                  <label class="ecom-label">Name</label>
+                  <input class="ecom-input-box" type="text" formControlName="name" />
+                </div>
+                <div class="ecom-form-group">
+                  <label class="ecom-label">Type</label>
+                  <input class="ecom-input-box" type="text" formControlName="type" />
+                </div>
+              </div>
+              <div class="ecom-form-row">
+                <div class="ecom-form-group">
+                  <label class="ecom-label">API Url</label>
+                  <input class="ecom-input-box" type="text" formControlName="api_url" />
+                </div>
+                <div class="ecom-form-group ecom-enable-group">
+                  <label class="ecom-label">Enable</label>&nbsp;&nbsp;
+                  <label class="ecom-switch">
+                    <input type="checkbox" [checked]="selectedEcomIntegrationData?.is_enabled === true" disabled>
+                    <span class="ecom-slider ecom-round"></span>
+                  </label>
+                </div>
+              </div>
+            </form>
+          </div>
+          <div class="ecom-section">
+            <form [formGroup]="ecomTechnicalInfoForm" class="ecom-form">
+              <div class="ecom-form-row ecom-add-field-row">
+                <div></div>
+                <button type="button" class="ecom-add-field-btn" (click)="addEcomField()">Add Field</button>
+              </div>
+              <div formArrayName="technicalInfo" class="ecom-technical-info-container">
+                <div *ngFor="let field of getEcomTechnicalInfoControls().controls; let i = index" [formGroupName]="i"
+                  class="ecom-technical-info-item">
+                  <div class="ecom-form-group">
+                    <label class="ecom-label">{{i + 1}}. Label</label>
+                    <input class="ecom-input-box" type="text" formControlName="key" placeholder="label name" />
+                  </div>
+                  <div class="ecom-form-group ecom-key-group">
+                    <label class="ecom-label">{{i + 1}}. Key Value</label>
+                    <input class="ecom-input-box" type="text" formControlName="value"
+                      placeholder="enter the key value" />
+                    <span class="ecom-error"
+                      *ngIf="field.get('value')?.hasError('requiredWhenKey') && field.get('value')?.touched">
+                      Value is required.
+                    </span>
+                    <!-- OLD: hid remove icon for Hotel_Code on ALL tabs -->
+                    <!-- <i class="fa-regular fa-square-minus ecom-remove-icon" (click)="removeEcomField(i)"></i> -->
+                    <!-- OLD: was checked by tab (selectedTab === 'pos') � now checked by integration name -->
+                    <!-- <i *ngIf="!(selectedTab === 'pos' && field.get('key')?.value?.trim()?.toLowerCase() === 'hotel_code')"
+                      class="fa-regular fa-square-minus ecom-remove-icon" (click)="removeEcomField(i)"
+                      title="Remove this attribute"></i> -->
+                    <!-- FIX: hide remove icon only for WIN HMS / Oracle AND key is Hotel_Code -->
+                    <i *ngIf="!(isHotelCodeIntegration() && field.get('key')?.value?.trim()?.toLowerCase() === 'hotel_code')"
+                      class="fa-regular fa-square-minus ecom-remove-icon" (click)="removeEcomField(i)"
+                      title="Remove this attribute"></i>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div class="ecom-modal-footer">
+          <button type="button" class="ecom-cancel-btn" (click)="closeEcomIntegrationModal()">Cancel</button>
+          <button type="button" class="ecom-save-btn" (click)="saveEcomIntegration()">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- End of Ecom Integration Settings Modal -->

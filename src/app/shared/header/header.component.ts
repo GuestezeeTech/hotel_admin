@@ -24,8 +24,10 @@ import { HotelListService } from '../../hotel-list/hotel-list.service';
 import { StaffListingService } from '../../user-access/staff-listing/staff-listing.service';
 import { StaffService } from '../../user-access/staff/staff.service';
 import { firstValueFrom } from 'rxjs';
+import { PermissionService } from '../../services/permission.service';
 declare var bootstrap: any;
 import { ElementRef, ViewChild, HostListener } from '@angular/core';
+import { ChangeDetectorRef } from '@angular/core';
 
 @Component({
   selector: 'app-header',
@@ -82,7 +84,9 @@ export class HeaderComponent implements OnInit {
     private taskManagementService: TaskManagementService,
     private pushService: PushService,
     private staffService: StaffService,
-    private hotelenrollmenttabviewService: HotelEnrollmentTabviewService
+    private hotelenrollmenttabviewService: HotelEnrollmentTabviewService,
+    private cd: ChangeDetectorRef,
+    public permissionService: PermissionService
   ) {
     this.currentRoute$ = new BehaviorSubject<string>(this.router.url);
   }
@@ -95,10 +99,21 @@ export class HeaderComponent implements OnInit {
     if (this.customerType && this.hotelId) {
       this.getCustomerById();
     }
+    //newly added - Query param listener for payment cancellation/confirmation route refresh
+    this.route.queryParams.subscribe(params => {
+      const customerIdFromUrl = params['customer_id'];
+      if (customerIdFromUrl) {
+        this.hotelId = Number(customerIdFromUrl);
+        if (this.router.url.includes('cancellation') || this.router.url.includes('confirmation')) {
+          this.refreshComponentLogic();
+        }
+      }
+    });
     this.profileService.getAdminProfileDetails(this.hotelId, this.customerType).subscribe(resp => {
       if (resp.success === 1 && resp.status_code === 200) {
         const data = resp.result.data[0];
-        const profileImage = data?.profile_image?.trim() || '../../assets/images/guestezee/profile.png';
+        // const profileImage = data?.profile_image?.trim() || '../../assets/images/guestezee/profile.png';
+        const profileImage = data?.profile_image?.trim() || 'https://images.ecbee.net/GuestEzee/Brand/ChatGPT_Image_Jun_19__2026__01_25_37_PM.webp';
         let profileName: string;
         if (this.customerType === 'Staff') {
           profileName = data?.full_name ? data?.full_name.trim() : data?.phone_number;
@@ -115,7 +130,8 @@ export class HeaderComponent implements OnInit {
       }
     });
     this.profileService.profileImage$.subscribe(imageUrl => {
-      this.profile_image = imageUrl || '../../assets/images/guestezee/profile.png';
+      // this.profile_image = imageUrl || '../../assets/images/guestezee/profile.png';
+      this.profile_image = imageUrl || 'https://images.ecbee.net/GuestEzee/Brand/ChatGPT_Image_Jun_19__2026__01_25_37_PM.webp';
     });
     this.profileService.profileName$.subscribe(name => {
       this.profile_name = name;
@@ -127,6 +143,8 @@ export class HeaderComponent implements OnInit {
         //console.log("Current Route Updated:", event.urlAfterRedirects);
       });
     this.activeMenu;
+    this.currentRoute$.next(this.router.url);//newly added
+    this.cd.detectChanges();// newly added
     // Newly added for payment
     // For tracking pay now button state & values
     const savedState = this.localService.get('payNowButtonState');
@@ -199,11 +217,16 @@ export class HeaderComponent implements OnInit {
   get activeMenu(): string {
     const currentRoute = this.currentRoute$.value;
     // console.log("Report", currentRoute.includes('report'));
-    if (currentRoute.includes('payment')) {
+    if (currentRoute.includes('report')) {
+      return (this.selectedMenu = "report");
+    }
+    else if (currentRoute.includes('payment')) {
       return (this.selectedMenu = "Payment");
     }
-    else if (currentRoute.includes('hotel')) {
-      return (this.selectedMenu = "Hotel");
+    //  else if (currentRoute.includes('hotel')) {
+    //   return (this.selectedMenu = "Hotel");
+    else if (currentRoute.includes('hotel') || currentRoute.includes('cancellation') || currentRoute.includes('confirmation')) {
+      return (this.selectedMenu = "Hotels");
     }
     else if (currentRoute.includes('role')) {
       return (this.selectedMenu = "Roles");
@@ -262,7 +285,7 @@ export class HeaderComponent implements OnInit {
     else if (currentRoute.includes('hierarchy')) {
       return (this.selectedMenu = "Hierarchy");
     }
-    else if (currentRoute.includes('features')) {
+    else if (currentRoute.includes('features') || currentRoute.includes('feature')) {
       return (this.selectedMenu = "Features");
     }
     else if (currentRoute.includes('task-management')) {
@@ -272,7 +295,8 @@ export class HeaderComponent implements OnInit {
       return (this.selectedMenu = "Outlets");
     }
     else {
-      return "set the name here";
+      // return "set the name here";
+      return this.selectedMenu;
     }
   }
 
@@ -285,68 +309,63 @@ export class HeaderComponent implements OnInit {
     try {
       const userId = Number(this.localService.get('UserId'));
       const customerType = this.localService.get('CustomerType');
-      // console.log('Logging out userId:', userId, 'customerType:', customerType);
-      if (!userId) return;
-      const currentToken = await this.pushService.getCurrentToken();
-      // console.log('Current FCM token to remove:', currentToken);
-      // Prepare Customer fetch body dynamically based on user type
-      const customerFindKey = customerType === 'Staff' ? 'staff_id' : 'id';
-      const customerFetchBody = {
-        domain_name: DOMAIN_NAME,
-        user_id: USER_ID,
-        extras: { find: { [customerFindKey]: userId } }
-      };
-      // Remove FCM token from Customer table
-      const customerResp: any = await this.hotellistService.getSignupAllCustomers(customerFetchBody).toPromise();
-      if (customerResp.success === 1 && customerResp.result.data.length > 0) {
-        const customer = customerResp.result.data[0];
-        // console.log('Fetched customer for FCM removal:', customer);
-        if (Array.isArray(customer.fcm_token)) {
-          customer.fcm_token = customer.fcm_token.filter((t: string) => t !== currentToken);
-          const updateBody = {
-            domain_name: DOMAIN_NAME,
-            user_id: USER_ID,
-            payload: { customer_update: { fcm_token: customer.fcm_token } },
-            extras: { find: { [customerFindKey]: userId } }
-          };
-          await this.hotelenrollmenttabviewService.updateCustomerFcm(updateBody).toPromise();
-          // console.log('FCM token removed for customer:', currentToken);
-        }
-      }
-      // Remove FCM token from Staff table only if user is Staff
-      if (customerType === 'Staff') {
-        const staffFetchBody = {
-          domain_name: DOMAIN_NAME,
-          user_id: USER_ID,
-          extras: { find: { id: userId } }
-        };
-        const staffResp: any = await this.taskManagementService.getAllStaves(staffFetchBody).toPromise();
-        if (staffResp.success === 1 && staffResp.result.data.length > 0) {
-          const staff = staffResp.result.data[0];
-          // console.log('Fetched staff for FCM removal:', staff);
-          if (Array.isArray(staff.fcm_token)) {
-            staff.fcm_token = staff.fcm_token.filter((t: string) => t !== currentToken);
-            const updateBody = {
+      if (userId) {
+        // Run FCM removal with a strict timeout (e.g. 1000ms) so it never blocks the logout
+        await Promise.race([
+          (async () => {
+            const currentToken = await this.pushService.getCurrentToken();
+            const customerFindKey = customerType === 'Staff' ? 'staff_id' : 'id';
+            const customerFetchBody = {
               domain_name: DOMAIN_NAME,
               user_id: USER_ID,
-              payload: { staff_updation: { fcm_token: staff.fcm_token } },
-              extras: { find: { id: userId } }
+              extras: { find: { [customerFindKey]: userId } }
             };
-            await this.staffService.updateStaff(updateBody).toPromise();
-            // console.log('FCM token removed for staff:', currentToken);
-          }
-          // Newly added is_available to false on staff logout
-          const availableUpdateBody = {
-            domain_name: DOMAIN_NAME,
-            user_id: USER_ID,
-            payload: { staff_updation: { is_available: false } },
-            extras: { find: { id: userId } }
-          };
-          await this.staffService.updateStaff(availableUpdateBody).toPromise();
-          // console.log('Staff is_available set to false on logout');
-        }
+            const customerResp: any = await this.hotellistService.getSignupAllCustomers(customerFetchBody).toPromise();
+            if (customerResp.success === 1 && customerResp.result.data.length > 0) {
+              const customer = customerResp.result.data[0];
+              if (Array.isArray(customer.fcm_token)) {
+                customer.fcm_token = customer.fcm_token.filter((t: string) => t !== currentToken);
+                const updateBody = {
+                  domain_name: DOMAIN_NAME,
+                  user_id: USER_ID,
+                  payload: { customer_update: { fcm_token: customer.fcm_token } },
+                  extras: { find: { [customerFindKey]: userId } }
+                };
+                await this.hotelenrollmenttabviewService.updateCustomerFcm(updateBody).toPromise();
+              }
+            }
+            if (customerType === 'Staff') {
+              const staffFetchBody = {
+                domain_name: DOMAIN_NAME,
+                user_id: USER_ID,
+                extras: { find: { id: userId } }
+              };
+              const staffResp: any = await this.taskManagementService.getAllStaves(staffFetchBody).toPromise();
+              if (staffResp.success === 1 && staffResp.result.data.length > 0) {
+                const staff = staffResp.result.data[0];
+                if (Array.isArray(staff.fcm_token)) {
+                  staff.fcm_token = staff.fcm_token.filter((t: string) => t !== currentToken);
+                  const updateBody = {
+                    domain_name: DOMAIN_NAME,
+                    user_id: USER_ID,
+                    payload: { staff_updation: { fcm_token: staff.fcm_token } },
+                    extras: { find: { id: userId } }
+                  };
+                  await this.staffService.updateStaff(updateBody).toPromise();
+                }
+                const availableUpdateBody = {
+                  domain_name: DOMAIN_NAME,
+                  user_id: USER_ID,
+                  payload: { staff_updation: { is_available: false } },
+                  extras: { find: { id: userId } }
+                };
+                await this.staffService.updateStaff(availableUpdateBody).toPromise();
+              }
+            }
+          })(),
+          new Promise<void>((resolve) => setTimeout(resolve, 1000))
+        ]);
       }
-      // await this.pushService.deleteCurrentToken();
     } catch (err) {
       console.error('Error removing FCM token on logout:', err);
     }
@@ -386,16 +405,14 @@ export class HeaderComponent implements OnInit {
     this.localService.remove('roleName');
     this.localService.remove('roleModules');
     this.localService.remove('outlet_id');
-    this.router.navigate([''], { skipLocationChange: false });
+    this.localService.remove('profile_name');
+    this.localService.remove('profile_image');
+    this.localService.remove('Name');
+    this.localService.remove('paymentDone');
+    this.localService.remove('lastValidUrl');
+    this.localService.set('loggedOut', 'true');
+    this.router.navigate([''], { skipLocationChange: false, replaceUrl: true });
     this.userAccessService.removeUserAccess();
-  
-    localStorage.clear();
-    sessionStorage.clear();
-      // this.router.navigate(['/login'], { replaceUrl: true });
-    // Replace your router.navigate line with this:
-    // window.location.replace('/'); 
-
-    
   }
 
   toggleLogout(event?: Event) {
@@ -460,6 +477,39 @@ export class HeaderComponent implements OnInit {
         }
       );
     });
+  }
+
+  // newly added
+  refreshComponentLogic() {
+    this.customerType = this.localService.get('CustomerType');
+    const hotelId = Number(this.localService.get('UserId'));
+    this.hotelId = hotelId;
+    if (hotelId) {
+      this.getCustomerById().then(() => {
+        if (this.customerdata) {
+          this.customerType = this.customerdata.staff_employee_number == undefined ? 'Customer' : 'Staff';
+          this.localService.set('CustomerType', this.customerType);
+          this.profileService.getAdminProfileDetails(hotelId, this.customerType).subscribe(resp => {
+            if (resp.success === 1 && resp.status_code === 200) {
+              const data = resp.result.data[0];
+              const profileImage = data?.profile_image?.trim() || 'https://images.ecbee.net/GuestEzee/Brand/ChatGPT_Image_Jun_19__2026__01_25_37_PM.webp';
+              let profileName: string;
+              if (this.customerType === 'Staff') {
+                profileName = data?.full_name ? data?.full_name.trim() : data?.phone_number;
+              } else {
+                profileName = (data?.first_name || data?.last_name)
+                  ? `${data.first_name || ''} ${data.last_name || ''}`.trim()
+                  : data?.phone_number;
+              }
+              this.profileService.updateProfileImage(profileImage);
+              this.profileService.updateProfileName(profileName);
+            }
+          });
+        }
+      }).catch(err => {
+        console.error('Error refreshing HeaderComponent details:', err);
+      });
+    }
   }
 
   // Newly added for payment

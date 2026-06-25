@@ -45,20 +45,34 @@
       <div class="mb-4">
         <!-- Single-selection hint for lock and pos tabs -->
         <div
-          *ngIf="(selectedTab === 'lock' || selectedTab === 'pos') && generalTechInfoData?.length > 1 && this.customerStatus !== 'approved'"
-          class="tech-single-select-hint">
-          <i class="fas fa-info-circle"></i>
-          &nbsp;<strong>Note:</strong> You can select only one {{ selectedTab === 'lock' ? 'Lock' : 'PMS' }}
-          integration. Turning on a new one will automatically turn off the previously selected one.
+          *ngIf="(selectedTab === 'lock' || selectedTab === 'pos') && generalTechInfoData?.length > 1 && this.customerStatus != 'approved'"
+          class="tech-single-select-hint d-flex align-items-start">
+          <i class="fas fa-info-circle mt-1 me-2"></i>
+          <div class="">
+            <strong>Note:</strong><br>
+            1) You can select only one {{ selectedTab === 'lock' ? 'Lock' : 'PMS' }}
+            integration. Turning on a new one will automatically turn off the previously selected one.
+            <br>
+            <!-- 2) Enable and save to configure {{ selectedTab === 'lock' ? 'Lock' : 'PMS' }} settings. -->
+            2) Enable and save to {{ selectedTab === 'lock' ? 'view' : 'configure' }} {{ selectedTab === 'lock' ? 'Lock'
+            :
+            'PMS' }} settings.
+            <ng-container *ngIf="selectedTab === 'pos'">
+              <br>
+              3) Make sure to add your respective Hotel Code in the settings once the PMS is enabled & saved.
+            </ng-container>
+          </div>
         </div>
-        <div class="container">
+
+        <div class="tech-cards-container" *ngIf="generalTechInfoData && generalTechInfoData.length > 0">
           <div class="card" *ngFor="let data of generalTechInfoData; trackBy: trackById">
             <div>
               <div style="display: flex;justify-content: space-between;">
                 <!-- Card image with shimmer skeleton while loading -->
                 <div class="card-img-wrapper">
                   <div class="img-skeleton-shimmer"></div>
-                  <img [src]="data.image" class="card-img-load" (load)="$any($event.target).classList.add('img-loaded')"
+                  <img [src]="data.logo || '../../../assets/images/guestezee/lock.png'" class="card-img-load"
+                    (load)="$any($event.target).classList.add('img-loaded')"
                     (error)="$any($event.target).classList.add('img-loaded')" />
                 </div>
                 <!-- <button *ngIf="showEdit==true" type="button" class="btn btn-primary" data-toggle="modal"
@@ -76,14 +90,22 @@
                   [title]="isEcomSettingsEnabled(data) ? 'Ecom Integration Settings' : 'Enable & save to configure Ecom settings'">
                 </i>
                 -->
+                <!-- Newly commented & added for settings enable icon after approved -->
                 <!-- Ecom Integration Settings (new behavior) -->
+                <!--  <i class="fas fa-cog ecom-settings-icon"
+                  [ngClass]="{'ecom-settings-disabled': !isEcomSettingsEnabled(data) || this.customerStatus == 'approved'}"
+                  [style.cursor]="isEcomSettingsEnabled(data) && this.customerStatus != 'approved' ? 'pointer' : 'not-allowed'"
+                  (click)="isEcomSettingsEnabled(data) && this.customerStatus != 'approved' ? onEcomSettingsClick(data) : null"
+                  [title]="isEcomSettingsEnabled(data) ? 'Ecom Integration Settings' : 'Enable & save to configure Ecom settings'">
+                </i> -->
                 <i class="fas fa-cog ecom-settings-icon"
-                  [ngClass]="{'ecom-settings-disabled': !isEcomSettingsEnabled(data) || this.customerStatus === 'approved'}"
-                  [style.cursor]="isEcomSettingsEnabled(data) && this.customerStatus !== 'approved' ? 'pointer' : 'not-allowed'"
-                  (click)="isEcomSettingsEnabled(data) && this.customerStatus !== 'approved' ? onEcomSettingsClick(data) : null"
+                  [ngClass]="{'ecom-settings-disabled': !isEcomSettingsEnabled(data)}"
+                  [style.cursor]="isEcomSettingsEnabled(data) ? 'pointer' : 'not-allowed'"
+                  (click)="isEcomSettingsEnabled(data) ? onEcomSettingsClick(data) : null"
                   [title]="isEcomSettingsEnabled(data) ? 'Ecom Integration Settings' : 'Enable & save to configure Ecom settings'">
                 </i>
                 <!-- End of Ecom Integration Settings -->
+                <!-- End for settings enable icon after approved-->
               </div>
             </div>
             <div style="display: flex;justify-content: space-between;margin-top: 5%;">
@@ -93,13 +115,13 @@
               <label class="switch" *ngIf="isCustomerChoosen==false"
                 [title]="(data.type === 'lock' || data.type === 'pos') ? 'Only one integration can be enabled at a time' : ''">
                 <input type="checkbox" (change)="onCustomerToggleSwitch($event, data)" [checked]="data.is_enabled==true"
-                  [disabled]="this.customerStatus === 'approved'" />
+                  [disabled]="this.customerStatus == 'approved'" />
                 <span class="slider round"></span>
               </label>
               <label class="switch" *ngIf="isCustomerChoosen==true"
                 [title]="(data.type === 'lock' || data.type === 'pos') ? 'Only one integration can be enabled at a time' : ''">
                 <input type="checkbox" (change)="onCustomerToggleSwitch($event, data)" [checked]="data.is_enabled==true"
-                  [disabled]="this.customerStatus === 'approved'" />
+                  [disabled]="this.customerStatus == 'approved'" />
                 <span class="slider round"></span>
               </label>
             </div>
@@ -110,6 +132,13 @@
         <div class="toggle-switch" onclick="toggleSwitch(this)"></div>
     </div> -->
         </div>
+        <!-- newly added for no data -->
+        <div class="no-integrations-placeholder text-center py-5"
+          *ngIf="!generalTechInfoData || generalTechInfoData.length === 0">
+          <!-- <i class="fas fa-info-circle mb-3"></i> -->
+          <p>No integrations found for this category.</p>
+        </div>
+        <!-- end of newly added for no data -->
         <!-- [ngClass]="{
                 'isSelected': technicalInfo.customer_id == hotelId ,
                 'isNotSelected disabled-card': (isTechnicalInfoExists && (technicalInfo.customer_id != hotelId || technicalInfo.customer_id == undefined))
@@ -205,7 +234,7 @@
     (click)="nextTabInfo()">Next Info</button> -->
   <button type="submit" class="next_bt"
     *ngIf="((this.activeTab == 1 || this.activeTab == 2)  && this.customerStatus !== 'approved')"
-    (click)="nextTabInfo()">Next Info</button>
+    (click)="nextTabInfo()">Save & Next</button>
   <!-- <button type="submit" class="save_bt" data-toggle="modal" data-target="#paymentType" *ngIf="this.activeTab == 3 "
     (click)="save()">Save &
     Continue</button> -->
@@ -244,6 +273,11 @@
                 <div class="ecom-form-group">
                   <label class="ecom-label">API Url</label>
                   <input class="ecom-input-box" type="text" formControlName="api_url" />
+
+                  <span class="ecom-error"
+                    *ngIf="ecomIntegrationForm.get('api_url')?.hasError('pattern') && ecomIntegrationForm.get('api_url')?.touched">
+                    Invalid API Url format.
+                  </span>
                 </div>
                 <div class="ecom-form-group ecom-enable-group">
                   <label class="ecom-label">Enable</label>&nbsp;&nbsp;
@@ -255,7 +289,8 @@
               </div>
             </form>
           </div>
-          <div class="ecom-section">
+          <!-- OLD ecom-section: shows all attribute rows for all tabs -->
+          <!-- <div class="ecom-section">
             <form [formGroup]="ecomTechnicalInfoForm" class="ecom-form">
               <div class="ecom-form-row ecom-add-field-row">
                 <div></div>
@@ -265,7 +300,7 @@
                 <div *ngFor="let field of getEcomTechnicalInfoControls().controls; let i = index" [formGroupName]="i"
                   class="ecom-technical-info-item">
                   <div class="ecom-form-group">
-                    <label class="ecom-label">{{i + 1}}. Label</label>
+                    <label class="ecom-label">{{i + 1}}. Key Label</label>
                     <input class="ecom-input-box" type="text" formControlName="key" placeholder="label name" />
                   </div>
                   <div class="ecom-form-group ecom-key-group">
@@ -276,16 +311,48 @@
                       *ngIf="field.get('value')?.hasError('requiredWhenKey') && field.get('value')?.touched">
                       Value is required.
                     </span>
-                    <i class="fa-regular fa-square-minus ecom-remove-icon" (click)="removeEcomField(i)"></i>
+                    <i *ngIf="!(isHotelCodeIntegration() && field.get('key')?.value?.trim()?.toLowerCase() === 'hotel_code')"
+                      class="fa-regular fa-square-minus ecom-remove-icon" (click)="removeEcomField(i)"
+                      title="Remove this attribute"></i>
                   </div>
                 </div>
+              </div>
+            </form>
+          </div> -->
+          <!-- NEW ecom-section: only shown on POS tab, and only the Hotel_Code row is rendered -->
+          <div class="ecom-section" *ngIf="selectedTab === 'pos'">
+            <form [formGroup]="ecomTechnicalInfoForm" class="ecom-form">
+              <div formArrayName="technicalInfo" class="ecom-technical-info-container">
+                <ng-container *ngFor="let field of getEcomTechnicalInfoControls().controls; let i = index">
+                  <div [formGroupName]="i" class="ecom-technical-info-item"
+                    *ngIf="field.get('key')?.value?.trim()?.toLowerCase() === 'hotel_code'">
+                    <div class="ecom-form-group">
+                      <label class="ecom-label">Key Label</label>
+                      <input class="ecom-input-box" type="text" formControlName="key" placeholder="label name" />
+                    </div>
+                    <div class="ecom-form-group ecom-key-group">
+                      <label class="ecom-label">Key Value</label>
+                      <input class="ecom-input-box" type="text" formControlName="value"
+                        placeholder="enter the key value" />
+                      <span class="ecom-error"
+                        *ngIf="field.get('value')?.hasError('requiredWhenKey') && field.get('value')?.touched">
+                        Value is required.
+                      </span>
+                    </div>
+                  </div>
+                </ng-container>
               </div>
             </form>
           </div>
         </div>
         <div class="ecom-modal-footer">
-          <button type="button" class="ecom-cancel-btn" (click)="closeEcomIntegrationModal()">Cancel</button>
-          <button type="button" class="ecom-save-btn" (click)="saveEcomIntegration()">Save</button>
+          <!-- <button type="button" class="ecom-cancel-btn" (click)="closeEcomIntegrationModal()">Cancel</button>
+          <button type="button" class="ecom-save-btn" (click)="saveEcomIntegration()">Save</button> -->
+          <button type="button" class="ecom-cancel-btn" (click)="closeEcomIntegrationModal()">{{(selectedTab === 'pos'
+            && this.customerStatus !== 'approved') ?
+            'Cancel' : 'Close'}}</button>
+          <button type="button" class="ecom-save-btn" (click)="saveEcomIntegration()"
+            *ngIf="selectedTab === 'pos' && this.customerStatus !== 'approved'">Save</button>
         </div>
       </div>
     </div>

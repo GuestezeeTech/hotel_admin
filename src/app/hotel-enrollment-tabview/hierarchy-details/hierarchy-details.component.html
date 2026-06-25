@@ -28,7 +28,7 @@
             Choose Hierarchy
           </button> -->
            <button class="isChooseBtn button w-100 py-1 my-1 fw-bold" (click)="chooseHierarchy(hierarchy)"
-            [disabled]="this.customerStatus === 'approved'">
+            [disabled]="this.customerStatus == 'approved'">
             Choose Hierarchy
           </button>
         </div>
@@ -39,7 +39,7 @@
 <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
   <button type="button" class="cancel_bt" (click)="back()">Back</button>&nbsp;&nbsp;
   <!-- <button *ngIf="!paymentDone" type="button" class="save_bt" (click)="save()">Save & Continue</button> -->
-   <button *ngIf="this.customerStatus !== 'approved'" type="button" class="save_bt" (click)="save()">Save & Continue</button>
+   <button *ngIf="this.customerStatus != 'approved'" type="button" class="save_bt" (click)="save()">Save & Continue</button>
 </div>
 <!-- <h3 style="font-size: 20px;font-weight: 600;">Choose your Template</h3> -->
 <!-- <div style="display: grid; grid-template-columns: repeat(4, 1fr); row-gap: 15%;">

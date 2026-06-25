@@ -3,7 +3,7 @@ import { DOMAIN_NAME, USER_ID } from './../../app.config';
 import { AlertsService } from './../../shared/alerts/alerts.service';
 import { LocalStorageService } from './../../auth-services/local-storage.service';
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, HostListener } from '@angular/core';
 import { TaskManagementService } from '../task-management.service';
 import { LoaderService } from '../../shared/loader/loader.service';
 import { FormsModule } from '@angular/forms';
@@ -141,6 +141,21 @@ export class ProcessingComponent {
   allServices: any[] = [];
   // Newly added for loader
   isLoading: boolean = false;
+  openActionMenuId: any = null;
+
+  toggleActionMenu(taskId: any) {
+    if (this.openActionMenuId === taskId) {
+      this.openActionMenuId = null;
+    } else {
+      this.openActionMenuId = taskId;
+    }
+  }
+  // Newly added for self assigned tasks
+  selfStaffId: any;
+  isUpdateTimeModalOpen: boolean = false;
+  selectedTaskForTimeUpdate: any = null;
+  additionalTimeInput: any = null;
+  updateTimeError: string = '';
 
   constructor(
     private taskManagementService: TaskManagementService,
@@ -153,6 +168,7 @@ export class ProcessingComponent {
 
   async ngOnInit() {
     this.customerType = this.localService.get('CustomerType');
+    this.selfStaffId = Number(this.localService.get('UserId'));
     // console.log('Hotel Id:', this.hotelId);
     // this.member_id = this.localService.get('MemberId');
     // Newly added
@@ -937,9 +953,11 @@ export class ProcessingComponent {
               (service: any) => service.name?.toLowerCase() === task.service.service_name?.toLowerCase()
             );
 
-            // Get time_bound_value from matched service
-            const timeBoundValue = matchedService?.time_bound_value;
-
+            // Get time_bound_value from task service or matched service
+            // Newly added for task allocation purpose
+            const timeBoundValue = task?.service?.time_bound_value ?? matchedService?.time_bound_value;
+            // const timeBoundValue = matchedService?.time_bound_value;
+            // Ended for task allocation purpose
             // Check if time_bound_value exists, is a valid number, and is greater than 0
             if (timeBoundValue !== undefined && timeBoundValue !== null && !isNaN(Number(timeBoundValue)) && Number(timeBoundValue) > 0) {
               // Step 1: Create a Date for today using the time string
@@ -1087,5 +1105,133 @@ export class ProcessingComponent {
     });
   }
 
+
+  // Newly added for task allocation purpose
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    this.openActionMenuId = null;
+  }
+
+  preventInvalidChars(event: KeyboardEvent) {
+    const invalidChars = ['e', 'E', '-', '+', '.'];
+    if (invalidChars.includes(event.key)) {
+      event.preventDefault();
+    }
+  }
+
+  onPaste(event: ClipboardEvent) {
+    const clipboardData = event.clipboardData;
+    const pastedText = clipboardData?.getData('text') || '';
+    // Block if there is any non-digit character
+    if (/[^0-9]/.test(pastedText)) {
+      event.preventDefault();
+    }
+  }
+
+  onTimeInputChange() {
+    this.updateTimeError = '';
+    if (this.additionalTimeInput !== null && this.additionalTimeInput !== '') {
+      const numValue = Number(this.additionalTimeInput);
+      if (numValue < 1) {
+        this.updateTimeError = 'Time must be at least 1 minute.';
+      }
+    }
+  }
+
+  openUpdateTimeModal(task: any) {
+    this.selectedTaskForTimeUpdate = task;
+    this.additionalTimeInput = task.service?.time_bound_value || null;
+    this.updateTimeError = '';
+    this.isUpdateTimeModalOpen = true;
+  }
+
+  closeUpdateTimeModal() {
+    this.isUpdateTimeModalOpen = false;
+    this.selectedTaskForTimeUpdate = null;
+    this.additionalTimeInput = null;
+    this.updateTimeError = '';
+  }
+
+  submitTimeUpdate() {
+    if (this.additionalTimeInput === null || this.additionalTimeInput === '') {
+      this.updateTimeError = 'Please enter a valid time.';
+      return;
+    }
+    const numValue = Number(this.additionalTimeInput);
+    if (numValue < 1) {
+      this.updateTimeError = 'Time must be at least 1 minute.';
+      return;
+    }
+    const task = this.selectedTaskForTimeUpdate;
+    if (!task) return;
+    const newTime = Number(this.additionalTimeInput);
+    console.log('New time value:', newTime);
+    const requestBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      payload: {
+        update_task: {
+          ...task,
+          service: {
+            ...task.service,
+            time_bound_value: newTime
+          }
+        }
+      },
+      extras: { find: { id: task.id } }
+    };
+    this.taskManagementService.updateTaskStatus(requestBody).subscribe(
+      (resp: any) => {
+        if (resp?.success === 1 && resp?.status_code === 200) {
+          this.alertsService.success('Expected time updated successfully!', this.options);
+          this.closeUpdateTimeModal();
+          this.getAllProcessedTask(); // refresh list
+        } else {
+          this.alertsService.error(resp?.message || 'Failed to update time.', this.options);
+        }
+      },
+      (err: any) => {
+        this.alertsService.error(err?.error?.message || 'Something went wrong while updating time.', this.options);
+      }
+    );
+  }
+
+  taskCompletionUpdate(task: any) {
+    const now = new Date();
+    const completed_time = now.toISOString().replace('Z', '');
+    const requestBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      payload: {
+        update_task: {
+          status: 'Completed',
+          assigned_staff_id: task.assigned_staff_id,
+          assigned_staff_name: task.assigned_staff_name,
+          completed_time: completed_time,
+          guest_id: task.guest_id,
+          staff_desk_id: Number(this.localService.get('UserId')),
+          department: task.department || task.service?.category
+        }
+      },
+      extras: {
+        find: {
+          id: task.id
+        }
+      }
+    };
+    this.taskManagementService.updateTaskStatus(requestBody).subscribe(
+      (resp: any) => {
+        if (resp?.success === 1 && resp?.status_code === 200) {
+          this.alertsService.success('Task status updated to Completed.', this.options);
+          this.getAllProcessedTask();
+        } else {
+          this.alertsService.error(resp?.message || 'Failed to update task status', this.options);
+        }
+      },
+      (err: any) => {
+        this.alertsService.error(err?.error?.message || 'Something went wrong', this.options);
+      }
+    );
+  }
 
 }

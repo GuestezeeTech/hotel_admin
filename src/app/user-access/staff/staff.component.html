@@ -8,12 +8,24 @@
             <p style="color: #9E9E9E; font-size: 14px; margin-bottom: 1%">
                 {{ isViewMode ? 'View Staff Details' : (enableEdit ? 'Update Staff' : 'Create Staff') }}
             </p>
-            <form [formGroup]="staffForm">
+
+            <!-- Loading Spinner for View/Edit Mode -->
+            <div *ngIf="isPageLoading" class="d-flex flex-column justify-content-center align-items-center"
+                style="height: 400px; width: 100%;">
+                <div class="spinner-border" role="status" style="width: 3rem; height: 3rem; color: #800020;">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-3 fw-semibold" style="color: #800020;">Loading staff details...</p>
+            </div>
+
+            <form [formGroup]="staffForm" *ngIf="!isPageLoading">
                 <div class="row">
                     <div class="col-md-4 form-group">
                         <label class="fw-semibold" style="font-size: 15px">Email<span
                                 class="text-danger">*</span></label>
-                        <input type="email" class="form-control shadow-none" formControlName="email"
+                        <!-- Changed type="email" to type="text" — type="email" inputs don't support setSelectionRange(), cursor jumps to end when typing uppercase. Email validation handled by Angular pattern validator. -->
+                        <!-- <input type="email" class="form-control shadow-none" formControlName="email" (input)="clearError('email')" [class.is-invalid]="validateForm && f['email'].errors" style="background-color: white !important;"> -->
+                        <input type="text" class="form-control shadow-none" formControlName="email"
                             (input)="clearError('email')" [class.is-invalid]="validateForm && f['email'].errors"
                             style="background-color: white !important;">
                         <div class="invalid-feedback" *ngIf="f['email'].errors">
@@ -60,36 +72,42 @@
                         <input type="text" class="form-control shadow-none" readonly [value]="staff_member_id"
                             style="background-color: white !important;cursor: not-allowed;" />
                     </div>
-                    <div style="position: relative;" class="col-md-4 mb-4 form-group pb-3">
+                    <div class="col-md-4 mb-4 form-group pb-3">
                         <label class="fw-semibold" style="font-size: 14px">
                             Higher Level Hierarchy <span class="text-danger">*</span>
                         </label>
-                        <!-- Dropdown Trigger -->
-                        <div (click)="!staffForm.get('higher_level_hierarchy')?.disabled && toggleDropdown($event,'hierarchy'); clearError('higher_level_hierarchy')"
-                            style="border: 1px solid #ccc; padding: 6px; border-radius: 5px; background: white;"
-                            [ngClass]="{'disabled-dropdown': staffForm.get('higher_level_hierarchy')?.disabled}"
-                            [ngStyle]="{
-                                cursor: isViewMode ? 'not-allowed' : 'pointer',
-                                opacity: isViewMode ? 0.6 : 1
-                            }">
-                            <p class="mb-0" style="font-size: 15px;">
-                                <ng-container *ngIf="selectedHierarchies.length === 0">Select Hierarchy</ng-container>
-                                <ng-container *ngIf="selectedHierarchies.length > 0">
-                                    {{ getSelectedHierarchyLabels() }}
-                                    <ng-container *ngIf="selectedHierarchies.length > 1">...</ng-container>
-                                </ng-container>
-                                <i class="fa fa-chevron-down mt-2 float-end" style="font-size: 10px"></i>
-                            </p>
-                        </div>
-                        <!-- Dropdown Menu -->
-                        <div *ngIf="hierarchyDropdownOpen"
-                            style="position: absolute; top: 74%; left: 4%; width: 92%; border: 1px solid #ccc; background: white; z-index: 1000; max-height: 200px; overflow-y: auto; margin-top: 5px;">
-                            <div *ngFor="let supervisor of supervisorList" style="padding: 5px;">
-                                <input type="checkbox" [checked]="isHierarchySelected(supervisor)"
-                                    (change)="onHierarchySelect(supervisor, $event); clearError('higher_level_hierarchy')" />
-                                <label style="margin-left: 5px;">
-                                    {{ supervisor.designation + ' - ' + supervisor.department }}
-                                </label>
+                        <div style="position: relative;">
+                            <!-- Dropdown Trigger -->
+                            <div (click)="!isViewMode && !staffForm.get('higher_level_hierarchy')?.disabled && toggleDropdown($event,'hierarchy'); clearError('higher_level_hierarchy')"
+                                style="border: 1px solid #ccc; padding: 6px; border-radius: 5px; background: white;"
+                                [ngClass]="{'disabled-dropdown': staffForm.get('higher_level_hierarchy')?.disabled}"
+                                [ngStyle]="{
+                                    cursor: isViewMode ? 'not-allowed' : 'pointer',
+                                    opacity: isViewMode ? 0.6 : 1
+                                }">
+                                <p class="mb-0" style="font-size: 15px;">
+                                    <ng-container *ngIf="selectedHierarchies.length === 0">Select
+                                        Hierarchy</ng-container>
+                                    <ng-container *ngIf="selectedHierarchies.length > 0">
+                                        {{ getSelectedHierarchyLabels() }}
+                                        <ng-container *ngIf="selectedHierarchies.length > 1">...</ng-container>
+                                    </ng-container>
+                                    <i class="fa fa-chevron-down mt-2 float-end" style="font-size: 10px"></i>
+                                </p>
+                            </div>
+                            <!-- Dropdown Menu -->
+                            <div *ngIf="hierarchyDropdownOpen" (click)="$event.stopPropagation()"
+                                style="position: absolute; top: 100%; left: 0; width: 100%; border: 1px solid #ccc; background: white; z-index: 1000; max-height: 200px; overflow-y: auto; margin-top: 2px; border-radius: 5px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                                <div *ngFor="let supervisor of supervisorList"
+                                    style="padding: 6px 8px; display: flex; align-items: flex-start;">
+                                    <input type="checkbox" [checked]="isHierarchySelected(supervisor)"
+                                        (change)="onHierarchySelect(supervisor, $event); clearError('higher_level_hierarchy')"
+                                        style="margin-top: 4px; flex-shrink: 0;" />
+                                    <label
+                                        style="margin-left: 8px; margin-bottom: 0; font-size: 14px; line-height: 1.4;">
+                                        {{ supervisor.designation + ' - ' + supervisor.department }}
+                                    </label>
+                                </div>
                             </div>
                         </div>
                         <!-- Validation -->
@@ -100,39 +118,43 @@
                             </div>
                         </div>
                     </div>
-                    <div style="position: relative;" class="col-md-4 mb-4 form-group pb-3">
+                    <div class="col-md-4 mb-4 form-group pb-3">
                         <label class="fw-semibold" style="font-size: 14px">
                             Staff Hierarchy <span class="text-danger">*</span>
                         </label>
 
-                        <!-- Dropdown Trigger -->
-                        <div (click)="!staffForm.get('hierarchy')?.disabled && toggleDropdown($event,'staffHierarchy'); clearError('staffHierarchy')"
-                            style="border: 1px solid #ccc; padding: 6px; border-radius: 5px; background: white;"
-                            [ngClass]="{'disabled-dropdown': staffForm.get('hierarchy')?.disabled}" [ngStyle]="{
-                                cursor: isViewMode ? 'not-allowed' : 'pointer',
-                                opacity: isViewMode ? 0.6 : 1
-                            }">
-                            <p class="mb-0" style="font-size: 15px;">
-                                <ng-container *ngIf="selectedStaffHierarchies.length === 0">Select Staff
-                                    Hierarchy</ng-container>
-                                <ng-container *ngIf="selectedStaffHierarchies.length > 0">
-                                    {{ getSelectedStaffHierarchyLabels() }}
-                                    <ng-container *ngIf="selectedStaffHierarchies.length > 1">...</ng-container>
-                                </ng-container>
-                                <i class="fa fa-chevron-down mt-2 float-end" style="font-size: 10px"></i>
-                            </p>
-                        </div>
+                        <div style="position: relative;">
+                            <!-- Dropdown Trigger -->
+                            <div (click)="!staffForm.get('hierarchy')?.disabled && toggleDropdown($event,'staffHierarchy'); clearError('staffHierarchy')"
+                                style="border: 1px solid #ccc; padding: 6px; border-radius: 5px; background: white;"
+                                [ngClass]="{'disabled-dropdown': staffForm.get('hierarchy')?.disabled}" [ngStyle]="{
+                                    cursor: isViewMode ? 'not-allowed' : 'pointer',
+                                    opacity: isViewMode ? 0.6 : 1
+                                }">
+                                <p class="mb-0" style="font-size: 15px;">
+                                    <ng-container *ngIf="selectedStaffHierarchies.length === 0">Select Staff
+                                        Hierarchy</ng-container>
+                                    <ng-container *ngIf="selectedStaffHierarchies.length > 0">
+                                        {{ getSelectedStaffHierarchyLabels() }}
+                                        <ng-container *ngIf="selectedStaffHierarchies.length > 1">...</ng-container>
+                                    </ng-container>
+                                    <i class="fa fa-chevron-down mt-2 float-end" style="font-size: 10px"></i>
+                                </p>
+                            </div>
 
-                        <!-- Dropdown Menu -->
-                        <div *ngIf="staffHierarchyDropdownOpen"
-                            style="position: absolute; top: 74%; left: 4%; width: 92%; border: 1px solid #ccc; background: white; z-index: 1000; max-height: 220px; overflow-y: auto; margin-top: 5px;">
-                            <div *ngFor="let staff of supervisorChildList"
-                                style="padding: 6px; display: flex; align-items: center;">
-                                <input type="checkbox" [checked]="isStaffHierarchySelected(staff)"
-                                    (change)="onStaffHierarchyToggle(staff, $event); clearError('staffHierarchy')" />
-                                <label style="margin-left: 8px;">
-                                    {{ staff.designation }} - {{ staff.department }}
-                                </label>
+                            <!-- Dropdown Menu -->
+                            <div *ngIf="staffHierarchyDropdownOpen" (click)="$event.stopPropagation()"
+                                style="position: absolute; top: 100%; left: 0; width: 100%; border: 1px solid #ccc; background: white; z-index: 1000; max-height: 220px; overflow-y: auto; margin-top: 2px; border-radius: 5px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                                <div *ngFor="let staff of supervisorChildList"
+                                    style="padding: 6px 8px; display: flex; align-items: flex-start;">
+                                    <input type="checkbox" [checked]="isStaffHierarchySelected(staff)"
+                                        (change)="onStaffHierarchyToggle(staff, $event); clearError('staffHierarchy')"
+                                        style="margin-top: 4px; flex-shrink: 0;" />
+                                    <label
+                                        style="margin-left: 8px; margin-bottom: 0; font-size: 14px; line-height: 1.4;">
+                                        {{ staff.designation }} - {{ staff.department }}
+                                    </label>
+                                </div>
                             </div>
                         </div>
 
@@ -151,8 +173,9 @@
                         <select class="form-control shadow-none" formControlName="at_desk"
                             (change)="onDeskChange(); clearError('at_desk')"
                             [class.is-invalid]="validateForm && f['at_desk'].errors" (click)="closeAllDropdowns()"
-                            style="appearance: auto; background-color: white !important; cursor: pointer;">
-                            <option value="" style="font-size: 14px;">Please select</option>
+                            style="appearance: auto; background-color: white !important;"
+                            [style.cursor]="isViewMode ? 'not-allowed' : 'pointer'">
+                            <option value="" disabled style="font-size: 14px;">Please select</option>
                             <option [ngValue]="true">true</option>
                             <option [ngValue]="false">false</option>
                         </select>
@@ -160,40 +183,44 @@
                             <div *ngIf="f['at_desk'].errors['at_desk']">please select</div>
                         </div>
                     </div>
-                    <div style="position: relative;" class="col-md-4 mb-4 form-group pb-3"
+                    <div class="col-md-4 mb-4 form-group pb-3"
                         *ngIf="!isFirstStaff && showHigherLevelOfficer && showLowestHigherLevelOfficer">
                         <label class="fw-semibold" style="font-size: 14px">
                             Higher Level Officer <span class="text-danger">*</span>
                         </label>
 
-                        <!-- Trigger -->
-                        <div (click)="!staffForm.get('higher_level_officer')?.disabled && toggleDropdown($event,'officer'); clearError('officer')"
-                            style="border: 1px solid #ccc; padding: 6px; border-radius: 5px; background: white;"
-                            [ngClass]="{'disabled-dropdown': staffForm.get('higher_level_officer')?.disabled}"
-                            [ngStyle]="{
-                                cursor: isViewMode ? 'not-allowed' : 'pointer',
-                                opacity: isViewMode ? 0.6 : 1
-                            }">
-                            <p class="mb-0" style="font-size: 15px;">
-                                <ng-container *ngIf="selectedOfficers.length === 0">Select Officer</ng-container>
-                                <ng-container *ngIf="selectedOfficers.length > 0">
-                                    {{ getSelectedOfficerLabels() }}
-                                    <ng-container *ngIf="selectedOfficers.length > 1">...</ng-container>
-                                </ng-container>
-                                <i class="fa fa-chevron-down mt-2 float-end" style="font-size: 10px"></i>
-                            </p>
-                        </div>
+                        <div style="position: relative;">
+                            <!-- Trigger -->
+                            <div (click)="!staffForm.get('higher_level_officer')?.disabled && toggleDropdown($event,'officer'); clearError('officer')"
+                                style="border: 1px solid #ccc; padding: 6px; border-radius: 5px; background: white;"
+                                [ngClass]="{'disabled-dropdown': staffForm.get('higher_level_officer')?.disabled}"
+                                [ngStyle]="{
+                                    cursor: isViewMode ? 'not-allowed' : 'pointer',
+                                    opacity: isViewMode ? 0.6 : 1
+                                }">
+                                <p class="mb-0" style="font-size: 15px;">
+                                    <ng-container *ngIf="selectedOfficers.length === 0">Select Officer</ng-container>
+                                    <ng-container *ngIf="selectedOfficers.length > 0">
+                                        {{ getSelectedOfficerLabels() }}
+                                        <ng-container *ngIf="selectedOfficers.length > 1">...</ng-container>
+                                    </ng-container>
+                                    <i class="fa fa-chevron-down mt-2 float-end" style="font-size: 10px"></i>
+                                </p>
+                            </div>
 
-                        <!-- Dropdown panel -->
-                        <div *ngIf="officerDropdownOpen"
-                            style="position: absolute; top: 74%; left: 4%; width: 92%; border: 1px solid #ccc; background: white; z-index: 1000; max-height: 220px; overflow-y: auto; margin-top: 5px;">
-                            <div *ngFor="let officer of officersData"
-                                style="padding: 6px; display: flex; align-items: center;">
-                                <input type="checkbox" [checked]="isOfficerSelected(officer)"
-                                    (change)="onOfficerToggle(officer, $event); clearError('officer')" />
-                                <label style="margin-left: 8px; ">
-                                    {{ officer.full_name }} - {{ officer.phone_number }}
-                                </label>
+                            <!-- Dropdown panel -->
+                            <div *ngIf="officerDropdownOpen" (click)="$event.stopPropagation()"
+                                style="position: absolute; top: 100%; left: 0; width: 100%; border: 1px solid #ccc; background: white; z-index: 1000; max-height: 220px; overflow-y: auto; margin-top: 2px; border-radius: 5px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                                <div *ngFor="let officer of officersData"
+                                    style="padding: 6px 8px; display: flex; align-items: flex-start;">
+                                    <input type="checkbox" [checked]="isOfficerSelected(officer)"
+                                        (change)="onOfficerToggle(officer, $event); clearError('officer')"
+                                        style="margin-top: 4px; flex-shrink: 0;" />
+                                    <label
+                                        style="margin-left: 8px; margin-bottom: 0; font-size: 14px; line-height: 1.4;">
+                                        {{ officer.full_name }} - {{ officer.phone_number }}
+                                    </label>
+                                </div>
                             </div>
                         </div>
                         <div class="invalid-feedback d-block"
@@ -201,32 +228,39 @@
                             {{ f['higher_level_officer'].errors?.['message'] }}
                         </div>
                     </div>
-                    <div style="position: relative;" class="col-md-4 mb-4 form-group pb-3">
+                    <div class="col-md-4 mb-4 form-group pb-3">
                         <label class="fw-semibold" style="font-size: 14px">Room No<span
                                 class="text-danger">*</span></label>
-                        <!-- Dropdown Trigger -->
-                        <div (click)="!staffForm.get('room_no')?.disabled && toggleDropdown($event,'room'); clearError('room')"
-                            style="border: 1px solid #ccc; padding: 6px; border-radius: 5px; background: white;"
-                            [ngClass]="{'disabled-dropdown': staffForm.get('room_no')?.disabled}" [ngStyle]="{
-                                cursor: isViewMode ? 'not-allowed' : 'pointer',
-                                opacity: isViewMode ? 0.6 : 1
-                            }">
-                            <p class="mb-0" style="font-size: 15px;">
-                                <ng-container *ngIf="selectedRooms.length === 0">Select Room No</ng-container>
-                                <ng-container *ngIf="selectedRooms.length > 0">
-                                    {{ getSelectedRoomLabels() }}
-                                    <ng-container *ngIf="selectedRooms.length > 2">...</ng-container>
-                                </ng-container>
-                                <i class="fa fa-chevron-down mt-2 float-end" style="font-size: 10px"></i>
-                            </p>
-                        </div>
-                        <!-- Dropdown Menu -->
-                        <div *ngIf="roomDropdownOpen"
-                            style="position: absolute; top: 74%; left: 4%; width: 92%; border: 1px solid #ccc; background: white; z-index: 1000; max-height: 200px; overflow-y: auto; margin-top: 5px;">
-                            <div *ngFor="let room of roomRanges" style="padding: 5px;">
-                                <input type="checkbox" [checked]="isRoomSelected(room)"
-                                    (change)="onRoomSelect(room, $event); clearError('room')" />
-                                <label style="margin-left: 5px;">{{ room.label }}</label>
+
+                        <div style="position: relative;">
+                            <!-- Dropdown Trigger -->
+                            <div (click)="!staffForm.get('room_no')?.disabled && toggleDropdown($event,'room'); clearError('room')"
+                                style="border: 1px solid #ccc; padding: 6px; border-radius: 5px; background: white;"
+                                [ngClass]="{'disabled-dropdown': staffForm.get('room_no')?.disabled}" [ngStyle]="{
+                                    cursor: isViewMode ? 'not-allowed' : 'pointer',
+                                    opacity: isViewMode ? 0.6 : 1
+                                }">
+                                <p class="mb-0" style="font-size: 15px;">
+                                    <ng-container *ngIf="selectedRooms.length === 0">Select Room No</ng-container>
+                                    <ng-container *ngIf="selectedRooms.length > 0">
+                                        {{ getSelectedRoomLabels() }}
+                                        <ng-container *ngIf="selectedRooms.length > 2">...</ng-container>
+                                    </ng-container>
+                                    <i class="fa fa-chevron-down mt-2 float-end" style="font-size: 10px"></i>
+                                </p>
+                            </div>
+                            <!-- Dropdown Menu -->
+                            <div *ngIf="roomDropdownOpen" (click)="$event.stopPropagation()"
+                                style="position: absolute; top: 100%; left: 0; width: 100%; border: 1px solid #ccc; background: white; z-index: 1000; max-height: 200px; overflow-y: auto; margin-top: 2px; border-radius: 5px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                                <div *ngFor="let room of roomRanges"
+                                    style="padding: 6px 8px; display: flex; align-items: flex-start;">
+                                    <input type="checkbox" [checked]="isRoomSelected(room)"
+                                        (change)="onRoomSelect(room, $event); clearError('room')"
+                                        style="margin-top: 4px; flex-shrink: 0;" />
+                                    <label
+                                        style="margin-left: 8px; margin-bottom: 0; font-size: 14px; line-height: 1.4;">{{
+                                        room.label }}</label>
+                                </div>
                             </div>
                         </div>
                         <!-- Validation -->
@@ -237,27 +271,37 @@
                     </div>
                 </div>
                 <div class="row border-bottom">
-                    <div style="position: relative;" class="col-md-4 mb-4 form-group pb-3">
+                    <div class="col-md-4 mb-4 form-group pb-3">
                         <label class="fw-semibold" style="font-size: 14px">Shift Time<span
                                 class="text-danger">*</span></label>
-                        <div (click)="!staffForm.get('shift_time')?.disabled && toggleDropdown($event,'shift'); clearError('shift')"
-                            style="border: 1px solid #ccc; padding: 6px; border-radius: 5px; background: white; cursor: pointer;"
-                            [ngClass]="{'disabled-dropdown': staffForm.get('shift_time')?.disabled}">
-                            <p class="mb-0" style="font-size: 15px;">
-                                <ng-container *ngIf="selectedShiftTimes.length === 0">Select Shift Time</ng-container>
-                                <ng-container *ngIf="selectedShiftTimes.length > 0">
-                                    {{ getSelectedShiftLabels() }}
-                                    <ng-container *ngIf="selectedShiftTimes.length > 2">...</ng-container>
-                                </ng-container>
-                                <i class="fa fa-chevron-down mt-2 float-end" style="font-size: 10px"></i>
-                            </p>
-                        </div>
-                        <div *ngIf="shiftDropdownOpen"
-                            style="position: absolute; top: 74%; left: 4%; width: 92%; border: 1px solid #ccc; background: white; z-index: 1000; max-height: 200px; overflow-y: auto; margin-top: 5px;">
-                            <div *ngFor="let slot of selectedSlots" style="padding: 5px;">
-                                <input type="checkbox" [checked]="isShiftSelected(slot)"
-                                    (change)="onShiftSelect(slot, $event); clearError('shift')" />
-                                <label style="margin-left: 5px;">{{slot.label}}</label>
+
+                        <div style="position: relative;">
+                            <div (click)="!isViewMode && !staffForm.get('shift_time')?.disabled && toggleDropdown($event,'shift'); clearError('shift')"
+                                style="border: 1px solid #ccc; padding: 6px; border-radius: 5px; background: white;"
+                                [ngClass]="{'disabled-dropdown': staffForm.get('shift_time')?.disabled}" [ngStyle]="{
+                                    cursor: isViewMode ? 'not-allowed' : 'pointer',
+                                    opacity: isViewMode ? 0.6 : 1
+                                }">
+                                <p class="mb-0" style="font-size: 15px;">
+                                    <ng-container *ngIf="selectedShiftTimes.length === 0">Select Shift
+                                        Time</ng-container>
+                                    <ng-container *ngIf="selectedShiftTimes.length > 0">
+                                        {{ getSelectedShiftLabels() }}
+                                        <ng-container *ngIf="selectedShiftTimes.length > 2">...</ng-container>
+                                    </ng-container>
+                                    <i class="fa fa-chevron-down mt-2 float-end" style="font-size: 10px"></i>
+                                </p>
+                            </div>
+                            <div *ngIf="shiftDropdownOpen" (click)="$event.stopPropagation()"
+                                style="position: absolute; top: 100%; left: 0; width: 100%; border: 1px solid #ccc; background: white; z-index: 1000; max-height: 200px; overflow-y: auto; margin-top: 2px; border-radius: 5px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                                <div *ngFor="let slot of selectedSlots"
+                                    style="padding: 6px 8px; display: flex; align-items: flex-start;">
+                                    <input type="checkbox" [checked]="isShiftSelected(slot)"
+                                        (change)="onShiftSelect(slot, $event); clearError('shift')"
+                                        style="margin-top: 4px; flex-shrink: 0;" />
+                                    <label
+                                        style="margin-left: 8px; margin-bottom: 0; font-size: 14px; line-height: 1.4;">{{slot.label}}</label>
+                                </div>
                             </div>
                         </div>
                         <div class="invalid-feedback d-block"
@@ -267,17 +311,31 @@
                     </div>
                     <div class="col-md-4 form-group">
                         <label class="fw-semibold" style="font-size: 14px">Password<span
-                                class="text-danger">*</span><small class="fw-medium text-muted">(Minimum 6 characters
+                                class="text-danger" *ngIf="!enableEdit && !isViewMode">*</span><small class="fw-medium text-muted" *ngIf="!isViewMode">(Minimum 6 characters
                                 long)</small></label>
                         <div class="input-group">
-                            <input type="text" placeholder="********" class="form-control shadow-none "
-                                formControlName="password" [class.is-invalid]="validateForm && f['password'].errors"
-                                style="background-color: white !important;">
+                            <input [type]="showPassword ? 'text' : 'password'" placeholder="********"
+                                class="form-control shadow-none" formControlName="password"
+                                [class.is-invalid]="validateForm && f['password'].errors"
+                                style="background-color: white !important; height: 38px;"
+                                [style.border-right]="(!isViewMode && staffForm.get('password')?.value) ? 'none' : null">
+                            <span *ngIf="!isViewMode && staffForm.get('password')?.value" class="input-group-text bg-white" [ngStyle]="{
+                                    'cursor': isPasswordToggleDisabled() ? 'not-allowed' : 'pointer',
+                                    'opacity': isPasswordToggleDisabled() ? 0.5 : 1
+                                }" (click)="!isPasswordToggleDisabled() && togglePasswordVisibility()"
+                                style="border-left: none; display: flex; align-items: center; height: 38px;">
+                                <i
+                                    [ngClass]="isPasswordToggleDisabled() ? 'bi bi-eye-slash' : (showPassword ? 'bi bi-eye' : 'bi bi-eye-slash')"></i>
+                            </span>
                             <div class="invalid-feedback" *ngIf="f['password'].errors">
                                 <div *ngIf="f['password'].errors['required']">please enter password</div>
                                 <div *ngIf="f['password'].errors['minlength']">password is too short</div>
                             </div>
                         </div>
+                        <small *ngIf="!isViewMode && enableEdit" class="text-muted d-block mt-1"
+                            style="font-size: 11.5px; line-height: 1.3;">
+                            Type a new password to change it, or leave it empty to keep your current password.
+                        </small>
                     </div>
                     <!-- Newly commented because no need of fo desk -->
                     <!--  <div class="col-md-4 mb-4 form-group pb-3">
@@ -339,7 +397,7 @@
             </form>
         </div>
     </div>
-    <div class="row my-4  me-1">
+    <div class="row my-4  me-1" *ngIf="!isPageLoading"> <!-- newly added for loading-->
         <div class="col-md-12 d-flex justify-content-end">
             <div class="col-md-2">
                 <button class="btn w-100 fw-semibold" style="color: #4E4E4E; background-color: #C6C6C6"

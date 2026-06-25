@@ -1,0 +1,486 @@
+<div class="main">
+  <app-alerts></app-alerts>
+  <div class="centered-container">
+    <div class="container">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h5 class="fw-bolder" style="margin-bottom: 0">{{upsell.name}}</h5>
+          <p class="mb-0" *ngIf="menuOutlets && menuOutlets.length > 0 && selectedOutlet" style="color: #9E9E9E; font-size: 14px;">Select a {{upsell.name}} to view its offers</p>
+          <p class="mb-0" *ngIf="customerdata && !customerdata.Hotel_Code && !customerdata.hotel_code" style="color: #d9534f; font-size: 13px; font-weight: 500;">
+            <i class="bi bi-info-circle-fill me-1"></i>
+            Please set Hotel Code in Technical Info before adding any {{upsell.name}}.
+          </p>
+        </div>
+        <button class="fw-semibold" (click)="openModal()"
+          style="background-color: #800020; color: white; padding: 10px 20px; border-radius: 8px; font-size: 14px; border: none; cursor: pointer;">
+          + Add New {{upsell.name}}
+        </button>
+      </div>
+      <form (submit)="$event.preventDefault()">
+        <!-- Menu Ordering Outlets -->
+        <div class="row mt-3">
+          <div class="col-md-12">
+            <!-- Outlets available -->
+            <div class="outlet-grid" *ngIf="menuOutlets.length > 0; else noOutletTpl">
+              <div class="outlet-card position-relative" *ngFor="let outlet of menuOutlets" (click)="selectOutlet(outlet)"
+                   [class.selected]="selectedOutlet?.id === outlet.id">
+                
+                <div class="card-image-wrapper">
+                  <img [src]="outlet.takePhoto || fallbackOutletImage[upsell.name]" alt="Outlet" />
+                </div>
+                <div class="outlet-name">{{ outlet.name }}</div>
+                <div class="d-flex justify-content-between align-items-center w-100">
+                  <button type="button" class="offer-btn" (click)="openOfferModal(outlet); $event.stopPropagation()"
+                          [disabled]="!canAddFeatures">
+                    Add Offer
+                  </button>
+                  <div class="outlet-actions">
+                    <!-- Edit Outlet -->
+                    <i class="bi bi-pencil-square" title="Edit" (click)="onEditOutletClick(outlet, $event)"
+                      [style.opacity]="canEditFeatures ? 1 : 0.4" [style.cursor]="canEditFeatures ? 'pointer' : 'not-allowed'">
+                    </i>
+                    <!-- Delete Outlet -->
+                    <i class="bi bi-trash" title="Delete" (click)="onDeleteOutletClick(outlet, $event)"
+                      [style.opacity]="canDeleteFeatures ? 1 : 0.4" [style.cursor]="canDeleteFeatures ? 'pointer' : 'not-allowed'">
+                    </i>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!--  No outlets -->
+            <ng-template #noOutletTpl>
+              <div class="text-muted mt-2" style="font-size: 13px;">
+                No {{upsell.name}} available.
+              </div>
+            </ng-template>
+          </div>
+        </div>
+        <!-- Offers section: shown when outlet is selected -->
+        <div class="row mt-3" *ngIf="selectedOutlet">
+          <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center">
+              <label class="fw-bold" style="font-size: 18px">
+                Offers
+              </label>
+              <!-- SEARCH BAR -->
+              <div class="offer-search-wrapper mb-3">
+                <input type="text" class="form-control shadow-none offer-search-input" name="offerSearchText"
+                       [disabled]="!offers.length"
+                       [placeholder]="offers.length ? 'Search offer name...' : 'No offers to search'"
+                  [(ngModel)]="offerSearchText" (input)="onOfferSearch()" />
+              </div>
+            </div>
+            <!-- OFFER GRID -->
+            <div class="offer-grid mt-3" *ngIf="paginatedOffers.length">
+              <div class="offer-card position-relative" *ngFor="let offer of paginatedOffers">
+                <div class="offer-main">
+                  <!-- IMAGE -->
+                  <div class="card-image-wrapper">
+                    <img [src]="offer.image_url" alt="Offer image" />
+                  </div>
+
+                  <div class="offer-content">
+                    <!-- NAME + DISCOUNT IN ONE ROW -->
+                    <div class="offer-header-row">
+                      <div class="offer-name">
+                        {{ (offer.name?.length || 0) > 10 ? (offer.name | slice:0:10) + '.....' : offer.name }}
+                      </div>
+                      <div class="offer-meta">
+                        <span class="badge bg-success" *ngIf="offer.discount_type === 'percentage'">
+                          {{ offer.discount_value }}% OFF
+                        </span>
+                        <span class="badge bg-success" *ngIf="offer.discount_type === 'flat'">
+                          ₹{{ offer.discount_value }} OFF
+                        </span>
+                      </div>
+                    </div>
+                    <!-- DATE -->
+                    <div class="offer-validity">
+                      {{ offer.start_date | date:'dd/MM/yyyy' }}
+                      <span *ngIf="offer.date_mode === 'multiple'">
+                        – {{ offer.end_date | date:'dd/MM/yyyy' }}
+                      </span>
+                    </div>
+                    <!-- TIME -->
+                    <div class="offer-time">
+                      {{ formatTime12h(offer.start_time) }}
+                      –
+                      {{ formatTime12h(offer.end_time) }}
+                    </div>
+                  </div>
+                </div>
+                <!-- ACTIONS (bottom-right) -->
+                <div class="d-flex justify-content-between align-items-center w-100 mt-2">
+                  <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn add-guest-btn ms-2" (click)="openGuestModal(offer); $event.stopPropagation()"
+                            [disabled]="offer.guest_rooms && offer.guest_rooms.length > 0 ? !canEditFeatures : !canAddFeatures">
+                      {{ offer.guest_rooms && offer.guest_rooms.length > 0 ? 'Edit Guest' : 'Add Guest' }}
+                    </button>
+                    <span class="status-pill" [ngClass]="offer.is_active ? 'active' : 'inactive'">
+                      <span class="status-dot"></span>
+                      {{ offer.is_active ? 'Active' : 'Inactive' }}
+                    </span>
+                  </div>
+                  <div class="offer-actions">
+                    <!-- Edit Offer: requires edit permission -->
+                    <i class="bi bi-pencil-square" title="Edit" (click)="onEditOfferClick(offer, $event)"
+                       [style.opacity]="canEditFeatures ? 1 : 0.4"
+                       [style.cursor]="canEditFeatures ? 'pointer' : 'not-allowed'">
+                    </i>
+                    <!-- Delete Offer: requires delete permission -->
+                    <i class="bi bi-trash" title="Delete" (click)="onDeleteOfferClick(offer, $event)"
+                       [style.opacity]="canDeleteFeatures ? 1 : 0.4"
+                       [style.cursor]="canDeleteFeatures ? 'pointer' : 'not-allowed'">
+                    </i>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- No offers for selected outlet -->
+            <div class="text-muted mt-2" *ngIf="filteredOffers.length === 0">No offers found</div>
+            <!-- <div class="text-muted mt-3 text-center" *ngIf="filteredOffers.length === 0" style="font-size: 14px;">
+              <i class="bi bi-inbox" style="font-size: 28px; display: block; margin-bottom: 6px;"></i>
+              No offers found for <strong>{{ selectedOutlet?.name }}</strong>. Click "Add Offer" to get started. -->
+            <!-- </div> -->
+          </div>
+        </div>
+        <!-- No outlet selected prompt -->
+        <!-- Previously this section was not present -->
+        <!-- <div class="row mt-3" *ngIf="!selectedOutlet && menuOutlets.length > 0">
+          <div class="col-md-12 text-muted text-center" style="font-size: 14px; padding: 20px 0;">
+            <i class="bi bi-arrow-up-circle" style="font-size: 28px; display: block; margin-bottom: 6px;"></i>
+            Select a {{ upsell.name }} above to view its offers.
+          </div>
+        </div> -->
+        <div class="pagination-wrapper pt-3" *ngIf="totalPages > 1 && selectedOutlet">
+          <button type="button" (click)="prevPage()" [disabled]="currentPage === 1">
+            Previous
+          </button>
+          <span>Page {{ currentPage }} of {{ totalPages }}</span>
+          <button type="button" (click)="nextPage()" [disabled]="currentPage === totalPages">
+            Next
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div class="row my-4 me-1">
+    <div class="col-md-12 d-flex justify-content-end">
+      <div class="col-md-2">
+        <button class="btn w-100 fw-semibold" style="color: #4E4E4E; background-color: #C6C6C6" (click)="back()">
+          Back
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-backdrop-custom" *ngIf="isOfferModalOpen">
+  <div class="offer-modal">
+    <!-- ================= HEADER ================= -->
+    <div class="modal-header d-flex justify-content-between align-items-center">
+      <h6 class="fw-bold mb-0">
+        {{ isEditMode ? 'Edit Offer' : 'Add Offer' }} – – {{ selectedOfferOutlet?.name }}
+      </h6>
+      <i class="bi bi-x-lg close-icon" (click)="closeOfferModal()"></i>
+    </div>
+    <!-- ================= BODY ================= -->
+    <div class="modal-body">
+      <!-- Offer Name -->
+      <div class="form-group mb-2">
+        <label>Offer Name</label>
+        <input type="text" class="form-control" placeholder="Eg: Happy Hours" [(ngModel)]="offerForm.name"
+          (ngModelChange)="offerErrors.name = null" />
+        <div class="error-text" *ngIf="isOfferSubmitted && offerErrors.name">
+          {{ offerErrors.name }}
+        </div>
+      </div>
+      <!-- Offer Type + Discount -->
+      <div class="row mb-2">
+        <div class="col-6">
+          <label>Offer Type</label>
+          <div class="d-flex gap-3 mt-1">
+            <label>
+              <input type="radio" name="offerType" value="percentage" [(ngModel)]="offerForm.discountType"
+                (change)="calculateDiscountResult(); offerErrors.discountType=null" />
+              Percentage (%)
+            </label>
+            <label>
+              <input type="radio" name="offerType" value="flat" [(ngModel)]="offerForm.discountType"
+                (change)="calculateDiscountResult(); offerErrors.discountType=null" />
+              Flat (₹)
+            </label>
+          </div>
+          <div class="error-text" *ngIf="isOfferSubmitted && offerErrors.discountType">
+            {{ offerErrors.discountType }}
+          </div>
+        </div>
+        <div class="col-6">
+          <label>
+            {{ offerForm.discountType === 'percentage' ? 'Discount (%)' : 'Discount (₹)' }}
+          </label>
+          <input type="text" class="form-control" inputmode="numeric" placeholder="Enter value"
+            (keypress)="allowOnlyNumbers($event)" (paste)="blockPaste($event)" [(ngModel)]="offerForm.discountValue  "
+            (ngModelChange)="offerForm.discountValue = $event ? +$event : null; calculateDiscountResult()" />
+          <div class="error-text" *ngIf="isOfferSubmitted && offerErrors.discountValue">
+            {{ offerErrors.discountValue }}
+          </div>
+        </div>
+      </div>
+      <!-- Base Amount + Final Amount -->
+      <div class="row mb-2">
+        <div class="col-6">
+          <label>Base Amount (₹)</label>
+          <input type="text" class="form-control" inputmode="numeric" placeholder="Enter base amount (optional)"
+            (keypress)="allowOnlyNumbers($event)" (paste)="blockPaste($event)" [(ngModel)]="offerForm.baseAmount"
+            (ngModelChange)="offerForm.baseAmount = $event ? +$event : null; calculateDiscountResult()" />
+          <div class="error-text" *ngIf="isOfferSubmitted && offerErrors.baseAmount">
+            {{ offerErrors.baseAmount }}
+          </div>
+        </div>
+        <div class="col-6">
+          <label>Final Amount After Discount (₹)</label>
+          <input type="text" class="form-control auto-calculated" disabled [value]="offerForm.afterDiscount  ?? ''"
+            placeholder="Auto calculated" />
+        </div>
+      </div>
+      <!-- ================= IMAGE UPLOAD ================= -->
+      <div class="form-group mb-3">
+        <label>
+          Offer Image
+          <span class="text-muted">(16:9 – 1280 × 720)</span>
+        </label>
+        <!-- Custom File Upload -->
+        <div class="custom-file-input-wrapper">
+          <input type="file" id="offerImageInput" style="display: none" accept="image/png,image/jpeg,image/jpg" (change)="onOfferImageChange($event)" />
+          <div class="custom-file-display">
+            <label for="offerImageInput" class="custom-file-btn">Choose File</label>
+            <span class="custom-file-text">
+              {{ offerForm.imageUrl ? 'File Uploaded' : 'No file chosen' }}
+            </span>
+          </div>
+        </div>
+        <!-- Error -->
+        <div class="error-text" *ngIf="offerErrors.image">
+          {{ offerErrors.image }}
+        </div>
+        <!-- Preview -->
+        <div class="mt-2" *ngIf="offerForm.imageUrl">
+          <img [src]="offerForm.imageUrl" class="w-100 rounded" style="aspect-ratio: 16 / 9; object-fit: cover;" />
+          <div class="text-end mt-1">
+            <button type="button" class="btn btn-danger" (click)="removeOfferImage()">
+              Delete Image
+            </button>
+          </div>
+        </div>
+      </div>
+      <!-- ================= DATE MODE ================= -->
+      <div class="form-group mb-2">
+        <label>Offer Duration</label>
+        <div class="d-flex gap-3">
+          <label>
+            <input type="radio" name="dateMode" value="single" [(ngModel)]="offerForm.dateMode"
+              (change)="onDateModeChange()" />
+            Single Day
+          </label>
+          <label>
+            <input type="radio" name="dateMode" value="multiple" [(ngModel)]="offerForm.dateMode"
+              (change)="onDateModeChange()" />
+            Multiple Days
+          </label>
+        </div>
+      </div>
+      <!-- Duration Type -->
+      <div class="form-group mb-2">
+        <label>Offer Active Time</label>
+        <div class="d-flex gap-1">
+          <label>
+            <input type="radio" name="durationType" value="daily" [(ngModel)]="offerForm.durationType" />
+            Active during specific hours
+          </label>
+          <label *ngIf="offerForm.dateMode !== 'single'">
+            <input type="radio" name="durationType" value="continuous" [(ngModel)]="offerForm.durationType" />
+            From start date/time to end date/time
+          </label>
+        </div>
+      </div>
+      <!-- Dates -->
+      <div class="row">
+        <div class="col-6 mb-2">
+          <label>{{ offerForm.dateMode === 'single' ? 'Date' : 'Start Date' }}</label>
+          <input type="date" class="form-control" [(ngModel)]="offerForm.startDate" [min]="today"
+            (change)="offerErrors.startDate=null" />
+          <div class="error-text" *ngIf="isOfferSubmitted && offerErrors.startDate">
+            {{ offerErrors.startDate }}
+          </div>
+        </div>
+        <div class="col-6 mb-2" *ngIf="offerForm.dateMode === 'multiple'">
+          <label>End Date</label>
+          <input type="date" class="form-control" [min]="getMinEndDate() || today" [(ngModel)]="offerForm.endDate"
+            (change)="offerErrors.endDate=null" />
+          <div class="error-text" *ngIf="isOfferSubmitted && offerErrors.endDate">
+            {{ offerErrors.endDate }}
+          </div>
+        </div>
+      </div>
+      <!-- Active Status -->
+      <div class="form-group mb-2">
+        <label>Active Status</label>
+        <div class="mt-1">
+          <label class="switch">
+            <input type="checkbox" [(ngModel)]="offerForm.activeStatus" />
+            <span class="slider round"></span>
+          </label>
+        </div>
+      </div>
+      <!-- Times -->
+      <div class="row">
+        <div class="col-6 mb-2">
+          <label>{{ offerForm.durationType === 'continuous' ? 'Start time (From start date)' : 'Start Time' }}</label>
+          <!-- <input type="time" class="form-control" [(ngModel)]="offerForm.startTime" (click)="togglePicker($event)"
+            (change)="closeOnChange($event); offerErrors.startTime=null" /> -->
+            <input type="time" class="form-control" [(ngModel)]="offerForm.startTime"
+                        (change)="offerErrors.startTime=null" />
+          <div class="error-text" *ngIf="isOfferSubmitted && offerErrors.startTime">
+            {{ offerErrors.startTime }}
+          </div>
+        </div>
+        <div class="col-6 mb-2">
+          <label>{{ offerForm.durationType === 'continuous' ? 'End Time (To end date)' : 'End Time' }}</label>
+          <!-- <input type="time" class="form-control" [(ngModel)]="offerForm.endTime" (click)="togglePicker($event)"
+            (change)="closeOnChange($event); offerErrors.endTime=null" /> -->
+            <input type="time" class="form-control" [(ngModel)]="offerForm.endTime"
+            (change)="offerErrors.endTime=null" /> 
+          <div class="error-text" *ngIf="isOfferSubmitted && offerErrors.endTime">
+            {{ offerErrors.endTime }}
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- ================= FOOTER ================= -->
+    <div class="modal-footer d-flex justify-content-end gap-2">
+      <button class="btn cancel-btn" (click)="closeOfferModal()">Cancel</button>
+      <button class="btn btn-danger" (click)="saveOffer()">{{ isEditMode ? 'Update Offer' : 'Save Offer' }}</button>
+    </div>
+  </div>
+</div>
+<!-- ================= DELETE CONFIRMATION MODAL ================= -->
+<div *ngIf="isDeleteOfferModalOpen" class="delete-modal-wrapper">
+  <div class="delete-modal-backdrop"></div>
+  <div class="delete-modal-content">
+    <h4 class="delete-modal-title">Confirm Delete</h4>
+    <p>
+      Are you sure you want to delete
+      <b>{{ offerToDelete?.name }}</b>?
+    </p>
+    <div class="delete-modal-actions">
+      <button class="delete-modal-save-btn" (click)="confirmDeleteOffer()">Yes, Delete</button>
+      <button class="delete-modal-cancel-btn" (click)="isDeleteOfferModalOpen=false">
+        Cancel
+      </button>
+    </div>
+  </div>
+</div>
+<!-- ================= ADD GUEST / ROOM SEARCH MODAL ================= -->
+<div *ngIf="isGuestModalOpen" class="guest-modal-wrapper">
+  <div class="guest-modal-backdrop"></div>
+  <div class="guest-modal-content">
+    <h5 class="guest-modal-title mb-1">
+      {{ selectedOfferForGuest?.guest_rooms && selectedOfferForGuest?.guest_rooms.length > 0 ? 'Edit Guest' : 'Add
+      Guest' }} – {{ selectedOfferForGuest?.name }}
+      <span *ngIf="selectedOfferForGuest" class="offer-date-text" style="font-size: 0.85em; color: #9E9E9E;">
+        ({{ selectedOfferForGuest.start_date | date:'dd/MM/yyyy' }}
+        <span *ngIf="selectedOfferForGuest.date_mode === 'multiple'">
+          – {{ selectedOfferForGuest.end_date | date:'dd/MM/yyyy' }}
+        </span>)
+      </span>
+    </h5>
+    <div class="form-group mb-3">
+      <label class="fw-semibold search-room-label">Search Room Number</label>
+      <small class="room-hint-text d-block mb-2" *ngIf="allRooms.length > 0">
+        <span class="hint-icon">🟢</span>
+        Green rooms indicate occupied / checked-in
+      </small>
+      <div class="d-flex gap-2 align-items-end">
+        <input type="text" class="form-control flex-grow-1" [(ngModel)]="roomSearchText" (input)="onRoomSearch()"
+             placeholder="Type room number..." />
+        <button type="button" class="btn btn-sm select-all-btn"
+          [disabled]="areAllFilteredRoomsSelected() || filteredRooms.length === 0" (click)="toggleSelectAllRooms()">
+          Select All Rooms
+        </button>
+        <button type="button" class="btn btn-sm clear-all-btn" [disabled]="selectedRooms.length === 0"
+          (click)="clearAllSelectedRooms()">
+          Clear Selected Rooms
+        </button>
+      </div>
+    </div>
+    <!-- Room list -->
+    <div class="room-list" *ngIf="allRooms.length > 0; else noRoomsConfiguredTpl">
+      <ng-container *ngIf="filteredRooms.length > 0; else noRoomsFoundTpl">
+        <div class="room-item" *ngFor="let room of filteredRooms" (click)="toggleRoomSelection(room)"
+          [class.selected]="isRoomSelected(room)"
+          [class.check-in-room]="isRoomCheckIn(room)">
+          {{ room }}
+        </div>
+      </ng-container>
+    </div>
+    <!-- Selected rooms summary -->
+    <div class="selected-rooms-summary mt-3" *ngIf="selectedRooms.length">
+      <div class="selected-label">Selected Rooms</div>
+      <div class="selected-rooms-list">
+        <span class="selected-room-pill" *ngFor="let room of selectedRooms">
+          {{ room }}
+        </span>
+      </div>
+    </div>
+    <!-- No rooms configured at all -->
+    <ng-template #noRoomsConfiguredTpl>
+      <div class="text-muted" style="font-size: 14px;">
+        No room numbers configured for this property.
+      </div>
+    </ng-template>
+    <!-- No rooms matched the search -->
+    <ng-template #noRoomsFoundTpl>
+      <div class="text-muted no-rooms-msg" style="font-size: 14px;">
+        No rooms found for this search.
+      </div>
+    </ng-template>
+    <!-- Save hint -->
+    <div class="save-hint text-muted mt-2" *ngIf="!canSaveGuestRooms()">
+      <ng-container *ngIf="!initialSelectedRooms.length && !selectedRooms.length">
+        Select at least one room to enable Save.
+      </ng-container>
+      <ng-container *ngIf="initialSelectedRooms.length && !selectedRooms.length">
+        All existing rooms will be cleared if you click {{ initialSelectedRooms.length > 0 ? 'Update' : 'Save' }}.
+      </ng-container>
+      <ng-container *ngIf="initialSelectedRooms.length && selectedRooms.length && !hasGuestRoomChanges()">
+        No changes to save.
+      </ng-container>
+    </div>
+    <div class="guest-modal-actions mt-3 d-flex justify-content-end gap-2">
+      <button type="button" class="btn btn-secondary" (click)="closeGuestModal()">
+        Close
+      </button>
+      <button type="button" class="btn save-btn" [disabled]="!canSaveGuestRooms()" (click)="saveGuestRooms()">
+        {{ initialSelectedRooms.length > 0 ? 'Update' : 'Save' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= DELETE OUTLET CONFIRMATION MODAL ================= -->
+<div *ngIf="isDeleteOutletModalOpen" class="delete-modal-wrapper">
+  <div class="delete-modal-backdrop"></div>
+  <div class="delete-modal-content">
+    <h4 class="delete-modal-title">Confirm Delete</h4>
+    <p>
+      Are you sure you want to delete this {{upsell.name}}
+      <b>{{ outletToDelete?.name }}</b>?
+    </p>
+    <div class="delete-modal-actions">
+      <button class="delete-modal-save-btn" (click)="confirmDeleteOutlet()">Yes, Delete</button>
+      <button class="delete-modal-cancel-btn" (click)="isDeleteOutletModalOpen=false">
+        Cancel
+      </button>
+    </div>
+  </div>
+</div>

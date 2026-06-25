@@ -53,7 +53,8 @@ export class HierarchyListComponent implements OnInit {
   showModal: boolean = false;
   // Loader
   isLoading: boolean = false;
-  departments: any = [];
+  departments: any = null;
+  nameLengthError: boolean = false;
 
   constructor(
     private hierarchyService: HierarchyService,
@@ -324,6 +325,14 @@ export class HierarchyListComponent implements OnInit {
         console.log(err);
       }
     );
+  }
+
+  checkNameLength(){
+    if(this.hierarchyName.length >= 50){
+      this.nameLengthError = true;
+    }else{
+      this.nameLengthError = false;
+    }
   }
 
 }

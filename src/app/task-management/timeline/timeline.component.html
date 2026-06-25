@@ -56,8 +56,10 @@
                         <!-- Newly added for tooltip -->
                         <!-- <span class="fw-medium" style="color: #1A1A1A">{{ timelineData.guest_name
                             }}</span> -->
-                        <span class="fw-medium" [attr.title]="timelineData.guest_name || timelineData.task_created_by" style="color: #1A1A1A">
-                            {{ (timelineData?.guest_name || timelineData?.task_created_by) | slice:0:10 }}{{ (timelineData?.guest_name || timelineData?.task_created_by)?.length > 10 ? '...' : '' }}
+                        <span class="fw-medium" [attr.title]="timelineData.guest_name || timelineData.task_created_by"
+                            style="color: #1A1A1A">
+                            {{ (timelineData?.guest_name || timelineData?.task_created_by) | slice:0:10 }}{{
+                            (timelineData?.guest_name || timelineData?.task_created_by)?.length > 10 ? '...' : '' }}
                         </span>
                         <!-- Ended -->
                     </div>
@@ -71,7 +73,7 @@
                 </div>
 
                 <!-- Timeline Tags -->
-                    <div class="d-flex flex-column flex-grow-1 gap-2 dot-divider-left">
+                <div class="d-flex flex-column flex-grow-1 gap-2 dot-divider-left">
                     <div class="d-flex flex-wrap gap-2 justify-content-md-end">
                         <div class="tag tag-green">Order Placed on: {{ timelineData.order_time }}</div>
                         <!-- Previous logic for Expected Delivery (using actual_time_to_close_the_task)
@@ -106,13 +108,23 @@
                                         {{ i === 0 ? item.status + ' - (Room No:' + timelineData.room_no + ')' :
                                         item.status }}
                                     </h6>
-                                    <span class='mb-0' *ngIf="item.status === 'Assigned' || item.status === 'Escalated'"
+                                    <!-- Newly added & commented for task allocation purpose -->
+                                    <!-- <span class='mb-0' *ngIf="item.status === 'Assigned' || item.status === 'Escalated'"
                                         style="font-size: 13px;">
                                         <span class="fw-medium">{{ item.status === 'Assigned' ? 'Staff' : 'Escalated
                                             from' }} : </span>
                                         {{ item.status === 'Assigned' ? item.assigned_staff_name :
                                         item.escalated_from_name }}
+                                    </span> -->
+                                    <span class='mb-0'
+                                        *ngIf="item.status === 'Assigned' || item.status === 'Escalated' || (item.status === 'Processing' && item.remark?.toLowerCase() === 'self assigned')"
+                                        style="font-size: 13px;">
+                                        <span class="fw-medium">{{ item.status === 'Escalated' ? 'Escalated from' :
+                                            'Staff' }} : </span>
+                                        {{ item.status === 'Escalated' ? item.escalated_from_name : (item.status ===
+                                        'Processing' ? 'Self Assigned' : item.assigned_staff_name) }}
                                     </span>
+                                    <!-- Ended for task allocation purpose -->
                                     <br *ngIf="item.status === 'Escalated'">
                                     <span class='mb-0' *ngIf="item.status === 'ASAP' && timelineData.task_description"
                                         style="font-size: 13px;">
@@ -154,13 +166,23 @@
                                         {{ i === 0 ? item.status + ' - (Room No:' + timelineData.room_no + ')' :
                                         item.status }}
                                     </h6>
-                                    <span class='mb-0' *ngIf="item.status === 'Assigned' || item.status === 'Escalated'"
+                                    <!-- Newly added & commented for task allocation purpose -->
+                                    <!-- <span class='mb-0' *ngIf="item.status === 'Assigned' || item.status === 'Escalated'"
                                         style="font-size: 13px;">
                                         <span class="fw-medium">{{ item.status === 'Assigned' ? 'Staff' : 'Escalated
                                             from' }} : </span>
                                         {{ item.status === 'Assigned' ? item.assigned_staff_name :
                                         item.escalated_from_name }}
+                                    </span> -->
+                                    <span class='mb-0'
+                                        *ngIf="item.status === 'Assigned' || item.status === 'Escalated' || (item.status === 'Processing' && item.remark?.toLowerCase() === 'self assigned')"
+                                        style="font-size: 13px;">
+                                        <span class="fw-medium">{{ item.status === 'Escalated' ? 'Escalated from' :
+                                            'Staff' }} : </span>
+                                        {{ item.status === 'Escalated' ? item.escalated_from_name : (item.status ===
+                                        'Processing' ? 'Self Assigned' : item.assigned_staff_name) }}
                                     </span>
+                                    <!-- Ended for task allocation purpose -->
                                     <br *ngIf="item.status === 'Escalated'">
                                     <span class='mb-0' *ngIf="item.status === 'ASAP' && timelineData.task_description"
                                         style="font-size: 13px;">
@@ -268,8 +290,8 @@
                 <div class="border rounded p-3 mb-3">
                     <div class="d-flex justify-content-between align-items-center w-100">
                         <div class="d-flex align-items-center">
-                            <img src="../../../assets/images/guestezee/profile.png" alt="User"
-                                class="me-2 rounded-circle border"
+                            <img src="https://images.ecbee.net/GuestEzee/Brand/ChatGPT_Image_Jun_19__2026__01_25_37_PM.webp"
+                                alt="User" class="me-2 rounded-circle border"
                                 style="width: 30px; height: 30px; object-fit: contain;" />
                             <div class="d-flex justify-content-between w-100">
                                 <div class="d-flex align-items-center mt-1">

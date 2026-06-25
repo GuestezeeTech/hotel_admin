@@ -75,7 +75,7 @@ export class ProfileService {
 
   // Get stored image from localStorage
   getStoredProfileImage(): string | null {
-    return localStorage.getItem('profile_image') || '../../assets/images/guestezee/profile.png';
+    return localStorage.getItem('profile_image') || 'https://images.ecbee.net/GuestEzee/Brand/ChatGPT_Image_Jun_19__2026__01_25_37_PM.webp';
   }
 
   // Update profile image

@@ -79,7 +79,7 @@ export class UserComponent implements OnInit {
     this.editScreen = this.enableEdit;
     this.usersForm = new FormGroup({
       // email: this.formBuilder.control('', [Validators.required, Validators.email]),
-      email: this.formBuilder.control('', [Validators.required, Validators.pattern(/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/)]),
+      email: this.formBuilder.control('', [Validators.required, Validators.pattern(/^[a-z0-9_%+-]+@[a-z0-9-]+\.[a-z]{2,}$/)]),
       role_name: this.formBuilder.control('', [Validators.required]),
       phone_number: this.formBuilder.control('', [Validators.required, Validators.required, Validators.maxLength(10), Validators.pattern(/^[1-9][0-9]{9}$/)]),
       created_by_name: this.formBuilder.control(this.localService.get('Name')),
@@ -130,12 +130,15 @@ export class UserComponent implements OnInit {
 
   getRoles() {
     // get roles list
+    this.loaderService.emitLoading();
     this.userService.getAllRoles(this.memberId).subscribe(
       resp => {
+        this.loaderService.emitComplete();
         this.roleList = resp.result.data;
         // console.log('Role list:', this.roleList);
       },
       err => {
+        this.loaderService.emitComplete();
         if (err.error.statusCode === 403) {
           this.alertService.error('Session Time Out! Please login Again', this.options)
           this.routeUrl.navigate([`/login`], { skipLocationChange: false });
@@ -466,162 +469,6 @@ export class UserComponent implements OnInit {
       }
     } */
 
-  sendData() {
-    this.showalertmsg = true;
-    this.validateForm = true;
-    this.usersForm.markAllAsTouched();
-    if (this.usersForm.invalid) {
-      this.alertService.error("Please fill all mandatory fields correctly", this.options);
-      return;
-    }
-    const inputMemberId = this.localService.get('MemberId');
-    // console.log('Input member id:', inputMemberId);
-    this.loaderService.emitLoading();
-    // Step 1: Fetch customers by member_id
-    const formatJsonMemberId = {
-      domain_name: DOMAIN_NAME,
-      user_id: USER_ID,
-      extras: { find: { member_id: inputMemberId } }
-    };
-    // console.log('Format json(1):', formatJsonMemberId);
-    this.hotelListService.getSignupAllCustomers(formatJsonMemberId).subscribe(resp1 => {
-      const list1 = resp1?.result?.data || [];
-      console.log('List(1):', list1);
-      // Step 2: Fetch customers by customer_member_id
-      const formatJsonCustomerMemberId = {
-        domain_name: DOMAIN_NAME,
-        user_id: USER_ID,
-        extras: { find: { customer_member_id: inputMemberId } }
-      };
-      // console.log('Format json(2):', formatJsonCustomerMemberId);
-      this.hotelListService.getSignupAllCustomers(formatJsonCustomerMemberId).subscribe(resp2 => {
-        const list2 = resp2?.result?.data || [];
-        // console.log('List(2):', list2);
-        const customersList = [...list1, ...list2];
-        // console.log('Customers List:', customersList);
-        // Determine which user to update (existing duplicate or explicit edit)
-        let existingCustomer = null;
-        if (this.editScreen) {
-          // Edit mode → always update current inventoryId
-          existingCustomer = { id: Number(this.inventoryId) };
-        } else {
-          // Add mode → check duplicates by email or phone
-          existingCustomer = customersList.find(cust =>
-            cust.email === this.usersForm.value.email || cust.phone_number === this.usersForm.value.phone_number
-          );
-        }
-        //  if(existingCustomer){
-        //   console.log('Existing customer id:', existingCustomer.id);
-        //  }
-        // Check if existing customer has staff_employee_number or customer_member_id
-        let hasStaffOrCustomerId = false;
-        if (existingCustomer && existingCustomer.id) {
-          const existingCustomerData = customersList.find(cust => cust.id === existingCustomer.id);
-          if (existingCustomerData) {
-            hasStaffOrCustomerId = !!(existingCustomerData.staff_employee_number || existingCustomerData.customer_member_id);
-          }
-        }
-        // console.log('Has staff or customer id:', hasStaffOrCustomerId);
-        // Build form value
-        const form_value: Record<string, any> = {
-          phone_number: this.usersForm.value.phone_number,
-          created_by_name: this.localService.get('Name'),
-          role_id: this.usersForm.value.role_id,
-          email: this.usersForm.value.email,
-          role_name: this.usersForm.value.role_name,
-          is_locked: this.usersForm.value.is_locked,
-          is_active: this.usersForm.value.is_active,
-          first_name: this.usersForm.value.first_name,
-          last_name: this.usersForm.value.last_name,
-          password: this.editScreen
-            ? this.usersForm.value.password ? this.usersForm.value.password : ""
-            : this.usersForm.value.password,
-          password_to_customer: this.editScreen
-            ? this.usersForm.value.password ? this.usersForm.value.password : ""
-            : this.usersForm.value.password,
-          created_by_id: this.localService.get('UserId'),
-          db_schema: 'GuestEzee',
-          last_login: '',
-          is_password_reset_next_login: false,
-          member_id: inputMemberId
-        };
-        // Add status: "approved" only for customers (not for staff or hotel customers)
-        // Customers are identified by NOT having staff_employee_number or customer_member_id keys
-        if (!hasStaffOrCustomerId) {
-          form_value['status'] = 'approved';
-        }
-        if (existingCustomer) {
-          // UPDATE EXISTING CUSTOMER
-          const formatJson = {
-            domain_name: DOMAIN_NAME,
-            user_id: USER_ID,
-            payload: { users: form_value },
-            extras: { find: { id: existingCustomer.id } }
-          };
-          this.hotelenrollmenttabviewService.updateUserCustomer(formatJson).subscribe(
-            resp => {
-              this.loaderService.emitComplete();
-              if (resp && resp.success === 1 && resp.status_code === 200) {
-                this.alertService.success('User updated successfully', this.options);
-                setTimeout(() =>
-                  this.routeUrl.navigate(['/user-list'], { state: { result: resp.message }, relativeTo: this.router, skipLocationChange: false }), 1000
-                );
-              } else {
-                this.alertService.error(resp.message || 'Something bad happened. Please try again!', this.options);
-              }
-            },
-            err => {
-              this.loaderService.emitComplete();
-              if (err.error?.statusCode === 403) {
-                this.alertService.error('Session Time Out! Please login Again', this.options);
-                this.routeUrl.navigate(['/login'], { skipLocationChange: false });
-              } else {
-                this.alertService.error(err.error?.message || 'Something bad happened. Please try again!', this.options);
-              }
-            }
-          );
-        }
-        else {
-          // ADD NEW CUSTOMER
-          const formatJson = {
-            domain_name: DOMAIN_NAME,
-            user_id: USER_ID,
-            payload: { user_creation: form_value }
-          };
-          this.hotelenrollmenttabviewService.addUserCustomer(formatJson).subscribe(
-            (resp: any) => {
-              this.loaderService.emitComplete();
-              if (resp && resp.success === 1 && resp.status_code === 200) {
-                this.alertService.success('User created successfully', this.options);
-                setTimeout(() =>
-                  this.routeUrl.navigate(['/user-list'], { state: { result: resp.message }, relativeTo: this.router, skipLocationChange: false }), 1000
-                );
-              } else {
-                this.alertService.error(resp.message || 'Something bad happened. Please try again!', this.options);
-              }
-            },
-            err => {
-              this.loaderService.emitComplete();
-              if (err.error?.statusCode === 403) {
-                this.alertService.error('Session Time Out! Please login Again', this.options);
-                this.routeUrl.navigate(['/login'], { skipLocationChange: false });
-              } else {
-                this.alertService.error(err.error?.message || 'Something bad happened. Please try again!', this.options);
-              }
-            }
-          );
-        }
-      }, err2 => {
-        this.loaderService.emitComplete();
-        this.alertService.error('Failed to fetch customers by customer_member_id.', this.options);
-      });
-
-    }, err1 => {
-      this.loaderService.emitComplete();
-      this.alertService.error('Failed to fetch customers by member_id.', this.options);
-    });
-  }
-
   /* setInitialValues(inventory_id: any) {
     this.editScreen = true
     let jsonObj = {
@@ -824,5 +671,333 @@ export class UserComponent implements OnInit {
     this.usersForm.get('phone_number')?.setValue(value);
   }
 
+  // Newly commanding & updating for port change
+  /*  sendData() {
+     this.showalertmsg = true;
+     this.validateForm = true;
+     this.usersForm.markAllAsTouched();
+     if (this.usersForm.invalid) {
+       this.alertService.error("Please fill all mandatory fields correctly", this.options);
+       return;
+     }
+     const inputMemberId = this.localService.get('MemberId');
+     // console.log('Input member id:', inputMemberId);
+     this.loaderService.emitLoading();
+     // Step 1: Fetch customers by member_id
+     const formatJsonMemberId = {
+       domain_name: DOMAIN_NAME,
+       user_id: USER_ID,
+       extras: { find: { member_id: inputMemberId } }
+     };
+     // console.log('Format json(1):', formatJsonMemberId);
+     this.hotelListService.getSignupAllCustomers(formatJsonMemberId).subscribe(resp1 => {
+       const list1 = resp1?.result?.data || [];
+       console.log('List(1):', list1);
+       // Step 2: Fetch customers by customer_member_id
+       const formatJsonCustomerMemberId = {
+         domain_name: DOMAIN_NAME,
+         user_id: USER_ID,
+         extras: { find: { customer_member_id: inputMemberId } }
+       };
+       // console.log('Format json(2):', formatJsonCustomerMemberId);
+       this.hotelListService.getSignupAllCustomers(formatJsonCustomerMemberId).subscribe(resp2 => {
+         const list2 = resp2?.result?.data || [];
+         // console.log('List(2):', list2);
+         const customersList = [...list1, ...list2];
+         // console.log('Customers List:', customersList);
+         // Determine which user to update (existing duplicate or explicit edit)
+         let existingCustomer = null;
+         if (this.editScreen) {
+           // Edit mode → always update current inventoryId
+           existingCustomer = { id: Number(this.inventoryId) };
+         }
+         else {
+           // Add mode → check duplicates by email or phone
+           existingCustomer = customersList.find(cust =>
+             cust.email === this.usersForm.value.email || cust.phone_number === this.usersForm.value.phone_number
+           );
+         }
+         //  if(existingCustomer){
+         //   console.log('Existing customer id:', existingCustomer.id);
+         //  }
+         // Check if existing customer has staff_employee_number or customer_member_id
+         let hasStaffOrCustomerId = false;
+         if (existingCustomer && existingCustomer.id) {
+           const existingCustomerData = customersList.find(cust => cust.id === existingCustomer.id);
+           if (existingCustomerData) {
+             hasStaffOrCustomerId = !!(existingCustomerData.staff_employee_number || existingCustomerData.customer_member_id);
+           }
+         }
+         // console.log('Has staff or customer id:', hasStaffOrCustomerId);
+         // Build form value
+         const form_value: Record<string, any> = {
+           phone_number: this.usersForm.value.phone_number,
+           created_by_name: this.localService.get('Name'),
+           role_id: this.usersForm.value.role_id,
+           email: this.usersForm.value.email,
+           role_name: this.usersForm.value.role_name,
+           is_locked: this.usersForm.value.is_locked,
+           is_active: this.usersForm.value.is_active,
+           first_name: this.usersForm.value.first_name,
+           last_name: this.usersForm.value.last_name,
+           // Newly added & commented
+           // password: this.editScreen
+           //   ? this.usersForm.value.password ? this.usersForm.value.password : ""
+           //   : this.usersForm.value.password,
+           // password_to_customer: this.editScreen
+           //   ? this.usersForm.value.password ? this.usersForm.value.password : ""
+           //   : this.usersForm.value.password,
+           // Ended
+           created_by_id: this.localService.get('UserId'),
+           db_schema: 'GuestEzee',
+           last_login: '',
+           is_password_reset_next_login: false,
+           member_id: inputMemberId
+         };
+ 
+         // Newly added
+         if (this.editScreen) {
+           if (this.usersForm.value.password) {
+             form_value['password'] = this.usersForm.value.password;
+             form_value['password_to_customer'] = this.usersForm.value.password;
+           }
+         } else {
+           form_value['password'] = this.usersForm.value.password;
+           form_value['password_to_customer'] = this.usersForm.value.password;
+         }
+         // Ended
+         // Add status: "approved" only for customers (not for staff or hotel customers)
+         // Customers are identified by NOT having staff_employee_number or customer_member_id keys
+         if (!hasStaffOrCustomerId) {
+           form_value['status'] = 'approved';
+         }
+         // if (existingCustomer) {
+         //   // UPDATE EXISTING CUSTOMER
+         //   const formatJson = {
+         //     domain_name: DOMAIN_NAME,
+         //     user_id: USER_ID,
+         //     payload: { users: form_value },
+         //     extras: { find: { id: existingCustomer.id } }
+         //   };
+         //   this.hotelenrollmenttabviewService.updateUserCustomer(formatJson).subscribe(
+         //     resp => {
+         //       this.loaderService.emitComplete();
+         //       if (resp && resp.success === 1 && resp.status_code === 200) {
+         //         this.alertService.success('User updated successfully', this.options);
+         //         setTimeout(() =>
+         //           this.routeUrl.navigate(['/user-list'], { state: { result: resp.message }, relativeTo: this.router, skipLocationChange: false }), 1000
+         //         );
+         //       } else {
+         //         this.alertService.error(resp.message || 'Something bad happened. Please try again!', this.options);
+         //       }
+         //     },
+         //     err => {
+         //       this.loaderService.emitComplete();
+         //       if (err.error?.statusCode === 403) {
+         //         this.alertService.error('Session Time Out! Please login Again', this.options);
+         //         this.routeUrl.navigate(['/login'], { skipLocationChange: false });
+         //       } else {
+         //         this.alertService.error(err.error?.message || 'Something bad happened. Please try again!', this.options);
+         //       }
+         //     }
+         //   );
+         // }
+         // else {
+         // ADD NEW CUSTOMER
+         const formatJson = {
+           domain_name: DOMAIN_NAME,
+           user_id: USER_ID,
+           payload: { user_creation: form_value }
+         };
+         this.hotelenrollmenttabviewService.addUserCustomer(formatJson).subscribe(
+           (resp: any) => {
+             this.loaderService.emitComplete();
+             if (resp && resp.success === 1 && resp.status_code === 200) {
+               this.alertService.success('User created successfully', this.options);
+               setTimeout(() =>
+                 this.routeUrl.navigate(['/user-list'], { state: { result: resp.message }, relativeTo: this.router, skipLocationChange: false }), 1000
+               );
+             } else {
+               this.alertService.error(resp.message || 'Something bad happened. Please try again!', this.options);
+             }
+           },
+           err => {
+             this.loaderService.emitComplete();
+             if (err.error?.statusCode === 403) {
+               this.alertService.error('Session Time Out! Please login Again', this.options);
+               this.routeUrl.navigate(['/login'], { skipLocationChange: false });
+             } else {
+               this.alertService.error(err.error?.message || 'Something bad happened. Please try again!', this.options);
+             }
+           }
+         );
+         // }
+       }, err2 => {
+         this.loaderService.emitComplete();
+         this.alertService.error('Failed to fetch customers by customer_member_id.', this.options);
+       });
+ 
+     }, err1 => {
+       this.loaderService.emitComplete();
+       this.alertService.error('Failed to fetch customers by member_id.', this.options);
+     });
+   } */
+
+  sendData() {
+    this.showalertmsg = true;
+    this.validateForm = true;
+    this.usersForm.markAllAsTouched();
+    if (this.usersForm.invalid) {
+      this.alertService.error("Please fill all mandatory fields correctly", this.options);
+      return;
+    }
+    const inputMemberId = this.localService.get('MemberId');
+    // console.log('Input member id:', inputMemberId);
+    this.loaderService.emitLoading();
+    // Step 1: Fetch customers by member_id
+    const formatJsonMemberId = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: { find: { member_id: inputMemberId } }
+    };
+    // console.log('Format json(1):', formatJsonMemberId);
+    this.hotelListService.getSignupAllCustomers(formatJsonMemberId).subscribe(resp1 => {
+      const list1 = resp1?.result?.data || [];
+      console.log('List(1):', list1);
+      // Step 2: Fetch customers by customer_member_id
+      const formatJsonCustomerMemberId = {
+        domain_name: DOMAIN_NAME,
+        user_id: USER_ID,
+        extras: { find: { customer_member_id: inputMemberId } }
+      };
+      // console.log('Format json(2):', formatJsonCustomerMemberId);
+      this.hotelListService.getSignupAllCustomers(formatJsonCustomerMemberId).subscribe(resp2 => {
+        const list2 = resp2?.result?.data || [];
+        // console.log('List(2):', list2);
+        const customersList = [...list1, ...list2];
+        // console.log('Customers List:', customersList);
+        // Determine which user to update (existing duplicate or explicit edit)
+        let existingCustomer = null;
+        if (this.editScreen) {
+          // Edit mode → always update current inventoryId
+          existingCustomer = { id: Number(this.inventoryId) };
+        }
+        // Check if existing customer has staff_employee_number or customer_member_id
+        let hasStaffOrCustomerId = false;
+        if (existingCustomer && existingCustomer.id) {
+          const existingCustomerData = customersList.find(cust => cust.id === existingCustomer.id);
+          if (existingCustomerData) {
+            hasStaffOrCustomerId = !!(existingCustomerData.staff_employee_number || existingCustomerData.customer_member_id);
+          }
+        }
+        // console.log('Has staff or customer id:', hasStaffOrCustomerId);
+        // Build form value
+        const form_value: Record<string, any> = {
+          phone_number: this.usersForm.value.phone_number,
+          created_by_name: this.localService.get('Name'),
+          role_id: this.usersForm.value.role_id,
+          email: this.usersForm.value.email,
+          role_name: this.usersForm.value.role_name,
+          is_locked: this.usersForm.value.is_locked,
+          is_active: this.usersForm.value.is_active,
+          first_name: this.usersForm.value.first_name,
+          last_name: this.usersForm.value.last_name,
+          created_by_id: this.localService.get('UserId'),
+          db_schema: 'GuestEzee',
+          last_login: '',
+          is_password_reset_next_login: false,
+          member_id: inputMemberId
+        };
+        // Newly added
+        if (this.editScreen) {
+          if (this.usersForm.value.password) {
+            form_value['password'] = this.usersForm.value.password;
+            form_value['password_to_customer'] = this.usersForm.value.password;
+          }
+        } else {
+          form_value['password'] = this.usersForm.value.password;
+          form_value['password_to_customer'] = this.usersForm.value.password;
+        }
+        // Ended
+        // Add status: "approved" only for customers (not for staff or hotel customers)
+        // Customers are identified by NOT having staff_employee_number or customer_member_id keys
+        if (!hasStaffOrCustomerId) {
+          form_value['status'] = 'approved';
+        }
+        if (existingCustomer) {
+          // UPDATE EXISTING CUSTOMER
+          const formatJson = {
+            domain_name: DOMAIN_NAME,
+            user_id: USER_ID,
+            payload: { users: form_value },
+            extras: {
+              find: {
+                id: existingCustomer.id
+              }
+            }
+          };
+          this.hotelenrollmenttabviewService.updateUserCustomer(formatJson).subscribe(
+            resp => {
+              this.loaderService.emitComplete();
+              if (resp && resp.success === 1 && resp.status_code === 200) {
+                this.alertService.success('User updated successfully', this.options);
+                setTimeout(() =>
+                  this.routeUrl.navigate(['/user-list'], { state: { result: resp.message }, relativeTo: this.router, skipLocationChange: false }), 1000
+                );
+              } else {
+                this.alertService.error(resp.message || 'Something bad happened. Please try again!', this.options);
+              }
+            },
+            err => {
+              this.loaderService.emitComplete();
+              if (err.error?.statusCode === 403) {
+                this.alertService.error('Session Time Out! Please login Again', this.options);
+                this.routeUrl.navigate(['/login'], { skipLocationChange: false });
+              } else {
+                this.alertService.error(err.error?.message || 'Something bad happened. Please try again!', this.options);
+              }
+            }
+          );
+        }
+        else {
+          // ADD NEW CUSTOMER
+          const formatJson = {
+            domain_name: DOMAIN_NAME,
+            user_id: USER_ID,
+            payload: { user_creation: form_value }
+          };
+          this.hotelenrollmenttabviewService.addUserCustomer(formatJson).subscribe(
+            (resp: any) => {
+              this.loaderService.emitComplete();
+              if (resp && resp.success === 1 && resp.status_code === 200) {
+                this.alertService.success('User created successfully', this.options);
+                setTimeout(() =>
+                  this.routeUrl.navigate(['/user-list'], { state: { result: resp.message }, relativeTo: this.router, skipLocationChange: false }), 1000
+                );
+              } else {
+                this.alertService.error(resp.message || 'Something bad happened. Please try again!', this.options);
+              }
+            },
+            err => {
+              this.loaderService.emitComplete();
+              if (err.error?.statusCode === 403) {
+                this.alertService.error('Session Time Out! Please login Again', this.options);
+                this.routeUrl.navigate(['/login'], { skipLocationChange: false });
+              } else {
+                this.alertService.error(err.error?.message || 'Something bad happened. Please try again!', this.options);
+              }
+            }
+          );
+        }
+      }, err2 => {
+        this.loaderService.emitComplete();
+        this.alertService.error('Failed to fetch customers by customer_member_id.', this.options);
+      });
+
+    }, err1 => {
+      this.loaderService.emitComplete();
+      this.alertService.error('Failed to fetch customers by member_id.', this.options);
+    });
+  }
 
 }

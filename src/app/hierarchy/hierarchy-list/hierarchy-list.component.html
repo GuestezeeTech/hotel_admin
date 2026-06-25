@@ -7,8 +7,7 @@
   <div class="centered-container" [class.loading-content]="isLoading">
     <div class="section">
       <div class="d-flex justify-content-end">
-        <!-- <p class="dept-assign-note" *ngIf="departments?.length === 0"> -->
-        <p class="dept-assign-note" *ngIf="!isLoading && (!departments || departments.length === 0)">
+        <p class="dept-assign-note" *ngIf="!isLoading && (allhierarchyData === undefined || allhierarchyData === null) && departments?.length === 0">
           <i class="fa fa-exclamation-triangle"></i>
           Please create all required Departments before starting to create the Hierarchy.
         </p>
@@ -53,8 +52,9 @@
       <button type="button" class="close" (click)="clearModal()">&times;</button>
     </div>
     <div class="modal-body">
-      <input type="text" class="form-control" [(ngModel)]="hierarchyName" placeholder="Enter the name"
-        (input)="modalError = ''">
+      <input type="text" class="form-control" [(ngModel)]="hierarchyName" placeholder="Enter the name" maxlength="50"
+        (input)="modalError = ''; checkNameLength()">
+        <p *ngIf="nameLengthError" class="error-text" style="color: red;">Maximum 50 characters allowed.</p>
       <div *ngIf="modalError" class="error-msg">
         {{ modalError }}
       </div>

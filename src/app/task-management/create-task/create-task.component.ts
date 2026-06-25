@@ -66,6 +66,8 @@ export class CreateTaskComponent implements OnInit {
         autoClose: true,
         keepAfterRouteChange: false
     };
+    // Newly added for task allocation purpose
+    selfStaffId: any;
 
     constructor(
         private router: Router,
@@ -82,6 +84,10 @@ export class CreateTaskComponent implements OnInit {
     ngOnInit(): void {
         this.member_id = this.localService.get('MemberId');
         // console.log('Member Id:', this.member_id);
+        // Newly added for task allocation purpose
+        this.selfStaffId = Number(this.localService.get('UserId'));
+        console.log('Self Staff Id', this.selfStaffId);
+
         this.getDefaultServices();
         if (this.member_id) {
             this.getDepartmentById(this.member_id);
@@ -117,7 +123,29 @@ export class CreateTaskComponent implements OnInit {
         this.departmentService.getAllDepartments(requestBody).subscribe(
             (resp: any) => {
                 if (resp.success === 1 && resp.status_code === 200) {
-                    this.departments = resp.result.data;
+                    // Newly added & commneted for task allocation
+                    // this.departments = resp.result.data;
+                    const allDepartments = resp.result.data;
+                    const isStaff = this.localService.get('CustomerType') === 'Staff';
+                    if (isStaff) {
+                        let userData: any = this.localService.get('StaffData');
+                        let userDataParse = userData ? JSON.parse(userData) : null;
+                        let userDepartment: string[] = [];
+                        if (userDataParse?.hierarchy && Array.isArray(userDataParse.hierarchy)) {
+                            userDepartment = userDataParse.hierarchy.map((item: any) => item.department);
+                        } else if (userDataParse?.hierarchy?.department) {
+                            userDepartment = [userDataParse.hierarchy.department];
+                        }
+                        if (userDepartment.length > 0) {
+                            this.departments = allDepartments.filter((dept: any) => userDepartment.includes(dept.name));
+                        } else {
+                            this.departments = allDepartments;
+                        }
+                    }
+                    // Ended for task allocation puropose
+                    else {
+                        this.departments = allDepartments;
+                    }
                     // console.log('Departments:', this.departments);
                 } else {
                     this.departments = [];
@@ -338,6 +366,121 @@ export class CreateTaskComponent implements OnInit {
         // Don't clear guestMessage here as it's set based on API response
     }
 
+    /*   getAllStavesByCategory() {
+          this.staves = [];
+          this.selectedStaff = null;
+          this.isStaffSelected = false;
+          if (!this.category) {
+              return;
+          }
+          const categoryName = this.category.name;
+          // First, fetch all staff for the category
+          const findObject: any = {
+              is_available: true,
+              at_desk: false,
+              member_id: this.member_id,
+              "hierarchy.department": categoryName,
+          };
+          const requestBody = {
+              domain_name: DOMAIN_NAME,
+              user_id: USER_ID,
+              extras: {
+                  find: findObject
+              }
+          };
+          this.taskManagementService.getAllStaves(requestBody).subscribe(
+              (resp: any) => {
+                  if (resp?.success === 1 && resp.status_code === 200) {
+                      const allStaves = resp.result.data || [];
+                      // Extract all unique higher_level_officer IDs
+                      const officerIds = new Set<number>();
+                      allStaves.forEach((staff: any) => {
+                          if (staff.higher_level_officer && Array.isArray(staff.higher_level_officer)) {
+                              staff.higher_level_officer.forEach((officer: any) => {
+                                  if (officer.id) {
+                                      officerIds.add(officer.id);
+                                  }
+                              });
+                          }
+                      });
+                      if (officerIds.size === 0) {
+                          this.staves = [];
+                          // console.log('No higher level officers found');
+                          return;
+                      }
+                      // Fetch all staff (including officers) to get their at_desk values
+                      const allStaffRequestBody = {
+                          domain_name: DOMAIN_NAME,
+                          user_id: USER_ID,
+                          extras: {
+                              find: {
+                                  member_id: this.member_id
+                              }
+                          }
+                      };
+                      this.taskManagementService.getAllStaves(allStaffRequestBody).subscribe(
+                          (allStaffResp: any) => {
+                              if (allStaffResp?.success === 1 && allStaffResp.status_code === 200) {
+                                  const allStaffData = allStaffResp.result.data || [];
+                                  // Create a map of officer ID to officer details (for quick lookup)
+                                  const officerMap = new Map<number, any>();
+                                  allStaffData.forEach((staff: any) => {
+                                      if (officerIds.has(staff.id)) {
+                                          officerMap.set(staff.id, staff);
+                                      }
+                                  });
+                                  // Filter staff based on condition:
+                                  // Staff should be included if their higher_level_officer's department
+                                  // array includes the category name AND that officer has at_desk: true
+                                  this.staves = allStaves.filter((staff: any) => {
+                                      if (!staff.higher_level_officer || !Array.isArray(staff.higher_level_officer)) {
+                                          return false;
+                                      }
+                                      // Check each higher level officer
+                                      return staff.higher_level_officer.some((officer: any) => {
+                                          // Check if officer's department array includes the category name
+                                          if (!officer.department || !Array.isArray(officer.department)) {
+                                              return false;
+                                          }
+  
+                                          const departmentMatches = officer.department.includes(categoryName);
+                                          if (!departmentMatches) {
+                                              return false;
+                                          }
+                                          // Check if officer has at_desk: true
+                                          const officerDetails = officerMap.get(officer.id);
+                                          if (!officerDetails) {
+                                              return false;
+                                          }
+                                          return officerDetails.at_desk === true;
+                                      });
+                                  });
+  
+                                  // console.log('Filtered Staves (with at_desk check):', this.staves);
+                              } else {
+                                  this.staves = [];
+                                  // console.log('Failed to fetch all staff data');
+                              }
+                          },
+                          (err: any) => {
+                              console.error('Error fetching all staff data:', err);
+                              this.staves = [];
+                          }
+                      );
+                  } else {
+                      this.staves = [];
+                  }
+              },
+              (err: any) => {
+                  console.error('Error fetching staves for category:', err);
+                  this.staves = [];
+              }
+          );
+  
+      } */
+
+    //   Newly added for task allocation purpose
+    // For finding desk staff based on requested task category
     getAllStavesByCategory() {
         this.staves = [];
         this.selectedStaff = null;
@@ -346,109 +489,84 @@ export class CreateTaskComponent implements OnInit {
             return;
         }
         const categoryName = this.category.name;
-        // First, fetch all staff for the category
+        console.log('Requested category name: ', categoryName);
+        const currentDeskStaffId = Number(this.localService.get('UserId'));
+        console.log('Current desk staff ID: ', currentDeskStaffId);
+        let userData: any = this.localService.get('StaffData');
+        let userDataParse = userData ? JSON.parse(userData) : null;
+        console.log('Logged in staff data: ', userDataParse);
+        // Extract user departments
+        let userDepartment: string[] = [];
+        if (userDataParse?.hierarchy && Array.isArray(userDataParse.hierarchy)) {
+            userDepartment = userDataParse.hierarchy.map((item: any) => item.department);
+        } else if (userDataParse?.hierarchy?.department) {
+            userDepartment = [userDataParse.hierarchy.department];
+        }
+        console.log('Logged in staff departments: ', userDepartment);
+        const isSameDepartment = userDepartment.includes(categoryName);
+        console.log('Is same department: ', isSameDepartment);
+        if (isSameDepartment) {
+            // Use current logged-in desk staff's ID
+            this.fetchStaves(categoryName, currentDeskStaffId, currentDeskStaffId);
+        } else {
+            // Find the first available desk staff for that specific department
+            const deskFindObject = {
+                "hierarchy.department": categoryName,
+                "at_desk": true,
+                // "is_available": true,
+                "member_id": this.member_id
+            };
+            const deskRequestBody = {
+                domain_name: DOMAIN_NAME,
+                user_id: USER_ID,
+                extras: { find: deskFindObject }
+            };
+            this.taskManagementService.getAllStaves(deskRequestBody).subscribe((resp: any) => {
+                if (resp?.success === 1 && resp.status_code === 200 && resp.result.data && resp.result.data.length > 0) {
+                    const otherDepartmentDeskStaffId = resp.result.data[0].id;
+                    this.fetchStaves(categoryName, currentDeskStaffId, otherDepartmentDeskStaffId);
+                } else {
+                    this.staves = []; // No desk staff available for that department
+                }
+            }, (err: any) => {
+                console.error('Error fetching desk staff:', err);
+                this.staves = [];
+            });
+        }
+    }
+
+    fetchStaves(categoryName: string, desk_id: number, higher_level_officer_id: number) {
+        console.log('Category name: ', categoryName);
+        console.log('Logged in staff desk ID: ', desk_id);
+        console.log('Higher level officer ID: ', higher_level_officer_id);
         const findObject: any = {
             is_available: true,
             at_desk: false,
             member_id: this.member_id,
-            "hierarchy.department": categoryName
+            task_allocation_purpose: true,
+            "hierarchy.department": categoryName,
+            "higher_level_officer.id": higher_level_officer_id
         };
         const requestBody = {
             domain_name: DOMAIN_NAME,
             user_id: USER_ID,
-            extras: {
-                find: findObject
-            }
+            extras: { find: findObject }
         };
         this.taskManagementService.getAllStaves(requestBody).subscribe(
             (resp: any) => {
                 if (resp?.success === 1 && resp.status_code === 200) {
-                    const allStaves = resp.result.data || [];
-                    // Extract all unique higher_level_officer IDs
-                    const officerIds = new Set<number>();
-                    allStaves.forEach((staff: any) => {
-                        if (staff.higher_level_officer && Array.isArray(staff.higher_level_officer)) {
-                            staff.higher_level_officer.forEach((officer: any) => {
-                                if (officer.id) {
-                                    officerIds.add(officer.id);
-                                }
-                            });
-                        }
-                    });
-                    if (officerIds.size === 0) {
-                        this.staves = [];
-                        // console.log('No higher level officers found');
-                        return;
-                    }
-                    // Fetch all staff (including officers) to get their at_desk values
-                    const allStaffRequestBody = {
-                        domain_name: DOMAIN_NAME,
-                        user_id: USER_ID,
-                        extras: {
-                            find: {
-                                member_id: this.member_id
-                            }
-                        }
-                    };
-                    this.taskManagementService.getAllStaves(allStaffRequestBody).subscribe(
-                        (allStaffResp: any) => {
-                            if (allStaffResp?.success === 1 && allStaffResp.status_code === 200) {
-                                const allStaffData = allStaffResp.result.data || [];
-                                // Create a map of officer ID to officer details (for quick lookup)
-                                const officerMap = new Map<number, any>();
-                                allStaffData.forEach((staff: any) => {
-                                    if (officerIds.has(staff.id)) {
-                                        officerMap.set(staff.id, staff);
-                                    }
-                                });
-                                // Filter staff based on condition:
-                                // Staff should be included if their higher_level_officer's department
-                                // array includes the category name AND that officer has at_desk: true
-                                this.staves = allStaves.filter((staff: any) => {
-                                    if (!staff.higher_level_officer || !Array.isArray(staff.higher_level_officer)) {
-                                        return false;
-                                    }
-                                    // Check each higher level officer
-                                    return staff.higher_level_officer.some((officer: any) => {
-                                        // Check if officer's department array includes the category name
-                                        if (!officer.department || !Array.isArray(officer.department)) {
-                                            return false;
-                                        }
-
-                                        const departmentMatches = officer.department.includes(categoryName);
-                                        if (!departmentMatches) {
-                                            return false;
-                                        }
-                                        // Check if officer has at_desk: true
-                                        const officerDetails = officerMap.get(officer.id);
-                                        if (!officerDetails) {
-                                            return false;
-                                        }
-                                        return officerDetails.at_desk === true;
-                                    });
-                                });
-
-                                // console.log('Filtered Staves (with at_desk check):', this.staves);
-                            } else {
-                                this.staves = [];
-                                // console.log('Failed to fetch all staff data');
-                            }
-                        },
-                        (err: any) => {
-                            console.error('Error fetching all staff data:', err);
-                            this.staves = [];
-                        }
-                    );
+                    this.staves = resp.result.data || [];
                 } else {
                     this.staves = [];
                 }
             },
             (err: any) => {
-                console.error('Error fetching staves for category:', err);
+                console.error('Error fetching staves:', err);
                 this.staves = [];
             }
         );
     }
+
 
     selectStaff(staff: any) {
         if (this.selectedStaff && this.selectedStaff.id === staff.id) {
@@ -1076,6 +1194,8 @@ export class CreateTaskComponent implements OnInit {
     // - For Normal / Help Service: orderResponse will be null
     // - For Menu Ordering: orderResponse contains order data from upsertOrderForMenu
     createAndAssignTaskObservable(orderResponse: any | null, deskStaffId: number): Observable<any> {
+        console.log('this.selectedStaff', this.selectedStaff)
+        console.log('this.selfStaffId', this.selfStaffId)
         // console.log('createAndAssignTaskObservable called with orderResponse:', orderResponse);
         const departmentName =
             ['Menu Ordering', 'Help Service'].includes(this.service_name?.belongs_to) ? 'Default' : this.category?.name;
@@ -1094,7 +1214,11 @@ export class CreateTaskComponent implements OnInit {
         const createPayload: any = {
             room_no: this.room_no,
             member_id: this.member_id,
-            status: 'Assigned',
+            // Newly added for tasl allocation purpose
+            // status: 'Assigned',
+            status: this.selectedStaff.id == this.selfStaffId ? 'Processing' : 'Assigned',
+            is_self_assigned: this.selectedStaff.id == this.selfStaffId,
+            // End of newly added for task allocation purpose
             task_created_by_desk: true,
             task_created_by: taskCreatedByName,
             staff_desk_id: deskStaffId,

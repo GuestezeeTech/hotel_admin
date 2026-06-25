@@ -36,6 +36,7 @@ export class ServiceTabListComponent {
   newServiceTabDescription = '';
   editingIndex: number | null = null;
   nameError = false;
+  maxlengthError = false;
   // Delete modal
   isDeleteModalOpen = false;
   selectedServiceTab: ServiceTabs | null = null;
@@ -108,14 +109,33 @@ export class ServiceTabListComponent {
           // Assigns ServiceTabs data
           this.serviceTabs = resp.result.data;
           // console.log('Service Tab Data:', this.serviceTabs);
+          // Newly added for 1st tab highlight by default
+          if (this.serviceTabs.length > 0) {
+            const stillExists = this.selectedTab ? this.serviceTabs.find(tab => tab.id === this.selectedTab.id) : null;
+            if (stillExists) {
+              this.selectedTab = stillExists;
+            } else {
+              this.selectedTab = this.serviceTabs[0];
+            }
+            this.getServicesByTab(this.selectedTab.name);
+          } else {
+            this.selectedTab = null;
+            this.services = [];
+          }
+          // End of newly dded for 1st tab highlight by default
         } else {
           console.error('Failed to fetch service tab details:', resp.message);
           this.serviceTabs = [];
+          this.selectedTab = null;
+          this.services = [];
         }
         this.isLoading = false;
       },
       (error: any) => {
         console.error('Error fetching service tab details:', error);
+        this.serviceTabs = [];
+        this.selectedTab = null;
+        this.services = [];
         this.isLoading = false;
       }
     );
@@ -148,7 +168,10 @@ export class ServiceTabListComponent {
     this.serviceSettingsService.getServiceByid(requestBody).subscribe(
       (resp: any) => {
         if (resp.success === 1 && resp.status_code === 200) {
-          this.services = resp.result.data;
+          // Newly added for is_active filter while fetching services list from service tab
+          // this.services = resp.result.data;
+          this.services = (resp.result.data || []).filter((service: any) => service.is_active === true);
+          // End of newly added for is_active filter while fetching services list from service tab
           // console.log('Services data based on selected Tab:', this.services);
         }
         else {
@@ -194,6 +217,7 @@ export class ServiceTabListComponent {
     this.newServiceTabName = '';
     this.newServiceTabDescription = '';
     this.nameError = false;
+    this.maxlengthError = false;
   }
 
   createServiceTabs(name: string, description: string) {
@@ -239,6 +263,7 @@ export class ServiceTabListComponent {
     this.editingIndex = index;
     // console.log('Editing index while opening editor modal:', this.editingIndex);
     this.nameError = false;
+    this.maxlengthError = false;
   }
 
   openViewModal(serviceTab: ServiceTabs, index: number) {
@@ -250,6 +275,7 @@ export class ServiceTabListComponent {
     this.newServiceTabDescription = serviceTab.description || '';
     this.editingIndex = index;
     this.nameError = false;
+    this.maxlengthError = false;
   }
 
   updateServiceTabs(name: string, description: string) {
@@ -297,12 +323,18 @@ export class ServiceTabListComponent {
     this.newServiceTabDescription = '';
     this.editingIndex = null;
     this.nameError = false;
+    this.maxlengthError = false;
   }
 
   // Hide error message as soon as user types
   onNameInputChange() {
     if (this.newServiceTabName.trim()) {
       this.nameError = false;
+    }
+    if (this.newServiceTabName.length >= 50) {
+      this.maxlengthError = true;
+    } else {
+      this.maxlengthError = false;
     }
   }
 
@@ -354,7 +386,7 @@ export class ServiceTabListComponent {
   }
 
   //newly added for handle text input only
-  restrictSpecialChars(event: KeyboardEvent){
+  restrictSpecialChars(event: KeyboardEvent) {
     const allowedkeys = /^[a-zA-Z]$/;
     const controlKeys = [
       'Backspace',
@@ -372,9 +404,46 @@ export class ServiceTabListComponent {
 
     // Allow control keys
     if (controlKeys.includes(event.key)) return;
-    if (!allowedkeys.test(event.key)){
-        event.preventDefault();
+    if (!allowedkeys.test(event.key)) {
+      event.preventDefault();
     }
   }
-  
+
+  // Block only digits 0-9
+  blockNumbersOnly(event: KeyboardEvent) {
+    const allowed = /^[^0-9]$/; // Allow anything that is not a number
+    const controlKeys = [
+      'Backspace',
+      'Tab',
+      'Enter',
+      'ArrowLeft',
+      'ArrowRight',
+      'ArrowUp',
+      'ArrowDown',
+      'Delete'
+    ];
+
+    // Allow Ctrl/Cmd shortcuts
+    if (event.ctrlKey || event.metaKey) return;
+
+    // Allow control keys
+    if (controlKeys.includes(event.key)) return;
+
+    if (!allowed.test(event.key)) {
+      event.preventDefault();
+    }
+  }
+
+  // Filter out numeric characters during paste
+  handleNamePaste(event: ClipboardEvent) {
+    const pastedData = event.clipboardData?.getData('text') || '';
+    if (/[0-9]/.test(pastedData)) {
+      event.preventDefault();
+      return;
+    }
+    if (this.newServiceTabName.length + pastedData.length > 50) {
+      this.maxlengthError = true;
+    }
+  }
+
 }

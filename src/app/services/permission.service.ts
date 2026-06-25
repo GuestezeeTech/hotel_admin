@@ -79,6 +79,18 @@ export class PermissionService {
     const perm = this.getModulePermission(moduleName);
     return perm?.has_delete_permission ?? false;
   }
+
+  // Newly added for checking any permission
+  hasAnyPermission(moduleName: string): boolean {
+    const perm = this.getModulePermission(moduleName);
+    return perm ? (
+      perm.has_read_permission === true ||
+      perm.has_add_permission === true ||
+      perm.has_edit_permission === true ||
+      perm.has_delete_permission === true
+    ) : false;
+  }
+  // Ended for checking any permission
 }
 
 

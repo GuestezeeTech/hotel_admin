@@ -3,18 +3,31 @@
   <div class="row">
     <div class="col-xs-5 col-sm-5 col-md-5 col-lg-5  p-0" *ngIf="!login">
       <!-- <img src="../../assets/images/guestezee/login-img.png" class="img-fluid" class="login-page_img"> -->
-      <img src="https://images.ecbee.net/GuestEzee/Brand/login-img.webp" class="img-fluid" class="login-page_img">
+      <img src="https://images.ecbee.net/GuestEzee/Brand/login-img.webp" class="img-fluid login-page_img"
+        fetchpriority="high" loading="eager">
     </div>
     <div class="col-xs-5 col-sm-5 col-md-5 col-lg-5  p-5" *ngIf="login">
       <!-- <img
         src="https://ecbee-labes-images1.s3.ap-south-1.amazonaws.com/Mayan/StoreGallery/1749548341599%20-%20login.png"
         class="img-fluid" class="login-page_img"> -->
-        <img src="https://ecbee-labes-images1.s3.ap-south-1.amazonaws.com/GuestEzee/Brand/1749548341599+-+login.webp" class="img-fluid" class="login-page_img">
+      <img src="https://ecbee-labes-images1.s3.ap-south-1.amazonaws.com/GuestEzee/Brand/1749548341599+-+login.webp"
+        class="img-fluid login-page_img" fetchpriority="high" loading="eager">
     </div>
     <div class="col-xs-7 col-sm-7 col-md-7 col-lg-7 justify-content-center" style="text-align: center;">
-      <img src="../../assets/images/guestezee/logo.png" class="img-fluid" class="login_logo_img">
+      <img src="../../assets/images/guestezee/logo.png" class="img-fluid login_logo_img" fetchpriority="high"
+        loading="eager">
       <h4 style="font-weight: 700;margin-top: 3%;">{{ this.login ? 'Welcome back !' : this.signup ? 'Sign Up' : this.otp
         ? 'Enter OTP' : 'Create New Password'}}</h4>
+      <!-- <div class="login_content_container">
+        <p style="width: 70%;color: #878E96;font-size: 15px">
+          {{ this.login ? 'We kindly request that you provide your Email address and password in order to
+          gain access to
+          our incredible platform' : this.signup ? 'We kindly request that you provide your Email address and Phone
+          Number in order to create an access to our incredible platform' : this.otp ? 'We kindly request that you
+          provide your OTP which you received via SMS in order to create an access to our incredible platform' : 'We
+          kindly request that you to enter your new Password in order to create an access to our incredible platform'}}
+        </p>
+      </div> -->
       <div class="login_content_container">
         <p style="width: 70%;color: #878E96;font-size: 15px">
           {{ this.login ? 'We kindly request that you provide your Email address / Employee ID and password in order to
@@ -58,10 +71,22 @@
               </div>
             </div>
           </div>
-          <div class="d-flex justify-content-end mb-3">
+          <!-- <div class="d-flex justify-content-end mb-3">
             <span class="fw-bold" style="color: #800020; cursor: pointer; font-size: 14px;"
               (click)="forgetPassword()">Forgot
               Password?</span>
+          </div> -->
+          <div class="d-flex fd-row mb-3" style="justify-content: space-between; align-items: center;">
+            <!--Newly added for error messages -->
+            <div *ngIf="loginErrorMessage" style="color: red; text-align: start; font-size: 15px;">
+              {{ loginErrorMessage }}
+            </div>
+
+            <div class="ms-auto">
+              <span class="fw-bold" style="color: #800020; cursor: pointer; font-size: 14px;"
+                (click)="forgetPassword()">Forgot
+                Password?</span>
+            </div>
           </div>
           <button type="submit" class="btn btn-primary login_button" style="width: 100%;"
             (click)="onSubmit()">Login</button>
@@ -71,6 +96,7 @@
           </div>
         </form>
       </div>
+
       <!-- Signup Form -->
       <div class="signup_form_container" *ngIf="signup">
         <form [formGroup]="signupForm" style="width: 80%;margin-top: 4%;">
@@ -84,8 +110,8 @@
           </div>
           <div class="form-group" style="position: relative;">
             <span>
-              <input type="number" class="form-control login_content_color" id="phone_number" name="phone_number"
-                placeholder="Phone Number" formControlName="phone_number">
+              <input type="tel" class="form-control login_content_color" id="phone_number" name="phone_number"
+                placeholder="Phone Number" formControlName="phone_number" (input)="onPhoneInput($event)">
               <div *ngIf="signupForm.controls['phone_number'].invalid && signupForm.controls['phone_number'].touched"
                 class="error-message" style="color: red; text-align: start">
                 Please enter a valid phone number.
@@ -108,7 +134,7 @@
               <input *ngFor="let box of otpArray; let i = index" type="tel" maxlength="1"
                 class="form-control text-center" [formControlName]="'otp' + i"
                 style="width: 45px; height: 45px; border-radius: 8px; border: 1px solid #ddd;"
-                (keyup)="onOtpKeyUp($event, i)" (keydown)="preventSpace($event)" (input)="allowOnlyNumbers($event)"/>
+                (keyup)="onOtpKeyUp($event, i)" (keydown)="preventSpace($event)" (input)="allowOnlyNumbers($event)" />
             </div>
           </div>
           <div class="d-flex justify-content-between mt-3">

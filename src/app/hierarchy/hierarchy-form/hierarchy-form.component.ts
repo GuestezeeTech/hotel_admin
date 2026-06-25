@@ -78,24 +78,25 @@ export class HierarchyFormComponent implements OnInit {
     }
   }
 
-ngOnInit() {
+  ngOnInit() {
     const id = this.activatedRoute.snapshot.paramMap.get('id');
-    // console.log('Hierarchy ID:', id);
+    console.log('Hierarchy ID:', id);
     if (id != null && id != undefined && id != "") {
       this.hierarchyId = Number(id);
-       this.getHierarchyById(this.hierarchyId);
+      this.getHierarchyById(this.hierarchyId);
     }
     if (this.parentDepartment != "") {
       this.hierarchyForm.get('parentDepartment')?.setValue(this.parentDepartment);
     }
     if (this.isEditMode && this.editId !== undefined) {
+      console.log('Editing Hierarchy Item:', this.editId);
       // Load the item data and populate the form
       const item = this.hierarchyService.getHierarchyData().find(i => i.id === this.editId);
       if (item) {
         this.items.clear();
         const itemForm = this.formBuilder.group({
           id: [item.id],
-          designation: [item.designation, Validators.required, Validators.maxLength(50)],
+          designation: [item.designation, [Validators.required, Validators.maxLength(50)]],
           escalationTime: [item.escalationTime, [Validators.required, Validators.min(1), Validators.pattern("^[0-9]*$")]],
           // escalationTime: [item.escalationTime, [Validators.required, Validators.min(1)]],
           department: [item.department, Validators.required],
@@ -722,7 +723,17 @@ ngOnInit() {
     )
   }
   blockInvalidKeys(event: KeyboardEvent) {
-    if (event.key === '.' || event.key === '-' || event.key === 'e') {
+    const input = event.target as HTMLInputElement;
+    // if (event.key === '.' || event.key === '-' || event.key === 'e' || event.key === 'E') {
+    if (['.', '-', 'e', 'E'].includes(event.key) || (event.key === '0' && input.value === '')) {
+      event.preventDefault();
+    }
+  }
+
+  handleEscalationPaste(event: ClipboardEvent) {
+    const pastedData = event.clipboardData?.getData('text') || '';
+    // Block if contains 'e', 'E', '.', '-' or starts with '0' or contains non-digits
+    if (/[eE.-]/.test(pastedData) || /^0/.test(pastedData) || !/^\d+$/.test(pastedData)) {
       event.preventDefault();
     }
   }

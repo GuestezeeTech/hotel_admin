@@ -6,13 +6,20 @@ body {
   height: 60vh;
 }
 
-.container {
-  display: flex;
+.tech-cards-container {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 20px;
   background-color: white;
   padding: 5px 20px;
   border-radius: 8px;
   margin-bottom: 20px;
+
+  .card {
+    width: 100%;
+    max-width: 320px;
+    margin: 0 auto;
+  }
 }
 
 .card {
@@ -169,10 +176,7 @@ body {
   background-color: #f8f8f8;
 }
 
-.container {
-  display: flex;
-  gap: 20px;
-}
+/* Removed unused .container class */
 
 .card {
   width: 250px;
@@ -714,5 +718,48 @@ input[type="checkbox"]:disabled+.slider {
 
   to {
     background-position: 200% 0;
+  }
+}
+
+.no-integrations-placeholder {
+  background: #ffffff;
+  border: 1px dashed #e0e0e0;
+  border-radius: 12px;
+  padding: 40px 20px;
+  margin: 20px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+
+  i {
+    font-size: 48px;
+    color: #b0bec5;
+    margin-bottom: 16px;
+    animation: pulse 2s infinite ease-in-out;
+  }
+
+  p {
+    font-family: 'urbanist', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: #78909c;
+    margin: 0;
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.5;
   }
 }

@@ -101,6 +101,8 @@ export class StaffComponent implements OnInit {
   hierarchyOptions: any;
   // View-only mode (when opened from eye icon)
   isViewMode: boolean = false;
+  showPassword: boolean = false;
+  isPageLoading: boolean = false; //newly added for loader
 
 
   constructor(
@@ -134,8 +136,8 @@ export class StaffComponent implements OnInit {
     }
     // Initialize the form with validation rules
     this.staffForm = new FormGroup({
-      email: this.formBuilder.control('', [Validators.required, Validators.pattern(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)]),
-      full_name: this.formBuilder.control('', [Validators.required, Validators.maxLength(30),]),
+      email: this.formBuilder.control('', [Validators.required, Validators.pattern(/^[a-zA-Z0-9%+]+@[a-zA-Z0-9]+\.[a-zA-Z]{2,}$/)]),
+      full_name: this.formBuilder.control('', [Validators.required, Validators.maxLength(30), Validators.minLength(3)]),
       phone_number: this.formBuilder.control('', [Validators.required, Validators.maxLength(10), Validators.pattern(/^[0-9]{10}$/)]),
       // employee_id: this.formBuilder.control('', [Validators.required]),
       // higher_level_hierarchy: this.formBuilder.control('', [Validators.required]),
@@ -148,11 +150,18 @@ export class StaffComponent implements OnInit {
       room_no: this.formBuilder.control('', [Validators.required]),
       is_staff_active: this.formBuilder.control(true),
       at_desk: this.formBuilder.control('', [Validators.required]),
-      password: this.formBuilder.control('', [Validators.required, Validators.minLength(6), Validators.maxLength(30),]),
+      password: this.formBuilder.control(''),
       //  Newly commented because no need of fo desk 
       // front_office_desk: this.formBuilder.control(false)
       // End of newly commented code
     })
+    const isEditModeOrViewMode = this.router.snapshot.params['id'] !== undefined;
+    if (!isEditModeOrViewMode) {
+      this.staffForm.get('password')?.setValidators([Validators.required, Validators.minLength(6), Validators.maxLength(30)]);
+    } else {
+      this.staffForm.get('password')?.setValidators([Validators.minLength(6), Validators.maxLength(30)]);
+    }
+    this.staffForm.get('password')?.updateValueAndValidity();
     // Apply conditional validator for higher_level_officer
     this.updateHigherLevelOfficerValidator();
     // For gettting time slots & room range from settings module
@@ -185,6 +194,11 @@ export class StaffComponent implements OnInit {
     // Detect if opened in view-only mode
     const navState = window.history.state as any;
     this.isViewMode = navState?.mode === 'view';
+    // Newly added for loading
+    const isEditOrView = this.router.snapshot.params['id'] !== undefined;
+    if (isEditOrView) {
+      this.isPageLoading = true;
+    }
 
     try {
       // Wait for customer data to be fetched
@@ -197,9 +211,11 @@ export class StaffComponent implements OnInit {
       } else {
         this.editScreen = false;
         this.createdById = Number(this.localStorageService.get('UserId'));
+        this.isPageLoading = false; // Ensure it's false for creation and newly added for loading
       }
     } catch (error) {
       console.error('Error fetching customer:', error);
+      this.isPageLoading = false;// newly added for loading
     }
 
     // If in view mode, disable the entire form so nothing can be edited
@@ -224,6 +240,7 @@ export class StaffComponent implements OnInit {
   getCustomerById(): Promise<void> {
     const memberId = this.localStorageService.get('MemberId');
     // console.log('getCustomerById called with hotelId:', memberId, this.hotelId);
+    this.loaderService.emitLoading(); // newly added for loading
     return new Promise((resolve, reject) => {
       let requestBody = {
         domain_name: DOMAIN_NAME,
@@ -244,18 +261,24 @@ export class StaffComponent implements OnInit {
             // console.log('Customer Data:', customerdata);
             this.memberId = customerdata.customer_member_id;
             // console.log('Member Id:', this.memberId);
-            this.localStorageService.set('roomRange', JSON.stringify(customerdata?.settings?.room_range));
-            this.localStorageService.set('selectedSlots', JSON.stringify(customerdata?.settings?.shift_timings));
+            // Guard: JSON.stringify(undefined) → JS undefined → localStorage stores as string "undefined"
+            // which then causes JSON.parse("undefined") to throw SyntaxError.
+            const roomRangeJson = customerdata?.settings?.room_range !== undefined
+              ? JSON.stringify(customerdata.settings.room_range) : null;
+            const shiftTimingsJson = customerdata?.settings?.shift_timings !== undefined
+              ? JSON.stringify(customerdata.settings.shift_timings) : null;
+            if (roomRangeJson !== null) this.localStorageService.set('roomRange', roomRangeJson);
+            if (shiftTimingsJson !== null) this.localStorageService.set('selectedSlots', shiftTimingsJson);
             // console.log('Room Range:', this.localStorageService.get('roomRange'));
             // console.log('Selected Slots:', this.localStorageService.get('selectedSlots'));
             const slots = this.localStorageService.get('selectedSlots');
-            this.selectedSlots = slots ? JSON.parse(slots) : [];
+            this.selectedSlots = (slots && slots !== 'undefined') ? JSON.parse(slots) : [];
             // console.log('Selected Slots:', this.selectedSlots);
             const room_ranges = this.localStorageService.get('roomRange');
-            this.roomRanges = room_ranges ? JSON.parse(room_ranges) : [];
+            this.roomRanges = (room_ranges && room_ranges !== 'undefined') ? JSON.parse(room_ranges) : [];
             // console.log('Selected Room Range:', this.roomRanges);
             // Newly added for placeholder member id
-            const memberIdForDisplay = this.memberId.substring(1) + 'XXX';
+            const memberIdForDisplay = this.memberId ? this.memberId.substring(1) + 'XXX' : '';
             this.memberIdDisplay = memberIdForDisplay;
             // console.log('Member Id Display:', this.memberIdDisplay);
             resolve();
@@ -1234,6 +1257,7 @@ export class StaffComponent implements OnInit {
   getOfficerDetails(supervisorIds: any[]) {
     // console.log('Calling 1')
     // console.log('Fetching officers for higher level hierarchy IDs:', supervisorIds);
+    this.loaderService.emitLoading(); //newly added for loading
     const requestBody = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
@@ -1241,6 +1265,7 @@ export class StaffComponent implements OnInit {
     };
     this.staffListingService.getAllStaves(requestBody).subscribe(
       (resp: any) => {
+        this.loaderService.emitComplete(); //newly added for loading
         if (resp?.success === 1 && resp.status_code === 200) {
           const allStaff = resp.result.data || [];
           const officersForSelected: any[] = [];
@@ -1306,6 +1331,7 @@ export class StaffComponent implements OnInit {
         }
       },
       (err) => {
+        this.loaderService.emitComplete(); //newly added for loading
         console.error('Error fetching officers:', err);
         if (err?.error?.statusCode === 403) {
           this.routerUrl.navigate(['/login']);
@@ -1370,6 +1396,7 @@ export class StaffComponent implements OnInit {
 
   async getChildHierarchy(supervisorIds: any[], respData?: any) {
     // console.log('Fetching child hierarchy for supervisor IDs:', supervisorIds);
+    this.loaderService.emitLoading(); //newly added for loading
     const requestBody = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
@@ -1708,6 +1735,10 @@ export class StaffComponent implements OnInit {
                     relativeTo: this.router,
                     skipLocationChange: false
                   }), 1000);
+              } else if (resp && resp.success === 0) {
+                if (resp.message) {
+                  this.alertService.error(resp.message, this.alertOptions);
+                }
               } else if (resp.message) {
                 this.alertService.error(resp.message, this.alertOptions);
               } else {
@@ -1818,7 +1849,7 @@ export class StaffComponent implements OnInit {
           // End of newly commented code
         };
         // only include password if changed
-        if (formValues.password && formValues.password !== '********') {
+        if (formValues.password) {
           payloadData.password = formValues.password;
         }
         // Add higher_level_officer only if condition true
@@ -1847,6 +1878,10 @@ export class StaffComponent implements OnInit {
                   relativeTo: this.router,
                   skipLocationChange: false
                 }), 1000);
+            } else if (resp && resp.success === 0) {
+              if (resp.message) {
+                this.alertService.error(resp.message, this.alertOptions);
+              }
             } else if (resp.message) {
               this.alertService.error(resp.message, this.alertOptions);
             } else {
@@ -1992,6 +2027,7 @@ export class StaffComponent implements OnInit {
     this.staffService.getStaffById(jsonObj).subscribe(
       (resp: any) => {
         this.loaderService.emitComplete();
+        this.isPageLoading = false; //newly added for loading
         if (resp.success === 1 && resp.status_code === 200) {
           const respData = resp.result.data[0];
           // Patch basic info
@@ -2008,7 +2044,7 @@ export class StaffComponent implements OnInit {
           // Password handling
           if (respData?.password) {
             this.password = respData?.password;
-            this.staffForm.patchValue({ password: '********' });
+            this.staffForm.patchValue({ password: '' });
           }
           // Shift times and rooms
           this.selectedShiftTimes = respData?.shift_time || [];
@@ -2060,9 +2096,11 @@ export class StaffComponent implements OnInit {
                 (s.id ?? s._id ?? '').toString() === (h.id ?? h._id ?? '').toString()
               ) || h
             );
-            // Patch the control (keep enabled per your requirement)
+            // Patch the control (keep enabled per your requirement if not in view mode)
             this.staffForm.patchValue({ higher_level_hierarchy: this.selectedHierarchies });
-            this.staffForm.get('higher_level_hierarchy')?.enable({ emitEvent: false });
+            if (!this.isViewMode) {
+              this.staffForm.get('higher_level_hierarchy')?.enable({ emitEvent: false });
+            }
             // Fetch child hierarchy for all selected supervisors and pass respData
             const selectedIds = this.selectedHierarchies.map((h: any) => (h.id ?? h._id));
             this.getChildHierarchy(selectedIds, respData);
@@ -2076,6 +2114,7 @@ export class StaffComponent implements OnInit {
       },
       (err) => {
         this.loaderService.emitComplete();
+        this.isPageLoading = false; // newly added for loading
         if (err.error?.statusCode === 403) {
           this.alertService.error('Session Time Out! Please login Again', this.alertOptions);
           this.routerUrl.navigate(['/login']);
@@ -2087,6 +2126,7 @@ export class StaffComponent implements OnInit {
   }
 
   getCustomerHierarchy(): void {
+    this.loaderService.emitLoading(); //newly added for loading
     const requestBody = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
@@ -2165,12 +2205,10 @@ export class StaffComponent implements OnInit {
   }
 
   // Close dropdowns when clicking anywhere outside
-  @HostListener('document:mousedown', ['$event'])
+  // @HostListener('document:mousedown', ['$event'])
+  @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
-    // console.log('event.target:', event.target);
-    if (!this.eRef.nativeElement.contains(event.target)) {
-      this.closeAllDropdowns();
-    }
+    this.closeAllDropdowns();
   }
 
   toggleDropdown(event: MouseEvent, dropdownName: string) {
@@ -2198,6 +2236,21 @@ export class StaffComponent implements OnInit {
     this.validateForm = false; // or
     // optionally mark control as pristine to hide errors
     this.staffForm.get(controlName)?.markAsPristine();
+  }
+
+  togglePasswordVisibility() {
+    this.showPassword = !this.showPassword;
+  }
+
+  isPasswordToggleDisabled(): boolean {
+    if (this.isViewMode) {
+      return true;
+    }
+    const passwordVal = this.staffForm?.get('password')?.value;
+    if (this.enableEdit) {
+      return !passwordVal || passwordVal === '********';
+    }
+    return !passwordVal;
   }
 
 

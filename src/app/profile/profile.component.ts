@@ -65,7 +65,8 @@ export class ProfileComponent implements OnInit {
   imageName: string = '';
   enableEdit: boolean = true;
   imgFile: File | null = null;
-  profile_image: string | null = '../../assets/images/guestezee/profile.png';
+  // profile_image: string | null = '../../assets/images/guestezee/profile.png';
+  profile_image: string | null = 'https://images.ecbee.net/GuestEzee/Brand/ChatGPT_Image_Jun_19__2026__01_25_37_PM.webp';
 
 
   constructor(
@@ -99,6 +100,8 @@ export class ProfileComponent implements OnInit {
         this.mail = this.localService.get('UserEmail');
         //console.log("mail", this.mail);
         const profileImage = data?.profile_image?.trim() || null;
+        // this.profile_image = profileImage || '../../assets/images/guestezee/profile.png';
+        this.profile_image = profileImage || 'https://images.ecbee.net/GuestEzee/Brand/ChatGPT_Image_Jun_19__2026__01_25_37_PM.webp';
         let profileName: string;
         if (this.customerType === 'Staff') {
           profileName = data?.full_name ? data?.full_name.trim() : data?.phone_number;
@@ -139,7 +142,8 @@ export class ProfileComponent implements OnInit {
     if (this.customerType === 'Staff') {
       this.userRegistartionForm = this.formBuilder.group({
         full_name: ['', [Validators.maxLength(40), Validators.pattern("^[a-zA-Z][a-z A-Z]*$")]],
-        profile_image: '../../assets/images/guestezee/profile.png',
+        // profile_image: '../../assets/images/guestezee/profile.png',
+        profile_image: 'https://images.ecbee.net/GuestEzee/Brand/ChatGPT_Image_Jun_19__2026__01_25_37_PM.webp',
         imageFile: [''],
       });
     }
@@ -147,7 +151,8 @@ export class ProfileComponent implements OnInit {
       this.userRegistartionForm = this.formBuilder.group({
         first_name: ['', [Validators.maxLength(40), Validators.pattern("^[a-zA-Z][a-z A-Z]*$")]],
         last_name: ['', [Validators.maxLength(40), Validators.pattern("^[a-zA-Z][a-z A-Z]*$")]],
-        profile_image: '../../assets/images/guestezee/profile.png',
+        // profile_image: '../../assets/images/guestezee/profile.png',
+        profile_image: 'https://images.ecbee.net/GuestEzee/Brand/ChatGPT_Image_Jun_19__2026__01_25_37_PM.webp',
         imageFile: [''],
       });
     }
@@ -155,7 +160,12 @@ export class ProfileComponent implements OnInit {
       current_password: ['', [Validators.minLength(6), Validators.required]],
       new_password: ['', [Validators.minLength(6), Validators.required]],
       confirm_password: ['', [Validators.minLength(6), Validators.required]],
-    });
+    },
+      // Newly added for matching new password and confirm password
+      {
+        validators: this.passwordMatchValidator('new_password', 'confirm_password')
+      });
+    // End of newly added for matching new password and confirm password
   }
 
   get f() { return this.userRegistartionForm.controls; }
@@ -175,86 +185,109 @@ export class ProfileComponent implements OnInit {
   }
 
   imageupload(event: any): void {
-    let dragEvent = false
-    let file_data = { name: "", size: 0 }
-    //CHECKING DRAG EVENT OR UPLOAD EVENT
-    if (event.target && event.target.files && event.target.files[0]) {
-      file_data = event.target.files[0]
-    }
-    else {
-      file_data = event.dataTransfer.files[0]
-      dragEvent = true
-    }
-    this.validateImage = true;
-    var reader = new FileReader();
-    this.imageName = file_data.name
-    let splitFileName = this.imageName.split(".")
-    //CHECKING FILE NAME
-    // if (splitFileName.length == 0) {
-    //   this.userRegistartionForm.controls['imageFile'].setErrors({ 'invalid': true });
-    //   return
-    // }
+    let dragEvent = false;
+    let file_data = { name: "", size: 0 };
+    let originalFile: File | null = null;
 
-    // if (file_data.size == 0) {
-    //   this.userRegistartionForm.controls['imageFile'].setErrors({ 'sizezero': true });
-    //   return
-    // }
+    if (event.target && event.target.files && event.target.files[0]) {
+      originalFile = event.target.files[0];
+      file_data = event.target.files[0];
+    } else if (event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0]) {
+      originalFile = event.dataTransfer.files[0];
+      file_data = event.dataTransfer.files[0];
+      dragEvent = true;
+    }
+
+    if (!originalFile) {
+      return;
+    }
+
+    this.validateImage = true;
+    this.imageName = file_data.name;
+    let splitFileName = this.imageName.split(".");
 
     if (Math.round((file_data.size / 1000)) > 2000) {
       this.userRegistartionForm.controls['imageFile'].setErrors({ 'sizehigh': true });
-      return
+      this.alertService.error("File size must be less than 2MB.", this.options);
+      if (event.target) {
+        event.target.value = '';
+      }
+      return;
     }
-    //CHECKING FILE TYPE
+
     if (!["jpg", "jpeg", "png", "gif", "JPG", "JPEG", "PNG", "GIF"].includes(splitFileName[splitFileName.length - 1])) {
       this.userRegistartionForm.controls['imageFile'].setErrors({ 'type': true });
-      return
+      this.alertService.error("Invalid image format. Allowed types: JPG, JPEG, PNG, GIF.", this.options);
+      if (event.target) {
+        event.target.value = '';
+      }
+      return;
     }
-    // this.userRegistartionForm.controls['imageFile'].setErrors({ 'invalid': false });
-    // this.userRegistartionForm.controls['imageFile'].setErrors({ 'sizezero': false });
+
     this.userRegistartionForm.controls['imageFile'].setErrors({ 'type': false });
     this.userRegistartionForm.controls['imageFile'].setErrors({ 'sizehigh': false });
-    reader.onload = (evt: any) => {
-      this.previewImgUrl = evt.target.result;
-      //console.log('Image url:', this.previewImgUrl)
-      this.userRegistartionForm.controls['imageFile'].setValue(evt.target.result)
-      this.imgFile = event.target.files[0];
-    }
-    //BASED ON EVENT READ FILE
-    if (!dragEvent) {
-      reader.readAsDataURL(event.target.files[0]);
-      this.imgFile = event.target.files[0];
-      //console.log('Image file 1:', this.imgFile)
-    }
-    else {
-      reader.readAsDataURL(event.dataTransfer.files[0]);
-      this.imgFile = event.dataTransfer.files[0];
-      //console.log('Image file 2:', this.imgFile)
-    }
-    let headers = new HttpHeaders().set("source", "Brand").set("domain_name", DOMAIN_NAME);
-    let formData_imageCate = new FormData();
-    if (this.imgFile !== null) {
-      formData_imageCate.append('upload', this.imgFile)
-    }
-    this.profileService.sendImage(formData_imageCate, headers).subscribe(resp => {
-      if (resp && resp.success === 1 && resp.status_code === 200) {
-        let imgVariable = resp.result.data[0];
-        if (this.imgFile !== null) {
-          this.profile_image = imgVariable.location;
-          //console.log("this.logoImage" + this.profile_image)
-          // Store profile image in localStorage
-          this.profileUpdate(this.profile_image)
+
+    // Validate dimensions: must be exactly 200 x 200 pixels to look good in header profile
+    const img = new Image();
+    img.src = window.URL.createObjectURL(originalFile);
+    img.onload = () => {
+      const width = img.naturalWidth;
+      const height = img.naturalHeight;
+      window.URL.revokeObjectURL(img.src);
+
+      if (width !== 200 || height !== 200) {
+        this.userRegistartionForm.controls['imageFile'].setErrors({ 'dimensions': true });
+        this.alertService.error(`Image dimensions must be exactly 200 × 200 pixels. (Uploaded image: ${width} × ${height} pixels)`, this.options);
+        if (event.target) {
+          event.target.value = '';
         }
+        return;
       }
-    })
-    //Reset file input
-    if (event.target) {
-      event.target.value = '';
-    }
+
+      // Valid size - proceed with preview and upload original file to maintain quality
+      this.imgFile = originalFile;
+      
+      const reader = new FileReader();
+      reader.onload = (evt: any) => {
+        this.previewImgUrl = evt.target.result;
+        this.userRegistartionForm.controls['imageFile'].setValue(evt.target.result);
+      };
+      reader.readAsDataURL(originalFile);
+
+      let headers = new HttpHeaders().set("source", "Brand").set("domain_name", DOMAIN_NAME);
+      let formData_imageCate = new FormData();
+      formData_imageCate.append('upload', originalFile);
+
+      this.profileService.sendImage(formData_imageCate, headers).subscribe(resp => {
+        if (resp && resp.success === 1 && resp.status_code === 200) {
+          let imgVariable = resp.result.data[0];
+          this.profile_image = imgVariable.location;
+          this.profileUpdate(this.profile_image, "Profile image uploaded successfully!");
+        }
+        if (event.target) {
+          event.target.value = '';
+        }
+      }, error => {
+        this.alertService.error("Error uploading profile image.", this.options);
+        if (event.target) {
+          event.target.value = '';
+        }
+      });
+    };
+
+    img.onerror = () => {
+      window.URL.revokeObjectURL(img.src);
+      this.alertService.error('Invalid image file.', this.options);
+      if (event.target) {
+        event.target.value = '';
+      }
+    };
   }
 
   deleteImage() {
-    this.profile_image = '../../assets/images/guestezee/profile.png';
-    this.profileUpdate(this.profile_image);
+    // this.profile_image = '../../assets/images/guestezee/profile.png';
+    this.profile_image = 'https://images.ecbee.net/GuestEzee/Brand/ChatGPT_Image_Jun_19__2026__01_25_37_PM.webp';
+    this.profileUpdate(this.profile_image, "Profile image deleted successfully!");
     this.userRegistartionForm.controls['imageFile'].setErrors({ 'type': false });
     this.userRegistartionForm.controls['imageFile'].setErrors({ 'sizehigh': false });
     this.closeExitModal();
@@ -311,7 +344,7 @@ export class ProfileComponent implements OnInit {
   //   })
   // }
 
-  profileUpdate(profile_image: any) {
+  profileUpdate(profile_image: any, successMessage: string = "Profile updated successfully!") {
     //console.log("profile_image", profile_image)
     if (this.userRegistartionForm.valid) {
       let formData;
@@ -346,7 +379,7 @@ export class ProfileComponent implements OnInit {
       this.profileService.postApiCall(updateData, ENDPOINTS.UPDATE_LOGIN_CUSTOMER).subscribe(resp => {
         if (resp.success === 1) {
           //console.log("Update Success:", resp);
-          this.alertService.success("Profile updated successfully!", this.options);
+          this.alertService.success(successMessage, this.options);
           // Manually patch the form and service with the updated data
           const updatedProfileImage = profile_image || this.userRegistartionForm.value.profile_image;
           const updatedProfileName = this.customerType == 'Staff' ? this.userRegistartionForm.value.full_name : `${this.userRegistartionForm.value.first_name} ${this.userRegistartionForm.value.last_name}`.trim();
@@ -453,22 +486,28 @@ export class ProfileComponent implements OnInit {
       const storedPassword = this.localService.get('Password');
       //console.log("pwrd", storedPassword)
       const currentPassword = this.p['current_password'].value;
+      let hasError = false;
+
       // Check if current password matches the stored password
-      if (storedPassword !== currentPassword) {
+      if (storedPassword && storedPassword !== currentPassword) {
         this.p['current_password'].setErrors({ incorrect: true });
         this.alertService.error("Current Password is incorrect.", this.options);
-        return;
+        hasError = true;
       }
-      // Ensure passwords match
-      if (this.p['new_password'].value == storedPassword) {
-        // console.log("newPassword", this.p['new_password'].value, "storedPassword", storedPassword)
-        this.alertService.error(("New Password cannot be same as old Password"), this.options);
-        return;
+      // Ensure new password isn't same as old password
+      if (storedPassword && this.p['new_password'].value == storedPassword) {
+        this.p['new_password'].setErrors({ sameAsOld: true });
+        this.alertService.error("New Password cannot be same as old Password", this.options);
+        hasError = true;
       }
       // Ensure passwords match
       if (this.p['new_password'].value !== this.p['confirm_password'].value) {
         this.p['confirm_password'].setErrors({ matchError: true });
         this.alertService.error("New Password and Confirm Password do not match.", this.options);
+        hasError = true;
+      }
+
+      if (hasError) {
         return;
       }
       let formData: any = {
@@ -512,7 +551,7 @@ export class ProfileComponent implements OnInit {
           this.alertService.error("Error updating password: " + (err.error?.message || "Please try again!"), this.options);
           setTimeout(() => {
             this.alertService.clear(); // Clears the alert message
-          }, 2000);
+          }, 6000);
         }
       );
     } else {
@@ -534,7 +573,7 @@ export class ProfileComponent implements OnInit {
     if (event.target === event.currentTarget) {
       this.passwordUpdateForm.reset(); // Resets all input fields
       this.isPasswordModalOpen = false;
-      // this.validateForm2 = false;
+      this.validateForm2 = false; // Clear validation state so errors don't show when reopened
     }
   }
 
@@ -609,69 +648,63 @@ export class ProfileComponent implements OnInit {
     try {
       const userId = Number(this.localService.get('UserId'));
       const customerType = this.localService.get('CustomerType');
-      // console.log('Logging out userId:', userId, 'customerType:', customerType);
-      if (!userId) return;
-      const currentToken = await this.pushService.getCurrentToken();
-      // console.log('Current FCM token to remove:', currentToken);
-      // Prepare Customer fetch body dynamically based on user type
-      const customerFindKey = customerType === 'Staff' ? 'staff_id' : 'id';
-      const customerFetchBody = {
-        domain_name: DOMAIN_NAME,
-        user_id: USER_ID,
-        extras: { find: { [customerFindKey]: userId } }
-      };
-      // Remove FCM token from Customer table
-      const customerResp: any = await this.hotellistService.getSignupAllCustomers(customerFetchBody).toPromise();
-      if (customerResp.success === 1 && customerResp.result.data.length > 0) {
-        const customer = customerResp.result.data[0];
-        // console.log('Fetched customer for FCM removal:', customer);
-        if (Array.isArray(customer.fcm_token)) {
-          customer.fcm_token = customer.fcm_token.filter((t: string) => t !== currentToken);
-          const updateBody = {
-            domain_name: DOMAIN_NAME,
-            user_id: USER_ID,
-            payload: { customer_update: { fcm_token: customer.fcm_token } },
-            extras: { find: { [customerFindKey]: userId } }
-          };
-          await this.hotelenrollmenttabviewService.updateCustomerFcm(updateBody).toPromise();
-          // console.log('FCM token removed for customer:', currentToken);
-        }
-      }
-      // Remove FCM token from Staff table only if user is Staff
-      if (customerType === 'Staff') {
-        const staffFetchBody = {
-          domain_name: DOMAIN_NAME,
-          user_id: USER_ID,
-          extras: { find: { id: userId } }
-        };
-        const staffResp: any = await this.taskManagementService.getAllStaves(staffFetchBody).toPromise();
-        if (staffResp.success === 1 && staffResp.result.data.length > 0) {
-          const staff = staffResp.result.data[0];
-          // console.log('Fetched staff for FCM removal:', staff);
-          if (Array.isArray(staff.fcm_token)) {
-            staff.fcm_token = staff.fcm_token.filter((t: string) => t !== currentToken);
-            const updateBody = {
+      if (userId) {
+        // Run FCM removal with a strict timeout (e.g. 1000ms) so it never blocks the logout
+        await Promise.race([
+          (async () => {
+            const currentToken = await this.pushService.getCurrentToken();
+            const customerFindKey = customerType === 'Staff' ? 'staff_id' : 'id';
+            const customerFetchBody = {
               domain_name: DOMAIN_NAME,
               user_id: USER_ID,
-              payload: { staff_updation: { fcm_token: staff.fcm_token } },
-              extras: { find: { id: userId } }
+              extras: { find: { [customerFindKey]: userId } }
             };
-            await this.staffService.updateStaff(updateBody).toPromise();
-            // console.log('FCM token removed for staff:', currentToken);
-          }
-          // Newly added is_available to false on staff logout
-          const availableUpdateBody = {
-            domain_name: DOMAIN_NAME,
-            user_id: USER_ID,
-            payload: { staff_updation: { is_available: false } },
-            extras: { find: { id: userId } }
-          };
-          await this.staffService.updateStaff(availableUpdateBody).toPromise();
-          // console.log('Staff is_available set to false on logout');
-          // End of newly added is_available to false on staff logout
-        }
+            const customerResp: any = await this.hotellistService.getSignupAllCustomers(customerFetchBody).toPromise();
+            if (customerResp.success === 1 && customerResp.result.data.length > 0) {
+              const customer = customerResp.result.data[0];
+              if (Array.isArray(customer.fcm_token)) {
+                customer.fcm_token = customer.fcm_token.filter((t: string) => t !== currentToken);
+                const updateBody = {
+                  domain_name: DOMAIN_NAME,
+                  user_id: USER_ID,
+                  payload: { customer_update: { fcm_token: customer.fcm_token } },
+                  extras: { find: { [customerFindKey]: userId } }
+                };
+                await this.hotelenrollmenttabviewService.updateCustomerFcm(updateBody).toPromise();
+              }
+            }
+            if (customerType === 'Staff') {
+              const staffFetchBody = {
+                domain_name: DOMAIN_NAME,
+                user_id: USER_ID,
+                extras: { find: { id: userId } }
+              };
+              const staffResp: any = await this.taskManagementService.getAllStaves(staffFetchBody).toPromise();
+              if (staffResp.success === 1 && staffResp.result.data.length > 0) {
+                const staff = staffResp.result.data[0];
+                if (Array.isArray(staff.fcm_token)) {
+                  staff.fcm_token = staff.fcm_token.filter((t: string) => t !== currentToken);
+                  const updateBody = {
+                    domain_name: DOMAIN_NAME,
+                    user_id: USER_ID,
+                    payload: { staff_updation: { fcm_token: staff.fcm_token } },
+                    extras: { find: { id: userId } }
+                  };
+                  await this.staffService.updateStaff(updateBody).toPromise();
+                }
+                const availableUpdateBody = {
+                  domain_name: DOMAIN_NAME,
+                  user_id: USER_ID,
+                  payload: { staff_updation: { is_available: false } },
+                  extras: { find: { id: userId } }
+                };
+                await this.staffService.updateStaff(availableUpdateBody).toPromise();
+              }
+            }
+          })(),
+          new Promise<void>((resolve) => setTimeout(resolve, 1000))
+        ]);
       }
-      // await this.pushService.deleteCurrentToken();
     } catch (err) {
       console.error('Error removing FCM token on logout:', err);
     }
@@ -711,16 +744,35 @@ export class ProfileComponent implements OnInit {
     this.localService.remove('roleName');
     this.localService.remove('roleModules');
     this.localService.remove('outlet_id');
-    this.router.navigate([''], { skipLocationChange: false });
+    this.localService.remove('profile_name');
+    this.localService.remove('profile_image');
+    this.localService.remove('Name');
+    this.localService.remove('paymentDone');
+    this.localService.remove('lastValidUrl');
+    this.localService.set('loggedOut', 'true');
+    this.router.navigate([''], { skipLocationChange: false, replaceUrl: true });
     this.userAccessService.removeUserAccess();
-
-    // If using Angular Router
-    // this.router.navigate(['/login'], { replaceUrl: true });
-    this.router.navigate([''], { replaceUrl: true });
-    // Or using plain JavaScript
-    // window.location.replace('/login');
-
   }
+
+  // Newly added for matching new password and confirm password
+  passwordMatchValidator(controlName: string, matchingControlName: string) {
+    return (formGroup: UntypedFormGroup) => {
+      const control = formGroup.controls[controlName];
+      const matchingControl = formGroup.controls[matchingControlName];
+      if (!control || !matchingControl) {
+        return;
+      }
+      const errors = { ...matchingControl.errors };
+      if (control.value !== matchingControl.value) {
+        errors['matchError'] = true;
+        matchingControl.setErrors(errors);
+      } else {
+        delete errors['matchError'];
+        matchingControl.setErrors(Object.keys(errors).length ? errors : null);
+      }
+    };
+  }
+  // End of newly added for matching new password and confirm password
 
 }
 

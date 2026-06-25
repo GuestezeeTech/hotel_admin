@@ -1,0 +1,147 @@
+<div class="main">
+    <app-alerts></app-alerts>
+    <div class="centered-container">
+        <div class="header-section">
+            <div>
+                <h4 class="title mb-0">Service Tab Management</h4>
+                <p class="intro mb-1">
+                    Manage your tabs — add, edit, or remove existing ones easily.
+                </p>
+                <!-- Guest App Hint -->
+                <div class="guest-app-hint mb-1">
+                    <i class="fa-solid fa-circle-info"></i>
+                    Service tabs created here will be displayed in the <b>Guest App</b> for listing services under each
+                    tab.
+                </div>
+            </div>
+            <!-- Add Service Tab -->
+            <div class="add-department-section">
+                <button class="add-btn" (click)="canAddSystemSettings ? openAddModal() : null"
+                    [disabled]="!canAddSystemSettings || !canReadSystemSettings">
+                    + Add Service Tab
+                </button>
+            </div>
+        </div>
+        <!-- Loader -->
+        <div *ngIf="isLoading" class="d-flex justify-content-center align-items-center" style="min-height: 400px;">
+            <div class="text-center">
+                <div class="spinner-border" role="status" style="color: #800020;">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-3 text-muted">Loading service tabs...</p>
+            </div>
+        </div>
+        <!-- Service Tab List -->
+        <div class="department-list" *ngIf="serviceTabs.length > 0 && !isLoading && canReadSystemSettings">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <p class="sub-title">Existing Service Tabs</p>
+                <!-- HINT -->
+                <div class="service-hint">
+                    <i class="fa-solid fa-hand-pointer"></i>
+                    Click on a <b>Service Tab</b> to view the services under it
+                </div>
+            </div>
+            <div *ngIf="serviceTabs.length > 0; else noDept" class="dept-grid">
+                <div class="dept-card" *ngFor="let serviceTab of serviceTabs; let i = index"
+                    (click)="canReadSystemSettings ? onSelectServiceTab(serviceTab) : null"
+                    [class.active]="selectedTab?.id === serviceTab.id">
+                    <div class="dept-info">
+                        <span class="dept-name">{{ serviceTab.name }}</span>
+                    </div>
+                    <div class="actions">
+                        <!-- View icon: allowed when read permission is present -->
+                        <button class="view-btn"
+                            (click)="canReadSystemSettings ? openViewModal(serviceTab, serviceTab.id) : null"
+                            [disabled]="!canReadSystemSettings" title="View">
+                            <i class="fa-regular fa-eye"></i>
+                        </button>
+                        <button class="edit-btn"
+                            (click)="canEditSystemSettings ? openEditModal(serviceTab, serviceTab.id) : null"
+                            [disabled]="!canEditSystemSettings" title="Edit">
+                            Edit
+                        </button>
+                        <button class="delete-btn"
+                            (click)="canDeleteSystemSettings ? openDeleteModal(serviceTab, serviceTab.id) : null"
+                            [disabled]="!canDeleteSystemSettings" title="Delete">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <ng-template #noDept>
+                <p class="no-dept">No service tabs added yet.</p>
+            </ng-template>
+            <div class="service-list" *ngIf="selectedTab && canReadSystemSettings">
+                <h5 class="service-title">
+                    Services under "{{ selectedTab.name }}"
+                </h5>
+                <!-- Loader for Services -->
+                <div *ngIf="isLoadingServices" class="d-flex justify-content-center align-items-center py-5">
+                    <div class="text-center">
+                        <div class="spinner-border spinner-border-sm" role="status" style="color: #800020;">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2 text-muted" style="font-size: 14px;">Loading services...</p>
+                    </div>
+                </div>
+                <div class="service-grid" *ngIf="services && services.length > 0 && !isLoadingServices">
+                    <div class="service-card" *ngFor="let service of services">
+                        <span>{{ service.name }}</span>
+                        <!-- <small>{{ service.description }}</small> -->
+                    </div>
+                </div>
+                <div *ngIf="(!services || services.length === 0) && !isLoadingServices">
+                    <p class="no-dept">No services found for this tab.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ADD/EDIT MODAL -->
+<div *ngIf="isModalOpen" class="modal-wrapper">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content" (click)="$event.stopPropagation()">
+        <h4 class="modal-title">
+            {{ isViewMode ? 'View Service Tab' : (isEditMode ? 'Edit Service Tab' : 'Add Service Tab') }}
+        </h4>
+        <!-- Service Tab Name -->
+        <!-- <input type="text" placeholder="Enter service tab name" [(ngModel)]="newServiceTabName" maxlength="50"
+            (input)="onNameInputChange()" class="dept-input" (keydown)="restrictSpecialChars($event)"
+            [readonly]="isViewMode || (!isEditMode && !canAddSystemSettings) || (isEditMode && !canEditSystemSettings)" /> -->
+        <input type="text" placeholder="Enter service tab name" [(ngModel)]="newServiceTabName" maxlength="50"
+            (input)="onNameInputChange()" class="dept-input" (keypress)="blockNumbersOnly($event)"
+            (paste)="handleNamePaste($event)" [attr.maxlength]="isViewMode || (!isEditMode && !canAddSystemSettings) || (isEditMode && !canEditSystemSettings) ? 50 : null"
+            [readonly]="isViewMode || (!isEditMode && !canAddSystemSettings) || (isEditMode && !canEditSystemSettings)" />
+           <p *ngIf="maxlengthError" class="error-text">Maximum 50 characters allowed.</p>
+        <p *ngIf="nameError" class="error-text">Service tab name is required.</p>
+        <!-- Service Tab Description (optional) -->
+        <!-- <textarea placeholder="Enter description (optional)" [(ngModel)]="newServiceTabDescription" class="dept-input"
+            rows="3" (keypress)="restrictSpecialChars($event)" 
+            [readonly]="isViewMode || (!isEditMode && !canAddSystemSettings) || (isEditMode && !canEditSystemSettings)"></textarea> -->
+        <textarea placeholder="Enter description (optional)" [(ngModel)]="newServiceTabDescription" class="dept-input"
+            rows="3"
+            [readonly]="isViewMode || (!isEditMode && !canAddSystemSettings) || (isEditMode && !canEditSystemSettings)"></textarea>
+        <div class="modal-actions">
+            <button class="save-btn" (click)="isViewMode ? closeModal() : saveServiceTab()"
+                [disabled]="!isViewMode && ((!isEditMode && !canAddSystemSettings) || (isEditMode && !canEditSystemSettings))">
+                {{ isViewMode ? 'Close' : (isEditMode ? 'Update' : 'Add') }}
+            </button>
+            <button *ngIf="!isViewMode" class="cancel-btn" (click)="closeModal()">
+                Cancel
+            </button>
+        </div>
+    </div>
+</div>
+<!-- DELETE CONFIRMATION MODAL -->
+<div *ngIf="isDeleteModalOpen" class="modal-wrapper">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content" (click)="$event.stopPropagation()">
+        <h4 class="modal-title">Confirm Delete</h4>
+        <p>Are you sure you want to delete <b>{{ selectedServiceTab?.name }}</b>?</p>
+        <div class="modal-actions">
+            <button class="save-btn" (click)="confirmDelete()">Yes, Delete</button>
+            <button class="cancel-btn" (click)="closeDeleteModal()">Cancel</button>
+        </div>
+    </div>
+</div>

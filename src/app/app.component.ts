@@ -1,5 +1,5 @@
-import { Component, OnInit } from '@angular/core';
-import { Router, NavigationEnd, RouterOutlet } from '@angular/router';
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Router, NavigationStart, NavigationEnd, NavigationCancel, NavigationError, RouteConfigLoadStart, RouteConfigLoadEnd, RouterOutlet } from '@angular/router';
 import { LoginComponent } from './login/login.component';
 import { MenuBarComponent } from './shared/menu-bar/menu-bar.component';
 import { HeaderComponent } from './shared/header/header.component';
@@ -7,21 +7,151 @@ import { LocalStorageService } from './auth-services/local-storage.service';
 import { PushService } from './services/push.service';
 import { NotificationService } from './notification/notification.service';
 import { ProfileService } from './profile/profile.service';
+import { LogoutService } from './services/logout.service';
+import { PermissionService } from './services/permission.service';
+import { LoaderComponent } from './shared/loader/loader.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, MenuBarComponent, HeaderComponent, LoginComponent],
+  imports: [RouterOutlet, MenuBarComponent, HeaderComponent, LoginComponent, LoaderComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
 })
-export class AppComponent implements OnInit {
+export class AppComponent implements OnInit, OnDestroy {
   title = 'GUESTEZEE_ADMIN';
+
+  // Checks whether the given input element is an email/mail field
+  private isEmailInputField(target: HTMLInputElement): boolean {
+    const type = (target.getAttribute('type') || 'text').toLowerCase();
+    const name = (target.getAttribute('name') || '').toLowerCase();
+    const id = (target.id || '').toLowerCase();
+    const fcn = (target.getAttribute('formcontrolname') || '').toLowerCase();
+    const ph = (target.getAttribute('placeholder') || '').toLowerCase();
+    return (
+      type === 'email' ||
+      name === 'email' || name === 'mail' || name.includes('email') ||
+      (name.includes('mail') && !name.includes('address')) ||
+      id === 'email' || id === 'mail' || id.includes('email') ||
+      (id.includes('mail') && !id.includes('address')) ||
+      fcn === 'email' || fcn === 'mail' || fcn.includes('email') ||
+      (fcn.includes('mail') && !fcn.includes('address')) ||
+      ph.includes('email') ||
+      (ph.includes('mail') && !ph.includes('address'))
+    );
+  }
+
+  // Flag to suppress handleGlobalInput for the synthetic event we dispatch ourselves
+  private _suppressInput = false;
+
+  // Keydown handler: intercepts uppercase characters BEFORE browser inserts them.
+  // This avoids Angular's reactive form writeValue() resetting the cursor to end.
+  handleGlobalKeydown = (event: KeyboardEvent) => {
+    const target = event.target as HTMLInputElement;
+    if (!target) return;
+    const tag = target.tagName;
+    const type = (target.getAttribute('type') || 'text').toLowerCase();
+    const isTextEntry = tag === 'TEXTAREA' || (tag === 'INPUT' && ['text', 'email', 'search', 'url', 'tel'].includes(type));
+    if (!isTextEntry) return;
+    if (!this.isEmailInputField(target)) return;
+
+    // Check if the placeholder contains "Email" or "Employee ID"
+    const ph = (target.getAttribute('placeholder') || '').toLowerCase();
+    const hasEmailOrEmpId = ph.includes('email') || ph.includes('employee id') || ph.includes('employeeid');
+
+    if (hasEmailOrEmpId) {
+      // Wait until the user types '@'. If they haven't typed '@', leave whatever they typed
+      const hasAt = target.value.includes('@') || event.key === '@';
+      if (!hasAt) {
+        return;
+      }
+    }
+
+    // Only intercept single uppercase letters (A-Z), skip shortcuts like Ctrl+C
+    if (
+      event.key.length === 1 &&
+      event.key >= 'A' && event.key <= 'Z' &&
+      !event.ctrlKey && !event.metaKey && !event.altKey
+    ) {
+      event.preventDefault();
+      const start = target.selectionStart ?? target.value.length;
+      const end = target.selectionEnd ?? target.value.length;
+      const cursorAfter = start + 1; // where cursor should land after inserting 1 char
+
+      // Manually insert the lowercase character at the current cursor position
+      const lower = event.key.toLowerCase();
+      target.value = target.value.slice(0, start) + lower + target.value.slice(end);
+
+      // Notify Angular's reactive form / ngModel that the value changed.
+      // Suppress our own handleGlobalInput from reacting to this synthetic event.
+      // Angular's (input)="clearError('email')" may call markAsPristine() → CD → writeValue()
+      // which resets cursor to end. So we restore AFTER via microtask.
+      this._suppressInput = true;
+      target.dispatchEvent(new Event('input', { bubbles: true }));
+      this._suppressInput = false;
+
+      // Restore cursor AFTER Angular's synchronous markAsPristine/writeValue pipeline
+      Promise.resolve().then(() => {
+        try {
+          target.setSelectionRange(cursorAfter, cursorAfter);
+        } catch (e) { }
+      });
+    }
+  };
+
+  // Input handler: handles paste / autofill / IME — no cursor issue in those cases
+  handleGlobalInput = (event: Event) => {
+    if (this._suppressInput) return; // ignore our own synthetic event
+    const target = event.target as HTMLInputElement;
+    if (!target) return;
+    const tag = target.tagName;
+    const type = (target.getAttribute('type') || 'text').toLowerCase();
+    const isTextEntry = tag === 'TEXTAREA' || (tag === 'INPUT' && ['text', 'email', 'search', 'url', 'tel'].includes(type));
+    if (!isTextEntry) return;
+    if (!this.isEmailInputField(target)) return;
+
+    // Check if the placeholder contains "Email" or "Employee ID"
+    const ph = (target.getAttribute('placeholder') || '').toLowerCase();
+    const hasEmailOrEmpId = ph.includes('email') || ph.includes('employee id') || ph.includes('employeeid');
+
+    if (hasEmailOrEmpId) {
+      // Wait until the user types '@'. If they haven't typed '@', leave whatever they typed
+      const hasAt = target.value && target.value.includes('@');
+      if (!hasAt) {
+        return;
+      }
+    }
+
+    if (target.value && target.value !== target.value.toLowerCase()) {
+      const start = target.selectionStart;
+      const end = target.selectionEnd;
+      target.value = target.value.toLowerCase();
+
+      // Notify Angular's reactive form so it syncs the lowercased value.
+      // Without this, Angular's writeValue() can revert the DOM change on next CD cycle.
+      this._suppressInput = true;
+      target.dispatchEvent(new Event('input', { bubbles: true }));
+      this._suppressInput = false;
+
+      // Restore cursor AFTER Angular's synchronous writeValue pipeline
+      if (start !== null && end !== null) {
+        Promise.resolve().then(() => {
+          try {
+            target.setSelectionRange(start, end);
+          } catch (e) { }
+        });
+      }
+    }
+  };
   showSidebar = true;
   selectedMenuItem: string = '';
   showNotification = false;
   customerType: string | null = null;
   private audioUnlocked = false;
+  isRouteAuthorized = true;
+  isRouteLoading = false;
+  isPendingApproval = false;
+  private isInitialNavigation = true;
   notifications: any[] = [];
 
   private routesWithoutSidebar = ['/login', '/', '/view'];
@@ -30,46 +160,199 @@ export class AppComponent implements OnInit {
     private router: Router,
     private localservice: LocalStorageService,
     private pushService: PushService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private logoutService: LogoutService,
+    private permissionService: PermissionService
   ) {
     // --- Sidebar and menu tracking ---
     this.router.events.subscribe(event => {
-      if (event instanceof NavigationEnd) {
-        //Logout back to login if no token
-        // const token = this.localservice.get('accessToken');
-        // const isLoginPage = event.url === '' || event.url === '/' || event.url.includes('/login');
-        // if (!token && !isLoginPage) {
-        //   // Only redirect if there is no token AND we aren't already trying to login
-        //   this.router.navigate([''], { replaceUrl: true });
-        // }
+      if (
+        event instanceof NavigationStart ||
+        event instanceof RouteConfigLoadStart
+      ) {
+        const targetUrl = ('url' in event ? (event as any).url : '').toLowerCase();
+        const isBypassLoader = targetUrl.includes('/login') ||
+          targetUrl.includes('/profile') ||
+          targetUrl === '/' ||
+          targetUrl.startsWith('/view') ||
+          targetUrl.includes('/confirmation') ||
+          targetUrl.includes('/cancellation') ||
+          targetUrl.includes('/payment');
 
-        this.showSidebar = this.routesWithoutSidebar.some(route => route === event.url);
+        if (!this.isInitialNavigation && !isBypassLoader) {
+          this.isRouteLoading = true;
+        }
+      } else if (
+        event instanceof NavigationEnd ||
+        event instanceof NavigationCancel ||
+        event instanceof NavigationError ||
+        event instanceof RouteConfigLoadEnd
+      ) {
+        this.isRouteLoading = false;
+        this.isInitialNavigation = false;
+      }
+
+      if (event instanceof NavigationEnd) {
+        //newly added for logged out issue
+        const url = event.urlAfterRedirects || event.url || '';
+        // Allow enrollment routes even when loggedOut flag is set (payment callbacks, cancellations)
+        const path = (this.router?.url || window.location.pathname || '').toLowerCase().replace(/\/+$/, '');
+        const isEnrollmentRoute = path.includes('confirmation') || path.includes('cancellation') || path.includes('payment');
+        // Global Guard: If not logged in, prevent access to any page except public/bypass and enrollment routes
+        const userId = this.localservice.get('UserId');
+        const isLoggedOut = this.localservice.get('loggedOut') === 'true';
+        const isLoggedIn = !!userId && !isLoggedOut;
+        const isBypassRoute =
+          url === '/' ||
+          url === '/login' ||
+          url.startsWith('/login') ||
+          url === '/hotel-registration/login' ||
+          url.startsWith('/hotel-registration/login');
+
+        if (!isLoggedIn && !isEnrollmentRoute && !isBypassRoute) {
+          this.router.navigate(['/login'], { replaceUrl: true });
+          return;
+        }
+
+
+        // Auto-logout: navigated to /login WITHOUT the manual loggedOut flag
+        // → means it was triggered by a 403 / session expiry → clean up FCM token
+        const isAutoLogout =
+          (url === '/login' || url.startsWith('/login') || url === '/hotel-registration/login' || url.startsWith('/hotel-registration/login')) &&
+          this.localservice.get('loggedOut') !== 'true' &&
+          !!this.localservice.get('UserId'); // user was previously logged in
+        // console.log('[App] NavigationEnd url:', url, '| loggedOut:', this.localservice.get('loggedOut'), '| UserId:', this.localservice.get('UserId'), '| isAutoLogout:', isAutoLogout);
+        if (isAutoLogout) {
+          // Capture UserId and CustomerType BEFORE clearing localStorage
+          const userIdVal = Number(this.localservice.get('UserId'));
+          const customerTypeVal = this.localservice.get('CustomerType');
+
+          // ── Step 1: Clear localStorage immediately (synchronous) ──
+          // Do NOT wait for the async FCM API call — localStorage must be wiped right away
+          this.localservice.remove('accessToken');
+          this.localservice.remove('refreshToken');
+          this.localservice.remove('expireTime');
+          this.localservice.remove('UserName');
+          this.localservice.remove('UserEmail');
+          this.localservice.remove('domainName');
+          this.localservice.remove('rexpireTime');
+          this.localservice.remove('MemberId');
+          this.localservice.remove('CustomerType');
+          this.localservice.remove('StaffData');
+          this.localservice.remove('hierarchy');
+          this.localservice.remove('roleName');
+          this.localservice.remove('roleId');
+          this.localservice.remove('roleModules');
+          this.localservice.remove('Password');
+          this.localservice.remove('db_schema');
+          this.localservice.remove('profile_name');
+          this.localservice.remove('profile_image');
+          this.localservice.remove('Name');
+          this.localservice.remove('paymentDone');
+          this.localservice.remove('payNowButtonState');
+          this.localservice.remove('lastValidUrl');
+          this.localservice.set('loggedOut', 'true');
+          // console.log('[App] Auto-logout: localStorage cleared immediately.');
+          // ── Step 2: Remove FCM token from DB (async, fire-and-forget) ──
+          this.logoutService.removeFcmToken(userIdVal, customerTypeVal).then(() => {
+            console.log('[App] Auto-logout: FCM token removed from DB.');
+          }).catch(err => {
+            console.error('[App] Auto-logout FCM cleanup failed:', err);
+          });
+          // Remove UserId last
+          this.localservice.remove('UserId');
+        }
+
+        this.showSidebar =
+          this.routesWithoutSidebar.some(route => route === event.url) ||
+          event.url.startsWith('/view-hierarchy') ||
+          event.url.startsWith('/view-customer-hierarchy');
         // console.log('Current URL:', event.url);
-        if (event.url == '/hotel-list' || event.url == '/add-new-hotel') this.selectedMenuItem = "Hotels";
-        // Newly added for terms and conditions & privacy policy
-        else if (event.url == '/privacy-policy') this.selectedMenuItem = "Privacy Policy";
-        else if (event.url == '/terms-conditions') this.selectedMenuItem = "Terms & Conditions";
-        // Newly added for dynamic department and service
-        else if (event.url == '/department-list') this.selectedMenuItem = "Department";
-        else if (event.url == '/service-list') this.selectedMenuItem = "Service";
-        else if (event.url == '/service-tab-list') this.selectedMenuItem = "Service Tab";
-        // Ended
-        else if (event.url == '/role-list' || event.url == '/role') this.selectedMenuItem = "Roles";
-        else if (event.url == '/user-list' || event.url == '/user') this.selectedMenuItem = "Users";
-        else if (event.url == '/staff-list' || event.url == '/staff') this.selectedMenuItem = "Staff";
-        else if (event.url == '/bookings') this.selectedMenuItem = "Bookings";
-        else if (event.url == '/bookings-management') this.selectedMenuItem = "Bookings & Guest Management";
-        else if (event.url == '/late-checkout') this.selectedMenuItem = "Late Checkout";
-        else if (event.url == '/settings') this.selectedMenuItem = "Settings";
-        if (event.url.startsWith('/view-hierarchy') || event.url.startsWith('/view-customer-hierarchy')) {
-          this.showSidebar = true;
+        //newly commented for header issue
+        // if (event.url == '/hotel-list' || event.url == '/add-new-hotel') this.selectedMenuItem = "Hotels";
+        // // Newly added for terms and conditions & privacy policy
+        // else if (event.url == '/privacy-policy') this.selectedMenuItem = "Privacy Policy";
+        // else if (event.url == '/terms-conditions') this.selectedMenuItem = "Terms & Conditions";
+        // // Newly added for dynamic department and service
+        // else if (event.url == '/department-list') this.selectedMenuItem = "Department";
+        // else if (event.url == '/service-list') this.selectedMenuItem = "Service";
+        // else if (event.url == '/service-tab-list') this.selectedMenuItem = "Service Tab";
+        // // Ended
+        // else if (event.url == '/role-list' || event.url == '/role') this.selectedMenuItem = "Roles";
+        // else if (event.url == '/user-list' || event.url == '/user') this.selectedMenuItem = "Users";
+        // else if (event.url == '/staff-list' || event.url == '/staff') this.selectedMenuItem = "Staff";
+        // else if (event.url == '/bookings') this.selectedMenuItem = "Bookings";
+        // else if (event.url == '/bookings-management') this.selectedMenuItem = "Bookings & Guest Management";
+        // else if (event.url == '/late-checkout') this.selectedMenuItem = "Late Checkout";
+        // else if (event.url == '/settings') this.selectedMenuItem = "Settings";
+        //newly added for header issue
+        // const url = event.urlAfterRedirects || event.url;
+        // newly commented and added
+        //  if (url.includes('/hotel-list') || url.includes('/add-new-hotel') || url.includes('/edit-new-hotel') || url.includes('/hotel-registration')) {
+        if (url.includes('/hotel-list') || url.includes('/add-new-hotel') || url.includes('/edit-new-hotel') || url.includes('/hotel-registration') || url.includes('/cancellation') || url.includes('/confirmation')) {
+          this.selectedMenuItem = "Hotels";
+        } else if (url.includes('/privacy-policy')) {
+          this.selectedMenuItem = "Privacy Policy";
+        } else if (url.includes('/terms-conditions')) {
+          this.selectedMenuItem = "Terms & Conditions";
+        } else if (url.includes('/department-list')) {
+          this.selectedMenuItem = "Department";
+        } else if (url.includes('/service-tab-list')) {
+          this.selectedMenuItem = "Service Tab";
+        } else if (url.includes('/service-list') || url.includes('/service') || url.includes('/add-new-service') || url.includes('/edit-service') || url.includes('/view-service')) {
+          this.selectedMenuItem = "Service";
+        } else if (url.includes('/role-list') || url.includes('/role')) {
+          this.selectedMenuItem = "Roles";
+        } else if (url.includes('/user-list') || url.includes('/user')) {
+          this.selectedMenuItem = "Users";
+        } else if (url.includes('/staff-list') || url.includes('/staff')) {
+          this.selectedMenuItem = "Staff";
+        } else if (url.includes('/bookings-management')) {
+          this.selectedMenuItem = "Bookings & Guest Management";
+        } else if (url.includes('/bookings')) {
+          this.selectedMenuItem = "Bookings";
+        } else if (url.includes('/late-checkout')) {
+          this.selectedMenuItem = "Late Checkout";
+        } else if (url.includes('/settings')) {
+          this.selectedMenuItem = "Settings";
+        } else if (url.includes('/member-hierarchy') || url.includes('/create-new-hierarchy') || url.includes('/edit-hierarchy') || url.includes('/view-hierarchy')) {
+          this.selectedMenuItem = "Hierarchy";
+        } else if (url.includes('/features') || url.includes('/restaurants-list') || url.includes('/features-list') || url.includes('/feature-creation')) {
+          this.selectedMenuItem = "Features";
+        } else if (url.includes('/payment-details') || url.includes('/payment-subscription')) {
+          this.selectedMenuItem = "Payment";
+        } else if (url.includes('/outlet-list') || url.includes('/outlet-creation') || url.includes('/create-outlet') || url.includes('/product') || url.includes('/add-product')) {
+          this.selectedMenuItem = "Outlets";
+        } else if (url.includes('/dashboard')) {
+          this.selectedMenuItem = "Dashboard";
+        } else if (url.includes('report')) {
+          this.selectedMenuItem = "Report";
+        } else if (url.includes('/profile')) {
+          this.selectedMenuItem = "Profile";
+        } else if (url.includes('/task-management') || url.includes('/create-task')) {
+          this.selectedMenuItem = "Task Management";
+        } else if (url.includes('/timeline')) {
+          this.selectedMenuItem = "Timeline";
+        }
+        // Check if the current route is the wildcard/not-found route
+        let activeRoute = this.router.routerState.root;
+        while (activeRoute.firstChild) {
+          activeRoute = activeRoute.firstChild;
+        }
+        const isWildcard = activeRoute.routeConfig?.path === '**';
+
+        this.checkRouteAuthorization(url);
+
+        if (!isWildcard && isLoggedIn && !isBypassRoute && this.isRouteAuthorized) {
+          this.localservice.set('lastValidUrl', url);
         }
       }
-      // console.log('Selected menu item:', this.selectedMenuItem);
     });
   }
 
   ngOnInit(): void {
+    document.addEventListener('keydown', this.handleGlobalKeydown, true);
+    document.addEventListener('input', this.handleGlobalInput, true);
     // --- Restore user info ---
     this.customerType = this.localservice.get('CustomerType');
     // console.log('[App] Customer Type:', this.customerType);
@@ -147,6 +430,11 @@ export class AppComponent implements OnInit {
     }
   }
 
+  ngOnDestroy(): void {
+    document.removeEventListener('keydown', this.handleGlobalKeydown, true);
+    document.removeEventListener('input', this.handleGlobalInput, true);
+  }
+
   updateMenu(value: string) {
     this.selectedMenuItem = value;
   }
@@ -180,6 +468,204 @@ export class AppComponent implements OnInit {
     };
     // console.log('[App] Extracted Notification Data:', structured);
     return structured;
+  }
+
+  private checkRouteAuthorization(url: string): void {
+    this.isPendingApproval = false;
+    // If the matched route is the wildcard (Page Not Found), bypass authorization
+    let activeRoute = this.router.routerState.root;
+    while (activeRoute.firstChild) {
+      activeRoute = activeRoute.firstChild;
+    }
+    if (activeRoute.routeConfig?.path === '**') {
+      this.isRouteAuthorized = true;
+      return;
+    }
+
+    const userId = this.localservice.get('UserId');
+    if (!userId) {
+      this.isRouteAuthorized = true;
+      return;
+    }
+
+    const customerType = this.localservice.get('CustomerType');
+    const cleanUrl = url.split('?')[0].toLowerCase().replace(/\/+$/, '');
+
+    // Common/public bypass routes
+    const bypassRoutes = ['/login', '/', ''];
+    if (bypassRoutes.some(r => cleanUrl === r || (r !== '' && cleanUrl.startsWith(r + '/')))) {
+      this.isRouteAuthorized = true;
+      // console.log('[AuthCheck] Bypassed route:', cleanUrl);
+      return;
+    }
+
+    if (customerType === 'Staff') {
+      const isTaskManagement = cleanUrl.includes('task-management') ||
+        cleanUrl.includes('create-task') ||
+        cleanUrl.includes('timeline');
+      const isSettings = cleanUrl.includes('settings') ||
+        cleanUrl.includes('privacy-policy') ||
+        cleanUrl.includes('terms-conditions') ||
+        cleanUrl.includes('department') ||
+        cleanUrl.includes('service') ||
+        cleanUrl.includes('service-tab') ||
+        cleanUrl.includes('member-hierarchy') ||
+        cleanUrl.includes('create-new-hierarchy') ||
+        cleanUrl.includes('edit-hierarchy') ||
+        cleanUrl.includes('view-hierarchy');
+      const isProfile = cleanUrl.includes('profile');
+
+      this.isRouteAuthorized = isTaskManagement || isSettings || isProfile;
+      // console.log('[AuthCheck] Staff path:', cleanUrl, 'isRouteAuthorized:', this.isRouteAuthorized);
+      return;
+    }
+
+    if (customerType === 'Customer') {
+      if (this.doesPathRequireApproval(cleanUrl)) {
+        const status = (this.localservice.get('Status') || '').toLowerCase();
+        if (status !== 'approved') {
+          this.isRouteAuthorized = false;
+          this.isPendingApproval = true;
+          // console.log('[AuthCheck] Customer is not approved. Denied access to:', cleanUrl);
+          return;
+        }
+      } else {
+        this.isRouteAuthorized = true;
+        console.log('[AuthCheck] Customer path does not require approval, bypassing permissions:', cleanUrl);
+        return;
+      }
+
+      const moduleName = this.getModuleForPath(cleanUrl);
+      if (!moduleName) {
+        this.isRouteAuthorized = true;
+        // console.log('[AuthCheck] Customer path (no module matched):', cleanUrl);
+        return;
+      }
+
+      const permission = this.permissionService.getModulePermission(moduleName);
+      // console.log('[AuthCheck] Customer path:', cleanUrl, 'moduleName:', moduleName, 'permission:', permission);
+      if (!permission) {
+        this.isRouteAuthorized = false;
+        // console.log('[AuthCheck] No permission found for module:', moduleName);
+        return;
+      }
+
+      const hasAnyPermission = permission.has_read_permission ||
+        permission.has_add_permission ||
+        permission.has_edit_permission ||
+        permission.has_delete_permission;
+
+      this.isRouteAuthorized = hasAnyPermission;
+      // console.log('[AuthCheck] hasAnyPermission:', hasAnyPermission, 'isRouteAuthorized:', this.isRouteAuthorized);
+      return;
+    }
+
+    this.isRouteAuthorized = true;
+  }
+
+  private doesPathRequireApproval(path: string): boolean {
+    const cleanPath = path.toLowerCase();
+
+    // Public/common bypasses do not require approval
+    if (cleanPath === '/login' ||
+      cleanPath === '/' ||
+      cleanPath === '') {
+      return false;
+    }
+
+    // Enrollment-related paths do not require approval (allows setup phase)
+    if (cleanPath.includes('/edit-new-hotel') ||
+      cleanPath.includes('/hotel-registration') ||
+      cleanPath.includes('/cancellation') ||
+      cleanPath.includes('/confirmation')) {
+      return false;
+    }
+
+    // General settings do not require approval
+    if (cleanPath.includes('/settings') ||
+      cleanPath.includes('/privacy-policy') ||
+      cleanPath.includes('/terms-conditions')) {
+      return false;
+    }
+
+    // Profile page does not require approval to allow users to view/edit profile details
+    if (cleanPath.includes('/profile')) {
+      return false;
+    }
+
+    // All other internal screens require status to be 'approved'
+    return true;
+  }
+
+  private getModuleForPath(path: string): string | null {
+    if (path.includes('/dashboard') || path.includes('report')) return 'DASHBOARD';
+
+    if (path.includes('/task-management') ||
+      path.includes('/create-task') ||
+      path.includes('/timeline')) return 'TASK MANAGEMENT';
+
+    if (path.includes('/hotel-list') ||
+      path.includes('/add-new-hotel') ||
+      path.includes('/edit-new-hotel') ||
+      path.includes('/hotel-registration') ||
+      path.includes('/cancellation') ||
+      path.includes('/confirmation')) return 'HOTELS';
+
+    if (path.includes('/bookings') ||
+      path.includes('/bookings-management') ||
+      path.includes('/late-checkout')) return 'BOOKINGS';
+
+    if (path.includes('/role') ||
+      path.includes('/user-list') ||
+      path.includes('/user') ||
+      path.includes('/staff')) return 'USER ACCESS';
+
+    if (path.includes('/settings') ||
+      path.includes('/privacy-policy') ||
+      path.includes('/terms-conditions') ||
+      path.includes('/department') ||
+      path.includes('/service') ||
+      path.includes('/service-tab') ||
+      path.includes('/member-hierarchy') ||
+      path.includes('/create-new-hierarchy') ||
+      path.includes('/edit-hierarchy') ||
+      path.includes('/view-hierarchy')) return 'SYSTEM SETTINGS';
+
+    if (path.includes('/features') ||
+      path.includes('/features-list') ||
+      path.includes('/feature-creation')) return 'FEATURES';
+
+    if (path.includes('/payment-details') ||
+      path.includes('/payment-subscription')) return 'PAYMENT';
+
+    if (path.includes('/outlet-list') ||
+      path.includes('/outlet-creation') ||
+      path.includes('/create-outlet') ||
+      path.includes('/product') ||
+      path.includes('/add-product')) return 'OUTLETS';
+
+    return null;
+  }
+
+  goBack(): void {
+    const lastValidUrl = localStorage.getItem('lastValidUrl');
+    if (lastValidUrl) {
+      this.router.navigateByUrl(lastValidUrl);
+    } else {
+      const customerType = localStorage.getItem('CustomerType');
+      if (customerType === 'Staff') {
+        this.router.navigate(['/task-management']);
+      } else if (customerType === 'Customer') {
+        const status = (localStorage.getItem('Status') || '').toLowerCase();
+        if (status === 'approved') {
+          this.router.navigate(['/dashboard']);
+        } else {
+          this.router.navigate(['/profile']);
+        }
+      } else {
+        this.router.navigate(['/login']);
+      }
+    }
   }
 }
 

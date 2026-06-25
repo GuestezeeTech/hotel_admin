@@ -108,9 +108,9 @@ export class StaffListingComponent implements OnInit {
           }
         }
       };
+      this.loaderService.emitLoading();
       this.hotelenrollmentservice.getLoginCustomerById(requestBody).subscribe(
         resp => {
-          this.loaderService.emitComplete();
           if (resp) {
             const customerdata = resp.result.data[0];
             // console.log('Customer Data:', customerdata);
@@ -151,8 +151,10 @@ export class StaffListingComponent implements OnInit {
         }
       }
     }
+    this.loaderService.emitLoading();
     this.staffListingService.getAllStaves(requestBody).subscribe({
       next: (response) => {
+        this.loaderService.emitComplete();
         if (response?.success) {
           this.staves = response.result.data;
           this.allStaves = response.result.data; //For pagination
@@ -167,6 +169,7 @@ export class StaffListingComponent implements OnInit {
         }
       },
       error: (err) => {
+        this.loaderService.emitComplete();
         //console.error('API Error:', err);
       }
     });
@@ -266,8 +269,10 @@ export class StaffListingComponent implements OnInit {
       }
     };
     // alert("Are you sure you want to delete the selected staff members? This action cannot be undone.");
+    this.loaderService.emitLoading();
     this.staffListingService.deleteStaff(jsonObj).subscribe(
       resp => {
+        this.loaderService.emitComplete();
         if (resp.success === 0 && resp.status_code === 200 && resp.message === "Record not deleted") {
           this.isDeleteStaffModalOpen = true;
           this.selectedStaffIds = []; // Clear selected IDs
@@ -282,6 +287,7 @@ export class StaffListingComponent implements OnInit {
         }
       },
       err => {
+        this.loaderService.emitComplete();
         if (err.error.statusCode === 403) {
           this.alertService.error("Session Time Out! Please login Again", this.options);
           this.routeUrl.navigate([`/login`], { skipLocationChange: false });

@@ -23,14 +23,59 @@ body {
 
 }
 
-.sidenav a {
-    text-decoration: none;
-    font-size: 14px;
-    color: #FFFFFF;
-    display: block;
-    // margin-left: 5%;
-    cursor: pointer;
+.logo-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    // padding: 8px 8px 8px 8px;
+    margin: 0 8px 6px 8px;
 }
+
+.sidebar-logo {
+    max-width: 100%;
+    max-height: 80px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+}
+
+.no-logo-placeholder {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: center;
+    width: 100%;
+}
+
+.logo-icon-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(232, 195, 167, 0.12);
+    padding: 6px;
+    border-radius: 8px;
+    border: 1px solid rgba(232, 195, 167, 0.25);
+    flex-shrink: 0;
+}
+
+.hotel-icon {
+    color: #E8C3A7;
+    display: block;
+}
+
+.placeholder-text {
+    font-family: 'Urbanist', 'Segoe UI', Roboto, sans-serif !important;
+    font-size: 19px;
+    font-weight: 700;
+    color: #FFFFFF;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+
+    .highlight {
+        color: #E8C3A7;
+    }
+}
+
 
 // .sidenav a {
 //     color: #f1f1f1;
@@ -44,7 +89,8 @@ body {
         padding-top: 15px;
     }
 
-    .sidenav a {
+    .sidenav a,
+    .sidenav list {
         font-size: 14px;
     }
 }
@@ -98,15 +144,6 @@ ul {
 .list_container img {
     height: 20px;
     /* Set image size for consistency */
-}
-
-.list_container a {
-    color: #fff;
-    /* Default color for links */
-    text-decoration: none;
-    font-size: 15px;
-    /* Font size for links */
-    font-family: 'Urbanist', sans-serif !important;
 }
 
 .rotate {
@@ -244,6 +281,41 @@ ul {
 }
 
 .sidenav::-webkit-scrollbar {
-  width: 0;
-  height: 0;
+    width: 0;
+    height: 0;
+}
+
+.list_container {
+    cursor: pointer;
+}
+
+.sidenav a,
+.sidenav span {
+    text-decoration: none;
+    font-size: 14px;
+    color: #FFFFFF;
+    display: block;
+    // margin-left: 5%;
+    cursor: pointer;
+}
+
+.list_container a,
+.list_container span {
+    color: #fff;
+    /* Default color for links */
+    text-decoration: none;
+    font-size: 15px;
+    /* Font size for links */
+    font-family: 'Urbanist', sans-serif !important;
+}
+
+
+.sidenav a,
+.sidenav span {
+    text-decoration: none;
+    font-size: 14px;
+    color: #FFFFFF;
+    display: block;
+    // margin-left: 5%;
+    cursor: pointer;
 }

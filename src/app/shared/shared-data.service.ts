@@ -16,6 +16,13 @@ export class SharedDataService {
   private tabSubject = new BehaviorSubject<number>(0);
   tab$ = this.tabSubject.asObservable();
 
+  private hotelLogoSource = new BehaviorSubject<string | null | undefined>(undefined);
+  hotelLogo$ = this.hotelLogoSource.asObservable();
+
+  setHotelLogo(logoUrl: string | null) {
+    this.hotelLogoSource.next(logoUrl);
+  }
+
   setUserData(data: any) {
     this.userDataSource.next(data);
   }

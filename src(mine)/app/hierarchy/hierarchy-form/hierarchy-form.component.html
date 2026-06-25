@@ -1,0 +1,105 @@
+<div class="main">
+  <app-alerts></app-alerts>
+  <div class="centered-container">
+    <div class="container">
+      <div *ngIf="!showForm" class="button-container">
+        <button (click)="navigateToBack()" class="btn primary">BACK</button>
+        <button (click)="canAddSystemSettings ? showOneLevelForm() : null" class="btn primary"
+          [disabled]="!canAddSystemSettings || !canReadSystemSettings">
+          ADD ONE LEVEL
+        </button>
+        <button (click)="canAddSystemSettings ? showTreeForm() : null" class="btn primary"
+          [disabled]="!canAddSystemSettings || !canReadSystemSettings">
+          ADD TREE
+        </button>
+      </div>
+      <form *ngIf="showForm" [formGroup]="hierarchyForm" (ngSubmit)="onSubmit()" class="form-container">
+        <div formArrayName="items">
+          <div *ngFor="let item of items.controls; let i=index" [formGroupName]="i" class="form-group"
+            style="position: relative;">
+            <!-- Top-right icon remove button for each dynamically added row (Tree/Add More flow) -->
+            <button *ngIf="isTreeForm && items.length > 1" type="button" (click)="removeItem(i)" aria-label="Remove"
+              style="
+                position: absolute;
+                top: 8px;
+                right: 8px;
+                width: 24px;
+                height: 24px;
+                border-radius: 50%;
+                border: none;
+                background: #f8d7da;
+                color: #721c24;
+                font-weight: bold;
+                line-height: 1;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+              ">
+              &times;
+            </button>
+            <div class="form-field">
+              <label>Designation: <span class="hint">(Max 50 characters)</span></label>
+              <input type="text" formControlName="designation" placeholder="Enter designation" [disabled]="!canEditForm"
+                [maxlength]="50">
+            </div>
+            <div class="form-field">
+              <label>Department:</label>
+              <!-- Newly commented & added for disabling department field -->
+              <!-- <select
+                formControlName="department"
+                placeholder="select department"
+                style="width: 100%;padding: 1%; border: 2px solid #e9ecef;border-radius: 6px; font-size: 14px; transition: border-color 0.2s;"
+                [disabled]="parentDepartment!='' || !canEditForm"> -->
+              <select formControlName="department" placeholder="select department"
+                style="width: 100%;padding: 1%; border: 2px solid #e9ecef;border-radius: 6px; font-size: 14px; transition: border-color 0.2s;"
+                [disabled]=" !canEditForm">
+                <!-- End of newly commented & added for disabling department field -->
+                <!-- <option>Select</option> -->
+                <!-- <option value="">Select</option> -->
+                <!-- Dynamic options -->
+                <option *ngFor="let dept of departments" [value]="dept">
+                  {{ dept }}
+                </option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label>Escalation Time (in minutes):</label>
+              <input type="number" formControlName="escalationTime" placeholder="Enter time in minutes"
+                [disabled]="!canEditForm" step="1" min="1" (keydown)="blockInvalidKeys($event)"
+                (paste)="handleEscalationPaste($event)">
+              <div
+                *ngIf="item.get('escalationTime')?.errors?.['min'] && (item.get('escalationTime')?.dirty || item.get('escalationTime')?.touched)"
+                class="error-message">
+                Time must be at least 1 minute.
+              </div>
+            </div>
+            <!-- <div *ngIf="showTopLevelOption" class="form-field" style="margin-top: 0.5rem;">
+              <label>
+                <input type="checkbox" formControlName="isTopLevel" /> Top Level
+              </label>
+            </div> -->
+            <div *ngIf="showTopLevelOption" class="form-field"
+              style="margin-top: 0.5rem; display: flex; align-items: center; gap: 6px;">
+              <label style="display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+                <input type="checkbox" formControlName="isTopLevel" [disabled]="!canEditForm" />
+                Intermediate Level
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="button-group">
+          <!-- Back inside the form: from edit flow go to view-customer-hierarchy, else show button-container -->
+          <button type="button" class="btn primary save-btn" (click)="onFormBack()">Back</button>
+          <button *ngIf="isTreeForm" type="button" (click)="canEditForm ? addItem() : null"
+            class="btn secondary add-btn" [disabled]="!canEditForm">
+            Add More
+          </button>
+          <button type="submit" class="btn primary cancel-btn" [disabled]="!hierarchyForm.valid || isSubmitting">
+            Submit
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

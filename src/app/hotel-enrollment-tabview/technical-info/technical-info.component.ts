@@ -8,7 +8,7 @@ import { ProfileService } from '../../profile/profile.service';
 import { LoaderService } from '../../shared/loader/loader.service';
 import { HotelEnrollmentTabviewService } from '../hotel-enrollment-tabview.service';
 import { CheckoutApiService } from '../checkout.service';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormArray, FormControl, AbstractControl } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormArray, FormControl, AbstractControl, Validators } from '@angular/forms';
 import { AlertsComponent } from '../../shared/alerts/alerts.component';
 // Newly added
 import { TechnicalInfoService } from './technical-info.service';
@@ -90,6 +90,8 @@ export class TechnicalInfoComponent implements OnInit {
   isLoading: boolean = false;
   /** When false, parent (Hotels) loader is still showing; don't show Technical Info until true to avoid two loaders at once. */
   @Input() parentLoaderDone: boolean = true;
+  modifiedTechnicalInfos: any[] = [];
+  originalEnabledState: { [key: number]: boolean } = {};
 
   constructor(
     private localService: LocalStorageService,
@@ -108,7 +110,8 @@ export class TechnicalInfoComponent implements OnInit {
     this.ecomIntegrationForm = this.fb.group({
       name: [{ value: '', disabled: true }],
       type: [{ value: '', disabled: true }],
-      api_url: ['']
+      // api_url: ['', [Validators.pattern(/^(http|https):\/\/[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$/)]]
+      api_url: [{ value: '', disabled: true }]
     });
     this.ecomTechnicalInfoForm = this.fb.group({
       technicalInfo: this.fb.array([])
@@ -156,11 +159,6 @@ export class TechnicalInfoComponent implements OnInit {
   ngOnDestroy() {
     this.payNowSub?.unsubscribe();
   }
-
-
-  // onSubmit() {
-  //   this.customerUpdate();
-  // }
 
   async customerUpdate() {
     delete this.customerdata._id;
@@ -730,288 +728,9 @@ export class TechnicalInfoComponent implements OnInit {
     });
   }
 
-
   async executePayment() {
     // await this.getCustomerById();
     await this.payNow();
-  }
-
-  // // Newly added
-  /*  getAllTechnicalInfo() {
-     let checkExistingTechnicalInfoAvailbility = {
-       domain_name: DOMAIN_NAME,
-       user_id: USER_ID, //Default user id
-       "extras": {
-         "find": {
-           "customer_id": this.hotelId
-         }
-       }
-     }
-     this.hotelenrollmentservice.getAllTechnicalInfo(checkExistingTechnicalInfoAvailbility).subscribe(
-       (resp: any) => {
-         this.loaderService.emitComplete();
-         if (resp) {
-           this.technicalInfodatalength = resp.result.data.length;
-           ////console.log('Technical Info Length Based On Customer Id:', this.technicalInfodatalength);
-           if (this.technicalInfodatalength > 0) {
-             const customerData = resp.result.data[0];
-             const customerTechInfo = customerData.customer_technical_info || [];
-             // Step 1: Get only enabled customer-specific technical info
-             const enabledCustomerTechInfo = customerTechInfo.filter((item: any) => item.is_enabled === true);
-             const enabledCustomerIds = new Set(enabledCustomerTechInfo.map((item: any) => item.id));
-             this.generalTechInfoData = customerTechInfo.filter((item: any) => item.type == this.selectedTab);
-             this.technicalInfoData = customerData;
-             this.showEdit = true;
-             this.isTechnicalInfoExists = true;
-             this.isCustomerChoosen = true;
-             // Step 2: Fetch and filter common technical info
-             const commonReq = {
-               domain_name: DOMAIN_NAME,
-               user_id: USER_ID,
-               extras: {
-                 find: {}
-               }
-             };
-             this.hotelenrollmentservice.getAllTechnicalInfo(commonReq).subscribe(
-               (commonResp: any) => {
-                 if (commonResp.success === 1 && commonResp.status_code === 200) {
-                   const allCommonData = commonResp.result.data || [];
-                   const rawCommonTechInfo = allCommonData.filter((item: any) => item.customer_id === undefined);
-                   // Step 3: Filter only those common items where is_enabled is missing or false,
-                   // and not already in customer's enabled info
-                   const filteredCommonTechInfo = rawCommonTechInfo.filter(
-                     (item: any) =>
-                       (!item.hasOwnProperty('is_enabled') || item.is_enabled === false) &&
-                       !enabledCustomerIds.has(item.id)
-                   );
-                   // Step 4: Combine both sets
-                   this.technicalInfos = [...enabledCustomerTechInfo, ...filteredCommonTechInfo];
-                   this.allinfoData = this.technicalInfos;
-                   ////console.log('Final Technical Info List:', this.technicalInfos);
-                 }
-               })
-           }
-           if (this.technicalInfodatalength == 0) {
-             let requestBody = {
-               domain_name: DOMAIN_NAME,
-               user_id: USER_ID,
-               "extras": {
-                 "find": {}
-               }
-             }
-             this.hotelenrollmentservice.getAllTechnicalInfo(requestBody).subscribe(
-               (resp: any) => {
-                 this.loaderService.emitComplete();
-                 ////console.log('All Technical Info Length:', resp.result.data.length);
-                 if (resp.success === 1 && resp.status_code === 200) {
-                   this.showEdit = false;
-                   this.isTechnicalInfoExists = false;
-                   ////console.log('TechnicalInfo Exists:', this.isTechnicalInfoExists);
-                   // ////console.log('All Technical Info(without customer id checking):', resp.result.data);
-                   if (resp.result.data.length > 0) {
-                     this.technicalInfos = resp.result.data.filter((technicaalInfo: any) => technicaalInfo.customer_id == undefined);
-                     this.allinfoData = this.technicalInfos;
-                     ////console.log('Common Technical Info(without customer_id):', this.technicalInfos)
-                     this.generalTechInfoData = this.technicalInfos?.filter((item: any) => item.type == this.selectedTab);
-                     // ////console.log(this.technicalInfos, 'Common Technical Info Data(with customer id checking)');
-                   }
-                 }
-               },
-               (err: any) => {
-                 if (err.error.statusCode === 403) {
-                   this.alertsService.error('Session Time Out! Please login Again', this.options)
-                   this.router.navigate([`/login`], { skipLocationChange: false });
-                 }
-                 else if (err.error.message) {
-                   this.alertsService.error(err.error.message, this.options)
-                 }
-                 else {
-                   this.alertsService.error('Something bad happened. Please try again!', this.options);
-                 }
-               }
-             )
-           }
-         }
-       },
-       (err: any) => {
-         this.loaderService.emitComplete();
-         // ////console.error('getCustomerById error:', err);
-         if (err.error.statusCode === 403) {
-           this.alertsService.error('Session Time Out! Please login Again', this.options);
-           this.router.navigate([`/login`], { skipLocationChange: false });
-         } else if (err.error.message) {
-           this.alertsService.error(err.error.message, this.options);
-         } else {
-           this.alertsService.error('Something bad happened. Please try again!', this.options);
-         }
-       }
-     );
-   } */
-
-  getAllTechnicalInfo() {
-    let checkExistingTechnicalInfoAvailbility = {
-      domain_name: DOMAIN_NAME,
-      user_id: USER_ID, //Default user id
-      "extras": {
-        "find": {
-          // "customer_id": this.hotelId
-          member_id: this.memberId
-        }
-      }
-    }
-
-    this.hotelenrollmentservice.getAllTechnicalInfo(checkExistingTechnicalInfoAvailbility).subscribe(
-      (resp: any) => {
-        this.loaderService.emitComplete();
-        if (resp) {
-          this.technicalInfodatalength = resp.result.data.length;
-
-          // ---------------------------
-          // CASE 1: CUSTOMER DATA EXISTS
-          // ---------------------------
-          if (this.technicalInfodatalength > 0) {
-            const customerData = resp.result.data[0];
-            const customerTechInfo = customerData.customer_technical_info || [];
-
-            // Step 1: Get enabled customer-specific technical info
-            const enabledCustomerTechInfo = customerTechInfo.filter((item: any) => item.is_enabled === true);
-            const enabledCustomerIds = new Set(enabledCustomerTechInfo.map((item: any) => item.id));
-            //  Ecom Integration Settings - Refreshes enabled technical-info ids from the data we just saved
-            // Track which technical infos are enabled in DB for this customer
-            this.enabledCustomerTechnicalInfoIds = new Set<number>(
-              Array.from(enabledCustomerIds).map((id: any) => Number(id))
-            );
-            // Ended
-            this.generalTechInfoData = customerTechInfo.filter((item: any) => item.type == this.selectedTab);
-            this.technicalInfoData = customerData;
-            this.showEdit = true;
-            this.isTechnicalInfoExists = true;
-            this.isCustomerChoosen = true;
-
-            // Step 2: Fetch Common Technical Info
-            const commonReq = {
-              domain_name: DOMAIN_NAME,
-              user_id: USER_ID,
-              extras: {
-                find: {}
-              }
-            };
-
-            this.hotelenrollmentservice.getAllTechnicalInfo(commonReq).subscribe(
-              (commonResp: any) => {
-                this.isLoading = false;
-                if (commonResp.success === 1 && commonResp.status_code === 200) {
-                  const allCommonData = commonResp.result.data || [];
-
-                  // REMOVE ITEMS WITH NAMES: "SMS Templates and Header" and "HDFC Gateway"
-                  const rawCommonTechInfo = allCommonData
-                    // Newly added for getting member id for customer type
-                    // .filter((item: any) => item.customer_id === undefined)
-                    .filter((item: any) => item.member_id === undefined && item.customer_id === undefined)
-                    // Ended for getting member id for customer type
-                    .filter((item: any) =>
-                      !["SMS Delivery Template", "HDFC Gateway"].includes(item.name)
-                    );
-
-                  // Step 3: Filter common items (not enabled + not duplicate)
-                  const filteredCommonTechInfo = rawCommonTechInfo.filter(
-                    (item: any) =>
-                      (!item.hasOwnProperty('is_enabled') || item.is_enabled === false) &&
-                      !enabledCustomerIds.has(item.id)
-                  );
-
-                  // Step 4: Combine both sets
-                  this.technicalInfos = [...enabledCustomerTechInfo, ...filteredCommonTechInfo];
-                  this.allinfoData = this.technicalInfos;
-                }
-              },
-              () => {
-                this.isLoading = false;
-              }
-            );
-          }
-
-          // ---------------------------
-          // CASE 2: NO CUSTOMER DATA
-          // ---------------------------
-          if (this.technicalInfodatalength == 0) {
-            let requestBody = {
-              domain_name: DOMAIN_NAME,
-              user_id: USER_ID,
-              "extras": {
-                "find": {}
-              }
-            }
-
-            this.hotelenrollmentservice.getAllTechnicalInfo(requestBody).subscribe(
-              (resp: any) => {
-                this.loaderService.emitComplete();
-                this.isLoading = false;
-
-                if (resp.success === 1 && resp.status_code === 200) {
-                  this.showEdit = false;
-                  this.isTechnicalInfoExists = false;
-
-                  if (resp.result.data.length > 0) {
-                    // REMOVE ITEMS WITH NAMES: "SMS Templates and Header" and "HDFC Gateway"
-                    this.technicalInfos = resp.result.data
-                      // Newly added for getting member id for customer type
-                      // .filter((technicaalInfo: any) => technicaalInfo.customer_id == undefined)
-                      .filter((technicaalInfo: any) => technicaalInfo.member_id == undefined && technicaalInfo.customer_id == undefined)
-                      // Ended for getting member id for customer type
-                      .filter((item: any) =>
-                        !["SMS Delivery Template", "HDFC Gateway"].includes(item.name)
-                      );
-
-                    this.allinfoData = this.technicalInfos;
-
-                    this.generalTechInfoData = this.technicalInfos?.filter(
-                      (item: any) => item.type == this.selectedTab
-                    );
-                  }
-                }
-              },
-              (err: any) => {
-                this.isLoading = false;
-                if (err.error?.statusCode === 403) {
-                  this.alertsService.error('Session Time Out! Please login Again', this.options)
-                  this.router.navigate([`/login`], { skipLocationChange: false });
-                }
-                else if (err.error?.message) {
-                  this.alertsService.error(err.error.message, this.options)
-                }
-                else {
-                  this.alertsService.error('Something bad happened. Please try again!', this.options);
-                }
-              }
-            );
-          }
-        }
-      },
-      (err: any) => {
-        this.isLoading = false;
-        this.loaderService.emitComplete();
-
-        if (err.error?.statusCode === 403) {
-          this.alertsService.error('Session Time Out! Please login Again', this.options);
-          this.router.navigate([`/login`], { skipLocationChange: false });
-        } else if (err.error.message) {
-          this.alertsService.error(err.error.message, this.options);
-        } else {
-          this.alertsService.error('Something bad happened. Please try again!', this.options);
-        }
-      }
-    );
-  }
-
-  getIsActive(technicalInfo: any): boolean {
-    if (!this.selectedTechnicalInfoToCreate || !Array.isArray(this.selectedTechnicalInfoToCreate)) {
-      return false;
-    }
-    const match = this.selectedTechnicalInfoToCreate.find(
-      (item: any) => item.id === technicalInfo.id
-    );
-    return match ? match.is_active : false;
   }
 
   async technicalInfoCreate(selectedTechnicalInfoToCreate: any): Promise<void> {
@@ -1019,13 +738,19 @@ export class TechnicalInfoComponent implements OnInit {
     // console.log(memberId, 'Tech member id');
     // delete this.selectedTechnicalInfoToCreate._id
     return new Promise((resolve, reject) => {
+      // Strip nested `customer_technical_info` that each item carries when it comes
+      // from existing customer data — passing those raw objects would cause each entry
+      // inside the payload array to embed another customer_technical_info sub-array.
+      const cleanedPayload = Array.isArray(selectedTechnicalInfoToCreate)
+        ? selectedTechnicalInfoToCreate.map(({ customer_technical_info, ...rest }: any) => rest)
+        : selectedTechnicalInfoToCreate;
       let requestBody = {
         domain_name: DOMAIN_NAME,
         user_id: USER_ID,
         payload: {
           create_technical_info: {
             customer_id: this.hotelId,
-            customer_technical_info: selectedTechnicalInfoToCreate,
+            customer_technical_info: cleanedPayload,
             member_id: this.Memberid
           }
         }
@@ -1042,6 +767,29 @@ export class TechnicalInfoComponent implements OnInit {
               // ////console.log('Selected technical info id', this.isSelectedTechnicalInfoId); 
               ////console.log("Property size:", this.customerdata.property_details.property_address.property_size);
               this.isTechnicalInfoExists = true;
+
+              // Ecom Integration Settings - Automatically sync Hotel_Code if a PMS integration is enabled
+              if (Array.isArray(selectedTechnicalInfoToCreate)) {
+                const enabledPms = selectedTechnicalInfoToCreate.find((item: any) =>
+                  item.is_enabled === true &&
+                  (item.type === 'pos') &&
+                  (item.name?.toLowerCase() === 'win hms' || item.name?.toLowerCase() === 'oracle')
+                );
+                if (enabledPms) {
+                  // console.log('Syncing Hotel_Code from active PMS integration:', enabledPms.name);
+                  this.updateCustomerHotelCodeFromEcomAttributes(enabledPms.attributes || [], enabledPms.name);
+                }
+                else {
+                  const disabledPms = selectedTechnicalInfoToCreate.find((item: any) =>
+                    item.type === 'pos' &&
+                    (item.name?.toLowerCase() === 'win hms' || item.name?.toLowerCase() === 'oracle')
+                  );
+                  if (disabledPms) {
+                    this.updateCustomerHotelCodeFromEcomAttributes([], disabledPms.name);
+                  }
+                }
+              }
+
               this.updateCustomer();
               // this.customerdata();
               ////console.log("TechnicalInfoExists", this.isTechnicalInfoExists);
@@ -1092,79 +840,6 @@ export class TechnicalInfoComponent implements OnInit {
     }
   }
 
-  updateTechnicalInfo(updatedTechnicalInfo: any): void {
-    // if (!this.technicalInfoData) {
-    //   this.alertsService.error('Customer technical info data not found. Please fetch first.', this.options);
-    //   return;
-    // }
-    // const updatedCustomerTechnicalInfo = updtaedTechnicalInfo;
-    const requestBody = {
-      domain_name: DOMAIN_NAME,
-      user_id: USER_ID,
-      payload: {
-        update_technical_info: {
-          customer_technical_info: updatedTechnicalInfo
-        }
-      },
-      extras: {
-        find: {
-          // Newly added for getting member id for customer type
-          // customer_id: this.hotelId
-          "member_id": this.memberId
-          // Ended for getting member id for customer type
-        }
-      }
-    };
-    ////console.log('Called 1')
-    ////console.log("Final payload:", requestBody);
-    this.technicalInfoService.updateTechnicalInfo(requestBody).subscribe(
-      (resp: any) => {
-        this.loaderService.emitComplete();
-        if (resp?.success === 1 && resp?.status_code === 200) {
-          this.alertsService.success(resp.message, this.options);
-          //  Ecom Integration Settings - Refresh enabled technical-info ids from the data we just saved
-          // Refresh enabled technical-info ids from the data we just saved
-          if (Array.isArray(updatedTechnicalInfo)) {
-            this.enabledCustomerTechnicalInfoIds = new Set<number>(
-              updatedTechnicalInfo
-                .filter((item: any) => item.is_enabled === true)
-                .map((item: any) => Number(item.id))
-            );
-          }
-          // Ended
-          this.updateCustomer();
-          // this.customerdata();
-          // this.payNow();
-          this.localService.set('maxTabReached', 4);
-        } else {
-          this.alertsService.error(resp?.message || 'Update failed', this.options);
-        }
-      },
-      (err: any) => {
-        this.loaderService.emitComplete();
-        this.alertsService.error(err?.error?.message || 'Something went wrong!', this.options);
-      }
-    );
-  }
-
-  save() {
-    this.openModal();
-    ////console.log("111", this.isTechnicalInfoExists)
-    if (this.isTechnicalInfoExists) {
-      ////console.log('Called')
-      this.updateTechnicalInfo(this.allinfoData);
-    }
-    else {
-      if (this.allinfoData.length > 0) {
-        ////console.log('Creating technical info with:', this.allinfoData);
-        this.technicalInfoCreate(this.allinfoData);
-      }
-      else {
-        this.alertsService.warn('Please choose a technical info before proceeding.', this.options);
-      }
-    }
-  }
-
   selectTab(tab: string) {
     this.selectedTab = tab;
     const uniqueInfos = this.technicalInfos?.filter(
@@ -1185,51 +860,6 @@ export class TechnicalInfoComponent implements OnInit {
 
   }
 
-  onCustomerToggleSwitch(event: any, technicalInfo: any): void {
-    const inputElement = event.target as HTMLInputElement;
-    const isChecked = inputElement.checked;
-    if (!Array.isArray(this.allinfoData)) {
-      this.allinfoData = [];
-    }
-
-    const singleSelectTypes = ['lock', 'pos'];
-    const isSingleSelect = isChecked && singleSelectTypes.includes(technicalInfo.type);
-
-    // Helper: returns the updated is_enabled value for any item
-    const getIsEnabled = (item: any): boolean => {
-      if (item.id === technicalInfo.id) return isChecked;
-      // When enabling in single-select mode, disable all others of the same type
-      if (isSingleSelect && item.type === technicalInfo.type) return false;
-      return item.is_enabled === true;
-    };
-
-    // Rebuild generalTechInfoData with new object refs so Angular re-renders every card
-    this.generalTechInfoData = this.generalTechInfoData.map((item: any) => ({
-      ...item,
-      is_enabled: getIsEnabled(item)
-    }));
-
-    // Sync technicalInfos
-    this.technicalInfos = this.technicalInfos?.map((item: any) => ({
-      ...item,
-      is_enabled: getIsEnabled(item)
-    }));
-
-    // Rebuild allinfoData: replace each item that was modified
-    const updatedIds = new Set(this.generalTechInfoData.map((i: any) => i.id));
-    this.allinfoData = [
-      ...this.allinfoData
-        .filter((item: any) => !updatedIds.has(item.id))
-        .map((item: any) => ({
-          ...item,
-          is_enabled: item.hasOwnProperty('is_enabled') ? item.is_enabled : false
-        })),
-      ...this.generalTechInfoData
-    ];
-
-    ////console.log('All info data after toggling:', this.allinfoData);
-  }
-
   // trackBy function for *ngFor on generalTechInfoData cards — prevents checkbox DOM reuse glitch
   trackById(index: number, item: any): any {
     return item?.id ?? index;
@@ -1248,265 +878,6 @@ export class TechnicalInfoComponent implements OnInit {
     this.selectedIndex = index;
     ////console.log(this.selectedIndex)
   }
-
-
-  // chooseTechnicalInfo(technicalInfo: any): void {
-  //   const index = this.selectedTechnicalInfoToCreate.findIndex(
-  //     (item: any) => item.id === technicalInfo.id
-  //   );
-  //   if (index === -1) {
-  //     // Not found, add new with is_active: true
-  //     this.selectedTechnicalInfoToCreate.push({
-  //       ...technicalInfo,
-  //       is_active: true
-  //     });
-  //   } else {
-  //     if (this.isTechnicalInfoExists) {
-  //       this.selectedTechnicalInfoToCreate[index].is_active =
-  //         !this.selectedTechnicalInfoToCreate[index].is_active;
-  //     }
-  //     else {
-  //       // Found, remove if toggled off
-  //       this.selectedTechnicalInfoToCreate.splice(index, 1);
-  //     }
-  //   }
-  //   ////console.log('Selected technical info array:', this.selectedTechnicalInfoToCreate);
-  // }
-
-  // getActive(technicalInfo: any): boolean {
-  //   if (!this.generalTechInfoData || !Array.isArray(this.generalTechInfoData)) {
-  //     return false;
-  //   }
-  //   const match = this.generalTechInfoData.find(
-  //     (item: any) => item.id === technicalInfo.id
-  //   );
-  //   return match ? match.is_active : false;
-  // }
-
-  // generateMemberID(orderAmount: number) {
-  //   const today = new Date();
-  //   // Format date as YYYYMMDD
-  //   const year = today.getFullYear();
-  //   const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are 0-based
-  //   const day = String(today.getDate()).padStart(2, '0');
-  //   // Generate a random 4-digit number
-  //   const randomNum = Math.floor(1000 + Math.random() * 9000);
-  //   let start = ''
-  //   if (orderAmount == 10000) {
-  //     start = 'B'
-  //   }
-  //   else if (orderAmount == 20000) {
-  //     start = 'S'
-  //   }
-  //   else if (orderAmount == 30000) {
-  //     start = 'G'
-  //   }
-  //   else if (orderAmount == 40000) {
-  //     start = 'P'
-  //   }
-  //   // return `GE-${year}${month}${day}-${randomNum}`;
-  //   return `${start}${this.customerdata.property_details.property_address.property_country.substring(0, 2).toUpperCase()}${this.customerdata.property_details.property_address.property_state.split(" ")
-  //     .map((word: string) => word[0])
-  //     .join("")
-  //     .toUpperCase()}${this.customerdata.id.toString().padStart(5, "0")}`;
-  // }
-
-
-  // onContinue() {
-  //   // this.continue.emit()
-  //   this.router.navigate(['/edit-new-hotel', this.hotelId]).then(
-  //     success => {
-  //       if (success) {
-  //         // this.continue.emit();
-  //         this.localService.set('maxTabReached', 4);
-  //         // this.localService.set('currentTab', 4);
-  //         // Optional: call next function here
-  //       } else {
-  //         ////console.log('Navigation failed!');
-  //       }
-  //     }
-  //   ).catch(err => {
-  //     ////console.error('Navigation error:', err);
-  //   });
-  //   // this.localService.set('currentTab', 6);
-  // }
-
-  // getInfoData() {
-  //   let checkExistingTechnicalInfoAvailbility = {
-  //     domain_name: DOMAIN_NAME,
-  //     user_id: USER_ID,
-  //     "extras": {
-  //       "find": {
-  //       }
-  //     }
-  //   }
-  //   this.technicalInfoService.getAllTechnicalInfo(checkExistingTechnicalInfoAvailbility).subscribe(
-  //     (resp: any) => {
-  //       this.loaderService.emitComplete();
-  //       if (resp) {
-  //         this.technicalInfoData = resp.result.data[0];
-
-  //         ////console.log(this.generalTechInfoData, '  this.generalTechInfoData')
-  //         ////console.log('Customer technicalInfo data', this.technicalInfoData);
-  //         this.technicalInfodatalength = resp.result.data.length;
-  //         ////console.log('checkExistingtechnicalInfoAvailbility', this.technicalInfodatalength);
-  //         if (this.technicalInfodatalength == 0) {
-  //           let requestBody = {
-  //             domain_name: DOMAIN_NAME,
-  //             user_id: USER_ID,
-  //             "extras": {
-  //               "find": {}
-  //             }
-  //           }
-  //           this.technicalInfoService.getAllTechnicalInfo(requestBody).subscribe(
-  //             (resp: any) => {
-  //               this.loaderService.emitComplete();
-  //               if (resp.success === 1 && resp.status_code === 200) {
-  //                 this.isTechnicalInfoExists = false;
-  //                 ////console.log('TechnicalInfo Exists:', this.isTechnicalInfoExists);
-  //                 ////console.log('All Technical Info(without customer id checking):', resp.result.data);
-  //                 ////console.log('All Technical Info Length:', resp.result.data.length);
-  //                 if (resp.result.data.length > 0) {
-  //                   this.technicalInfos = resp.result.data.filter((technicaalInfo: any) => technicaalInfo.customer_id === undefined);
-  //                   this.generalTechInfoData = this.technicalInfos.filter((item: any) => item.type == this.selectedTab);
-  //                   ////console.log(this.technicalInfos, 'Common Technical Info Data(with customer id checking)');
-  //                 }
-  //               }
-  //             },
-  //             (err: any) => {
-  //               if (err.error.statusCode === 403) {
-  //                 this.alertsService.error('Session Time Out! Please login Again', this.options)
-  //                 this.router.navigate([`/login`], { skipLocationChange: false });
-  //               }
-  //               else if (err.error.message) {
-  //                 this.alertsService.error(err.error.message, this.options)
-  //               }
-  //               else {
-  //                 this.alertsService.error('Something bad happened. Please try again!', this.options);
-  //               }
-  //             }
-  //           )
-  //         }
-  //         else {
-  //           this.isTechnicalInfoExists = true;
-  //           let requestBody = {
-  //             domain_name: DOMAIN_NAME,
-  //             user_id: USER_ID,
-  //             "extras": {
-  //               "find": {}
-  //             }
-  //           }
-  //           this.technicalInfoService.getAllTechnicalInfo(requestBody).subscribe(
-  //             (resp: any) => {
-  //               this.loaderService.emitComplete();
-  //               if (resp.success === 1 && resp.status_code === 200) {
-  //                 if (resp.result.data.length > 0) {
-  //                   this.technicalInfos = resp.result.data;
-  //                   this.isTechnicalInfoExists = true;
-  //                   this.generalTechInfoData = this.technicalInfos.filter((item: any) => item.type == this.selectedTab);
-  //                 }
-  //               }
-  //             },
-  //             (err: any) => {
-  //               if (err.error.statusCode === 403) {
-  //                 this.alertsService.error('Session Time Out! Please login Again', this.options)
-  //                 this.router.navigate([`/login`], { skipLocationChange: false });
-  //               }
-  //               else if (err.error.message) {
-  //                 this.alertsService.error(err.error.message, this.options)
-  //               }
-  //               else {
-  //                 this.alertsService.error('Something bad happened. Please try again!', this.options);
-  //               }
-  //             }
-  //           )
-  //         }
-  //       }
-  //     },
-  //     (err: any) => {
-  //       this.loaderService.emitComplete();
-  //       // ////console.error('getCustomerById error:', err);
-  //       if (err.error.statusCode === 403) {
-  //         this.alertsService.error('Session Time Out! Please login Again', this.options);
-  //         this.router.navigate([`/login`], { skipLocationChange: false });
-  //       } else if (err.error.message) {
-  //         this.alertsService.error(err.error.message, this.options);
-  //       } else {
-  //         this.alertsService.error('Something bad happened. Please try again!', this.options);
-  //       }
-  //     }
-  //   );
-  // }
-
-  // onCustomerToggleSwitch(event: any, technicalInfo: any): void {
-  //   ////console.log(technicalInfo, "technicalInfo")
-  //   const inputElement = event.target as HTMLInputElement;
-  //   const isChecked = inputElement.checked;
-  //   if (!Array.isArray(this.allinfoData)) {
-  //     this.allinfoData = [];
-  //   }
-  //   // Remove old entry for this item if exists
-  //   this.allinfoData = this.allinfoData.filter((item: any) => item.id !== technicalInfo.id);
-  //   // Push the updated entry
-  //   this.allinfoData.push({
-  //     ...technicalInfo,
-  //     is_enabled: isChecked
-  //   });
-  //   // Optional: log the result
-  //   ////console.log('After toggle:', this.allinfoData, this.generalTechInfoData, this.technicalInfos);
-  //   for (let i = 0; i < this.technicalInfos.length; i++) {
-  //     if (technicalInfo.id === this.technicalInfos[i].id) {
-  //       this.technicalInfos[i].is_enabled = true;
-  //       // this.generalTechInfoData[i].is_enabled=true;
-  //       ////console.log("111 enabled", this.technicalInfos, this.generalTechInfoData)
-  //     }
-  //   }
-  //   for (let i = 0; i < this.generalTechInfoData.length; i++) {
-  //     if (technicalInfo.id === this.generalTechInfoData[i].id) {
-  //       this.generalTechInfoData[i].is_enabled = true;
-  //       // this.generalTechInfoData[i].is_enabled=true;
-  //       ////console.log("111 enabled", this.technicalInfos, this.generalTechInfoData)
-  //     }
-  //   }
-  //   ////console.log('All info data after toggling:', this.allinfoData)
-  // }
-
-  // getTechInfoBasedOnCustomer() {
-  //   let checkExistingTechnicalInfoAvailbility = {
-  //     domain_name: DOMAIN_NAME,
-  //     user_id: USER_ID, //Default user id
-  //     "extras": {
-  //       "find": {
-  //         "customer_id": this.hotelId
-  //       }
-  //     }
-  //   }
-  //   this.hotelenrollmentservice.getAllTechnicalInfo(checkExistingTechnicalInfoAvailbility).subscribe(
-  //     (resp: any) => {
-  //       this.loaderService.emitComplete();
-  //       if (resp) {
-  //         this.customerTechInfo = resp.result.data[0];
-  //         ////console.log(this.customerTechInfo, '  this.customerTechInfo');
-  //         ////console.log('Customer technicalInfo data', this.technicalInfoData);
-  //         this.technicalInfodatalength = resp.result.data.length;
-  //         ////console.log('checkExistingtechnicalInfoAvailbility', this.technicalInfodatalength);
-  //         // this.checkExistingtechnicalInfoChoosen = this.technicalInfoData;
-  //       }
-  //     },
-  //     (err: any) => {
-  //       this.loaderService.emitComplete();
-  //       // ////console.error('getCustomerById error:', err);
-  //       if (err.error.statusCode === 403) {
-  //         this.alertsService.error('Session Time Out! Please login Again', this.options);
-  //         this.router.navigate([`/login`], { skipLocationChange: false });
-  //       } else if (err.error.message) {
-  //         this.alertsService.error(err.error.message, this.options);
-  //       } else {
-  //         this.alertsService.error('Something bad happened. Please try again!', this.options);
-  //       }
-  //     }
-  //   );
-  // }
 
   updateCustomer() {
     let requestBody = {
@@ -1580,24 +951,6 @@ export class TechnicalInfoComponent implements OnInit {
     this.activeTab = 3;
   }
 
-  nextTabInfo() {
-    // console.log('Before navigation: activeTab =', this.activeTab);
-    this.isTechnicalInfoExists
-      ? this.updateTechnicalInfo(this.allinfoData)
-      : this.technicalInfoCreate(this.allinfoData);
-    switch (this.activeTab) {
-      case 1:
-        this.selectTab('pos');
-        this.secondTabCount();
-        break;
-      case 2:
-        this.selectTab('other');
-        this.thirdTabCount();
-        break;
-    }
-    // console.log('After navigation: activeTab =', this.activeTab);
-  }
-
   // Newly added for back
   back() {
     if (this.activeTab == 1) {
@@ -1616,47 +969,6 @@ export class TechnicalInfoComponent implements OnInit {
       this.secondTabCount();
     }
   }
-
-
-  // Newly added for payment
-  // getLastOrderForCustomer(): Promise<any> {
-  //   return new Promise((resolve, reject) => {
-  //     const req = {
-  //       domain_name: DOMAIN_NAME,
-  //       user_id: USER_ID,
-  //       extras: {
-  //         find: { customer_id: this.customerdata.id }
-  //       }
-  //     };
-  //     this.hotelenrollmentservice.orderDetailsGetById(req).subscribe({
-  //       next: (res: any) => {
-  //         // this.orderdata = res?.result?.data?.[0] || null;
-  //         // console.log('Latest order data of customer:', this.orderdata);
-  //         // resolve(this.orderdata);/
-  //         // console.log('res', res);
-  //         const orders = res?.result?.data || [];
-  //         // console.log('All customer orders:', orders);
-  //         // Filter only confirmed orders
-  //         const confirmedOrders = orders.filter((order: any) => order.status === 'Order Confirmed');
-  //         // console.log('Confirmed orders:', confirmedOrders);
-  //         // Sort by creation date (descending) to get the most recent one
-  //         const sortedConfirmed = confirmedOrders.sort((a: any, b: any) => {
-  //           const dateA = new Date(a.created_on);
-  //           const dateB = new Date(b.created_on);
-  //           return dateB.getTime() - dateA.getTime(); // latest first
-  //         });
-  //         // Take the latest confirmed order (if any)
-  //         this.orderdata = sortedConfirmed.length > 0 ? sortedConfirmed[0] : null;
-  //         // console.log('Latest confirmed order of customer:', this.orderdata);
-  //         resolve(this.orderdata);
-  //       },
-  //       error: (err: any) => {
-  //         console.error('Error fetching last order:', err);
-  //         reject(err);
-  //       }
-  //     });
-  //   });
-  // }
 
   getLastOrderForCustomer(): Promise<any> {
     return new Promise((resolve, reject) => {
@@ -1694,7 +1006,6 @@ export class TechnicalInfoComponent implements OnInit {
       );
     });
   }
-
 
   // async payNow() {
   //   // 1.Determine order amount based on property size
@@ -2834,6 +2145,15 @@ export class TechnicalInfoComponent implements OnInit {
     this.openEcomIntegrationModal(data);
   }
 
+  // Helper: returns true if the currently opened integration is WIN HMS or Oracle.
+  // Hotel_Code locking only applies to these two integrations.
+  isHotelCodeIntegration(): boolean {
+    if (!this.selectedEcomIntegrationData) return false;
+    const type = (this.selectedEcomIntegrationData.type || '').toString().trim().toLowerCase();
+    const name = (this.selectedEcomIntegrationData.name || '').toString().trim().toLowerCase();
+    return type === 'pos' || name === 'win hms' || name === 'oracle';
+  }
+
   // Open Ecom Integration Settings Modal
   openEcomIntegrationModal(data: any): void {
     // console.log('Ecom settings opened', data);
@@ -2847,14 +2167,40 @@ export class TechnicalInfoComponent implements OnInit {
     // Populate technical info form array
     const techInfoArray = this.ecomTechnicalInfoForm.get('technicalInfo') as FormArray;
     techInfoArray.clear();
-    if (data.attributes && Array.isArray(data.attributes) && data.attributes.length) {
-      data.attributes.forEach((attr: any) => {
+
+    let attributesToDisplay = data.attributes ? [...data.attributes] : [];
+
+    // Automatically ensure Hotel_Code is present for WIN HMS and Oracle integrations
+    // OLD: was checked by tab (selectedTab === 'pos') — now checked by integration name
+    // if (this.selectedTab === 'pos') {
+    if (this.isHotelCodeIntegration()) {
+      const hasHotelCode = attributesToDisplay.some((attr: any) =>
+        attr && typeof attr.key === 'string' && attr.key.trim().toLowerCase() === 'hotel_code'
+      );
+      if (!hasHotelCode) {
+        // Add default Hotel_Code attribute at the beginning
+        attributesToDisplay.unshift({ key: 'Hotel_Code', value: '' });
+      }
+    }
+
+    if (attributesToDisplay.length) {
+      attributesToDisplay.forEach((attr: any) => {
         techInfoArray.push(this.createEcomAttributeGroup(attr.key || '', attr.value || ''));
       });
     } else {
       // At least one empty row
       techInfoArray.push(this.createEcomAttributeGroup());
     }
+    /*
+        if (data.attributes && Array.isArray(data.attributes) && data.attributes.length) {
+          data.attributes.forEach((attr: any) => {
+            techInfoArray.push(this.createEcomAttributeGroup(attr.key || '', attr.value || ''));
+          });
+        } else {
+          // At least one empty row
+          techInfoArray.push(this.createEcomAttributeGroup());
+        }
+    */
     // Ensure modal instance exists and element is present
     if (!this.ecomIntegrationModalInstance && this.ecomIntegrationModal) {
       this.ecomIntegrationModalInstance = new bootstrap.Modal(this.ecomIntegrationModal.nativeElement, {
@@ -2894,16 +2240,51 @@ export class TechnicalInfoComponent implements OnInit {
   // Remove field from technical info
   removeEcomField(index: number): void {
     const techInfoArray = this.ecomTechnicalInfoForm.get('technicalInfo') as FormArray;
+    // Prevent removal of Hotel_Code only for WIN HMS and Oracle integrations
+    // OLD: was checked by tab (selectedTab === 'pos') — now checked by integration name
+    // if (this.selectedTab === 'pos') {
+    if (this.isHotelCodeIntegration()) {
+      const fieldControl = techInfoArray.at(index);
+      if (fieldControl) {
+        // Use getRawValue to read disabled controls (Hotel_Code key is disabled)
+        const rawKey = (fieldControl as FormGroup).getRawValue()?.key ?? '';
+        const keyVal = rawKey.toString().trim().toLowerCase();
+        if (keyVal === 'hotel_code') {
+          this.alertsService.error('Hotel_Code label cannot be removed.', this.options);
+          return;
+        }
+      }
+    }
     techInfoArray.removeAt(index);
   }
 
   // Create a FormGroup for Ecom attribute with conditional validation:
   // if key is entered, value becomes required.
+  // Hotel_Code key is disabled only when in the PMS (pos) tab.
   createEcomAttributeGroup(key: string = '', value: string = ''): FormGroup {
+    // Disable the key field only for Hotel_Code AND only for WIN HMS / Oracle integrations
+    // OLD: was checked by tab (selectedTab === 'pos') — now checked by integration name
+    // const isHotelCodeOnPms = this.selectedTab === 'pos' && key.trim().toLowerCase() === 'hotel_code';
+    const isHotelCodeOnPms = this.isHotelCodeIntegration() && key.trim().toLowerCase() === 'hotel_code';
+    // Newly added for hotel code value disabled
+    /*  const group = this.fb.group({
+      key: [{ value: key, disabled: isHotelCodeOnPms }],
+      value: [ value: value]
+    }); */
+    const isValueDisabled = this.customerStatus === 'approved';
     const group = this.fb.group({
-      key: [key],
+      key: [{ value: key, disabled: isHotelCodeOnPms }],
+      value: [{ value: value, disabled: isValueDisabled }]
+    });
+    // End of newly added for hotel code value disabled
+    /*
+    // OLD: disabled Hotel_Code key on ALL tabs (not just PMS)
+    const isHotelCode = key.trim().toLowerCase() === 'hotel_code'.toLowerCase();
+    const group_old = this.fb.group({
+      key: [{ value: key, disabled: isHotelCode }],
       value: [value]
     });
+    */
     group.valueChanges.subscribe(() => {
       this.validateEcomAttributeGroup(group);
     });
@@ -2942,12 +2323,24 @@ export class TechnicalInfoComponent implements OnInit {
     const techInfoArray = this.getEcomTechnicalInfoControls();
     techInfoArray.controls.forEach(ctrl => this.validateEcomAttributeGroup(ctrl));
     this.ecomTechnicalInfoForm.updateValueAndValidity({ onlySelf: false, emitEvent: false });
+    // Validate main Ecom Integration fields (API URL)
+    if (this.ecomIntegrationForm.invalid) {
+      this.ecomIntegrationForm.markAllAsTouched();
+      return;
+    }
     // Validate Ecom technical info fields (Key / Value)
     if (this.ecomTechnicalInfoForm.invalid) {
       this.ecomTechnicalInfoForm.markAllAsTouched();
       return;
     }
+    // Use getRawValue() to include disabled controls (like Hotel_Code key)
+    const technicalInfoValue = (this.ecomTechnicalInfoForm.getRawValue().technicalInfo || []).map((attr: any) => ({
+      key: attr.key || '',
+      value: attr.value || ''
+    }));
+    /*
     const technicalInfoValue = this.ecomTechnicalInfoForm.value.technicalInfo || [];
+    */
     // Update the selected item locally (customer-specific list)
     this.selectedEcomIntegrationData.api_url = integrationFormValue.api_url;
     this.selectedEcomIntegrationData.attributes = technicalInfoValue;
@@ -2975,16 +2368,22 @@ export class TechnicalInfoComponent implements OnInit {
     }
     // Persist only for this customer using dedicated Ecom update function.
     // Customer (Hotel_Code) will be updated inside this method *after* technical info update succeeds.
-    await this.updateCustomerEcomIntegrationSettings(this.allinfoData, technicalInfoValue);
+    await this.updateCustomerEcomIntegrationSettings(this.selectedEcomIntegrationData, technicalInfoValue);
     this.closeEcomIntegrationModal();
   }
 
   // Update customer.Hotel_Code based on Ecom attributes (Hotel_Code key)
-  async updateCustomerHotelCodeFromEcomAttributes(attributes: any[]): Promise<void> {
-    // Hotel_Code is only relevant for WIN HMS and Oracle Ecom integrations
-    const integrationName = (this.selectedEcomIntegrationData?.name || '').toString().toLowerCase();
-    if (integrationName !== 'win hms'.toLowerCase() && integrationName !== 'oracle'.toLowerCase()) {
-      // For other integrations, don't touch customer.Hotel_Code
+  async updateCustomerHotelCodeFromEcomAttributes(attributes: any[], integrationNameInput?: string, integrationTypeInput?: string): Promise<void> {
+    // Use provided integration name or fall back to the one from the modal data
+    const integrationName = (integrationNameInput !== undefined ? integrationNameInput : (this.selectedEcomIntegrationData?.name || '')).toString().toLowerCase();
+    const integrationType = (integrationTypeInput !== undefined ? integrationTypeInput : (this.selectedEcomIntegrationData?.type || '')).toString().toLowerCase();
+
+    console.log('[HotelCodeSync] Starting check for integration:', { integrationName, integrationType });
+    console.log('[HotelCodeSync] Input Attributes:', attributes);
+
+    // Hotel_Code is relevant for all PMS/POS (pos) integrations, and WIN HMS / Oracle
+    if (integrationType !== 'pos' && integrationName !== 'win hms' && integrationName !== 'oracle') {
+      console.log('[HotelCodeSync] Bypassing: Integration is not a PMS/POS or WIN HMS/Oracle system.');
       return;
     }
 
@@ -3009,14 +2408,21 @@ export class TechnicalInfoComponent implements OnInit {
     // Always fetch latest customer data so we compare against the real current Hotel_Code
     try {
       await this.getCustomerById();
-    } catch {
-      // If customer data cannot be loaded, silently skip Hotel_Code update
+    } catch (e) {
+      console.error('[HotelCodeSync] Failed to fetch customer record:', e);
       return;
     }
     const existingHotelCode: string =
       (this.customerdata && this.customerdata.Hotel_Code)
         ? String(this.customerdata.Hotel_Code)
         : '';
+
+    console.log('[HotelCodeSync] Comparison details:', {
+      hasHotelCodeKey,
+      newHotelCode,
+      existingHotelCode
+    });
+
     // Decide whether and what to update on the customer:
     // 1. If Hotel_Code key exists in technical and its value changed -> update to that value (even empty string).
     // 2. If Hotel_Code key does NOT exist anymore but customer currently has a Hotel_Code -> set it to empty string.
@@ -3036,6 +2442,9 @@ export class TechnicalInfoComponent implements OnInit {
         valueToSend = '';
       }
     }
+
+    console.log('[HotelCodeSync] Update decision:', { shouldUpdateCustomer, valueToSend });
+
     if (!shouldUpdateCustomer) {
       return;
     }
@@ -3051,24 +2460,31 @@ export class TechnicalInfoComponent implements OnInit {
         },
         extras: {
           find: {
-            // id: this.hotelId
             customer_member_id: this.memberId
           }
         }
       };
+      console.log('[HotelCodeSync] Sending request body to updateCustomerSettings:', requestBody);
       await new Promise<void>((resolve) => {
-        this.hotelenrollmentservice.updateCustomer(requestBody).subscribe(
+        this.hotelenrollmentservice.updateCustomerSettings(requestBody).subscribe(
           (resp: any) => {
+            console.log('[HotelCodeSync] API response:', resp);
             // Confirm API actually succeeded before treating it as success
             if (!(resp?.success === 1 && resp?.status_code === 200)) {
               this.alertsService.error(
                 resp?.message || 'Failed to update customer Hotel_Code',
                 this.options
               );
+            } else {
+              // Ensure we reflect the updated Hotel_Code in our local memory immediately
+              if (this.customerdata) {
+                this.customerdata.Hotel_Code = valueToSend;
+              }
             }
             resolve();
           },
           (err: any) => {
+            console.error('[HotelCodeSync] API Error:', err);
             this.alertsService.error(
               err?.error?.message || 'Failed to update customer Hotel_Code',
               this.options
@@ -3081,23 +2497,18 @@ export class TechnicalInfoComponent implements OnInit {
       console.error('Failed to update customer Hotel_Code from Ecom attributes', error);
     }
   }
-  // Update only current customer's Ecom integration settings (with both customer_id and id in find)
-  updateCustomerEcomIntegrationSettings(updatedCustomerTechnicalInfo: any, attributesForSelected: any[]): Promise<void> {
+  // Update only current customer's Ecom integration settings
+  updateCustomerEcomIntegrationSettings(selectedIntegration: any, attributesForSelected: any[]): Promise<void> {
+    const { _id, id, created_on, is_deleted, modified_on, ...cleanedIntegration } = selectedIntegration;
     const requestBody = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
       payload: {
-        update_technical_info: {
-          customer_technical_info: updatedCustomerTechnicalInfo
-        }
+        integration_settings: cleanedIntegration
       },
       extras: {
         find: {
-          id: this.technicalInfoData?.id,
-          // Newly added for getting member id for customer type
-          // customer_id: this.hotelId,
-          "member_id": this.memberId
-          // Ended for getting member id for customer type,
+          id: id
         }
       }
     };
@@ -3107,16 +2518,16 @@ export class TechnicalInfoComponent implements OnInit {
           this.loaderService.emitComplete();
           if (resp?.success === 1 && resp?.status_code === 200) {
             this.alertsService.success(resp.message, this.options);
-            // Refresh enabled ids from the updated payload (now persisted)
-            if (Array.isArray(updatedCustomerTechnicalInfo)) {
-              this.enabledCustomerTechnicalInfoIds = new Set<number>(
-                updatedCustomerTechnicalInfo
-                  .filter((item: any) => item.is_enabled === true)
-                  .map((item: any) => Number(item.id))
-              );
+            // Refresh enabled ids from the updated integration (now persisted)
+            if (selectedIntegration) {
+              if (selectedIntegration.is_enabled === true) {
+                this.enabledCustomerTechnicalInfoIds.add(Number(id));
+              } else {
+                this.enabledCustomerTechnicalInfoIds.delete(Number(id));
+              }
             }
             // Only after technical info is successfully updated, update customer with Hotel_Code if present
-            await this.updateCustomerHotelCodeFromEcomAttributes(attributesForSelected);
+            await this.updateCustomerHotelCodeFromEcomAttributes(attributesForSelected, this.selectedEcomIntegrationData?.name, this.selectedEcomIntegrationData?.type);
           } else {
             this.alertsService.error(resp?.message || 'Update failed', this.options);
           }
@@ -3142,6 +2553,623 @@ export class TechnicalInfoComponent implements OnInit {
   // 
   // }
 
+  /*  nextTabInfo() {
+ 
+     const enabledIntegrations = this.allinfoData.filter(
+       (item: any) =>
+         item.type === this.selectedTab &&
+         item.is_enabled === true
+     );
+ 
+     if (enabledIntegrations.length > 1) {
+       this.alertsService.error(
+         `Only one ${this.selectedTab === 'lock' ? 'Lock' : 'PMS'} integration can be enabled at a time.`,
+         this.options
+       );
+       return;
+     }
+ 
+     const changedRecords = this.allinfoData.filter(
+       (item: any) =>
+         this.originalEnabledState[item.id] !== item.is_enabled
+     );
+ 
+     if (changedRecords.length === 0) {
+ 
+       // No changes, just navigate
+       this.navigateNextTab();
+       return;
+     }
+ 
+     let completedCount = 0;
+ 
+     changedRecords.forEach((item: any) => {
+ 
+       this.updateTechnicalInfo(item, () => {
+ 
+         completedCount++;
+ 
+         if (completedCount === changedRecords.length) {
+ 
+           this.alertsService.success(
+             'Technical information updated successfully.',
+             this.options
+           );
+ 
+           // Refresh original state
+           changedRecords.forEach((record: any) => {
+             this.originalEnabledState[record.id] =
+               record.is_enabled;
+           });
+ 
+           this.navigateNextTab();
+         }
+ 
+       });
+ 
+     });
+   }
+ 
+   navigateNextTab() {
+ 
+     switch (this.activeTab) {
+ 
+       case 1:
+         this.selectTab('pos');
+         this.secondTabCount();
+         break;
+ 
+       case 2:
+         this.selectTab('other');
+         this.thirdTabCount();
+         break;
+     }
+   }
+ 
+   updateTechnicalInfo(
+     technicalInfo: any,
+     callback?: () => void
+   ): void {
+ 
+     const requestBody = {
+       domain_name: DOMAIN_NAME,
+       user_id: USER_ID,
+       payload: {
+         integration_settings: technicalInfo
+       },
+       extras: {
+         find: {
+           id: technicalInfo.id
+         }
+       }
+     };
+ 
+     this.technicalInfoService.updateTechnicalInfo(requestBody)
+       .subscribe(
+         (resp: any) => {
+ 
+           if (
+             resp?.success === 1 &&
+             resp?.status_code === 200
+           ) {
+ 
+             callback?.();
+ 
+           } else {
+ 
+             this.alertsService.error(
+               resp?.message || 'Update failed',
+               this.options
+             );
+ 
+           }
+         },
+         (err: any) => {
+ 
+           this.alertsService.error(
+             err?.error?.message || 'Something went wrong!',
+             this.options
+           );
+ 
+         }
+       );
+   }
+ 
+   save() {
+     this.openModal();
+     const changedRecords = this.allinfoData.filter(
+       (item: any) =>
+         this.originalEnabledState[item.id] !== item.is_enabled
+     );
+     if (changedRecords.length === 0) {
+       this.alertsService.warn(
+         'No changes found to save.',
+         this.options
+       );
+       return;
+     }
+ 
+     let completedCount = 0;
+ 
+     changedRecords.forEach((item: any) => {
+ 
+       this.updateTechnicalInfo(item, () => {
+ 
+         completedCount++;
+ 
+         if (completedCount === changedRecords.length) {
+ 
+           this.alertsService.success(
+             'Technical information updated successfully.',
+             this.options
+           );
+ 
+           changedRecords.forEach((record: any) => {
+             this.originalEnabledState[record.id] =
+               record.is_enabled;
+           });
+ 
+         }
+ 
+       });
+ 
+     });
+ 
+   }
+ 
+   getAllTechnicalInfo() {
+     const requestBody = {
+       domain_name: DOMAIN_NAME,
+       user_id: USER_ID,
+       extras: {
+         find: {
+           member_id: this.memberId
+         }
+       }
+     };
+ 
+     this.hotelenrollmentservice.getAllTechnicalInfo(requestBody).subscribe(
+       (resp: any) => {
+         this.loaderService.emitComplete();
+         this.isLoading = false;
+ 
+         if (resp && resp.success === 1 && resp.status_code === 200) {
+ 
+           const technicalInfoList = resp.result.data || [];
+ 
+           this.technicalInfodatalength = technicalInfoList.length;
+ 
+           this.showEdit = this.technicalInfodatalength > 0;
+           this.isTechnicalInfoExists = this.technicalInfodatalength > 0;
+           this.isCustomerChoosen = this.technicalInfodatalength > 0;
+ 
+           this.technicalInfos = technicalInfoList.filter(
+             (item: any) =>
+               item.is_active === true &&
+               !["SMS Delivery Template", "HDFC Gateway"].includes(item.name)
+           );
+ 
+           // Store original is_enabled values from API
+           this.originalEnabledState = {};
+ 
+           this.technicalInfos.forEach((item: any) => {
+             this.originalEnabledState[item.id] = item.is_enabled;
+           });
+ 
+           this.allinfoData = [...this.technicalInfos];
+ 
+           this.generalTechInfoData = this.technicalInfos.filter(
+             (item: any) => item.type === this.selectedTab
+           );
+         }
+       },
+       (err: any) => {
+         this.isLoading = false;
+         this.loaderService.emitComplete();
+ 
+         if (err.error?.statusCode === 403) {
+           this.alertsService.error(
+             'Session Time Out! Please login Again',
+             this.options
+           );
+ 
+           this.router.navigate(['/login'], {
+             skipLocationChange: false
+           });
+ 
+         } else if (err.error?.message) {
+ 
+           this.alertsService.error(
+             err.error.message,
+             this.options
+           );
+ 
+         } else {
+ 
+           this.alertsService.error(
+             'Something bad happened. Please try again!',
+             this.options
+           );
+         }
+       }
+     );
+   }
+ 
+   onCustomerToggleSwitch(event: any, technicalInfo: any): void {
+ 
+     const inputElement = event.target as HTMLInputElement;
+     const isChecked = inputElement.checked;
+ 
+     if (!Array.isArray(this.allinfoData)) {
+       this.allinfoData = [];
+     }
+ 
+     const getIsEnabled = (item: any): boolean => {
+ 
+       if (item.id === technicalInfo.id) {
+         return isChecked;
+       }
+ 
+       // Single selection for same type
+       if (
+         isChecked &&
+         item.type === technicalInfo.type &&
+         item.id !== technicalInfo.id
+       ) {
+         return false;
+       }
+ 
+       return item.is_enabled === true;
+     };
+ 
+     this.generalTechInfoData = this.generalTechInfoData.map((item: any) => ({
+       ...item,
+       is_enabled: getIsEnabled(item)
+     }));
+ 
+     this.technicalInfos = this.technicalInfos?.map((item: any) => ({
+       ...item,
+       is_enabled: getIsEnabled(item)
+     }));
+ 
+     this.allinfoData = this.allinfoData.map((item: any) => ({
+       ...item,
+       is_enabled: getIsEnabled(item)
+     }));
+ 
+     // Store only modified records
+     const modifiedRecord = this.allinfoData.find(
+       (item: any) => item.id === technicalInfo.id
+     );
+ 
+     if (modifiedRecord) {
+ 
+       const existingIndex = this.modifiedTechnicalInfos.findIndex(
+         (item: any) => item.id === modifiedRecord.id
+       );
+ 
+       if (existingIndex > -1) {
+         this.modifiedTechnicalInfos[existingIndex] = { ...modifiedRecord };
+       } else {
+         this.modifiedTechnicalInfos.push({ ...modifiedRecord });
+       }
+     }
+ 
+     console.log('Modified Records', this.modifiedTechnicalInfos);
+   } */
+  onCustomerToggleSwitch(event: any, technicalInfo: any): void {
+
+    const isChecked = event.target.checked;
+
+    const getIsEnabled = (item: any): boolean => {
+
+      if (item.id === technicalInfo.id) {
+        return isChecked;
+      }
+
+      // Single select within same type
+      if (
+        isChecked &&
+        item.type === technicalInfo.type &&
+        item.id !== technicalInfo.id
+      ) {
+        return false;
+      }
+
+      return item.is_enabled === true;
+    };
+
+    this.generalTechInfoData = this.generalTechInfoData.map((item: any) => ({
+      ...item,
+      is_enabled: getIsEnabled(item)
+    }));
+
+    this.technicalInfos = this.technicalInfos.map((item: any) => ({
+      ...item,
+      is_enabled: getIsEnabled(item)
+    }));
+
+    this.allinfoData = this.allinfoData.map((item: any) => ({
+      ...item,
+      is_enabled: getIsEnabled(item)
+    }));
+  }
+
+  getAllTechnicalInfo() {
+
+    const requestBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: {
+        find: {
+          member_id: this.memberId
+        }
+      }
+    };
+
+    this.hotelenrollmentservice.getAllTechnicalInfo(requestBody).subscribe(
+      (resp: any) => {
+
+        this.loaderService.emitComplete();
+        this.isLoading = false;
+
+        if (
+          resp &&
+          resp.success === 1 &&
+          resp.status_code === 200
+        ) {
+
+          const technicalInfoList = resp.result.data || [];
+
+          this.technicalInfodatalength = technicalInfoList.length;
+
+          this.showEdit = this.technicalInfodatalength > 0;
+          this.isTechnicalInfoExists = this.technicalInfodatalength > 0;
+          this.isCustomerChoosen = this.technicalInfodatalength > 0;
+
+          this.technicalInfos = technicalInfoList.filter(
+            (item: any) =>
+              item.is_active === true &&
+              !["SMS Delivery Template", "HDFC Gateway"].includes(item.name)
+          );
+
+          this.originalEnabledState = {};
+          this.enabledCustomerTechnicalInfoIds = new Set<number>();
+
+          this.technicalInfos.forEach((item: any) => {
+            this.originalEnabledState[item.id] = item.is_enabled;
+            if (item.is_enabled === true || item.is_enabled === 'true') {
+              this.enabledCustomerTechnicalInfoIds.add(Number(item.id));
+            }
+          });
+
+          this.allinfoData = [...this.technicalInfos];
+
+          this.generalTechInfoData = this.technicalInfos.filter(
+            (item: any) => item.type === this.selectedTab
+          );
+        }
+      },
+      (err: any) => {
+
+        this.isLoading = false;
+        this.loaderService.emitComplete();
+
+        if (err.error?.statusCode === 403) {
+
+          this.alertsService.error(
+            'Session Time Out! Please login Again',
+            this.options
+          );
+
+          this.router.navigate(['/login'], {
+            skipLocationChange: false
+          });
+
+        } else if (err.error?.message) {
+
+          this.alertsService.error(
+            err.error.message,
+            this.options
+          );
+
+        } else {
+
+          this.alertsService.error(
+            'Something bad happened. Please try again!',
+            this.options
+          );
+        }
+      }
+    );
+  }
+
+  updateTechnicalInfo(
+    technicalInfo: any,
+    callback?: () => void
+  ): void {
+
+    const { _id, id, created_on, is_deleted, modified_on, ...cleanedTechnicalInfo } = technicalInfo;
+
+    const requestBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      payload: {
+        integration_settings: cleanedTechnicalInfo
+      },
+      extras: {
+        find: {
+          id: id
+        }
+      }
+    };
+
+    this.technicalInfoService
+      .updateTechnicalInfo(requestBody)
+      .subscribe(
+        (resp: any) => {
+
+          if (
+            resp?.success === 1 &&
+            resp?.status_code === 200
+          ) {
+
+            this.originalEnabledState[technicalInfo.id] =
+              technicalInfo.is_enabled;
+
+            if (technicalInfo.is_enabled === true || technicalInfo.is_enabled === 'true') {
+              this.enabledCustomerTechnicalInfoIds.add(Number(technicalInfo.id));
+            } else {
+              this.enabledCustomerTechnicalInfoIds.delete(Number(technicalInfo.id));
+            }
+
+            callback?.();
+
+          } else {
+
+            this.alertsService.error(
+              resp?.message || 'Update failed',
+              this.options
+            );
+          }
+        },
+        (err: any) => {
+
+          this.alertsService.error(
+            err?.error?.message || 'Something went wrong!',
+            this.options
+          );
+        }
+      );
+  }
+
+  navigateNextTab() {
+    switch (this.activeTab) {
+      case 1:
+        this.selectTab('pos');
+        this.secondTabCount();
+        break;
+      case 2:
+        this.selectTab('other');
+        this.thirdTabCount();
+        break;
+    }
+  }
+
+  async syncCustomerHotelCodeFromActivePms(): Promise<void> {
+    if (this.selectedTab !== 'pos') {
+      return;
+    }
+    const activePms = this.generalTechInfoData?.find(
+      (item: any) => item.type === 'pos' && item.is_enabled === true
+    );
+    if (activePms) {
+      await this.updateCustomerHotelCodeFromEcomAttributes(activePms.attributes || [], activePms.name, activePms.type);
+    } else {
+      await this.updateCustomerHotelCodeFromEcomAttributes([], '', 'pos');
+    }
+  }
+
+  nextTabInfo() {
+
+    const enabledIntegrations = this.generalTechInfoData.filter(
+      (item: any) => item.is_enabled === true
+    );
+
+    if (enabledIntegrations.length > 1) {
+      const tabName = this.selectedTab === 'lock' ? 'Lock' : (this.selectedTab === 'pos' ? 'PMS' : 'Other');
+      this.alertsService.error(
+        `Only one ${tabName} integration can be enabled at a time.`,
+        this.options
+      );
+
+      return;
+    }
+
+    const changedRecords = this.generalTechInfoData.filter(
+      (item: any) =>
+        this.originalEnabledState[item.id] !== item.is_enabled
+    );
+
+    if (changedRecords.length === 0) {
+
+      this.navigateNextTab();
+      return;
+    }
+
+    let completedCount = 0;
+
+    changedRecords.forEach((item: any) => {
+
+      this.updateTechnicalInfo(item, async () => {
+
+        completedCount++;
+
+        if (completedCount === changedRecords.length) {
+
+          this.alertsService.success(
+            'Technical information updated successfully.',
+            this.options
+          );
+
+          await this.syncCustomerHotelCodeFromActivePms();
+          this.navigateNextTab();
+        }
+
+      });
+
+    });
+  }
+
+  save() {
+
+    const enabledIntegrations = this.generalTechInfoData.filter(
+      (item: any) => item.is_enabled === true
+    );
+
+    if (enabledIntegrations.length > 1) {
+      const tabName = this.selectedTab === 'lock' ? 'Lock' : (this.selectedTab === 'pos' ? 'PMS' : 'Other');
+      this.alertsService.error(
+        `Only one ${tabName} integration can be enabled at a time.`,
+        this.options
+      );
+
+      return;
+    }
+
+    const changedRecords = this.generalTechInfoData.filter(
+      (item: any) =>
+        this.originalEnabledState[item.id] !== item.is_enabled
+    );
+
+    if (changedRecords.length === 0) {
+      this.openModal();
+      return;
+    }
+
+    let completedCount = 0;
+
+    changedRecords.forEach((item: any) => {
+
+      this.updateTechnicalInfo(item, async () => {
+
+        completedCount++;
+
+        if (completedCount === changedRecords.length) {
+
+          this.alertsService.success(
+            'Technical information updated successfully.',
+            this.options
+          );
+
+          await this.syncCustomerHotelCodeFromActivePms();
+          this.openModal();
+        }
+
+      });
+
+    });
+  }
 
 }
 

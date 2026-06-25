@@ -1,0 +1,1055 @@
+.main {
+    min-height: 100vh;
+    background-color: #f5f5f5;
+}
+
+.centered-container {
+    background-color: white;
+    width: 98%;
+    margin: 0 auto;
+    padding: 20px 0;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    margin-top: 1%;
+}
+
+// .container {
+//   /*   background-color: #ffffff;
+//     border-radius: 20px;
+//     padding: 20px 24px;
+//     box-shadow: 0 0 10px rgba(0, 0, 0, 0.05); */
+// }
+
+.form-group label {
+    margin-bottom: 4px;
+}
+
+.outlet-wrapper {
+    border: 1px solid #e5e5e5;
+    border-radius: 12px;
+    padding: 16px;
+}
+
+.offer-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 10px;
+}
+
+.outlet-grid {
+    display: grid;
+    grid-auto-flow: column;
+    /* place items in a single row */
+    grid-auto-columns: calc(25% - 12px);
+    /* 4 cards visible (25% each minus gap) */
+    gap: 16px;
+    /* space between cards */
+    overflow-x: auto;
+    /* enable horizontal scroll */
+    padding-bottom: 8px;
+    /* optional */
+    scroll-behavior: smooth;
+    /* smooth scroll */
+}
+
+/* =========================
+     CARD STYLE
+  ========================= */
+.outlet-card,
+.offer-card {
+    width: 100%;
+    /* full width of grid cell */
+    background: #ffffff;
+    border: 1px solid #ddd;
+    border-radius: 16px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    align-items: center;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+/* Refine offer cards to look more like modern tiles */
+.offer-card {
+    align-items: flex-start;
+    text-align: left;
+    padding: 5px 10px;
+    border-radius: 12px;
+    border-color: #e5e7eb;
+    background-color: #fafafa;
+    /* remove heavy shadow so offers are visually secondary */
+    box-shadow: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.offer-card:hover {
+    /* very subtle hover for offers */
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05);
+}
+
+// .outlet-card {
+//   flex: 0 0 240px; /* fixed width per card, prevents wrapping */
+// }
+
+.outlet-card:hover {
+    border-color: #800020;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+.outlet-card:hover {
+    cursor: pointer;
+}
+
+.outlet-card.selected {
+    border: 2px solid #800020;
+    background: #fff6f8;
+}
+
+.outlet-actions {
+    display: flex;
+    gap: 8px;
+    z-index: 10;
+}
+
+.outlet-actions i {
+    font-size: 14px;
+    color: #6b7280;
+    cursor: pointer;
+    width: 25px;
+    height: 25px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+}
+
+.outlet-actions i:hover {
+    color: #800020;
+    background: #fee2e2;
+    transform: scale(1.1);
+}
+
+/* Disabled state when FEATURES read permission is false */
+.outlet-card.disabled-card {
+    opacity: 0.5;
+    cursor: not-allowed;
+    // pointer-events: none;
+}
+
+.offer-btn:disabled,
+.add-guest-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed !important;
+    /* Override Bootstrap's pointer-events:none so the not-allowed cursor is visible */
+    pointer-events: auto !important;
+}
+
+/* =========================
+     IMAGE WRAPPER (FIXED)
+  ========================= */
+.card-image-wrapper {
+    width: 100%;
+    height: 150px;
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f1f1f1;
+}
+
+.card-image-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    /* show full image */
+}
+
+/* =========================
+     PLACEHOLDER
+  ========================= */
+.outlet-placeholder {
+    width: 100%;
+    height: 140px;
+    border-radius: 10px;
+    background: #f1f1f1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    color: #777;
+}
+
+/* =========================
+     CARD TITLE
+  ========================= */
+.card-title,
+.outlet-name,
+.offer-name {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.3;
+    padding: 0 6px;
+    text-align: center;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Fine-tune offer title inside each card */
+.offer-card .offer-name {
+    font-size: 15px;
+    font-weight: 700;
+    padding: 8px 2px 0;
+    text-align: left;
+    color: #111827;
+    /* truncate long names with ellipsis in a single line */
+    flex: 0 1 60%;
+    max-width: 60%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.offer-price {
+    font-size: 13px;
+    color: #666;
+}
+
+/* Header row: offer name + discount on same line */
+.offer-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+}
+
+/* Offer specific meta sections */
+.offer-meta {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.status-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 999px;
+    letter-spacing: 0.3px;
+    height: 24px;
+}
+
+.status-pill.active {
+    background-color: #ecfdf5;
+    color: #059669;
+    border: 1px solid #d1fae5;
+}
+
+.status-pill.inactive {
+    background-color: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fee2e2;
+}
+
+.status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+}
+
+.active .status-dot {
+    background-color: #10b981;
+    box-shadow: 0 0 4px #10b981;
+}
+
+.inactive .status-dot {
+    background-color: #ef4444;
+    box-shadow: 0 0 4px #ef4444;
+}
+
+.offer-meta .badge {
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 999px;
+}
+
+.offer-validity,
+.offer-time {
+    font-size: 12px;
+    color: #6b7280;
+    font-weight: 500;
+    margin-top: 2px;
+}
+
+/* Slightly different treatment for the image inside offer cards */
+.offer-card .card-image-wrapper {
+    /* horizontal thumbnail for offers */
+    width: 110px;
+    min-width: 110px;
+    height: 80px;
+    margin: 0;
+    /* stronger rounding so edges look more curvy */
+    border-radius: 16px;
+    /* ensure image is clipped to curved corners */
+    overflow: hidden;
+    /* remove grey background behind offer images */
+    background-color: transparent;
+}
+
+/* Offer card image: fill thumb, keep outlets unchanged (they use the base styles) */
+.offer-card .card-image-wrapper img {
+    width: 100%;
+    height: 100%;
+    /* show full image inside the thumbnail without cropping */
+    object-fit: contain;
+    /* wrapper handles the rounding via overflow */
+    border-radius: 0;
+}
+
+/* Horizontal layout for offer cards: image left, text right */
+.offer-main {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+}
+
+.offer-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.add-guest-btn {
+    background-color: #800020;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 13px;
+}
+
+.offer-actions {
+    // margin-top: 6px;
+    // width: 100%;
+    display: flex;
+    justify-content: flex-end;
+    // gap: 8px;
+}
+
+.offer-actions i {
+    font-size: 14px;
+    color: #6b7280;
+    cursor: pointer;
+    width: 25px;
+    height: 25px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.9);
+    transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+}
+
+.offer-actions i:hover {
+    color: #800020;
+    background: #fee2e2;
+    transform: scale(1.05);
+}
+
+.qty-control {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+}
+
+.qty-control button {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    background: #800020;
+    color: #fff;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.qty-control button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+.offer-search-wrapper {
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.offer-search-input {
+    max-width: 280px;
+    height: 36px;
+    font-size: 14px;
+    border-radius: 6px;
+    background-color: white;
+}
+
+.pagination-wrapper {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+}
+
+.pagination-wrapper span {
+    font-size: 13px;
+    color: #333;
+}
+
+.pagination-wrapper button {
+    padding: 7px 14px;
+    font-size: 13px;
+    border-radius: 4px;
+    cursor: pointer;
+    background: #800020;
+    color: #fff;
+    border: none;
+}
+
+.pagination-wrapper button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.offer-btn {
+    background: #800020;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 12px;
+    padding: 5px 13px;
+}
+
+/* Responsive tweaks for offer grid */
+@media (max-width: 1200px) {
+    .offer-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 992px) {
+    .offer-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 576px) {
+    .offer-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .offer-card {
+        padding: 12px;
+    }
+}
+
+.modal-backdrop-custom {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1050;
+}
+
+.offer-modal {
+    width: 500px;
+    max-width: 95%;
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 20px 22px;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.2);
+    animation: scaleIn 0.2s ease;
+}
+
+.offer-modal h6 {
+    font-size: 15px;
+    color: #333;
+}
+
+.offer-modal {
+    width: 450px;
+    max-width: 95%;
+    height: 85vh;
+    /*  fixed height */
+    background: #ffffff;
+    border-radius: 14px;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.2);
+    animation: scaleIn 0.2s ease;
+    display: flex;
+    /* enables scroll layout */
+    flex-direction: column;
+    padding: 0;
+    /* padding moved to sections */
+}
+
+.modal-header,
+.modal-footer {
+    padding: 16px 22px;
+    flex-shrink: 0;
+    /* never scroll */
+    background: #fff;
+}
+
+.modal-body {
+    padding: 0 16px 16px;
+    overflow-y: auto;
+    /* scroll only here */
+    flex: 1;
+}
+
+/* Scrollbar styling */
+.modal-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+    background-color: #c1c1c1;
+    border-radius: 4px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.offer-modal label {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 4px;
+}
+
+.offer-modal .form-control {
+    height: 36px;
+    font-size: 13px;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    box-shadow: none;
+    background: white;
+}
+
+.offer-modal .form-control:focus {
+    border-color: #800020;
+}
+
+/* =========================
+   CUSTOM FILE INPUT
+========================= */
+.custom-file-input-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.custom-file-display {
+    display: flex;
+    align-items: center;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background-color: white;
+    height: 36px;
+    overflow: hidden;
+}
+
+.custom-file-btn {
+    background-color: #f1f1f1;
+    border-right: 1px solid #ddd;
+    padding: 0 16px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    color: #333;
+    margin-bottom: 0 !important; // Reset form label margin
+}
+
+.custom-file-btn:hover {
+    background-color: #e5e5e5;
+}
+
+.custom-file-text {
+    padding: 0 12px;
+    font-size: 13px;
+    color: #666;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: default; // Ensure text area is not clickable for file selection
+}
+
+/* =========================
+   OFFER IMAGE
+========================= */
+.offer-image-preview {
+    margin-top: 10px;
+    border: 1px dashed #d1d5db;
+    border-radius: 10px;
+    padding: 8px;
+    background: #fafafa;
+}
+
+.offer-image-preview img {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.image-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+}
+
+.image-actions .btn-link {
+    font-size: 12px;
+    padding: 0;
+    text-decoration: underline;
+}
+
+.offer-modal .btn-danger {
+    background-color: #800020;
+    color: white;
+    border: none;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 7px 16px;
+}
+
+.offer-modal .cancel-btn {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 7px 16px;
+    color: black !important;
+    background-color: white !important;
+    border: 1px solid black;
+}
+
+.auto-calculated {
+    background-color: #f5f6f8 !important;
+    color: #6c757d;
+    cursor: not-allowed;
+    border: 1px dashed #cfd4da;
+
+    &:disabled {
+        opacity: 1; // override Bootstrap default faded look
+    }
+
+    &::placeholder {
+        color: #9aa0a6;
+        font-style: italic;
+    }
+}
+
+.error-text {
+    color: #dc3545;
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+/* Modal Styling */
+.delete-modal-wrapper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2000;
+}
+
+.delete-modal-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(26, 26, 26, 0.5);
+    // backdrop-filter: blur(1px);
+}
+
+.delete-modal-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #ffffff;
+    border-radius: 10px;
+    padding: 25px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+    animation: fadeIn 0.25s ease;
+    z-index: 2001;
+}
+
+.delete-modal-title {
+    color: #800020;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.delete-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+}
+
+.delete-modal-save-btn {
+    background-color: #800020;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    font-size: 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.3s ease;
+}
+
+.delete-modal-save-btn:hover {
+    background-color: #a02740;
+}
+
+.delete-modal-cancel-btn {
+    background-color: #ddd;
+    color: #1a1a1a;
+    border: none;
+    padding: 8px 16px;
+    font-size: 14px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.delete-modal-cancel-btn:hover {
+    background-color: #ccc;
+}
+
+/* =========================
+   ADD GUEST / ROOM SEARCH MODAL
+========================= */
+
+.guest-modal-wrapper {
+    position: fixed;
+    inset: 0;
+    z-index: 2100;
+}
+
+.guest-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+}
+
+.guest-modal-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 20px 24px;
+    width: 80%;
+    max-width: 650px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    animation: scaleIn 0.18s ease-out;
+}
+
+.guest-modal-title {
+    font-size: 16px;
+    font-weight: 500;
+    color: #111827;
+}
+
+.guest-modal-content .form-control {
+    height: 36px;
+    font-size: 13px;
+    border-radius: 6px;
+    background-color: white;
+}
+
+.search-room-label {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.select-all-btn {
+    background-color: #800020;
+    color: #fff;
+    border: none;
+    padding: 6px 16px;
+    font-size: 13px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    white-space: nowrap;
+    transition: background-color 0.3s ease;
+    height: 36px;
+}
+
+.select-all-btn:hover:not(:disabled) {
+    background-color: #a02740;
+}
+
+.select-all-btn:disabled {
+    background-color: #d1d5db;
+    color: #9ca3af;
+    cursor: not-allowed !important;
+    opacity: 0.6;
+    /* Override Bootstrap's pointer-events:none so the not-allowed cursor is visible */
+    pointer-events: auto !important;
+}
+
+.clear-all-btn {
+    background-color: #dc3545;
+    color: #fff;
+    border: none;
+    padding: 6px 16px;
+    font-size: 13px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    white-space: nowrap;
+    transition: background-color 0.3s ease;
+    height: 36px;
+}
+
+.clear-all-btn:hover:not(:disabled) {
+    background-color: #c82333;
+}
+
+.clear-all-btn:disabled {
+    background-color: #d1d5db;
+    color: #9ca3af;
+    cursor: not-allowed !important;
+    opacity: 0.6;
+    /* Override Bootstrap's pointer-events:none so the not-allowed cursor is visible */
+    pointer-events: auto !important;
+}
+
+.room-hint-text {
+    font-size: 12px;
+    color: #065f46;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background-color: #ecfdf3;
+}
+
+.hint-icon {
+    color: #16a34a;
+    font-size: 13px;
+    display: inline-block;
+}
+
+.room-list {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 6px 4px;
+    background-color: #f9fafb;
+    display: grid;
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+}
+
+.room-item {
+    padding: 5px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #111827;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    margin: 4px;
+    background-color: #ffffff;
+}
+
+.room-item:nth-child(odd) {
+    background-color: #fefefe;
+}
+
+.room-item:hover {
+    background-color: #fee2e2;
+}
+
+.room-item.selected {
+    border-color: #800020;
+    background-color: #fff1f5;
+    color: #800020;
+}
+
+.room-item.check-in-room {
+    border-color: #16a34a;       /* green border */
+    background-color: #dcfce7;   /* light green background */
+    color: #166534;              /* dark green text */
+    font-weight: 600;
+}
+
+.room-item.check-in-room:hover {
+    background-color: #bbf7d0;   /* slightly darker green on hover */
+}
+
+.room-item.check-in-room.selected {
+    border-color: #800020;
+    background-color: #fff1f5;
+    color: #800020;
+    /* Keep check-in styling but with selected border */
+    border-width: 2px;
+}
+
+.selected-rooms-summary {
+    width: 100%;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 8px 10px;
+    background-color: #ffffff;
+    font-size: 12px;
+}
+
+.selected-label {
+    font-weight: 600;
+    font-size: 12px;
+    color: #374151;
+    margin-bottom: 2%;
+}
+
+.selected-rooms-list {
+    display: grid;
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+    gap: 6px;
+    max-height: 100px;
+    overflow-y: auto;
+}
+
+.selected-room-pill {
+    padding: 5px 10px;
+    border-radius: 999px;
+    background-color: #800020;
+    color: #ffffff;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.no-rooms-msg {
+    white-space: nowrap;
+    grid-column: 1 / -1;
+}
+
+.save-hint {
+    font-size: 11px;
+}
+
+.guest-modal-actions .btn-secondary {
+    font-size: 13px;
+}
+
+.save-btn {
+    background-color: #800020;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 13px;
+}
+
+
+@media (max-width: 576px) {
+    .guest-modal-content {
+        width: 94%;
+        max-width: 94%;
+        padding: 16px;
+    }
+}
+
+/* =========================
+   TOGGLE SWITCH STYLES
+========================= */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 25px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 4px;
+    bottom: 4.5px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked+.slider {
+    background-color: #1aa080; /* Standard green for active */
+}
+
+input:focus+.slider {
+    box-shadow: 0 0 1px #1aa080;
+}
+
+input:checked+.slider:before {
+    transform: translateX(18px);
+}

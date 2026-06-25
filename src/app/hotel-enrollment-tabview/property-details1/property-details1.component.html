@@ -18,7 +18,9 @@
       </div>
       <div class="form-group form1_div">
         <label>Contact Person</label>
-        <input class="input_box" type="text" formControlName="contact_person" />
+        <!-- <input class="input_box" type="text" formControlName="contact_person" /> -->
+        <input class="input_box" type="text" formControlName="contact_person" (keypress)="onlyAllowAlphabets($event)"
+          (paste)="handleAlphabetsPaste($event)" />
         <span
           *ngIf="customerProprtyDetailsForm.controls['contact_person'].hasError('required') && customerProprtyDetailsForm.controls['contact_person'].touched">
           Contact person is required.
@@ -26,6 +28,10 @@
         <span
           *ngIf="customerProprtyDetailsForm.controls['contact_person'].hasError('whitespace') && customerProprtyDetailsForm.controls['contact_person'].touched">
           Cannot be empty or only spaces.
+        </span>
+        <span
+          *ngIf="customerProprtyDetailsForm.controls['contact_person'].hasError('pattern') && customerProprtyDetailsForm.controls['contact_person'].touched">
+          Name should not contain numbers.
         </span>
       </div>
       <div class="form-group form1_div">
@@ -104,7 +110,6 @@
           *ngIf="!customerProprtyDetailsForm.controls['email'].hasError('required') && customerProprtyDetailsForm.controls['email'].hasError('pattern') && customerProprtyDetailsForm.controls['email'].touched">
           Valid email is required.
         </span>
-        
       </div>
       <div class="form-group form1_div">
         <label>Brand / Franchise</label>
@@ -183,7 +188,7 @@
       </div>
       <div class="form-group form1_div">
         <label>Country</label>
-        <select class="input_box" formControlName="property_country" (click)="onItemsSelect($event)">
+        <select class="input_box" formControlName="property_country" (change)="onItemsSelect($event)">
           <option *ngFor="let country of countryDropdownList" [value]="country.country">{{country.country}}</option>
 
         </select>
@@ -221,6 +226,10 @@
           *ngIf="customerProprtyDetailsForm.controls['property_city'].hasError('whitespace') && customerProprtyDetailsForm.controls['property_city'].touched">
           Cannot be empty or only spaces.
         </span>
+        <span
+          *ngIf="customerProprtyDetailsForm.controls['property_city'].hasError('pattern') && customerProprtyDetailsForm.controls['property_city'].touched">
+          ❌ Special characters are not allowed.
+        </span>
       </div>
       <div class="form-group form1_div">
         <label>Location</label>
@@ -236,55 +245,62 @@
       </div>
       <div class="form-group form1_div">
         <label>Pincode</label>
-        <input class="input_box" type="text" formControlName="property_pincode" (keypress)="onlyAllowSixDigits($event)"
+        <input class="input_box" type="text" formControlName="property_pincode" [maxlength]="maxPincodeLength" (keypress)="allowPincodeInput($event)"
           (paste)="handlePaste($event)" />
         <span
-          *ngIf="customerProprtyDetailsForm.controls['property_pincode'].invalid && customerProprtyDetailsForm.controls['property_pincode'].touched">
-          Pincode is required
+          *ngIf="customerProprtyDetailsForm.controls['property_pincode'].hasError('required') && customerProprtyDetailsForm.controls['property_pincode'].touched">
+          Pincode is required.
+        </span>
+        <span
+          *ngIf="customerProprtyDetailsForm.controls['property_pincode'].hasError('invalidPincode') && customerProprtyDetailsForm.controls['property_pincode'].touched"
+          class="error" style="color: red; font-size: 13px; margin-top: 5px;">
+          {{ customerProprtyDetailsForm.controls['property_pincode'].getError('invalidPincode')?.message }}
         </span>
       </div>
     </div>
   </div>
-  <div class="section">
-    <h3 style="font-size: 20px;font-weight: 600;">PAN & GST Details<a style="font-size: 13px;color: #A0A0A0;"> - All
+  <div class="section" *ngIf="showTaxSection && taxControl1 && taxControl2">
+    <h3 style="font-size: 20px;font-weight: 600;">{{ taxSectionTitle }}<a style="font-size: 13px;color: #A0A0A0;"> - All
         fields are required </a></h3>
     <div style="display: grid;grid-template-columns: repeat(3, 1fr);row-gap: 3%;">
       <div class="form-group form1_div">
-        <label>PAN Number</label>
-        <input class="input_box" type="text" formControlName="property_pan" />
+        <label>{{ taxField1Label }}</label>
+        <input class="input_box" type="text" [formControl]="taxControl1" (keypress)="onlyAllowAlphaNumeric($event)"
+          (paste)="handleAlphaNumericPaste($event)" />
         <div
-          *ngIf="customerProprtyDetailsForm.get('property_pan')?.hasError('required') && customerProprtyDetailsForm.get('property_pan')?.touched"
+          *ngIf="taxControl1.hasError('required') && taxControl1.touched"
           class="error">
-          PAN is required.
+          {{ taxField1Label }} is required.
         </div>
         <div
-          *ngIf="customerProprtyDetailsForm.get('property_pan')?.hasError('whitespace') && customerProprtyDetailsForm.get('property_pan')?.touched"
+          *ngIf="taxControl1.hasError('whitespace') && taxControl1.touched"
           class="error">
           Cannot be empty or only spaces.
         </div>
         <div
-          *ngIf="customerProprtyDetailsForm.get('property_pan')?.hasError('invalidPAN') && customerProprtyDetailsForm.get('property_pan')?.touched"
+          *ngIf="taxControl1.hasError('invalidTaxId') && taxControl1.touched"
           class="error">
-          ❌ Invalid PAN format (e.g., ABCDE1234F).
+          {{ taxControl1.getError('invalidTaxId')?.message }}
         </div>
       </div>
       <div class="form-group form1_div">
-        <label>GST</label>
-        <input class="input_box" type="text" formControlName="property_gst" />
+        <label>{{ taxField2Label }}</label>
+        <input class="input_box" type="text" [formControl]="taxControl2" (keypress)="onlyAllowAlphaNumeric($event)"
+          (paste)="handleAlphaNumericPaste($event)" />
         <div
-          *ngIf="customerProprtyDetailsForm.get('property_gst')?.hasError('required') && customerProprtyDetailsForm.get('property_gst')?.touched"
+          *ngIf="taxControl2.hasError('required') && taxControl2.touched"
           class="error">
-          GST is required.
+          {{ taxField2Label }} is required.
         </div>
         <div
-          *ngIf="customerProprtyDetailsForm.get('property_gst')?.hasError('whitespace') && customerProprtyDetailsForm.get('property_gst')?.touched"
+          *ngIf="taxControl2.hasError('whitespace') && taxControl2.touched"
           class="error">
           Cannot be empty or only spaces.
         </div>
         <div
-          *ngIf="customerProprtyDetailsForm.get('property_gst')?.hasError('invalidGST') && customerProprtyDetailsForm.get('property_gst')?.touched"
+          *ngIf="taxControl2.hasError('invalidTaxId') && taxControl2.touched"
           class="error">
-          ❌ Invalid GST Format (e.g., 27ABCDE1234F1Z5)
+          {{ taxControl2.getError('invalidTaxId')?.message }}
         </div>
       </div>
     </div>
@@ -374,6 +390,32 @@
     </div>
   </div>
 
+   <!-- ADD THIS NEW SECTION FOR THE DISCOUNT NOTE -->
+  <!-- <div class="section pt-0 pb-0" *ngIf="customerdata?.subscription_detail?.discountValue && customerdata?.subscription_detail?.discountValue > 0">
+    <div style="background-color: #f8f9fa; color: #8b0000; padding: 12px; border-radius: 6px; border-left: 4px solid #8b0000; font-size: 14px; font-weight: 500; margin-bottom: 15px;">
+      <i class="bi bi-info-circle-fill me-2"></i>
+      <strong>Note:</strong> A special discount of 
+      <span *ngIf="customerdata.subscription_detail.discountType === 'percentage'">{{ customerdata.subscription_detail.discountValue }}%</span>
+      <span *ngIf="customerdata.subscription_detail.discountType !== 'percentage'">₹{{ customerdata.subscription_detail.discountValue }}</span>
+      has been applied for your hotel.
+    </div>
+  </div> -->
+  <!-- END OF NEW SECTION -->
+   <!-- ADD BETWEEN PROPERTY SIZE & NUMBER OF ROOMS -->
+  <div class="section pt-0 pb-3" *ngIf="customerdata?.subscription_detail?.discountValue && customerdata?.subscription_detail?.discountValue > 0">
+    <div style="display: inline-flex; align-items: center; background-color: #fdfafb; border: 1.5px dashed #8b0000; border-radius: 6px; padding: 8px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+      <i class="bi bi-tags-fill" style="color: #8b0000; font-size: 18px; margin-right: 12px;"></i>
+      <span style="font-size: 14px; font-weight: 500; color: #444;">
+        Special Discount Applied:
+        <strong style="color: #8b0000; font-size: 16px; margin-left: 4px;">
+          <span *ngIf="customerdata.subscription_detail.discountType === 'percentage'">{{ customerdata.subscription_detail.discountValue }}%</span>
+          <span *ngIf="customerdata.subscription_detail.discountType !== 'percentage'">₹{{ customerdata.subscription_detail.discountValue }}</span>
+          OFF
+        </strong>
+      </span>
+    </div>
+  </div>
+
   <div class="section">
     <h3 style="font-size: 20px; font-weight: 600;">
       Number of Rooms
@@ -404,7 +446,8 @@
       </span>
       <span *ngIf="customerProprtyDetailsForm.get('number_of_rooms')?.errors?.['belowMin']">
         Number of rooms is too low for the selected property size
-        (Min: {{ propertySizeRanges[selectedPropertySize]?.min }} rooms).
+         <!-- (Min: {{ propertySizeRanges[selectedPropertySize]?.min }} rooms). -->
+        (Min: {{ propertySizeRanges[selectedPropertySize] ? propertySizeRanges[selectedPropertySize].min : '' }} rooms).
         Please enter a higher value or select a smaller property size.
       </span>
     </div>
@@ -423,16 +466,25 @@
       <div class="col-md-6">
         <div class="upload-box text-center">
           <div class="upload-content">
-            <div class="d-flex flex-column"> <i class="bi bi-upload" style="font-size: 22px; color: #8b0000"></i>
+            <div class="d-flex flex-column align-items-center w-100"> <i class="bi bi-upload" style="font-size: 22px; color: #8b0000"></i>
               <input type="file" #logoInput class="d-none" (change)="onLogoChange($event)"
-                accept=".jpg,.jpeg,.png" /><button class="btn btn-maroon upload-btn mt-2" (click)="logoInput.click()"
+                accept=".jpg,.jpeg,.png" />
+              <!-- Original code before adding type="button" -->
+              <!-- <button class="btn btn-maroon upload-btn mt-2" (click)="logoInput.click()"
                 [disabled]="logoUploading || status === 'approved'"> {{ hotelLogoUrl ?
+                'Replace Logo'
+                : 'Upload Logo'
+                }}
+              </button> -->
+              <!-- Newly updated code: type="button" added to prevent enter key form submission -->
+              <button type="button" class="btn btn-maroon upload-btn mt-2 w-50" (click)="logoInput.click()"
+                [disabled]="logoUploading || status == 'approved'"> {{ hotelLogoUrl ?
                 'Replace Logo'
                 : 'Upload Logo'
                 }}
               </button>
             </div>
-            <p class="text-muted small mt-1">Allowed formats: JPG, JPEG, PNG • Max size: 2MB</p>
+            <p class="text-muted small mt-1">Allowed formats: JPG, JPEG, PNG • Max size: 2MB • Recommended dimensions: 200 × 200 pixels</p>
           </div>
         </div>
       </div>
@@ -441,26 +493,28 @@
         <div class="border rounded text-center"
           style="background-color: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.1); padding: 16px; transition: box-shadow 0.3s ease; display: flex; flex-direction: column; align-items: center;">
           <h6 style="font-weight: 600; color: #555; margin-bottom: 16px;">Logo Preview</h6>
-          <div class="d-flex flex-column align-items-center justify-content-center rounded"
-            style="height: 160px; width: 130px; padding: 0;">
-            <!-- Show logo if uploaded -->
-            <ng-container *ngIf="hotelLogoUrl; else noLogo">
-              <img [src]="hotelLogoUrl" alt="Hotel Logo"
-                style="width: 100%; height: 100%; object-fit: cover; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); margin-bottom: 10px;" />
-            </ng-container>
-            <!-- Placeholder when no logo -->
-            <ng-template #noLogo>
-              <div class="d-flex align-items-center justify-content-center"
-                style="width: 100%; height: 100%; color: #888; font-size: 14px; text-align: center;background-color: #f8f8f8;">
-                No Logo Uploaded
-              </div>
-            </ng-template>
-            <!-- <img [src]="hotelLogoUrl" alt="Hotel Logo"
-              style="width: 100%; height: 100%; object-fit: cover; border-radius: 6px; border: 1px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.08); margin-bottom: 10px;" /> -->
+          <div class="d-flex flex-column align-items-center justify-content-center" style="width: 100%;">
+            <!-- Image Wrapper with fixed dimensions and border -->
+            <div class="d-flex align-items-center justify-content-center rounded"
+              style="height: 120px; width: 120px; padding: 6px; background-color: #fcfcfc; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 12px;">
+              <!-- Show logo if uploaded -->
+              <ng-container *ngIf="hotelLogoUrl; else noLogo">
+                <img [src]="hotelLogoUrl" alt="Hotel Logo"
+                  style="max-width: 100%; max-height: 100%; object-fit: cover; border-radius: 4px;" />
+              </ng-container>
+              <!-- Placeholder when no logo -->
+              <ng-template #noLogo>
+                <div class="d-flex align-items-center justify-content-center"
+                  style="width: 100%; height: 100%; color: #888; font-size: 13px; text-align: center;">
+                  No Logo Uploaded
+                </div>
+              </ng-template>
+            </div>
+            <!-- Actions row placed cleanly below -->
             <div class="d-flex align-items-center gap-3" style="gap: 16px; margin-top: 4px;">
               <i class="bi bi-eye cursor-pointer" (click)="previewLogo()"></i>
               <i class="bi bi-trash3 cursor-pointer" (click)="removeLogo()"
-                [class.disabled-icon]="this.status === 'approved'"></i>
+                [class.disabled-icon]="this.status == 'approved'"></i>
               <span class="badge text-white" [ngClass]="hotelLogoUrl ? 'bg-success' : 'bg-secondary'">
                 {{ hotelLogoUrl ? 'Uploaded' : 'No Logo Uploaded' }}
               </span>
@@ -590,8 +644,14 @@
                 Upload is required
               </div>
               <!-- Dynamic Upload Button -->
-              <button class="btn btn-maroon upload-btn mt-2" (click)="fileInput.click()"
+              <!-- Original code before adding type="button" -->
+              <!-- <button class="btn btn-maroon upload-btn mt-2" (click)="fileInput.click()"
                 [disabled]="!nextPendingDocument || this.status === 'approved'">
+                {{ nextPendingDocument ? 'Upload ' + nextPendingDocument : 'All Documents Uploaded' }}
+              </button> -->
+              <!-- Newly updated code: type="button" added to prevent enter key form submission -->
+              <button type="button" class="btn btn-maroon upload-btn mt-2" (click)="fileInput.click()"
+                [disabled]="!nextPendingDocument || this.status == 'approved'">
                 {{ nextPendingDocument ? 'Upload ' + nextPendingDocument : 'All Documents Uploaded' }}
               </button>
             </div>
@@ -617,11 +677,11 @@
           </div>
           <div class="action-icons d-flex align-items-center gap-3">
             <i class="bi bi-trash3 cursor-pointer" (click)="removeDocument(doc.name)"
-              [class.disabled-icon]="this.status === 'approved'"></i>
+              [class.disabled-icon]="this.status == 'approved'"></i>
             <i class="bi bi-eye cursor-pointer" (click)="previewDocument(doc.name)"></i>
             <i class="bi bi-upload cursor-pointer" *ngIf="!uploadedDocuments[doc.name]"
               (click)="triggerUpload(doc.name, rowFileInput)"></i>
-            <span *ngIf="uploadedDocuments[doc.name] || this.status === 'approved'"
+            <span *ngIf="uploadedDocuments[doc.name] || this.status == 'approved'"
               class="badge bg-success text-white">Uploaded</span>
           </div>
         </div>
@@ -643,8 +703,14 @@
                 Upload is required
               </div>
               <!-- Dynamic Upload Button -->
-              <button class="btn btn-maroon upload-btn mt-2" (click)="fileInput.click()"
+              <!-- Original code before adding type="button" -->
+              <!-- <button class="btn btn-maroon upload-btn mt-2" (click)="fileInput.click()"
                 [disabled]="!hasPendingDocument || this.status === 'approved'">
+                {{ hasPendingDocument ? 'Upload ' + nextApiPendingDocument : 'All Documents Uploaded' }}
+              </button> -->
+              <!-- Newly updated code: type="button" added to prevent enter key form submission -->
+              <button type="button" class="btn btn-maroon upload-btn mt-2" (click)="fileInput.click()"
+                [disabled]="!hasPendingDocument || this.status == 'approved'">
                 {{ hasPendingDocument ? 'Upload ' + nextApiPendingDocument : 'All Documents Uploaded' }}
               </button>
             </div>
@@ -672,7 +738,7 @@
             <!-- {{this.customerStatus}} -->
             <!-- Newly added - paymentDone for button disable view -->
             <i class="bi bi-trash3 cursor-pointer" (click)="removeDocumentApi(doc)"
-              [class.disabled-icon]="this.customerStatus === 'approved'"></i>
+              [class.disabled-icon]="this.customerStatus == 'approved'"></i>
             <i class="bi bi-eye cursor-pointer" (click)="previewApiDocument(doc.document_url)">
             </i>
             <i class="bi bi-upload cursor-pointer" *ngIf="(doc.document_url == '')"
@@ -684,24 +750,49 @@
     </div>
   </div>
   <div style="display: flex;justify-content: flex-end;">
-    <button type="submit" class="cancel_bt" (click)="back()">Back</button>&nbsp;&nbsp;
+    <!-- Original code before adding type="button" -->
+    <!-- <button type="submit" class="cancel_bt" (click)="back()">Back</button>&nbsp;&nbsp;
     <button type="submit" class="save_bt" *ngIf="this.customerdata.property_details?.kyc_documents == undefined "
       (click)="onSubmit()"
       [disabled]="(customerProprtyDetailsForm.invalid || (!isAllDocumentsUploaded()) || !hotelLogoUrl)">Save &
-      Continue</button>
+      Continue</button> -->
     <!-- <button type="submit" class="save_bt"
       *ngIf="this.customerdata.property_details?.kyc_documents?.uploaded_documents.length > 0 && !paymentDone"
       (click)="onSubmit()"
       [disabled]="(customerProprtyDetailsForm.invalid || (!isAllApiDocumentsUploaded()) || !hotelLogoUrl)">Save
       &
       Continue</button> -->
-    <button type="submit" class="save_bt"
+    <!-- <button type="submit" class="save_bt"
       *ngIf="this.customerdata.property_details?.kyc_documents?.uploaded_documents.length > 0 && this.status !== 'approved'"
       (click)="onSubmit()"
       [disabled]="(customerProprtyDetailsForm.invalid || (!isAllApiDocumentsUploaded()) || !hotelLogoUrl)">Save
       &
-      Continue</button>
+      Continue</button> -->
     <!-- <button type="submit" class="save_bt"
+      *ngIf="this.customerdata.property_details?.kyc_documents?.uploaded_documents.length > 0"
+      (click)="onSubmit()" [disabled]="(customerProprtyDetailsForm.invalid || (!isAllApiDocumentsUploaded()))">Save
+      &
+      Continue</button> -->
+
+    <!-- Newly updated code: type="button" added to prevent enter key form submission -->
+    <button type="button" class="cancel_bt" (click)="back()">Back</button>&nbsp;&nbsp;
+    <button type="button" class="save_bt" *ngIf="this.customerdata.property_details?.kyc_documents == undefined "
+      (click)="onSubmit()"
+      [disabled]="(customerProprtyDetailsForm.invalid || (!isAllDocumentsUploaded()) || !hotelLogoUrl)">Save &
+      Continue</button>
+    <!-- <button type="button" class="save_bt"
+      *ngIf="this.customerdata.property_details?.kyc_documents?.uploaded_documents.length > 0 && !paymentDone"
+      (click)="onSubmit()"
+      [disabled]="(customerProprtyDetailsForm.invalid || (!isAllApiDocumentsUploaded()) || !hotelLogoUrl)">Save
+      &
+      Continue</button> -->
+    <button type="button" class="save_bt"
+      *ngIf="this.customerdata.property_details?.kyc_documents?.uploaded_documents.length > 0 && this.status != 'approved'"
+      (click)="onSubmit()"
+      [disabled]="(customerProprtyDetailsForm.invalid || (!isAllApiDocumentsUploaded()) || !hotelLogoUrl)">Save
+      &
+      Continue</button>
+    <!-- <button type="button" class="save_bt"
       *ngIf="this.customerdata.property_details?.kyc_documents?.uploaded_documents.length > 0"
       (click)="onSubmit()" [disabled]="(customerProprtyDetailsForm.invalid || (!isAllApiDocumentsUploaded()))">Save
       &

@@ -11,6 +11,7 @@ import { Alert } from '../../shared/alerts/alerts.model';
 import { AlertsComponent } from '../../shared/alerts/alerts.component';
 import { FormsModule } from '@angular/forms';
 import { PermissionService, ModulePermission } from '../../services/permission.service';
+import { LoaderService } from '../../shared/loader/loader.service';
 
 @Component({
   selector: 'app-role-listing',
@@ -48,7 +49,8 @@ export class RoleListingComponent implements OnInit {
     private routeUrl: Router,
     private authTokenService: AuthTokenService,
     private localStorageService: LocalStorageService,
-    private permissionService: PermissionService
+    private permissionService: PermissionService,
+    private loaderService: LoaderService
   ) {
   }
 
@@ -124,8 +126,10 @@ export class RoleListingComponent implements OnInit {
         }
       }
     }
+    this.loaderService.emitLoading();
     this.roleListingService.getAllRoles(requestBody).subscribe({
       next: (response) => {
+        this.loaderService.emitComplete();
         if (response?.success) {
           this.roles = response.result.data; //Full data
           // console.log('All roles:', this.roles);
@@ -140,6 +144,7 @@ export class RoleListingComponent implements OnInit {
         }
       },
       error: (err) => {
+        this.loaderService.emitComplete();
         //console.error('API Error:', err);
       }
     });
@@ -219,8 +224,10 @@ export class RoleListingComponent implements OnInit {
       }
     };
 
+    this.loaderService.emitLoading();
     this.roleListingService.deleteRole(jsonObj).subscribe(
       resp => {
+        this.loaderService.emitComplete();
         if (resp.success === 1) {
           this.alertService.success("Roles deleted successfully!", this.options);
           this.selectedRoleIds = []; // Clear selected IDs after successful deletion
@@ -230,6 +237,7 @@ export class RoleListingComponent implements OnInit {
         }
       },
       err => {
+        this.loaderService.emitComplete();
         if (err.error.statusCode === 403) {
           this.alertService.error("Session Time Out! Please login Again", this.options);
           this.routeUrl.navigate([`/login`], { skipLocationChange: false });

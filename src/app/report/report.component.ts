@@ -54,24 +54,6 @@ export class ReportComponent implements AfterViewInit {
       const customer = await this.getCustomerById(this.memberId);
     }
     // End of newly added for getting member id for customer type
-    // Get state data from router
-    // const navigation = this.router.getCurrentNavigation();
-    // const state = navigation?.extras.state as {
-    //   roomNo: any;
-    //   startDate: any;
-    //   endDate: any;
-    // };
-    // console.log(state);
-    // if (state) {
-    //   this.roomNo = state.roomNo;
-    //   this.startDate = state.startDate;
-    //   this.endDate = state.endDate;
-    // }
-   /*  this.roomNo = this.localStorageService.get('RoomNo');
-    this.startDate = this.localStorageService.get('StartDate');
-    this.endDate = this.localStorageService.get('EndDate'); */
-    // console.log('Member id:', this.memberId);
-    // this.getAllReport(this.roomNo, this.startDate, this.endDate);
   }
 
   // getCustomerById(hotelId: any): Promise<any> {
@@ -79,10 +61,12 @@ export class ReportComponent implements AfterViewInit {
     let requestBody = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
-      extras: { find: { 
-        // id: hotelId 
-        "customer_member_id": memberId
-      } }
+      extras: {
+        find: {
+          // id: hotelId 
+          "customer_member_id": memberId
+        }
+      }
     };
     return new Promise((resolve, reject) => {
       this.hotelListService.getSignupAllCustomers(requestBody).subscribe({
@@ -98,158 +82,6 @@ export class ReportComponent implements AfterViewInit {
         },
         error: reject
       });
-    });
-  }
-
-  // getAllReport(roomNo: any, startDate: any, endDate: any) {
-  //   let requestBody = {
-  //     "domain_name": DOMAIN_NAME,
-  //     "user_id": USER_ID,
-  //     "extras": {
-  //       "find": {
-  //         "member_id": "INM00071",
-  //         "room_no": roomNo,
-  //       }
-  //     },
-  //     "payload": {
-  //       "date": {
-  //         "start_date": startDate,
-  //         "end_date": endDate
-  //       }
-  //     }
-  //   }
-  //   this.bookingService.getAllReport(requestBody).subscribe({
-  //     next: (response) => {
-  //       if (response?.success) {
-  //         const resultData = response.result.data;
-  //         // 1. Patch guest details
-  //         this.guestData = resultData.guest_data.map((guest: any) => {
-  //           // 2. Patch service ratings if task_data has Guest_Id match
-  //           const tasksForGuest = resultData.task_data.filter((task: any) =>
-  //             task.guest_id === guest.Guest_detail[0].Guest_Id
-  //           );
-  //           guest.requestedServices = tasksForGuest.map((task: any) => ({
-  //             serviceName: task.service.service_name,
-  //             rating: task.rating
-  //           }));
-  //           return guest;
-  //         });
-  //         // 3. Patch room occupancy
-  //         const totalAdults = this.guestData.reduce((acc, g) => acc + g.Adult_Pax, 0);
-  //         const totalChildren = this.guestData.reduce((acc, g) => acc + g.Child_Pax, 0);
-  //         this.roomOccupancy = `${totalAdults} Adults and ${totalChildren} Children`;
-
-  //         // 4. Overall rating (from review_data)
-  //         // this.rating = resultData.review_data?.rating || 0;
-  //         // Wait for DOM to render
-  //         setTimeout(() => {
-  //           this.downloadPDF();
-  //           this.printReport();
-  //         }, 500);
-
-  //       }
-  //     },
-  //     error: (err) => {
-  //       console.error('Task API Error:', err);
-  //     }
-  //   });
-  // }
-
-  getAllReport(roomNo: any, startDate: any, endDate: any) {
-    this.loading = true;
-    let requestBody = {
-      domain_name: DOMAIN_NAME,
-      user_id: USER_ID,
-      extras: { find: { member_id: this.memberId, room_no: roomNo } },
-      payload: { date: { start_date: startDate, end_date: endDate } }
-    };
-    this.bookingService.getAllReport(requestBody).subscribe({
-      next: (response) => {
-        if (response?.success) {
-          const resultData = response.result.data;
-          if (resultData) {
-            this.guestData = resultData.guest_data || [];
-            let guestsProcessed = 0; // counter for completed guests
-            for (let i = 0; i < this.guestData.length; i++) {
-              const guest = this.guestData[i];
-              const guestId = guest.id;
-              const tasksForGuest = resultData.task_data.filter((task: any) => task.guest_id === guestId);
-              // console.log('Guest tasks:', tasksForGuest);
-              if (tasksForGuest.length > 0) {
-                const ratingRequests = tasksForGuest.map((task: any) => {
-                  const ratingRequestBody = {
-                    domain_name: DOMAIN_NAME,
-                    user_id: USER_ID,
-                    extras: {
-                      find: { task_id: task.id, member_id: this.memberId },
-                      pagination: false,
-                      sorting: true,
-                      sortingDetails: { id: -1 }
-                    }
-                  };
-                  return this.taskManagementService.getAllRatings(ratingRequestBody);
-                });
-                forkJoin(ratingRequests).subscribe({
-                  next: (ratingResponses: any) => {
-                    guest.requestedServices = [];
-                    for (let j = 0; j < tasksForGuest.length; j++) {
-                      let ratingValue = 0;
-                      const ratingResp = ratingResponses[j];
-                      if (ratingResp?.success && ratingResp.result.data.length > 0) {
-                        ratingValue = ratingResp.result.data[0].rating;
-                      }
-                      guest.requestedServices.push({
-                        serviceName: tasksForGuest[j].service.service_name,
-                        rating: ratingValue,
-                        serviceIcon: tasksForGuest[j].service.icon
-                      });
-                    }
-                    // Calculate average rating
-                    // console.log('Guest requestedServices', guest.requestedServices);
-                    const totalRatings = guest.requestedServices.reduce((sum: any, s: any) => sum + s.rating, 0);
-                    guest.averageRating = guest.requestedServices.length > 0 ? totalRatings / guest.requestedServices.length : 0;
-                    // Match review ratings
-                    // console.log('Guest all reviews', resultData.review_data);
-                    guest.guestRatings = resultData.review_data?.filter((r: any) => r.guest_id === guestId && r.checkout_feedback === true) || [];
-                    // console.log('Guest checkout rveiew', guest.guestRatings);
-                    guestsProcessed++;
-                    // If all guests processed, hide loading and trigger PDF/Print
-                    if (guestsProcessed === this.guestData.length) {
-                      this.finalizeReport(resultData);
-                    }
-                  },
-                  error: () => {
-                    guest.requestedServices = tasksForGuest.map((task: any) => ({ serviceName: task.service.service_name, rating: 0 }));
-                    guest.averageRating = 0;
-                    guest.guestRatings = resultData.review_data?.filter((r: any) => r.guest_id === guestId && r.checkout_feedback === true) || [];
-                    guestsProcessed++;
-                    if (guestsProcessed === this.guestData.length) {
-                      this.finalizeReport(resultData);
-                    }
-                  }
-                });
-              } else {
-                // No tasks for this guest
-                guest.requestedServices = [];
-                guest.averageRating = 0;
-                guest.guestRatings = resultData.review_data?.filter((r: any) => r.guest_id === guestId && r.checkout_feedback === true) || [];
-                guestsProcessed++;
-                if (guestsProcessed === this.guestData.length) {
-                  this.finalizeReport(resultData);
-                }
-              }
-            }
-            // If no guests at all
-            if (this.guestData.length === 0) {
-              this.finalizeReport(resultData);
-            }
-          }
-        }
-      },
-      error: (err) => {
-        console.error('Task API Error:', err);
-        this.loading = false;
-      }
     });
   }
 
@@ -334,9 +166,130 @@ export class ReportComponent implements AfterViewInit {
     html2pdf().set(options).from(element).save();
   }
 
-
   goBack() {
     this.router.navigate(['/dashboard']);
+  }
+
+  getAllReport(roomNo: any, startDate: any, endDate: any) {
+    this.loading = true;
+    let requestBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: { find: { member_id: this.memberId, room_no: roomNo } },
+      payload: { date: { start_date: startDate, end_date: endDate } }
+    };
+    this.bookingService.getAllReport(requestBody).subscribe({
+      next: (response) => {
+        if (response?.success) {
+          const resultData = response.result.data;
+          if (resultData) {
+            this.guestData = resultData.guest_data || [];
+            // Build a flat list of all guest profiles we need to process
+            const allProfilesToProcess: any[] = [];
+            for (let i = 0; i < this.guestData.length; i++) {
+              const reservation = this.guestData[i];
+              const guests = reservation.guestDatas || [];
+              for (let j = 0; j < guests.length; j++) {
+                allProfilesToProcess.push({
+                  reservationIndex: i,
+                  profile: guests[j]
+                });
+              }
+            }
+            let profilesProcessed = 0;
+            const totalProfiles = allProfilesToProcess.length;
+            if (totalProfiles === 0) {
+              this.finalizeReport(resultData);
+              return;
+            }
+            for (const item of allProfilesToProcess) {
+              const profile = item.profile;
+              const profileId = profile.id;
+              const tasksForProfile = (resultData.task_data || []).filter(
+                (task: any) => task.guest_id === profileId
+              );
+              if (tasksForProfile.length > 0) {
+                const ratingRequests = tasksForProfile.map((task: any) => {
+                  const ratingRequestBody = {
+                    domain_name: DOMAIN_NAME,
+                    user_id: USER_ID,
+                    extras: {
+                      find: { task_id: task.id, member_id: this.memberId },
+                      pagination: false,
+                      sorting: true,
+                      sortingDetails: { id: -1 }
+                    }
+                  };
+                  return this.taskManagementService.getAllRatings(ratingRequestBody);
+                });
+                forkJoin(ratingRequests).subscribe({
+                  next: (ratingResponses: any) => {
+                    profile.requestedServices = [];
+                    for (let k = 0; k < tasksForProfile.length; k++) {
+                      let ratingValue = 0;
+                      const ratingResp = ratingResponses[k];
+                      if (ratingResp?.success && ratingResp.result.data.length > 0) {
+                        ratingValue = ratingResp.result.data[0].rating;
+                      }
+                      profile.requestedServices.push({
+                        serviceName: tasksForProfile[k].service.service_name,
+                        rating: ratingValue,
+                        serviceIcon: tasksForProfile[k].service.icon
+                      });
+                    }
+                    // Calculate average rating
+                    const totalRatings = profile.requestedServices.reduce((sum: any, s: any) => sum + s.rating, 0);
+                    profile.averageRating = profile.requestedServices.length > 0 ? totalRatings / profile.requestedServices.length : 0;
+                    // Match review ratings
+                    profile.guestRatings = resultData.review_data?.filter(
+                      (r: any) => r.guest_id === profileId && r.checkout_feedback === true
+                    ) || [];
+                    profilesProcessed++;
+                    if (profilesProcessed === totalProfiles) {
+                      this.finalizeReport(resultData);
+                    }
+                  },
+                  error: () => {
+                    profile.requestedServices = tasksForProfile.map((task: any) => ({
+                      serviceName: task.service.service_name,
+                      rating: 0
+                    }));
+                    profile.averageRating = 0;
+                    profile.guestRatings = resultData.review_data?.filter(
+                      (r: any) => r.guest_id === profileId && r.checkout_feedback === true
+                    ) || [];
+
+                    profilesProcessed++;
+                    if (profilesProcessed === totalProfiles) {
+                      this.finalizeReport(resultData);
+                    }
+                  }
+                });
+              } else {
+                // No tasks for this profile
+                profile.requestedServices = [];
+                profile.averageRating = 0;
+                profile.guestRatings = resultData.review_data?.filter(
+                  (r: any) => r.guest_id === profileId && r.checkout_feedback === true
+                ) || [];
+                profilesProcessed++;
+                if (profilesProcessed === totalProfiles) {
+                  this.finalizeReport(resultData);
+                }
+              }
+            }
+            // If no guests at all
+            if (this.guestData.length === 0) {
+              this.finalizeReport(resultData);
+            }
+          }
+        }
+      },
+      error: (err) => {
+        console.error('Task API Error:', err);
+        this.loading = false;
+      }
+    });
   }
 
 }

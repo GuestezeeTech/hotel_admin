@@ -15,6 +15,7 @@ import { AlertsComponent } from '../../shared/alerts/alerts.component';
 import { LocalStorageService } from '../../auth-services/local-storage.service';
 import { FormsModule } from '@angular/forms';
 import { PermissionService, ModulePermission } from '../../services/permission.service';
+import { LoaderService } from '../../shared/loader/loader.service';
 
 @Component({
   selector: 'app-usering',
@@ -52,7 +53,8 @@ export class UserListingComponent {
     private localStorageService: LocalStorageService,
     private hotelenrollmenttabviewService: HotelEnrollmentTabviewService,
     private hotellistService: HotelListService,
-    private permissionService: PermissionService) {
+    private permissionService: PermissionService,
+    private loaderService: LoaderService) {
   }
 
   ngOnInit(): void {
@@ -158,8 +160,10 @@ export class UserListingComponent {
         }
       }
     }
+    this.loaderService.emitLoading();
     this.hotellistService.getSignupAllCustomers(requestBody).subscribe({
       next: (response) => {
+        this.loaderService.emitComplete();
         if (response?.success) {
           this.users = response.result.data;
           // console.log('All users:', this.users);
@@ -183,6 +187,7 @@ export class UserListingComponent {
         }
       },
       error: (err) => {
+        this.loaderService.emitComplete();
         //console.error('API Error:', err);
       }
     });
@@ -250,8 +255,10 @@ export class UserListingComponent {
         }
       }
     };
+    this.loaderService.emitLoading();
     this.hotellistService.deleteUserCustomer(jsonObj).subscribe(
       resp => {
+        this.loaderService.emitComplete();
         if (resp.success === 1) {
           this.alertService.success("Users deleted successfully!", this.options);
           this.selectedUserIds = []; // Clear selected IDs after successful deletion
@@ -261,6 +268,7 @@ export class UserListingComponent {
         }
       },
       err => {
+        this.loaderService.emitComplete();
         if (err.error.statusCode === 403) {
           this.alertService.error("Session Time Out! Please login Again", this.options);
           this.routeUrl.navigate([`/login`], { skipLocationChange: false });

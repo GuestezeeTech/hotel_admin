@@ -1272,7 +1272,7 @@ export class AsapCartComponent implements OnInit, OnDestroy {
       // "hierarchy.department": task.service.category,
       "is_available": true,
       // "at_desk": false,
-      "member_id": this.member_id,
+      "member_id": this.member_id
     };
     // Newly added & commented - started
     // if (this.userDepartment === 'Select') {

@@ -1,0 +1,205 @@
+export interface CountryState {
+  country: string;
+  states: string[];
+}
+
+export const COUNTRY_STATES: CountryState[] = [
+  {
+    country: 'Austria',
+    states: [
+      'Burgenland',
+      'Carinthia',
+      'Lower Austria',
+      'Upper Austria',
+      'Salzburg',
+      'Styria',
+      'Tyrol',
+      'Vorarlberg',
+      'Vienna'
+    ]
+  },
+  {
+    country: 'Germany',
+    states: [
+      'Baden-Württemberg',
+      'Bavaria',
+      'Berlin',
+      'Brandenburg',
+      'Bremen',
+      'Hamburg',
+      'Hesse',
+      'Lower Saxony',
+      'Mecklenburg-Vorpommern',
+      'North Rhine-Westphalia',
+      'Rhineland-Palatinate',
+      'Saarland',
+      'Saxony',
+      'Saxony-Anhalt',
+      'Schleswig-Holstein',
+      'Thuringia'
+    ]
+  },
+  {
+    country: 'India',
+    states: [
+      'Andhra Pradesh',
+      'Arunachal Pradesh',
+      'Assam',
+      'Bihar',
+      'Chhattisgarh',
+      'Goa',
+      'Gujarat',
+      'Haryana',
+      'Himachal Pradesh',
+      'Jharkhand',
+      'Karnataka',
+      'Kerala',
+      'Madhya Pradesh',
+      'Maharashtra',
+      'Manipur',
+      'Meghalaya',
+      'Mizoram',
+      'Nagaland',
+      'Odisha',
+      'Punjab',
+      'Rajasthan',
+      'Sikkim',
+      'Tamil Nadu',
+      'Telangana',
+      'Tripura',
+      'Uttar Pradesh',
+      'Uttarakhand',
+      'West Bengal'
+    ]
+  },
+  {
+    country: 'Poland',
+    states: [
+      'Greater Poland',
+      'Kuyavian-Pomeranian',
+      'Lesser Poland',
+      'Lower Silesian',
+      'Lublin',
+      'Lubusz',
+      'Łódź',
+      'Masovian',
+      'Opole',
+      'Podlaskie',
+      'Pomeranian',
+      'Silesian',
+      'Subcarpathian',
+      'Świętokrzyskie',
+      'Warmian-Masurian',
+      'West Pomeranian'
+    ]
+  },
+  {
+    country: 'Romania',
+    states: [
+      'Alba',
+      'Arad',
+      'Argeș',
+      'Bacău',
+      'Bihor',
+      'Bistrița-Năsăud',
+      'Botoșani',
+      'Brașov',
+      'Brăila',
+      'Bucharest',
+      'Buzău',
+      'Caraș-Severin',
+      'Călărași',
+      'Cluj',
+      'Constanța',
+      'Covasna',
+      'Dâmbovița',
+      'Dolj',
+      'Galați',
+      'Giurgiu',
+      'Gorj',
+      'Harghita',
+      'Hunedoara',
+      'Ialomița',
+      'Iași',
+      'Ilfov',
+      'Maramureș',
+      'Mehedinți',
+      'Mureș',
+      'Neamț',
+      'Olt',
+      'Prahova',
+      'Sălaj',
+      'Satu Mare',
+      'Sibiu',
+      'Suceava',
+      'Teleorman',
+      'Timiș',
+      'Tulcea',
+      'Vâlcea',
+      'Vaslui',
+      'Vrancea'
+    ]
+  },
+  {
+    country: 'Spain',
+    states: [
+      'Andalusia',
+      'Aragon',
+      'Asturias',
+      'Balearic Islands',
+      'Basque Country',
+      'Canary Islands',
+      'Cantabria',
+      'Castile and León',
+      'Castile-La Mancha',
+      'Catalonia',
+      'Extremadura',
+      'Galicia',
+      'La Rioja',
+      'Madrid',
+      'Murcia',
+      'Navarre',
+      'Valencian Community'
+    ]
+  },
+  {
+    country: 'Switzerland',
+    states: [
+      'Aargau',
+      'Appenzell Ausserrhoden',
+      'Appenzell Innerrhoden',
+      'Basel-Landschaft',
+      'Basel-Stadt',
+      'Bern',
+      'Fribourg',
+      'Geneva',
+      'Glarus',
+      'Graubünden',
+      'Jura',
+      'Lucerne',
+      'Neuchâtel',
+      'Nidwalden',
+      'Obwalden',
+      'Schaffhausen',
+      'Schwyz',
+      'Solothurn',
+      'St. Gallen',
+      'Thurgau',
+      'Ticino',
+      'Uri',
+      'Valais',
+      'Vaud',
+      'Zug',
+      'Zurich'
+    ]
+  },
+  {
+    country: 'United Kingdom',
+    states: [
+      'England',
+      'Northern Ireland',
+      'Scotland',
+      'Wales'
+    ]
+  }
+];

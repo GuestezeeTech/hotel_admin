@@ -30,7 +30,8 @@ export class ServiceComponent implements OnInit {
 
   departments: any = [];
   serviceTabs: any = [];
-  serviceTypes = ['Scheduled', 'Non-Scheduled'];
+  // serviceTypes = ['Scheduled', 'Non-Scheduled'];
+  serviceTypes = ['Non-Scheduled'];
   selectedFileName: string = 'Choose file...';
   quantityEnabled: boolean = false;
   timeBoundEnabled: boolean = true; // Mandatory by default
@@ -177,7 +178,7 @@ export class ServiceComponent implements OnInit {
       const hoursControl = this.serviceForm.get('hours_before');
       if (serviceType === 'Scheduled') {
         hoursControl?.setValidators([
-          Validators.required,
+
           CustomValidators.minValueValidator(1)
         ]);
       } else {
@@ -231,7 +232,6 @@ export class ServiceComponent implements OnInit {
     // Initialize time bound validation
     this.updateTimeBoundValidation();
   }
-  
 
   toggleChanged(event: any) {
     this.quantityEnabled = event.target.checked;
@@ -355,7 +355,11 @@ export class ServiceComponent implements OnInit {
   }
 
   openBackModal() {
-    this.showBackModal = true;
+    if (this.isViewMode) {
+      this.navigateBack();
+    } else {
+      this.showBackModal = true;
+    }
   }
 
   closeBackModal() {
@@ -382,21 +386,44 @@ export class ServiceComponent implements OnInit {
     const minValueErrors: string[] = [];
     const otherErrors: string[] = [];
 
-    // Validate time bound before saving
     const department = this.serviceForm.get('department')?.value;
     const isTimeBound = this.serviceForm.get('is_time_bound')?.value;
     const timeBoundValue = this.serviceForm.get('time_bound_value')?.value;
     const serviceType = this.serviceForm.get('service_type')?.value;
     const hoursBefore = this.serviceForm.get('hours_before')?.value;
 
-    // For non-Default departments, time bound must be enabled
+    // Service name
+    if (!this.serviceForm.get('service_name')?.value?.trim()) {
+      this.serviceForm.get('service_name')?.markAsTouched();
+      requiredErrors.push('Service Name');
+    }
+    // Department
+    if (!this.serviceForm.get('department')?.value) {
+      this.serviceForm.get('department')?.markAsTouched();
+      requiredErrors.push('Department');
+    }
+    // Service Type
+    if (!this.serviceForm.get('service_type')?.value) {
+      this.serviceForm.get('service_type')?.markAsTouched();
+      requiredErrors.push('Service Type');
+    }
+    // Service Tab
+    if (!this.serviceForm.get('service_tab')?.value) {
+      this.serviceForm.get('service_tab')?.markAsTouched();
+      requiredErrors.push('Service Tab');
+    }
+    // Belongs To
+    if (!this.serviceForm.get('belongs_to')?.value?.trim()) {
+      this.serviceForm.get('belongs_to')?.markAsTouched();
+      requiredErrors.push('Belongs To');
+    }
+
+    // Validate time bound before saving
     if (department && department !== 'Default' && !isTimeBound) {
-      this.serviceForm.get('is_time_bound')?.setValue(true);
+      this.serviceForm.get('is_time_bound')?.setValue(true, { emitEvent: false });
       this.serviceForm.get('is_time_bound')?.markAsTouched();
       otherErrors.push('Time bound is mandatory for this department.');
     }
-
-    // If time bound is enabled, value must be provided and valid
     if (isTimeBound) {
       // Check if empty or null/undefined (but not 0, as 0 is a valid value to check)
       if (timeBoundValue === null || timeBoundValue === undefined || timeBoundValue === '') {
@@ -557,7 +584,7 @@ export class ServiceComponent implements OnInit {
       this.previewImgUrl = iconUrl;
       this.serviceForm.controls['icon'].setValue('');
 
-      let headers = new HttpHeaders().set("source", "Brand").set("domain_name", this.authTokenService.getDomain())
+      let headers = new HttpHeaders().set("source", "Brand").set("domain_name", DOMAIN_NAME)
       let formData_imageCate = new FormData();
       if (this.imgFile !== null) {
         formData_imageCate.append('upload', this.imgFile)
@@ -642,7 +669,7 @@ export class ServiceComponent implements OnInit {
       this.imgFile = file_data as any;
       this.previewImgUrl = mainUrl;
 
-      let headers = new HttpHeaders().set("source", "Brand").set("domain_name", this.authTokenService.getDomain())
+      let headers = new HttpHeaders().set("source", "Brand").set("domain_name", DOMAIN_NAME)
       let formData_imageCate = new FormData();
       if (this.imgFile !== null) {
         formData_imageCate.append('upload', this.imgFile)
@@ -680,15 +707,6 @@ export class ServiceComponent implements OnInit {
   }
 
   addNewService() {
-    const quantityEnabled = this.serviceForm.get('quantity')?.value; // Get toggle state
-
-    // const minQty = (quantityEnabled && this.serviceForm.value.minimum_quantity)
-    //   ? Number(this.serviceForm.value.minimum_quantity)
-    //   : 0;
-    // const maxQty = (quantityEnabled && this.serviceForm.value.maximum_quantity)
-    //   ? Number(this.serviceForm.value.maximum_quantity)
-    //   : 0;
-
     // Convert quantity and time bound values to numbers
     const minQty = this.serviceForm.value.minimum_quantity
       ? Number(this.serviceForm.value.minimum_quantity)
@@ -774,7 +792,8 @@ export class ServiceComponent implements OnInit {
         let createReq = {
           domain_name: this.authTokenService.getDomain(),
           user_id: this.authTokenService.getUserId(),
-          payload: { service_creation: serviceObject }
+          // payload: { service_creation: serviceObject }
+          payload: { create: serviceObject }
         };
         this.serviceSettingsService.createService(createReq).subscribe(
           res => {
@@ -794,7 +813,8 @@ export class ServiceComponent implements OnInit {
       let updateReq = {
         domain_name: this.authTokenService.getDomain(),
         user_id: this.authTokenService.getUserId(),
-        payload: { service_updation: serviceObject },
+        // payload: { service_updation: serviceObject },
+        payload: { update: serviceObject },
         extras: {
           find: { id: this.service_id }
         }
@@ -1023,8 +1043,8 @@ export class ServiceComponent implements OnInit {
 
 
   //newly added for restrict numbers and special characters in service name field
-  restrictSpecialChars(event: KeyboardEvent){
-    const allowedKeys = /^[a-zA-Z]$/ ;
+  restrictSpecialChars(event: KeyboardEvent) {
+    const allowedKeys = /^[a-zA-Z]$/;
     const controlKeys = [
       'Backspace',
       'Tab',
@@ -1041,8 +1061,41 @@ export class ServiceComponent implements OnInit {
 
     // Allow control keys
     if (controlKeys.includes(event.key)) return;
-    if(!allowedKeys.test(event.key)){
-       event.preventDefault();
+    if (!allowedKeys.test(event.key)) {
+      event.preventDefault();
+    }
+  }
+
+  // Block only digits 0-9
+  blockNumbersOnly(event: KeyboardEvent) {
+    const allowed = /^[^0-9]$/; // Allow anything that is not a number
+    const controlKeys = [
+      'Backspace',
+      'Tab',
+      'Enter',
+      'ArrowLeft',
+      'ArrowRight',
+      'ArrowUp',
+      'ArrowDown',
+      'Delete'
+    ];
+
+    // Allow Ctrl/Cmd shortcuts
+    if (event.ctrlKey || event.metaKey) return;
+
+    // Allow control keys
+    if (controlKeys.includes(event.key)) return;
+
+    if (!allowed.test(event.key)) {
+      event.preventDefault();
+    }
+  }
+
+  // Filter out numeric characters during paste
+  handleServiceNamePaste(event: ClipboardEvent) {
+    const pastedData = event.clipboardData?.getData('text') || '';
+    if (/[0-9]/.test(pastedData)) {
+      event.preventDefault();
     }
   }
 

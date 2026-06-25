@@ -96,8 +96,8 @@ export class TimelineComponent {
       user_id: USER_ID,
       extras: {
         find: { id: taskId },
-        pagination: true,
-        paginationDetails: { limit: 0, pageSize: 1 },
+        pagination: false,
+        // paginationDetails: { limit: 0, pageSize: 1 },
         sorting: true,
         sortingDetails: { id: -1 }
       }

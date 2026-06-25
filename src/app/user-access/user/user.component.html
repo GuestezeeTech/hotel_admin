@@ -13,7 +13,9 @@
                     <!-- Email -->
                     <div class="col-md-4 form-group">
                         <label class="fw-semibold" style="font-size: 15px">Email</label>
-                        <input type="email" class="form-control" formControlName="email"
+                        <!-- Changed type="email" to type="text" — type="email" inputs don't support setSelectionRange(), cursor jumps to end when typing uppercase. Email validation handled by Angular pattern validator. -->
+                        <!-- <input type="email" class="form-control" formControlName="email" [class.is-invalid]="validateForm && f['email'].errors"> -->
+                        <input type="text" class="form-control" formControlName="email"
                             [class.is-invalid]="validateForm && f['email'].errors">
                         <div class="invalid-feedback" *ngIf="f['email'].errors">
                             <div *ngIf="f['email'].errors['required']">Please enter email</div>
@@ -21,15 +23,18 @@
                             <div *ngIf="f['email'].errors['maxlength']">Email length exceeded</div>
                         </div>
                     </div>
-                    <!-- Password (only for Add User) -->
+                    <!-- Password -->
                     <div class="col-md-4 form-group">
-                        <label class="fw-semibold" style="font-size: 14px">
+                        <label class="fw-semibold" style="font-size: 14px; white-space: nowrap;">
                             Password
                         </label>
                         <div class="input-group">
                             <input type="text" placeholder="********" class="form-control" formControlName="password"
                                 [class.is-invalid]="validateForm && usersForm.get('password')?.invalid">
                         </div>
+                        <small *ngIf="!isViewMode && enableEdit" class="text-muted d-block mt-1" style="font-size: 11.5px; line-height: 1.3;">
+                            Type a new password to change it, or leave it empty to keep your current password.
+                        </small>
                         <div class="invalid-feedback" *ngIf="validateForm && usersForm.get('password')?.invalid">
                             <div *ngIf="usersForm.get('password')?.errors?.['required']">
                                 Please enter password

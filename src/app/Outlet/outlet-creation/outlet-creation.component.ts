@@ -77,6 +77,12 @@ export class OutletCreationComponent {
         // console.log('Creating new Outlet');
       }
     });
+
+    this.route.queryParams.subscribe(params => {
+        if (params['outlet_type']) {
+            this.passedOutletType = params['outlet_type'];
+        }
+    });
   }
 
   onPhotoUpload(event: any) {
@@ -137,7 +143,6 @@ export class OutletCreationComponent {
 
                 this.alertService.success(resp.message, this.options);
                 this.router.navigate([`/outlet-list`], { skipLocationChange: false });
-                ////console.log(this.customerdata, "cst");
 
                 // this.afterCustomerCreate();
 
@@ -190,11 +195,6 @@ export class OutletCreationComponent {
             }
           }
         }
-
-
-
-
-
         this.outletCreationService.postApiCall(requestBody1, ENDPOINTS.OUTLET_UPDATE).subscribe(
           resp => {
             this.loaderService.emitComplete();
@@ -290,13 +290,6 @@ export class OutletCreationComponent {
               takephoto: this.outletdata.takephoto
             });
 
-
-
-
-
-
-
-
             // this.afterCustomerCreate();
 
             // setTimeout(() => {
@@ -354,6 +347,10 @@ import { LocalStorageService } from '../../auth-services/local-storage.service';
 import { ProfileService } from '../../profile/profile.service';
 import { AlertsComponent } from '../../shared/alerts/alerts.component';
 import { PermissionService, ModulePermission } from '../../services/permission.service';
+import { HotelEnrollmentTabviewService } from '../../hotel-enrollment-tabview/hotel-enrollment-tabview.service';
+import { TechnicalInfoService } from '../../hotel-enrollment-tabview/technical-info/technical-info.service';
+import { UpsellService } from '../../features/upsell.service';
+import { AuthTokenService } from '../../auth-services/auth-token.service';
 
 @Component({
   selector: 'app-outlet-creation',
@@ -369,13 +366,57 @@ export class OutletCreationComponent implements OnInit {
   outlet_id: number = 0;
   photoPreview: string = '';
   photoName: string = ''; // To store the filename for UI display
-  maxSizeMB = 5;
+  maxSizeMB = 2;
   submitted = false;
   options = { autoClose: true, keepAfterRouteChange: false };
   isExitModalOpen: boolean = false;
   member_id: any;
   editScreen: boolean = false;
   isViewMode: boolean = false;
+
+  // --- Added to mirror feature-creation ---
+  customerData: any = null;
+
+  technicalInfos: any[] = [];
+  hours: string[] = ['00', ...Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0'))];
+  minutes: string[] = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
+  periods: string[] = ['AM', 'PM'];
+  upsellName: string = 'Outlet';
+  passedOutletType: string = '';
+  countryDropdownList: any[] = [
+    { "country": "Afghanistan" }, { "country": "Albania" }, { "country": "Algeria" }, { "country": "Andorra" },
+    { "country": "Angola" }, { "country": "Argentina" }, { "country": "Armenia" }, { "country": "Australia" },
+    { "country": "Austria" }, { "country": "Azerbaijan" }, { "country": "Bahamas" }, { "country": "Bahrain" },
+    { "country": "Bangladesh" }, { "country": "Belarus" }, { "country": "Belgium" }, { "country": "Bhutan" },
+    { "country": "Bolivia" }, { "country": "Brazil" }, { "country": "Bulgaria" }, { "country": "Cambodia" },
+    { "country": "Cameroon" }, { "country": "Canada" }, { "country": "Chile" }, { "country": "China" },
+    { "country": "Colombia" }, { "country": "Croatia" }, { "country": "Cuba" }, { "country": "Cyprus" },
+    { "country": "Czech Republic" }, { "country": "Denmark" }, { "country": "Egypt" }, { "country": "Estonia" },
+    { "country": "Ethiopia" }, { "country": "Finland" }, { "country": "France" }, { "country": "Georgia" },
+    { "country": "Germany" }, { "country": "Ghana" }, { "country": "Greece" }, { "country": "Guatemala" },
+    { "country": "Honduras" }, { "country": "Hong Kong" }, { "country": "Hungary" }, { "country": "Iceland" },
+    { "country": "India" }, { "country": "Indonesia" }, { "country": "Iran" }, { "country": "Iraq" },
+    { "country": "Ireland" }, { "country": "Israel" }, { "country": "Italy" }, { "country": "Jamaica" },
+    { "country": "Japan" }, { "country": "Jordan" }, { "country": "Kazakhstan" }, { "country": "Kenya" },
+    { "country": "Kuwait" }, { "country": "Laos" }, { "country": "Latvia" }, { "country": "Lebanon" },
+    { "country": "Libya" }, { "country": "Lithuania" }, { "country": "Luxembourg" }, { "country": "Malaysia" },
+    { "country": "Maldives" }, { "country": "Malta" }, { "country": "Mexico" }, { "country": "Moldova" },
+    { "country": "Mongolia" }, { "country": "Morocco" }, { "country": "Myanmar" }, { "country": "Nepal" },
+    { "country": "Netherlands" }, { "country": "New Zealand" }, { "country": "Nigeria" }, { "country": "Norway" },
+    { "country": "Oman" }, { "country": "Pakistan" }, { "country": "Palestine" }, { "country": "Panama" },
+    { "country": "Peru" }, { "country": "Philippines" }, { "country": "Poland" }, { "country": "Portugal" },
+    { "country": "Qatar" }, { "country": "Romania" }, { "country": "Russia" }, { "country": "Rwanda" },
+    { "country": "Saudi Arabia" }, { "country": "Senegal" }, { "country": "Serbia" }, { "country": "Singapore" },
+    { "country": "Slovakia" }, { "country": "Slovenia" }, { "country": "Somalia" }, { "country": "South Africa" },
+    { "country": "South Korea" }, { "country": "Spain" }, { "country": "Sri Lanka" }, { "country": "Sudan" },
+    { "country": "Sweden" }, { "country": "Switzerland" }, { "country": "Syria" }, { "country": "Taiwan" },
+    { "country": "Tanzania" }, { "country": "Thailand" }, { "country": "Tunisia" }, { "country": "Turkey" },
+    { "country": "Uganda" }, { "country": "Ukraine" }, { "country": "United Arab Emirates" }, { "country": "United Kingdom" },
+    { "country": "United States" }, { "country": "Uruguay" }, { "country": "Uzbekistan" }, { "country": "Venezuela" },
+    { "country": "Vietnam" }, { "country": "Yemen" }, { "country": "Zambia" }, { "country": "Zimbabwe" }
+  ];
+  // -----------------------------------------
+  upsellList: any[] = []; // Outlet type dropdown — fetched from upsell API
 
   constructor(
     private fb: FormBuilder,
@@ -386,18 +427,30 @@ export class OutletCreationComponent implements OnInit {
     private route: ActivatedRoute,
     private localService: LocalStorageService,
     private profileService: ProfileService,
-    private permissionService: PermissionService
+    private permissionService: PermissionService,
+    private hotelEnrollmentService: HotelEnrollmentTabviewService,
+    private technicalInfoService: TechnicalInfoService,
+    private upsellService: UpsellService,
+    private authTokenService: AuthTokenService
   ) { }
 
   ngOnInit(): void {
     this.buildForm();
     this.member_id = this.localService.get('MemberId');
     // console.log('Member id:', this.member_id);
-    
+
+    // Capture outlet_type from query params (mirrors feature-creation)
+    // this.route.queryParams.subscribe(params => {
+    //   if (params['outlet_type']) {
+    //     this.passedOutletType = params['outlet_type'];
+    //     this.upsellName = params['outlet_type'];
+    //   }
+    // });
+
     // Check if in view mode from navigation state
     const navState = window.history.state as any;
     this.isViewMode = navState?.mode === 'view';
-    
+
     this.route.paramMap.subscribe(params => {
       const id = params.get('id');
       // console.log('Outlet id:', id);
@@ -408,48 +461,84 @@ export class OutletCreationComponent implements OnInit {
       }
     });
 
+    if (this.member_id) {
+      this.getHotelTechnicalInfo();
+      this.loadUpsellList(); // Populate outlet_type dropdown
+      this.getCustomerById();
+    }
+
+
+    // Update upsellName dynamically when outlet_type changes
+    this.outletForm.get('outlet_type')?.valueChanges.subscribe(val => {
+      if (val) this.upsellName = val;
+    });
+
     // Disable form if in view mode
     if (this.isViewMode) {
       this.outletForm.disable({ emitEvent: false });
     }
   }
 
-  get canAddRestaurants(): boolean {
-    const permission = this.permissionService.getModulePermission('RESTAURANTS');
+  // get canAddRestaurants(): boolean {
+  get canAddOutlets(): boolean {
+    // const permission = this.permissionService.getModulePermission('RESTAURANTS');
+    const permission = this.permissionService.getModulePermission('OUTLETS');
     return permission?.has_add_permission ?? false;
   }
 
-  get canEditRestaurants(): boolean {
-    const permission = this.permissionService.getModulePermission('RESTAURANTS');
+  // get canEditRestaurants(): boolean {
+  get canEditOutlets(): boolean {
+    // const permission = this.permissionService.getModulePermission('RESTAURANTS');
+    const permission = this.permissionService.getModulePermission('OUTLETS');
     return permission?.has_edit_permission ?? false;
   }
 
   private buildForm() {
     this.outletForm = this.fb.group({
-      owner_name: ['', Validators.required],
-      email: ['', [Validators.required, Validators.email]],
-      phone: ['', [Validators.required, this.onlyNumbersValidator]],
-      companyphone: ['', [Validators.required, this.optionalNumbersValidator]],
-      name: ['', Validators.required],
-      gstno: ['', [Validators.required, this.gstValidator]],
+      owner_name: ['', [Validators.required, Validators.maxLength(50)]],
+      email: ['', [Validators.required, Validators.pattern(/^[a-zA-Z0-9_%+-]+@[a-zA-Z0-9-]+\.[a-zA-Z]{2,4}$/)]],
+      phone: ['', [Validators.required, Validators.minLength(10), Validators.maxLength(10), this.onlyNumbersValidator]],
+      companyphone: ['', [this.optionalNumbersValidator]],
+      name: ['', [Validators.required, Validators.maxLength(50)]],
+      // gstno: ['', [Validators.required, this.gstValidator]],
+      gstno: ['', [this.gstValidator]],
       association: [''],
-      address: ['', Validators.required],
+      // address: ['', Validators.required],
+      address: [''],
       address1: [''],
-      doorno: ['', Validators.required],
-      location: ['', Validators.required],
-      pincode: ['', [Validators.required, this.onlyNumbersValidator]],
+      // doorno: ['', Validators.required],
+      doorno: [''],
+      // location: ['', Validators.required],
+      location: [''],
+      // pincode: ['', [Validators.required, this.onlyNumbersValidator]],
+      pincode: ['', [Validators.minLength(6), Validators.maxLength(6), this.onlyNumbersValidator]],
       delivery_pickup_point_pincode: [''],
-      country: ['India', Validators.required],
-      open_time: ['', [Validators.required, this.time12HrValidator]],
-      close_time: ['', [Validators.required, this.time12HrValidator]],
+      country: [''],
+      open_time: ['', [this.time12HrValidator]],
+      close_time: ['', [this.time12HrValidator]],
       enable_distance_radius: [false],
       sendordermail: [true],
       takephoto: [''],
-      winhms_outlet_id: ['', Validators.required],
-      property_name: ['', Validators.required],
-      x_api_key: ['', Validators.required],
-      Hotel_Code: ['', Validators.required],
-      is_active: [true]
+      third_party_outlet_id: ['', Validators.required],
+      // winhms_outlet_id: ['', Validators.required],
+      // property_name: ['', Validators.required],
+      // x_api_key: ['', Validators.required],
+      // Hotel_Code: ['', Validators.required],
+      property_name: [''],
+      x_api_key: [''],
+      Hotel_Code: [''],
+      is_active: [true],
+
+      // Separate time dropdown controls (mirrors feature-creation)
+      open_hour: ['', Validators.required],
+      open_minute: ['', Validators.required],
+      open_period: ['', Validators.required],
+      close_hour: ['', Validators.required],
+      close_minute: ['', Validators.required],
+      close_period: ['', Validators.required],
+
+      // Outlet type — selected from upsell list
+      outlet_type: ['', Validators.required]
     });
   }
 
@@ -476,8 +565,13 @@ export class OutletCreationComponent implements OnInit {
   validateNumberInput(field: string) {
     const c = this.outletForm.get(field);
     if (!c) return;
-    const raw = c.value ?? '';
-    const clean = raw.replace(/\D+/g, '');
+    let raw = c.value ?? '';
+    let clean = raw.replace(/\D+/g, '');
+    // Enforce digit limits per field
+    const limit = (field === 'pincode' || field === 'delivery_pickup_point_pincode') ? 6 : 10;
+    if (clean.length > limit) {
+      clean = clean.substring(0, limit);
+    }
     if (clean !== raw) c.setValue(clean, { emitEvent: false });
   }
 
@@ -529,8 +623,22 @@ export class OutletCreationComponent implements OnInit {
       return;
     }
     this.photoPreview = URL.createObjectURL(file);
-    this.uploadImage(file, input);
+
+    // Validate dimensions 1280x720
+    const img = new Image();
+    img.onload = () => {
+      if (img.width !== 1280 || img.height !== 720) {
+        this.alertService.error('Image must be exactly 1280 x 720 pixels', this.options);
+        input.value = '';
+        this.photoPreview = '';
+        this.photoName = '';
+        return;
+      }
+      this.uploadImage(file, input);
+    };
+    img.src = this.photoPreview;
   }
+
 
   private uploadImage(file: File, inputEl: HTMLInputElement) {
     const fd = new FormData();
@@ -590,13 +698,10 @@ export class OutletCreationComponent implements OnInit {
     // Reset the file input field
     const input: any = document.getElementById('photoInput');
     if (input) input.value = '';
-    this.alertService.success('Photo removed successfully!');
-    if (this.editScreen) {
-      this.alertService.success(
-        'Photo removed successfully. Changes are not saved yet — please click "Save" to apply the update.',
-        this.options
-      );
-    }
+    const message = this.editScreen 
+      ? 'Photo removed successfully. Changes are not saved yet — please click "Save" to apply the update.'
+      : 'Photo removed successfully!';
+    this.alertService.success(message, this.options);
   }
 
   getOutletById(id: number) {
@@ -616,10 +721,86 @@ export class OutletCreationComponent implements OnInit {
         this.outletdata = data;
         // console.log('Outlet data(based on id:', this.outletdata);
         this.outletForm.patchValue({ ...data });
-        this.photoPreview = data.takephoto || '';
-        this.photoName = this.getFileNameFromUrl(data.takephoto);
+        this.photoPreview = data.takephoto || data.takePhoto || '';
+        this.photoName = this.getFileNameFromUrl(data.takephoto || data.takePhoto);
+        // Split existing time strings into dropdowns
+        if (data.open_time) this.parseTimeToDropdown(data.open_time, 'open');
+        if (data.close_time) this.parseTimeToDropdown(data.close_time, 'close');
       }
     );
+  }
+
+  // Mirrors feature-creation: fetch hotel & technical info for auto-population
+  private getHotelTechnicalInfo() {
+    const requestBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: { find: { customer_member_id: this.member_id } }
+    };
+    this.hotelEnrollmentService.getLoginCustomerById(requestBody).subscribe((resp: any) => {
+      if (resp?.success === 1 && resp?.result?.data?.[0]) {
+        this.customerData = resp.result.data[0];
+      }
+    });
+    this.technicalInfoService.getAllTechnicalInfo(requestBody).subscribe((resp: any) => {
+      if (resp?.success === 1 && resp?.result?.data?.[0]) {
+        this.technicalInfos = resp.result.data[0].customer_technical_info || [];
+      }
+    });
+  }
+
+  // Fetch upsell names to populate the outlet_type dropdown
+  private loadUpsellList() {
+    const payload = {
+      domain_name: DOMAIN_NAME,
+      user_id: this.authTokenService.getUserId(),
+      extras: { find: { member_id: this.member_id } }
+    };
+    this.upsellService.getAllUpsells(payload).subscribe((resp: any) => {
+      if (resp?.success === 1) {
+        this.upsellList = resp.result.data || [];
+        // If coming with a pre-selected type from query param, patch the form
+        if (this.passedOutletType) {
+          this.outletForm.patchValue({ outlet_type: this.passedOutletType });
+        }
+      }
+    });
+  }
+
+  private extractTechInfo(key: string): string {
+    if (!this.technicalInfos || !Array.isArray(this.technicalInfos)) return '';
+    const parts = key.toLowerCase().split('_');
+    const searchBase = (parts[0] === 'x' && parts.length > 1) ? parts[1] : parts[0];
+    for (const info of this.technicalInfos) {
+      for (const objKey in info) {
+        if (typeof info[objKey] === 'string' && objKey.toLowerCase().includes(searchBase)) {
+          if (info[objKey]) return info[objKey];
+        }
+      }
+      if (info.attributes && Array.isArray(info.attributes)) {
+        for (const attr of info.attributes) {
+          if (attr?.key?.toLowerCase().includes(searchBase) && attr.value) {
+            return attr.value;
+          }
+        }
+      }
+    }
+    if (this.customerData) {
+      if (searchBase === 'property' && this.customerData.property_name) return this.customerData.property_name;
+      if (searchBase === 'property' && this.customerData.name) return this.customerData.name;
+    }
+    return '';
+  }
+
+  private parseTimeToDropdown(timeStr: string, prefix: string) {
+    const match = timeStr.trim().match(/^(0?[1-9]|1[0-2]):([0-5][0-9])\s?(AM|PM)$/i);
+    if (match) {
+      this.outletForm.patchValue({
+        [`${prefix}_hour`]: match[1].padStart(2, '0'),
+        [`${prefix}_minute`]: match[2],
+        [`${prefix}_period`]: match[3].toUpperCase()
+      });
+    }
   }
 
   private getFileNameFromUrl(url?: string): string {
@@ -646,13 +827,28 @@ export class OutletCreationComponent implements OnInit {
       return;
     }
     const fv = this.outletForm.value;
+
+    // Combine separate time dropdown controls into time strings
+    const openTime = fv.open_hour && fv.open_minute && fv.open_period ?
+      `${fv.open_hour}:${fv.open_minute} ${fv.open_period}` : '';
+    const closeTime = fv.close_hour && fv.close_minute && fv.close_period ?
+      `${fv.close_hour}:${fv.close_minute} ${fv.close_period}` : '';
+
     const outletObj = {
       ...fv,
-      // status: 'Pending',
-      // is_active: true,
+      open_time: openTime,
+      close_time: closeTime,
       customer_id: Number(this.localService.get('UserId')) || Number(USER_ID),
-      member_id: this.member_id
+      member_id: this.member_id,
+      outlet_type: fv.outlet_type, // taken from the dropdown selection
+      // Programmatic mapping (mirrors feature-creation)
+      Hotel_Code: this.customerData?.Hotel_Code || '',
+      winhms_outlet_id: fv.third_party_outlet_id,
+      property_name: this.extractTechInfo('property_name') || this.extractTechInfo('Property Name') || '',
+      x_api_key: this.extractTechInfo('x_api_key') || this.extractTechInfo('X API Key') || ''
     };
+    // Sync upsellName so success messages use the selected type
+    this.upsellName = fv.outlet_type || 'Outlet';
     const requestBody = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
@@ -663,8 +859,8 @@ export class OutletCreationComponent implements OnInit {
       this.outletCreationService.postApiCall(requestBody, ENDPOINTS.OUTLET_CREATE).subscribe(
         (resp: any) => {
           if (resp.success === 1) {
-            this.alertService.success(resp.message, this.options);
-            this.router.navigate(['/outlet-list']);
+            this.alertService.success(`${this.upsellName} created successfully!`, this.options);
+            this.navigateToList();
           } else {
             this.alertService.error(resp.message || 'Create failed', this.options);
           }
@@ -674,17 +870,13 @@ export class OutletCreationComponent implements OnInit {
     else {
       const req = {
         ...requestBody,
-        extras: {
-          find: {
-            id: this.outlet_id
-          }
-        }
+        extras: { find: { id: this.outlet_id } }
       };
       this.outletCreationService.postApiCall(req, ENDPOINTS.OUTLET_UPDATE).subscribe(
         (resp: any) => {
           if (resp.success === 1) {
-            this.alertService.success(resp.message, this.options);
-            this.router.navigate(['/outlet-list']);
+            this.alertService.success(`${this.upsellName} updated successfully!`, this.options);
+            this.navigateToList();
           } else {
             this.alertService.error(resp.message || 'Update failed', this.options);
           }
@@ -711,6 +903,30 @@ export class OutletCreationComponent implements OnInit {
   }
 
   navigateToList() {
-    this.router.navigateByUrl('outlet-list')
+    // this.router.navigateByUrl('outlet-list')
+    this.router.navigate(['/outlet-list']);
   }
+
+  getCustomerById() {
+    let requestBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: {
+        find: {
+          customer_member_id: this.member_id
+        }
+      }
+    };
+    this.hotelEnrollmentService.getLoginCustomerById(requestBody).subscribe(
+      (resp: any) => {
+        if (resp && resp.success === 1) {
+          this.customerData = resp.result.data[0];
+        }
+      },
+      (err: any) => {
+        // Silent error for background data fetch
+      }
+    );
+  }
+
 }

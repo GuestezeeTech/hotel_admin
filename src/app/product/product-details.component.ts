@@ -80,6 +80,10 @@ export class ProductDetailsComponent {
   totalProducts: number = 0; // Total number of roles
   totalPages: number = 0; // Total number of pages
   isViewMode: boolean = false;
+  isEditCategoryMode: boolean = false;
+  selectedCategoryToEdit: any = null;
+  isDeleteCategoryModalOpen: boolean = false;
+  categoryToDelete: any = null;
 
   constructor(private fb: FormBuilder,
     private cdr: ChangeDetectorRef,
@@ -109,7 +113,7 @@ export class ProductDetailsComponent {
     // Customer id
     this.customerId = Number(this.localService.get('UserId'));
     this.memberId = this.localService.get('MemberId');
-    
+
     // Check if in view mode from navigation state
     const navState = window.history.state as any;
     this.isViewMode = navState?.mode === 'view';
@@ -154,7 +158,7 @@ export class ProductDetailsComponent {
     this.getAllCategories();
     // Product List
     this.getAllProducts();
-    
+
     // Disable forms if in view mode
     if (this.isViewMode) {
       this.companyForm.disable({ emitEvent: false });
@@ -162,23 +166,23 @@ export class ProductDetailsComponent {
     }
   }
 
-  get canReadRestaurants(): boolean {
-    const permission = this.permissionService.getModulePermission('RESTAURANTS');
+  get canReadOutlets(): boolean {
+    const permission = this.permissionService.getModulePermission('OUTLETS');
     return permission?.has_read_permission ?? false;
   }
 
-  get canAddRestaurants(): boolean {
-    const permission = this.permissionService.getModulePermission('RESTAURANTS');
+  get canAddOutlets(): boolean {
+    const permission = this.permissionService.getModulePermission('OUTLETS');
     return permission?.has_add_permission ?? false;
   }
 
-  get canEditRestaurants(): boolean {
-    const permission = this.permissionService.getModulePermission('RESTAURANTS');
+  get canEditOutlets(): boolean {
+    const permission = this.permissionService.getModulePermission('OUTLETS');
     return permission?.has_edit_permission ?? false;
   }
 
-  get canDeleteRestaurants(): boolean {
-    const permission = this.permissionService.getModulePermission('RESTAURANTS');
+  get canDeleteOutlets(): boolean {
+    const permission = this.permissionService.getModulePermission('OUTLETS');
     return permission?.has_delete_permission ?? false;
   }
 
@@ -209,7 +213,7 @@ export class ProductDetailsComponent {
   }
 
   deleteProduct(id: any) {
-    if (!this.canDeleteRestaurants) return;
+    if (!this.canDeleteOutlets) return;
     let requestBody = {
       "domain_name": "https://www.guestezee.com",
       "user_id": 1,
@@ -476,9 +480,24 @@ export class ProductDetailsComponent {
     if (this.isViewMode) return; // Prevent removal in view mode
     this.uploadedFiles[index].fileName = "";
     this.uploadedFiles[index].fileUrl = "";
-    if (index <= this.currentStage) {
-      this.currentStage = index;
+    this.uploadedFiles[index].fileSelected = null;
+
+    // Recalculate currentStage to the first empty slot
+    const nextEmpty = this.uploadedFiles.findIndex(f => !f.fileUrl || f.fileUrl.trim() === '');
+    this.currentStage = nextEmpty === -1 ? this.uploadedFiles.length : nextEmpty;
+
+    // Synchronize form
+    this.companyForm.patchValue({ uploadedDocuments: [...this.uploadedFiles] });
+
+    // Clear file inputs so same file can be re-selected if needed
+    if (this.fileInput) {
+      this.fileInput.nativeElement.value = '';
     }
+    // We can't easily reach the individual file inputs via ViewChild if they are in a loop with same name,
+    // but clearing the main one and relying on index update is usually enough if they use the main button.
+    // For individual ones, the change event will still fire if they select a different file or if we clear it in the event handler.
+
+    this.cdr.detectChanges();
   }
 
   closeModal() {
@@ -487,6 +506,8 @@ export class ProductDetailsComponent {
 
   opencate() {
     if (this.isViewMode) return; // Prevent opening category modal in view mode
+    this.isEditCategoryMode = false;
+    this.selectedCategoryToEdit = null;
     this.isModalOpen1 = true;
     // Add required validator when modal opens
     this.categoryForm.get('name')?.setValidators([Validators.required]);
@@ -495,6 +516,8 @@ export class ProductDetailsComponent {
 
   closeModal1() {
     this.isModalOpen1 = false;
+    this.isEditCategoryMode = false;
+    this.selectedCategoryToEdit = null;
     // Remove required validator when modal closes
     this.categoryForm.get('name')?.clearValidators();
     this.categoryForm.get('name')?.updateValueAndValidity();
@@ -524,12 +547,87 @@ export class ProductDetailsComponent {
   //   });
   // }
 
-  onCategoryChange(event: any) {
-    const selectedValue = event.target.value;
-    // console.log("Selected Value", selectedValue)
-    if (selectedValue === '0: othercat') {
-      this.opencate();
+  selectCategory(category: any) {
+    if (category === 'othercat') {
+      this.categoryForm.get('selectedCategory')?.setValue('othercat');
+      // this.opencate();
+      this.categoryForm.get('selectedCategory')?.markAsTouched();
+    } else {
+      this.categoryForm.get('selectedCategory')?.setValue(category);
+      this.categoryForm.get('selectedCategory')?.markAsTouched();
     }
+  }
+
+  editCategory(category: any, event: Event) {
+    event.stopPropagation();
+    if (this.isViewMode) return;
+    this.selectedCategoryToEdit = category;
+    this.isEditCategoryMode = true;
+    this.isModalOpen1 = true;
+    this.categoryForm.get('name')?.setValue(category.name);
+    this.categoryForm.get('name')?.setValidators([Validators.required]);
+    this.categoryForm.get('name')?.updateValueAndValidity();
+  }
+
+  deleteCategory(category: any, event: Event) {
+    event.stopPropagation();
+    if (this.isViewMode || !this.canDeleteOutlets) return;
+    this.categoryToDelete = category;
+    this.isDeleteCategoryModalOpen = true;
+  }
+
+  closeDeleteCategoryModal() {
+    this.isDeleteCategoryModalOpen = false;
+    this.categoryToDelete = null;
+  }
+
+  confirmDeleteCategory() {
+    if (!this.categoryToDelete) return;
+    // Logic to delete category
+    // let requestBody = {
+    //     domain_name: 'https://www.guestezee.com',
+    //     user_id: 1,
+    //     // payload: {
+    //     //     delete_data: {},
+    //     //     variants: []
+    //     // },
+    //     extras: {
+    //         find: {
+    //             id: this.categoryToDelete.id
+    //         }
+    //     }
+    // };
+    let requestBody = {
+      "domain_name": "https://www.guestezee.com",
+      "user_id": 1,
+      "payload": {},
+      "extras": {
+        "find": {
+          // "id": 26
+          "id": this.categoryToDelete.id
+        }
+      }
+    };
+
+    this.productDetailService.postApiCall1(requestBody, ENDPOINTS.DELETE_CATEGORY).subscribe(
+      (res: any) => {
+        if (res && res.success === 1) {
+          this.alertService.success('Category deleted successfully!', this.options);
+          if (this.categoryForm.get('selectedCategory')?.value?.id === this.categoryToDelete.id) {
+            this.categoryForm.get('selectedCategory')?.setValue('');
+          }
+          this.getAllCategories();
+          this.closeDeleteCategoryModal();
+        } else {
+          this.alertService.error('Category deletion failed!', this.options);
+          this.closeDeleteCategoryModal();
+        }
+      },
+      error => {
+        this.alertService.error('Category deletion failed or API not available', this.options);
+        this.closeDeleteCategoryModal();
+      }
+    );
   }
 
   createcat() {
@@ -540,54 +638,94 @@ export class ProductDetailsComponent {
       return;
     }
     let orderDetails = this.categoryForm.value.name;
-    // console.log('Category name:', orderDetails);
-    let jsonRequest = {
-      domain_name: 'https://www.guestezee.com',
-      user_id: 1,
-      payload: {
-        category_creation: {
-          "name": this.categoryForm.value.name,
-          "path": "",
-          "parent": [
-            {
-              "id": 0,
-              "name": "No Parent Category"
+
+    if (this.isEditCategoryMode && this.selectedCategoryToEdit) {
+      let updateRequest = {
+        domain_name: 'https://www.guestezee.com',
+        user_id: 1,
+        payload: {
+          category_updation: {
+            "id": this.selectedCategoryToEdit.id,
+            "name": this.categoryForm.value.name,
+            "is_active": true
+          }
+        },
+        extras: {
+          find: {
+            id: this.selectedCategoryToEdit.id
+          }
+        }
+      };
+      this.productDetailService.postApiCall1(updateRequest, ENDPOINTS.UPDATE_CATEGORY).subscribe(
+        resp => {
+          if (resp && resp.success === 1) {
+            this.alertService.success('Category Updated Successfully', this.options);
+            this.getAllCategories();
+
+            // If the edited category is the currently selected one, update its display name
+            let selected = this.categoryForm.get('selectedCategory')?.value;
+            if (selected && selected.id === this.selectedCategoryToEdit.id) {
+              selected.name = this.categoryForm.value.name;
+              this.categoryForm.get('selectedCategory')?.setValue(selected);
             }
-          ],
-          "image": "",
-          "imageName": "",
-          "category_icon": "",
-          "iconimageName": "",
-          "vertical_name": [],
-          "horizontal_name": [],
-          "filter_name": [],
-          "language": "EN",
-          "outlet_id": Number(this.localService.get('outlet_id')),
-          "tags": "",
-          "column": "",
-          "is_active": true,
-          "sort_order": 1,
-          "is_top": false,
-          "meta_keywords": "",
-          "meta_title": ""
+            this.closeModal1();
+          }
+          else {
+            this.alertService.error(resp?.message || 'Update failed', this.options);
+          }
+        }
+      );
+
+    } else {
+      let jsonRequest = {
+        domain_name: 'https://www.guestezee.com',
+        user_id: 1,
+        payload: {
+          category_creation: {
+            "name": this.categoryForm.value.name,
+            "path": "",
+            "parent": [
+              {
+                "id": 0,
+                "name": "No Parent Category"
+              }
+            ],
+            "image": "",
+            "imageName": "",
+            "category_icon": "",
+            "iconimageName": "",
+            "vertical_name": [],
+            "horizontal_name": [],
+            "filter_name": [],
+            "language": "EN",
+            "outlet_id": Number(this.localService.get('outlet_id')),
+            "tags": "",
+            "column": "",
+            "is_active": true,
+            "sort_order": 1,
+            "is_top": false,
+            "meta_keywords": "",
+            "meta_title": ""
+          }
         }
       }
+      this.productDetailService.addCategory(jsonRequest).subscribe(
+        resp => {
+          if (resp && resp.success === 1 && resp.status_code == 200) {
+            this.alertService.success('Category Created Successfully', this.options);
+            this.getAllCategories();
+            this.closeModal1();
+          }
+          else {
+            this.alertService.error(resp.message, this.options);
+          }
+        },
+        error => {
+          this.alertService.error('Category creation failed or API not available', this.options);
+        }
+      )
+
     }
-    this.productDetailService.addCategory(jsonRequest).subscribe(
-      resp => {
-        if (resp) {
-          this.alertService.success('Category Created Successfully', this.options);
-          this.getAllCategories();
-          this.isModalOpen1 = false;
-          // Remove required validator when modal closes
-          this.categoryForm.get('name')?.clearValidators();
-          this.categoryForm.get('name')?.updateValueAndValidity();
-          this.categoryForm.get('name')?.reset();
-        }
-        else {
-          this.alertService.error(resp.message, this.options);
-        }
-      })
   }
 
   toggleAvailability(event: Event): void {
@@ -788,17 +926,19 @@ export class ProductDetailsComponent {
         respData => {
           if (respData?.success === 1) {
             this.alertService.success('Product updated successfully', this.options);
-            this.categoryForm.reset();
-            this.companyForm.reset();
-            this.uploadedFiles = [
-              { name: "Image 1", fileName: "", fileUrl: "", fileSelected: null },
-              { name: "Image 2", fileName: "", fileUrl: "", fileSelected: null },
-              { name: "Image 3", fileName: "", fileUrl: "", fileSelected: null }
-            ];
-            this.isAvailable = false;
-            this.router.navigate([`/product-list`, Number(this.localService.get('outlet_id'))]);
-            this.getAllProducts()
-            this.newProduct = true;
+            setTimeout(() => {
+              this.categoryForm.reset();
+              this.companyForm.reset();
+              this.uploadedFiles = [
+                { name: "Image 1", fileName: "", fileUrl: "", fileSelected: null },
+                { name: "Image 2", fileName: "", fileUrl: "", fileSelected: null },
+                { name: "Image 3", fileName: "", fileUrl: "", fileSelected: null }
+              ];
+              this.isAvailable = false;
+              this.router.navigate([`/product-list`, Number(this.localService.get('outlet_id'))]);
+              this.getAllProducts()
+              this.newProduct = true;
+            }, 1000)
           }
           else {
             this.alertService.error(respData?.message, this.options);
@@ -827,7 +967,7 @@ export class ProductDetailsComponent {
   }
 
   addProduct1() {
-    if (!this.canAddRestaurants) return;
+    if (!this.canAddOutlets) return;
     this.router.navigate(['/add-menu', Number(this.localService.get('outlet_id'))])
     this.newProduct = false;
     this.isEditMode = false;
@@ -871,6 +1011,7 @@ export class ProductDetailsComponent {
     if (this.isViewMode) return; // Prevent upload in view mode
     const file = event.target.files[0];
     if (!file) return;
+    event.target.value = ''; // Clear input to allow re-selection of same file if removed
     this.isUploading = true; // Show loader
     const allowedExtensions = ['pdf', 'jpeg', 'jpg', 'png'];
     const fileExtension = file.name.split('.').pop()?.toLowerCase();
@@ -886,33 +1027,50 @@ export class ProductDetailsComponent {
     }
     const reader = new FileReader();
     reader.onload = () => {
-      this.uploadedFiles[this.currentStage].fileName = file.name;
-      this.imgFile = file;
-      const formData = new FormData();
-      formData.append('upload', this.imgFile);
-      let headers = new HttpHeaders()
-        .set("source", "Certificate")
-        .set("domain_name", "https://www.guestezee.com");
-      this.productDetailService.sendImage(formData, headers).subscribe({
-        next: (resp) => {
-          if (resp && resp.success === 1 && resp.status_code === 200) {
-            const uploadedData = resp.result.data[0];
-            this.uploadedFiles[this.currentStage].fileUrl = uploadedData.location;
-            this.companyForm.patchValue({ uploadedDocuments: [...this.uploadedFiles] });
-            this.alertService.success(`File uploaded successfully! Please save the changes to reflect it.`, this.options);
-            if (this.currentStage < this.uploadedFiles.length - 1) {
-              this.currentStage++;
+      const img = new Image();
+      img.onload = () => {
+        if (img.width !== 500 || img.height !== 500) {
+          this.alertService.error("Invalid image dimensions! Only 500 x 500px images are allowed.", this.options);
+          this.isUploading = false;
+          return;
+        }
+        this.uploadedFiles[this.currentStage].fileName = file.name;
+        this.imgFile = file;
+        const formData = new FormData();
+        formData.append('upload', this.imgFile);
+        let headers = new HttpHeaders()
+          .set("source", "Certificate")
+          .set("domain_name", "https://www.guestezee.com");
+        this.productDetailService.sendImage(formData, headers).subscribe({
+          next: (resp) => {
+            if (resp && resp.success === 1 && resp.status_code === 200) {
+              const uploadedData = resp.result.data[0];
+              this.uploadedFiles[this.currentStage].fileUrl = uploadedData.location;
+              this.companyForm.patchValue({ uploadedDocuments: [...this.uploadedFiles] });
+              this.alertService.success(`File uploaded successfully! Please save the changes to reflect it.`, this.options);
+              // Update currentStage to next pending file
+              const nextIndex = this.uploadedFiles.findIndex(f => !f.fileUrl || f.fileUrl.trim() === '');
+              this.currentStage = nextIndex === -1 ? this.uploadedFiles.length : nextIndex;
+            } else {
+              this.alertService.error(`Upload failed. Please try again.`, this.options);
             }
-          } else {
+            this.isUploading = false;
+          },
+          error: () => {
+            this.isUploading = false;
             this.alertService.error(`Upload failed. Please try again.`, this.options);
           }
-          this.isUploading = false;
-        },
-        error: () => {
-          this.isUploading = false;
-          this.alertService.error(`Upload failed. Please try again.`, this.options);
-        }
-      });
+        });
+      };
+      img.onerror = () => {
+        this.alertService.error("Could not read image dimensions. Please try another image file.", this.options);
+        this.isUploading = false;
+      };
+      img.src = reader.result as string;
+    };
+    reader.onerror = () => {
+      this.alertService.error("Error reading file.", this.options);
+      this.isUploading = false;
     };
     reader.readAsDataURL(file);
   }
@@ -921,6 +1079,7 @@ export class ProductDetailsComponent {
     if (this.isViewMode) return; // Prevent upload in view mode
     const file = event.target.files[0];
     if (!file) return;
+    event.target.value = ''; // Clear input to allow re-selection of same file if removed
     this.isUploading = true;
     const allowedExtensions = ['pdf', 'jpeg', 'jpg', 'png'];
     const fileExtension = file.name.split('.').pop()?.toLowerCase();
@@ -936,33 +1095,50 @@ export class ProductDetailsComponent {
     }
     const reader = new FileReader();
     reader.onload = () => {
-      this.uploadedFiles[index].fileName = file.name;
-      this.imgFile = file;
-      const formData = new FormData();
-      formData.append('upload', this.imgFile);
-      const headers = new HttpHeaders()
-        .set("source", "Certificate")
-        .set("domain_name", "https://www.guestezee.com");
-      this.productDetailService.sendImage(formData, headers).subscribe({
-        next: (resp) => {
-          if (resp && resp.success === 1 && resp.status_code === 200) {
-            const uploadedData = resp.result.data[0];
-            this.uploadedFiles[index].fileUrl = uploadedData.location;
-            this.companyForm.patchValue({ uploadedDocuments: [...this.uploadedFiles] });
-            this.alertService.success(`File uploaded successfully! Please save the changes to reflect it.`, this.options);
-            // Update currentStage to next pending file
-            const nextIndex = this.uploadedFiles.findIndex(f => !f.fileUrl);
-            this.currentStage = nextIndex === -1 ? this.uploadedFiles.length : nextIndex;
-          } else {
+      const img = new Image();
+      img.onload = () => {
+        if (img.width !== 500 || img.height !== 500) {
+          this.alertService.error("Invalid image dimensions! Only 500 x 500px images are allowed.", this.options);
+          this.isUploading = false;
+          return;
+        }
+        this.uploadedFiles[index].fileName = file.name;
+        this.imgFile = file;
+        const formData = new FormData();
+        formData.append('upload', this.imgFile);
+        const headers = new HttpHeaders()
+          .set("source", "Certificate")
+          .set("domain_name", "https://www.guestezee.com");
+        this.productDetailService.sendImage(formData, headers).subscribe({
+          next: (resp) => {
+            if (resp && resp.success === 1 && resp.status_code === 200) {
+              const uploadedData = resp.result.data[0];
+              this.uploadedFiles[index].fileUrl = uploadedData.location;
+              this.companyForm.patchValue({ uploadedDocuments: [...this.uploadedFiles] });
+              this.alertService.success(`File uploaded successfully! Please save the changes to reflect it.`, this.options);
+              // Update currentStage to next pending file
+              const nextIndex = this.uploadedFiles.findIndex(f => !f.fileUrl);
+              this.currentStage = nextIndex === -1 ? this.uploadedFiles.length : nextIndex;
+            } else {
+              this.alertService.error(`Upload failed. Please try again.`, this.options);
+            }
+            this.isUploading = false;
+          },
+          error: () => {
+            this.isUploading = false;
             this.alertService.error(`Upload failed. Please try again.`, this.options);
           }
-          this.isUploading = false;
-        },
-        error: () => {
-          this.isUploading = false;
-          this.alertService.error(`Upload failed. Please try again.`, this.options);
-        }
-      });
+        });
+      };
+      img.onerror = () => {
+        this.alertService.error("Could not read image dimensions. Please try another image file.", this.options);
+        this.isUploading = false;
+      };
+      img.src = reader.result as string;
+    };
+    reader.onerror = () => {
+      this.alertService.error("Error reading file.", this.options);
+      this.isUploading = false;
     };
     reader.readAsDataURL(file);
   }
@@ -1001,7 +1177,7 @@ export class ProductDetailsComponent {
   }
 
   addProduct() {
-    if (!this.canAddRestaurants) return;
+    if (!this.canAddOutlets) return;
     this.router.navigate(['/add-product']);
   }
 

@@ -24,6 +24,7 @@ import { ServiceDetailService } from './service-details/service-details.service'
 import { HierarchyService } from '../hierarchy/hierarchy.service';
 import { Subscription } from 'rxjs';
 import { NavigationStart } from '@angular/router';
+import { SharedDataService } from '../shared/shared-data.service';
 
 export let browserRefresh = false;
 
@@ -68,7 +69,18 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
     'Technical Info',
     'Status',
   ];
-  currentTab = 0;
+  // Newlya dded & commented for submenu active
+  // currentTab = 0;
+  private _currentTab = 0;
+  get currentTab(): number {
+    return this._currentTab;
+  }
+
+  set currentTab(value: number) {
+    this._currentTab = value;
+    this.sharedDataService.setTab(value);
+  }
+  // End for submenu active
   maxTabReached = 0;
   password: any;
   memberId: string | null = null;
@@ -77,7 +89,9 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
   // Newly added for payment verification
   paymentDone: boolean = false;
   // Newly added for back navigation
-  skipAutoTabCheck !: boolean;
+  // Newly added for skip auto tab check
+  // skipAutoTabCheck !: boolean;
+  skipAutoTabCheck: boolean = false;
   hierarchyTab: boolean = false;
   customer: any;
   order: any;
@@ -103,6 +117,8 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
         if (tabIndex === 3) {
           this.hierarchyTab = true;
         }
+        // Newly added for skip auto tab check
+        this.skipAutoTabCheck = true;
         this.isReadyToRender = true; // show tabs immediately when opening via submenu
         this.goToTab(tabIndex, true);
       }
@@ -136,6 +152,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
           // console.log("✔️ checkAndActivateInvalidTab ran after 3 seconds");
           // console.log('Auto check:', this.skipAutoTabCheck);
           // Newly added for back navigation - skipAutoTabCheck
+          // Newly added for skip auto tab check
           if (!this.skipAutoTabCheck) {
             this.checkAndActivateInvalidTabOnLoad();
             //console.log("checkAndActivateInvalidTab ran after 3 seconds");
@@ -148,6 +165,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
           // console.log("✔️ checkAndActivateInvalidTab ran after 3 seconds from edit");
           // console.log('Auto check:', this.skipAutoTabCheck);
           // Newly added for back navigation - skipAutoTabCheck
+          // Newly added for skip auto tab check
           if (!this.skipAutoTabCheck) {
             this.checkAndActivateInvalidTabOnLoad();
             // console.log("✔️ checkAndActivateInvalidTab ran after 3 seconds");
@@ -156,7 +174,10 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
       } else if (navType === "back_forward" && !this.router.url.includes('confirmation')) {
         //console.log("Page was accessed via back or forward button");
         setTimeout(() => {
-          this.checkAndActivateInvalidTabOnLoad();
+          // Newly added for skip auto tab check
+          if (!this.skipAutoTabCheck) {
+            this.checkAndActivateInvalidTabOnLoad();
+          }
           //console.log("✔️ checkAndActivateInvalidTab ran after 3 seconds");
         }, 2000); // 3000 ms = 3 seconds
       } else {
@@ -253,7 +274,8 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
     private technicalInfoService: TechnicalInfoService,
     private hierarchyService: HierarchyService,
     private serviceDetails: ServiceDetailService,
-    private loginService: LoginService
+    private loginService: LoginService,
+    private sharedDataService: SharedDataService
   ) {
     this.router.events.subscribe(event => {
       if (event instanceof NavigationEnd) {
@@ -595,10 +617,10 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
         // }
       },
       "pagination": false,
-      "paginationDetails": {
+      /* "paginationDetails": {
         "limit": 0,
         "pageSize": 10
-      },
+      }, */
       "sorting": true,
       "sortingDetails": {
         "sortfield": "",
@@ -636,7 +658,6 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
           let shouldUpdateOrder = false;
           let isPaymentProcessed = false;
           let paymentProcessedInstallment: any = null;
-
           // SMS Block: Update send_sms flag if exactly one confirmed order needs it
           if (confirmedOrders.length === 1 && confirmedOrders[0].send_sms === true) {
             this.sendMessage(this.customerdata);
@@ -1470,17 +1491,61 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
 
   sendMessage(customerData: any) {
     const payload = {
-      domain_name: 'https://www.guestezee.com',
-      OrganizationId: 30,
-      Mobile: customerData.phone_number
+      "domain_name": 'https://www.guestezee.com',
+      "customer_member_id": customerData.customer_member_id,
+      "templateCode": "enrollment",
+      "user_id": 1
+      /*   OrganizationId: 30,
+        Mobile: customerData.phone_number */
     };
     this.hotelenrollmentservice.sendSMS(payload).subscribe({
       next: (res) => {
-        // console.log('Email API response:', res);
+        if (res && (res.success === 1)) {
+          console.log('Welcome SMS sent successfully:', res);
+          this.updateCustomerWelcomeSms(customerData.id);
+        }
+        else {
+          console.log('Failed to send welcome SMS:', res);
+        }
       },
       error: (err) => {
         console.error('Email API error:', err);
       }
+    });
+  }
+
+  async updateCustomerWelcomeSms(customerId: any): Promise<boolean> {
+    const updateBody = {
+      domain_name: this.authTokenService.getDomain(),
+      user_id: this.authTokenService.getUserId(),
+      extras: {
+        find: {
+          id: customerId
+        }
+      },
+      payload: {
+        customer_update: {
+          send_welcome_sms: true
+        }
+      }
+    };
+    return await new Promise<boolean>((resolve) => {
+      this.hotelenrollmentservice
+        .updateCustomercFcmToken(updateBody)
+        .subscribe(
+          (resp: any) => {
+            if (resp.success === 1 && resp.status_code === 200) {
+              resolve(true);
+            } else {
+              console.error('Failed to update customer welcome sms status:', resp?.message);
+              resolve(false);
+            }
+          },
+          (err: any) => {
+            console.error('Error updating customer welcome sms status:', err);
+            resolve(false);
+          }
+        );
     });
   }
 

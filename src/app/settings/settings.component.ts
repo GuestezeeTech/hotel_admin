@@ -99,7 +99,13 @@ export class SettingsComponent implements OnInit {
       current_password: ['', [Validators.minLength(6), Validators.required]],
       new_password: ['', [Validators.minLength(6), Validators.required]],
       confirm_password: ['', [Validators.minLength(6), Validators.required]],
-    });
+    },
+      // Newly added for matching new password and confirm password
+      {
+        validators: this.passwordMatchValidator('new_password', 'confirm_password')
+      }
+      // End of newly added for matching new password and confirm password
+    );
     // Customer id
     this.customerType = this.localService.get('CustomerType');
     // Newly added for getting customer id for customer type
@@ -219,7 +225,7 @@ export class SettingsComponent implements OnInit {
       //console.log("pwrd", storedPassword)
       const currentPassword = this.p['current_password'].value;
       // Check if current password matches the stored password
-      if (storedPassword !== currentPassword) {
+      if (storedPassword && storedPassword !== currentPassword) {
         // console.log("storedPassword", storedPassword, "currentPassword", currentPassword)
         this.p['current_password'].setErrors({ incorrect: true });
         this.alertService.error(("Current Password is incorrect."), this.options);
@@ -233,7 +239,7 @@ export class SettingsComponent implements OnInit {
         return;
       }
       // Ensure passwords match
-      if (this.p['new_password'].value == storedPassword) {
+      if (storedPassword && this.p['new_password'].value == storedPassword) {
         // console.log("newPassword", this.p['new_password'].value, "storedPassword", storedPassword)
         this.alertService.error(("New Password cannot be same as old Password"), this.options);
         return;
@@ -283,7 +289,7 @@ export class SettingsComponent implements OnInit {
           this.alertService.error(("Error updating password: " + (err.error?.message || "Please try again!")), this.options);
           setTimeout(() => {
             this.alertService.clear(); // Clears the alert message
-          }, 2000);
+          }, 6000);
         }
       );
     } else {
@@ -519,9 +525,6 @@ export class SettingsComponent implements OnInit {
     this.checkAtLeastOneShift();
   }
 
-
- 
-
   validateTime(index: number, type: 'start' | 'end') {
     // Clear row error when user starts typing
     if (this.shiftRowErrors[index]) {
@@ -608,13 +611,19 @@ export class SettingsComponent implements OnInit {
     }
 
     // Check duplicate labels
-    const labels = this.shifts.map(s => s.label).filter(l => l && l.trim() !== '');
+    // const labels = this.shifts.map(s => s.label).filter(l => l && l.trim() !== '');
+    const labels = this.shifts
+      .map(s => s.label?.trim().toLowerCase().replace(/\s+/g, ' '))
+      .filter(Boolean);
     if (new Set(labels).size !== labels.length) {
       errors.push('Shift Labels must be unique!');
     }
 
     // Check duplicate IDs
-    const ids = this.shifts.map(s => s.id).filter(id => id && id.trim() !== '');
+    // const ids = this.shifts.map(s => s.id).filter(id => id && id.trim() !== '');
+    const ids = this.shifts
+      .map(s => s.id?.trim().toLowerCase().replace(/\s+/g, ' '))
+      .filter(Boolean);
     if (new Set(ids).size !== ids.length) {
       errors.push('Shift IDs must be unique!');
     }
@@ -1808,7 +1817,6 @@ export class SettingsComponent implements OnInit {
       if (room.startRoom && room.endRoom) {
         const startVal = room.startRoom.trim();
         const endVal = room.endRoom.trim();
-        // numeric conversion
         const startNum = parseInt(startVal, 10);
         const endNum = parseInt(endVal, 10);
         // 1. Check if same
@@ -1860,15 +1868,21 @@ export class SettingsComponent implements OnInit {
       }
     }
     // -------- Duplicate Labels --------
+    // const labels = this.rooms
+    //   .map(r => r.label?.trim().toLowerCase())
+    //   .filter(Boolean);
     const labels = this.rooms
-      .map(r => r.label?.trim().toLowerCase())
+      .map(r => r.label?.trim().toLowerCase().replace(/\s+/g, ' '))
       .filter(Boolean);
     if (new Set(labels).size !== labels.length) {
       errors.push('Room Labels must be unique!');
     }
     // -------- Duplicate IDs --------
+    // const ids = this.rooms
+    //   .map(r => r.id?.trim().toLowerCase())
+    //   .filter(Boolean);
     const ids = this.rooms
-      .map(r => r.id?.trim().toLowerCase())
+      .map(r => r.id?.trim().toLowerCase().replace(/\s+/g, ' '))
       .filter(Boolean);
     if (new Set(ids).size !== ids.length) {
       errors.push('Room IDs must be unique!');
@@ -2025,5 +2039,49 @@ export class SettingsComponent implements OnInit {
   this.saveRoomSettings(cleanRooms);
   this.closeRoomModal();
 } */
+
+  // Allow only alphanumeric characters for IDs
+  allowOnlyAlphanumeric(event: KeyboardEvent) {
+    const allowed = /^[a-zA-Z0-9]*$/;
+    if (!allowed.test(event.key)) {
+      event.preventDefault();
+    }
+  }
+
+  // Allow only numbers for room ranges
+  allowOnlyNumbers(event: KeyboardEvent) {
+    const allowed = /^[0-9]*$/;
+    if (!allowed.test(event.key)) {
+      event.preventDefault();
+    }
+  }
+
+  // Handle numeric-only paste
+  handleNumericPaste(event: ClipboardEvent) {
+    const pasted = event.clipboardData?.getData('text') ?? '';
+    if (!/^[0-9]*$/.test(pasted)) {
+      event.preventDefault(); // Block non-numeric strings
+    }
+  }
+
+  // Newly added for matching new password and confirm password
+  passwordMatchValidator(controlName: string, matchingControlName: string) {
+    return (formGroup: UntypedFormGroup) => {
+      const control = formGroup.controls[controlName];
+      const matchingControl = formGroup.controls[matchingControlName];
+      if (!control || !matchingControl) {
+        return;
+      }
+      const errors = { ...matchingControl.errors };
+      if (control.value !== matchingControl.value) {
+        errors['matchError'] = true;
+        matchingControl.setErrors(errors);
+      } else {
+        delete errors['matchError'];
+        matchingControl.setErrors(Object.keys(errors).length ? errors : null);
+      }
+    };
+  }
+  // End of newly added for matching new password and confirm password
 
 }

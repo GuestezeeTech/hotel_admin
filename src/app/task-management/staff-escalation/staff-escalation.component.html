@@ -17,7 +17,9 @@
             <th>Service Time</th> -->
             <th>Date</th>
             <th>Time</th>
-            <th>Status</th>
+            <!-- Newly added & commented for task allocation purpose -->
+            <!-- <th>Status</th> -->
+            <!-- Ended for task allocation purpose -->
             <th>Escalated Time</th>
             <th>Escalated From</th>
             <th>Escalated To</th>
@@ -30,24 +32,26 @@
             <td colspan="11" class="text-center text-muted">No guest tasks found</td>
         </tr>
         <tr *ngFor="let task of allEscalatedTasks">
-            <td (click)="navigateToTimeline(task.id)" style="cursor: pointer">{{ task.guest_name || task.task_created_by }}</td>
+            <td (click)="navigateToTimeline(task.id)" style="cursor: pointer">{{ task.guest_name || task.task_created_by
+                }}</td>
             <td>{{ task.room_no }}</td>
             <!-- Newly added & commented for all department -->
             <!-- <td>{{ task.service.service_name }}<span
                     *ngIf="task.service.service_name === 'Late checkout' && task.service.category === 'FO'">({{
                     task?.checkout_status}})</span></td> -->
-            <td>{{ task.service.service_name }}<span
-                    *ngIf="task.service.belongs_to === 'Late checkout'">({{
+            <td>{{ task.service.service_name }}<span *ngIf="task.service.belongs_to === 'Late checkout'">({{
                     task?.checkout_status}})</span></td>
             <td>{{ task.service?.quantity || '-' }}</td>
             <td>{{ task.order_date | date:'dd-MM-yyyy'}}</td>
             <td>{{ task.order_time }}</td>
-            <td>
+            <!-- Newly added & commented for task allocation purpose -->
+            <!--  <td>
                 <div
                     style="color: #E70909; background-color: #f2d9d9; border-radius: 50px; padding: 4px 12px; font-weight: 500; font-size: 12px; text-align: center; display: inline-block;">
                     Escalated
                 </div>
-            </td>
+            </td> -->
+            <!-- Ended for task allocation purpose -->
             <td>{{ task.escalated_time }}</td>
             <td>{{ task.escalated_from_name }}</td>
             <td>{{ task.escalated_to_name }}</td>

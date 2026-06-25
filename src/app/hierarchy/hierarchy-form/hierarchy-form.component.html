@@ -39,9 +39,9 @@
               &times;
             </button>
             <div class="form-field">
-              <label>Designation:</label>
-              <input type="text" formControlName="designation" placeholder="Enter designation"
-                [disabled]="!canEditForm" [maxlength]="50">
+              <label>Designation: <span class="hint">(Max 50 characters)</span></label>
+              <input type="text" formControlName="designation" placeholder="Enter designation" [disabled]="!canEditForm"
+                [maxlength]="50">
             </div>
             <div class="form-field">
               <label>Department:</label>
@@ -66,8 +66,13 @@
             <div class="form-field">
               <label>Escalation Time (in minutes):</label>
               <input type="number" formControlName="escalationTime" placeholder="Enter time in minutes"
-                [disabled]="!canEditForm" step="1"
-       (keydown)="blockInvalidKeys($event)">
+                [disabled]="!canEditForm" step="1" min="1" (keydown)="blockInvalidKeys($event)"
+                (paste)="handleEscalationPaste($event)">
+              <div
+                *ngIf="item.get('escalationTime')?.errors?.['min'] && (item.get('escalationTime')?.dirty || item.get('escalationTime')?.touched)"
+                class="error-message">
+                Time must be at least 1 minute.
+              </div>
             </div>
             <!-- <div *ngIf="showTopLevelOption" class="form-field" style="margin-top: 0.5rem;">
               <label>

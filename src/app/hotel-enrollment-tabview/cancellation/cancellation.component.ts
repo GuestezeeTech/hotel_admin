@@ -52,8 +52,37 @@ ngOnInit(): void {
       //console.log('Customer ID:', this.customerId);
     });
   }
-  back(){
-    //console.log("1212")
-     this.router.navigateByUrl('/login');
+  // back(){
+  //   //console.log("1212")
+  //    this.router.navigateByUrl('/login');
+  // }
+
+  // back() {
+  //   // On payment cancellation, return to the enrollment start or a neutral page,
+  //   // not the login page which would look like an automatic logout.
+  //   // this.router.navigate(['/hotel-registration/add-new-hotel']);
+  // }
+
+  back() {
+    const qp = this.route.snapshot.queryParams;
+    const id = qp['id'];
+    const customerId = qp['customer_id'];
+
+    // If previous page is on our site, go back in history so user returns to the prior enrollment step.
+    try {
+      const prev = document.referrer || '';
+      const sameHost = prev.includes(window.location.host);
+      if (window.history.length > 1 && sameHost) {
+        window.history.back();
+        return;
+      }
+    } catch (e) {
+      // ignore and fall through to explicit navigation
+    }
+
+    // Otherwise (payment gateway or no useful history) navigate to a safe enrollment route.
+    this.router.navigate(['/hotel-registration/add-new-hotel'], {
+      queryParams: { id: id, customer_id: customerId }
+    });
   }
 }

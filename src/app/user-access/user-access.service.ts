@@ -48,6 +48,12 @@ export class UserAccessService {
             has_edit_permission: false,
             has_read_permission: false,
             has_delete_permission: false
+        },
+        DUEPAYMENTS: {
+            has_add_permission: false,
+            has_edit_permission: false,
+            has_read_permission: false,
+            has_delete_permission: false
         }
     }
 

@@ -62,12 +62,13 @@ input[type="number"] {
   font-weight: 400;
 }
 
-/* Error Styling */
+/* Error & Required Asterisk */
 .error,
-span {
+.required-asterisk {
   color: red;
-  font-size: 13px;
+  font-size: 14px;
   margin-bottom: 0 !important;
+  margin-left: 4px;
 }
 
 /* Buttons */
@@ -284,4 +285,16 @@ input[type="file"]:disabled {
     opacity: 0.6;
     cursor: not-allowed;
     background: #b35a78 !important;
+}
+
+/* Time Dropdown Container — mirrors feature-creation */
+.time-dropdown-container {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+
+  .time_select {
+    flex: 1;
+    min-width: 0; // Allow shrinking
+  }
 }

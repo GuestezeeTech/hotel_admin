@@ -479,15 +479,18 @@ export class ServiceSettingsComponent implements OnInit {
             const memberServices = allData.filter(
               (item: any) => item.member_id === memberId
             );
-            // Then gets Help Service items only
+            // Newly commented & added for not showing Help Service
+            /*  // Then gets Help Service items only
             const helpServices = allData
               .filter((item: any) => item.belongs_to === 'Help Service')
               .map((item: any) => ({
                 ...item,
                 isHelpService: true
               }));
-            // Merge both lists together
-            this.allServicesList = [...memberServices, ...helpServices];
+            // Merge both lists together 
+            this.allServicesList = [...memberServices, ...helpServices]; */
+            this.allServicesList = memberServices;
+            // End of newly commented & added for not showing Help Service
             // console.log('All Services of Services:', this.allServicesList);
             this.applyMainFilter();
           }
@@ -640,7 +643,7 @@ export class ServiceSettingsComponent implements OnInit {
     }, 150);   // delay prevents instant closing
   }
   // Ended
-  
+
   @HostListener('document:click', ['$event'])
   clickOutside(event: Event) {
     if (this.showDropdown && this.filterBox && !this.filterBox.nativeElement.contains(event.target)) {
@@ -656,7 +659,7 @@ export class ServiceSettingsComponent implements OnInit {
     this.showDeleteModal = false;
   }
 
-  
+
 
 
 }

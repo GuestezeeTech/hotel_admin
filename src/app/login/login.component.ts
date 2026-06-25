@@ -3,11 +3,12 @@ import { NotificationService } from './../notification/notification.service';
 import { TaskManagementService } from './../task-management/task-management.service';
 import { TaskManagementComponent } from './../task-management/task-management.component';
 import { USER_ID, DOMAIN_NAME } from './../app.config';
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, HostListener } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, UntypedFormGroup } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
 import { AlertsService } from '../shared/alerts/alerts.service';
+import { PlatformLocation } from '@angular/common';
 import { AuthTokenService } from '../auth-services/auth-token.service';
 import { LocalStorageService } from '../auth-services/local-storage.service';
 import { LoaderService } from '../shared/loader/loader.service';
@@ -84,6 +85,7 @@ export class LoginComponent implements OnInit {
   // isStaffLogin: Boolean = false;
   navigatingValue: any = '';
   hasEmailAndPhone: boolean = false;
+  loginErrorMessage: any;
 
   constructor(private fb: FormBuilder, private alertService: AlertsService,
     private appService: LoginService,
@@ -110,6 +112,22 @@ export class LoginComponent implements OnInit {
     private roleListingService: RoleListingService,
     private roleService: RoleService
   ) { }
+
+  @HostListener('window:popstate', ['$event'])
+  onBrowserBack(event: any) {
+    if (this.otp || this.signup || this.password) {
+      this.otp = false;
+      this.login = true;
+      this.forgotPassword = false;
+      this.signup = false;
+      this.password = false;
+    }
+
+    if (this.localStorageService.get('loggedOut') === 'true') {
+      // Re-push the current URL to history to keep the user trapped on the login page
+      window.history.pushState(null, '', window.location.href);
+    }
+  }
 
   ngOnInit(): void {
 
@@ -152,6 +170,17 @@ export class LoginComponent implements OnInit {
         emailControl.setErrors(null);
       }
     });
+    // Newly added for removing multiple error messages
+    this.loginForm.valueChanges.subscribe(() => {
+      if (this.loginErrorMessage) {
+        this.loginErrorMessage = '';
+      }
+    });
+    // Newly added for browser back button
+    if (this.localStorageService.get('loggedOut') === 'true') {
+      window.history.pushState(null, '', window.location.href);
+    }
+
   }
 
   get f() { return this.loginForm.controls; }
@@ -424,6 +453,7 @@ export class LoginComponent implements OnInit {
     // };
     this.loginForm.markAllAsTouched();
     this.validateForm = true;
+    this.loginErrorMessage = '';
     const enteredValue = this.loginForm.value.email?.trim();
     const password = this.loginForm.value.password?.trim();
     const emailControl = this.loginForm.controls['email'];
@@ -450,7 +480,7 @@ export class LoginComponent implements OnInit {
         return;
       }
     } else {
-      const empPattern = /^[A-Z]{4}\d{8}$/;
+      const empPattern = /^[a-zA-Z]{2}[a-zA-Z0-9]*\d{8}$/;
       if (!empPattern.test(enteredValue)) {
         // console.log('Invalid Employee ID format');
         emailControl.setErrors({ invalid: true });
@@ -511,6 +541,8 @@ export class LoginComponent implements OnInit {
             loginObservable.subscribe(
               async (resp: any) => {
                 if (resp && resp.success === 1 && resp.status_code === 200) {
+                  // Newly added for browser back button
+                  this.localStorageService.remove('loggedOut');
                   // Staff type
                   if (userData.staff_employee_number != undefined) {
                     this.notificationService.clearAll();
@@ -519,8 +551,21 @@ export class LoginComponent implements OnInit {
                     this.localService.set('hierarchy', JSON.stringify(userData.hierarchy));
                     this.localService.set('UserId', Number(userData.staff_id));
                     this.localService.set('CustomerId', Number(userData.id));
+                    this.localService.set('Password', password);
                     // console.log('Staff ID:', this.localService.get('UserId'));
-                    this.localService.set('MemberId', userData.member_id);
+                    //  this.localService.set('MemberId', userData.member_id);
+                    //Newly added
+                    const staffMemberId = userData.customer_member_id && userData.customer_member_id.trim() !== ''
+                      ? userData.customer_member_id.trim()
+                      : (userData.member_id ? userData.member_id.trim() : null);
+
+                    if (!staffMemberId || staffMemberId === 'undefined' || staffMemberId === 'null') {
+                      this.loaderService.emitComplete();
+                      this.alertService.error('Member ID is required', this.options);
+                      this.alertClear();
+                      return;
+                    }
+                    this.localService.set('MemberId', staffMemberId);
                     // console.log('Front office:', userData.front_office_desk);
                     //  Newly commented because no need of fo desk 
                     // this.localService.set('frontOfficeDeskStaff', userData.front_office_desk);
@@ -555,7 +600,9 @@ export class LoginComponent implements OnInit {
                             if (!Array.isArray(staff.fcm_token)) {
                               staff.fcm_token = [];
                             }
-                            staff.fcm_token.push(token);
+                            if (token !== null && token !== undefined && token.trim() !== '') {
+                              staff.fcm_token.push(token);
+                            }
                             // Step 3: Update staff FCM token
                             const updateBody = {
                               domain_name: DOMAIN_NAME,
@@ -610,8 +657,8 @@ export class LoginComponent implements OnInit {
                                 console.error('Error updating staff is_available on login:', err);
                               }
                             );
-                            // End of newly added is_available to true on staff login
-                          } else {
+                          }// End of newly added is_available to true on staff login
+                          else {
                             console.error('Staff not found for ID:', userData.staff_id);
                           }
                         },
@@ -642,29 +689,20 @@ export class LoginComponent implements OnInit {
                     this.localService.set('CustomerType', 'Customer');
                     this.localService.set('UserId', Number(userData.id));
                     // Check if customer_member_id exists, otherwise use member_id
-                    const memberId = userData.customer_member_id ? userData.customer_member_id : userData.member_id;
+                    // const memberId = userData.customer_member_id ? userData.customer_member_id : userData.member_id;
+                    const memberId = userData.customer_member_id && userData.customer_member_id.trim() !== ''
+                      ? userData.customer_member_id.trim()
+                      : (userData.member_id ? userData.member_id.trim() : null);
+
+                    if (!memberId || memberId === 'undefined' || memberId === 'null') {
+                      this.loaderService.emitComplete();
+                      this.alertService.error('Member ID is required', this.options);
+                      this.alertClear();
+                      return;
+                    }
                     this.localService.set('MemberId', memberId);
                     // console.log('Member ID:', this.localService.get('MemberId'));
                     // console.log('Customer member ID:', this.localService.get('MemberId'));
-                    // Newly added for getting member id for customer type
-                    // Old navigation logic (commented out)
-                    // if (userData.status == 'approved') {
-                    //   // Newly commented & added
-                    //   // this.router.navigate(['/dashboard']);
-                    //   this.router.navigate([`/edit-new-hotel/${userData.id}`]);
-                    // }
-                    // else {
-                    //   this.router.navigate([`/edit-new-hotel/${userData.id}`]);
-                    // }
-                    // Navigate based on customer_member_id availability
-                    if (userData.customer_member_id) { // Customer(but not hotel)
-                      // Has customer_member_id → navigate to edit-new-hotel
-                      this.router.navigate([`/edit-new-hotel/${userData.id}`]);
-                    } else {
-                      // No customer_member_id → navigate to profile page
-                      // this.router.navigate([`/add-new-hotel`]);
-                      this.router.navigate(['/profile']);
-                    }
                     // Ended for getting member id for customer type
                     //   this.getServiceById((service_details: boolean) => {
                     //   //console.log('Service details:', service_details);
@@ -691,6 +729,7 @@ export class LoginComponent implements OnInit {
                   // console.log('DB schema:', this.localService.get('db_schema'));
                   this.localService.set('Password', String(this.loginForm.value.password));
                   this.localService.set('Name', userData.first_name);
+                  this.localService.set('Status', userData.status);
                   this.dbSchema = userData.db_schema;
                   this.localService.set('domainName', DOMAIN_NAME);
                   // console.log('Domain name:', this.localService.get('domainName'));
@@ -704,9 +743,18 @@ export class LoginComponent implements OnInit {
                   // console.log('Role name:', this.localService.get('roleName'));
                   // Fetch role modules for permission handling (stored as roleModules)
                   if (role_id) {
-                    this.getRoleById(role_id);
+                    await this.getRoleById(role_id);
                   }
                   // Ended
+                  // Navigate based on customer_member_id availability ONLY after permissions are loaded!
+                  if (userData.customer_member_id) { // Customer(but not hotel)
+                    // Has customer_member_id → navigate to edit-new-hotel
+                    this.router.navigate([`/edit-new-hotel/${userData.id}`]);
+                  } else {
+                    // No customer_member_id → navigate to profile page
+                    // this.router.navigate([`/add-new-hotel`]);
+                    this.router.navigate(['/profile']);
+                  }
                   // Requesting FCM token right after login
                   try {
                     const userId: any = this.localService.get('UserId');
@@ -732,7 +780,9 @@ export class LoginComponent implements OnInit {
                           if (!Array.isArray(customer.fcm_token)) {
                             customer.fcm_token = [];
                           }
-                          customer.fcm_token.push(token);
+                          if (token !== null && token !== undefined && token.trim() !== '') {
+                            customer.fcm_token.push(token);
+                          }
                           // Step 4: Update customer with the new array
                           const updateBody = {
                             domain_name: DOMAIN_NAME,
@@ -793,6 +843,7 @@ export class LoginComponent implements OnInit {
                 this.loaderService.emitComplete();
                 if (err.error.statusCode === 500 || err.error.statusCode === 401) {
                   this.alertService.error('Please enter a valid UserName/Password', this.options);
+                  this.loginErrorMessage = 'Please enter a valid UserName/Password';
                   this.alertClear();
                 } else {
                   this.alertService.error('Something bad happened. Please try again!', this.options);
@@ -802,7 +853,10 @@ export class LoginComponent implements OnInit {
             );
           } else {
             this.loaderService.emitComplete();
-            this.alertService.error('Email not found. Please signup first!', this.options);
+            const errorMessage = isEmailLogin
+              ? 'Email not found. Please signup first!'
+              : 'Employee ID not found.';
+            this.alertService.error(errorMessage, this.options);
             this.alertClear();
           }
         },
@@ -1022,7 +1076,7 @@ export class LoginComponent implements OnInit {
           const profile_image = respData.profile_image;
           const profile_name = respData.first_name + ' ' + respData.last_name;
           // Send data to BehaviorSubject for header
-          this.profileService.updateProfileImage(profile_image || '../../assets/images/guestezee/profile.png');
+          this.profileService.updateProfileImage(profile_image || 'https://images.ecbee.net/GuestEzee/Brand/ChatGPT_Image_Jun_19__2026__01_25_37_PM.webp');
           this.profileService.updateProfileName(profile_name);
           //  if(this.dbSchema==='Aiema'||this.dbSchema==='shubcards' ||this.dbSchema==='Deera' ||this.dbSchema==='BBold'||this.dbSchema==='BombayHardware'||this.dbSchema==='dosapark') {
 
@@ -1072,6 +1126,13 @@ export class LoginComponent implements OnInit {
             has_edit_permission: true,
             has_read_permission: true,
             has_delete_permission: true,
+          }
+
+          this.userAccessService.userAccessList.DUEPAYMENTS = {
+            has_add_permission: false,
+            has_edit_permission: false,
+            has_read_permission: true,
+            has_delete_permission: false,
           }
 
 
@@ -1139,6 +1200,9 @@ export class LoginComponent implements OnInit {
                     //console.log('16');
                     this.userAccessService.userAccessList.USERACCESS = element.permission;
                   }
+                  else if (element.module_name === "DUE PAYMENTS") {
+                    this.userAccessService.userAccessList.DUEPAYMENTS = element.permission;
+                  }
 
                 });
                 this.userAccessService.setUserAccess(this.userAccessService.userAccessList);
@@ -1163,18 +1227,6 @@ export class LoginComponent implements OnInit {
   }
 
   // Newly added 
-  login1() {
-    this.signup = false;
-    this.login = true;
-    this.otp = false;
-  }
-
-  signUp() {
-    this.login = false;
-    this.signup = true;
-    this.otp = false;
-  }
-
   getOtp() {
     if (this.signupForm.valid) {
       const signupFormData = this.signupForm.value;
@@ -1253,7 +1305,7 @@ export class LoginComponent implements OnInit {
     }
     let requestBody: any;
     // Patterns
-    const empIdPattern = /^[A-Z]{4}\d{8}$/; // e.g. INTN00235123
+    const empIdPattern = /^[a-zA-Z]{2}[a-zA-Z0-9]*\d{8}$/; // e.g. INTN00235123
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     // Detect type
     if (enteredValue.includes('@')) {
@@ -1291,7 +1343,6 @@ export class LoginComponent implements OnInit {
             this.customerList = resp.result.data[0];
             //console.log(this.customerList);
             this.forgot_phone_number = resp.result.data[0].phone_number;
-            // this.phoneNumber = resp.result.data[0].phone_number;
             this.mail = resp.result.data[0].email;
             if (this.localService.get('CusromerType') === 'Staff') {
               this.hotelId = resp.result.data[0].staff_id;
@@ -1300,15 +1351,20 @@ export class LoginComponent implements OnInit {
               this.hotelId = resp.result.data[0].id;
             }
             //console.log(this.hotelId);
-            this.hasEmailAndPhone = false // newly added for resend OTP
+            this.hasEmailAndPhone = false;
             this.sendOTP(Number(this.forgot_phone_number));
-            this.alertService.success("OTP has been sent to your mobile number.", this.options);
+            // this.alertService.success("OTP has been sent to your mobile number.", this.options);
             this.forgotPassword = true
             this.login = false;
             this.otp = true;
+            // Newly added for browser back button
+            history.pushState(null, '', location.href); // Push state to handle back button
           }
           else {
-            this.alertService.error("Email / Employee ID not found. Please signup first!", this.options);
+            const errorMessage = enteredValue.includes('@')
+              ? "Email not found. Please signup first!"
+              : "Employee ID not found.";
+            this.alertService.error(errorMessage, this.options);
             // this.otp = true;
             // this.router.navigate([`/login`], { skipLocationChange: false });
           }
@@ -1441,58 +1497,6 @@ export class LoginComponent implements OnInit {
   //   )
   // }
 
-  getAllCustomers() {
-    const email = String(this.signupForm.value.email);
-    const phoneNumber = String(this.signupForm.value.phone_number);
-    console.log(phoneNumber);
-    // First check for email
-    const emailRequestBody = {
-      domain_name: DOMAIN_NAME,
-      user_id: USER_ID,
-      extras: {
-        find: { email: email }
-      }
-    };
-    this.hotellistService.getSignupAllCustomers(emailRequestBody).subscribe(
-      (emailResp: any) => {
-        const emailExists = emailResp.success === 1 && emailResp.status_code === 200 && emailResp.result.data.length > 0;
-        // Now check for phone number
-        const phoneRequestBody = {
-          domain_name: DOMAIN_NAME,
-          user_id: USER_ID,
-          extras: {
-            find: { phone_number: phoneNumber }
-          }
-        }
-        this.hotellistService.getSignupAllCustomers(phoneRequestBody).subscribe(
-          (phoneResp: any) => {
-            this.loaderService.emitComplete();
-            const phoneExists = phoneResp.success === 1 && phoneResp.status_code === 200 && phoneResp.result.data.length > 0;
-            if (emailExists || phoneExists) {
-              this.alertService.error("User with this email or phone number already exists. Please login.", this.options);
-              this.alertClear();
-              this.signup = false;
-              this.login = true;
-            } else {
-              this.signup = false;
-              this.hasEmailAndPhone = true; // newly added for resend OTP
-              this.sendOTP(Number(phoneNumber));
-              this.localStorageService.set('UserEmail', email);
-              this.localStorageService.set('UserPhoneNumber', phoneNumber);
-              this.phoneNumber = phoneNumber;
-              this.email = email;
-              this.alertService.success("OTP has been sent to your mobile number.", this.options);
-              this.alertClear();
-              this.otp = true;
-            }
-          },
-          (err: any) => this.handleSignupError(err)
-        );
-      },
-      (err: any) => this.handleSignupError(err)
-    );
-  }
-
   handleSignupError(err: any) {
     this.loaderService.emitComplete();
     if (err.error.statusCode === 403) {
@@ -1522,11 +1526,11 @@ export class LoginComponent implements OnInit {
         respData => {
           let res: any = respData;
           if (res.success === 1) {
-            this.alertService.success(res.message,this.options);
+            this.alertService.success('OTP sent successfully to your mobile number.', this.options);
             resolve(true);
           }
           else {
-            this.alertService.error(res.message, this.options);
+            this.alertService.error('Failed to send OTP. Please try again!', this.options);
             resolve(false);
           }
         }
@@ -1535,25 +1539,13 @@ export class LoginComponent implements OnInit {
   }
 
   resendOtp() {
-    let targetedPhoneNumber;
     // this.alertService.success("OTP sent successfully to your mobile number.", this.options);
-    if (this.hasEmailAndPhone) {
-      targetedPhoneNumber = this.phoneNumber;
-    }
-    else {
-      targetedPhoneNumber = this.forgot_phone_number;
-    }
-    console.log(targetedPhoneNumber);
+    let targetedPhoneNumber = this.hasEmailAndPhone ? this.phoneNumber : this.forgot_phone_number;
     this.alertClear();
     Object.keys(this.otpForm.controls).forEach(key => {
       this.otpForm.controls[key].setValue('');
     });
-    // this.sendOTP(this.phoneNumber);
-    // const test = this.sendOTP(this.phoneNumber);
-    // console.log(test);
     this.sendOTP(targetedPhoneNumber);
-    // const test1 = this.sendOTP(this.forgot_phone_number);
-    // console.log(test1);
   }
 
   onOtpKeyUp(event: KeyboardEvent, index: number): void {
@@ -1583,6 +1575,21 @@ export class LoginComponent implements OnInit {
     input.value = input.value.replace(/[^0-9]/g, '');
   }
 
+  onPhoneInput(event: any) {
+    let input = event.target;
+    let value = input.value.toString();
+    // Remove any non-numeric characters
+    value = value.replace(/[^0-9]/g, '');
+    // Prevent typing '0' as the very first character
+    if (value === '0') {
+      value = '';
+    }
+    input.value = value;
+    if (this.signupForm && this.signupForm.controls['phone_number']) {
+      this.signupForm.controls['phone_number'].setValue(value);
+    }
+  }
+
   verifyOTP(phoneNumber: number) {
     const otp = this.otpArray.map(i => this.otpForm.get('otp' + i)?.value).join('');
     //console.log('OTP Entered:', otp);
@@ -1605,6 +1612,8 @@ export class LoginComponent implements OnInit {
             this.alertClear();
             this.otp = false;
             this.password = true;
+            // Newly added for browser back button
+            history.pushState(null, '', location.href);
           }
           else {
             resolve({ status: false, msg: res.message });
@@ -1637,10 +1646,12 @@ export class LoginComponent implements OnInit {
             this.alertClear();
             this.otp = false;
             this.password = true;
+            // Newly added for browser back button
+            history.pushState(null, '', location.href);
           }
           else {
             resolve({ status: false, msg: res.message });
-            this.alertService.error('OTP verification failed!', this.options);
+            this.alertService.error(res.message || 'OTP verification failed!', this.options);
           }
         })
     })
@@ -1708,6 +1719,8 @@ export class LoginComponent implements OnInit {
         password_to_customer: String(this.passwordData),
         status: 'pending',
         send_email: true,
+        send_welcome_email: false,
+        send_welcome_sms: false,
         property_details: {
           property_address: {
             property_address: "",
@@ -1751,6 +1764,13 @@ export class LoginComponent implements OnInit {
               this.localService.set('Password', this.passwordForm.value.new_password);
               this.localService.set('CustomerType', 'Customer');
               this.localService.set('domainName', DOMAIN_NAME);
+              //newly added to Clear loggedOut so global guard won't immediately redirect to /login
+              try {
+                this.localStorageService.remove('loggedOut');
+              } catch (e) {
+                try { this.localService.remove('loggedOut'); } catch (err) { /* ignore */ }
+              }
+
               // console.log('Domain name:', DOMAIN_NAME);
               // ---  FCM token logic: push token, then wait for getCustomerById before proceeding ---
               try {
@@ -1760,7 +1780,9 @@ export class LoginComponent implements OnInit {
                 if (!Array.isArray(this.customerdata.fcm_token)) {
                   this.customerdata.fcm_token = [];
                 }
-                this.customerdata.fcm_token.push(token);
+                if (token !== null && token !== undefined && token.trim() !== '') {
+                  this.customerdata.fcm_token.push(token);
+                }
                 // Update customer with FCM token and identifiers
                 const updateBody = {
                   domain_name: DOMAIN_NAME,
@@ -1809,6 +1831,18 @@ export class LoginComponent implements OnInit {
                 if (fcmUpdated) {
                   // 1. Get latest customer details
                   await this.getCustomerById(this.customerdata.id);
+                  // Newly added: Restrict if no member ID
+                  const memberId = this.customerdata.customer_member_id && this.customerdata.customer_member_id.trim() !== ''
+                    ? this.customerdata.customer_member_id.trim()
+                    : (this.customerdata.member_id ? this.customerdata.member_id.trim() : null);
+
+                  if (!memberId || memberId === 'undefined' || memberId === 'null') {
+                    this.isLoggingIn = false;
+                    this.loaderService.emitComplete();
+                    this.alertService.error('Member ID is required', this.options);
+                    this.alertClear();
+                    return;
+                  }
                   // 2. Create Admin role for that customer
                   const createdRole = await this.createAdminRole(this.customerdata);
                   // console.log('Created Role:', createdRole);
@@ -1820,8 +1854,8 @@ export class LoginComponent implements OnInit {
                   const customerRoleId = role_id;
                   this.localService.set('roleId', customerRoleId);
                   this.localService.set('roleName', role_name);
-                  if (customerRoleId !== null || customerRoleId !== undefined || customerRoleId !== '' || customerRoleId !== 'undefined' || customerRoleId !== 'null') {
-                    this.getRoleById(role_id);
+                  if (customerRoleId !== null && customerRoleId !== undefined && customerRoleId !== '' && customerRoleId !== 'undefined' && customerRoleId !== 'null') {
+                    await this.getRoleById(role_id);
                   }
                 }
               } catch (err) {
@@ -1917,7 +1951,7 @@ export class LoginComponent implements OnInit {
   alertClear() {
     setTimeout(() => {
       this.alertService.clear();
-    }, 3000);
+    }, 6000);
   }
 
   // Newly added for processing / delivered
@@ -2037,7 +2071,40 @@ export class LoginComponent implements OnInit {
     };
     this.loginService.sendWelcomeEmail(payload).subscribe({
       next: (res) => {
-        // console.log('Email API response:', res);
+        console.log('Email API response:', res);
+        // Newly added for email updation 
+        if (res && (res.success === 1)) {
+          const updateBody = {
+            domain_name: DOMAIN_NAME,
+            user_id: USER_ID,
+            extras: {
+              find: {
+                id: customerData.id
+              }
+            },
+            payload: {
+              customer_update: {
+                send_welcome_email: true
+              }
+            }
+          };
+          this.hotelenrollmenttabviewService.updateCustomercFcmToken(updateBody).subscribe({
+            next: (updateResp: any) => {
+              if (updateResp.success === 1 && updateResp.status_code === 200) {
+                console.log('Successfully updated send_welcome_email to true');
+              } else {
+                console.error('Failed to update send_welcome_email:', updateResp?.message);
+              }
+            },
+            error: (err: any) => {
+              console.error('Error updating send_welcome_email:', err);
+            }
+          });
+        }
+        else {
+          console.error('Failed to send email:', res?.message);
+        }
+        // End of newly added code for email updation 
       },
       error: (err) => {
         console.error('Email API error:', err);
@@ -2061,7 +2128,40 @@ export class LoginComponent implements OnInit {
     };
     this.loginService.sendSMS(payload).subscribe({
       next: (res) => {
-        // console.log('Email API response:', res);
+        console.log('SMS API response:', res);
+        // Newly added for sms updation 
+        if (res && (res.success === 1)) {
+          const updateBody = {
+            domain_name: DOMAIN_NAME,
+            user_id: USER_ID,
+            extras: {
+              find: {
+                id: customerData.id
+              }
+            },
+            payload: {
+              customer_update: {
+                send_welcome_sms: true
+              }
+            }
+          };
+          this.hotelenrollmenttabviewService.updateCustomercFcmToken(updateBody).subscribe({
+            next: (updateResp: any) => {
+              if (updateResp.success === 1 && updateResp.status_code === 200) {
+                console.log('Successfully updated send_welcome_sms to true');
+              } else {
+                console.error('Failed to update send_welcome_sms:', updateResp?.message);
+              }
+            },
+            error: (err: any) => {
+              console.error('Error updating send_welcome_sms:', err);
+            }
+          });
+        }
+        else {
+          console.error('Failed to send sms:', res?.message);
+        }
+        // End of newly added code for sms updation 
       },
       error: (err) => {
         console.error('Email API error:', err);
@@ -2070,31 +2170,35 @@ export class LoginComponent implements OnInit {
   }
 
   // Newly added for role access
-  getRoleById(id: any) {
-    let requestBody = {
-      "domain_name": DOMAIN_NAME,
-      "user_id": USER_ID,
-      "extras": {
-        "find": {
-          "member_id": this.localStorageService.get('MemberId'),
-          "id": id
+  getRoleById(id: any): Promise<void> {
+    return new Promise((resolve) => {
+      let requestBody = {
+        "domain_name": DOMAIN_NAME,
+        "user_id": USER_ID,
+        "extras": {
+          "find": {
+            "member_id": this.localStorageService.get('MemberId'),
+            "id": id
+          }
         }
       }
-    }
-    this.roleListingService.getAllRoles(requestBody).subscribe({
-      next: (response) => {
-        if (response?.success) {
-          const role = response.result.data[0];
-          // console.log('Role based on id:', role);
-          this.localStorageService.set('roleModules', JSON.stringify(role.modules));
-          // console.log('Role Modules:', this.localStorageService.get('roleModules'));
-        } else {
-          console.error('No roles found:', response?.message);
+      this.roleListingService.getAllRoles(requestBody).subscribe({
+        next: (response) => {
+          if (response?.success && response.success === 1 && response.result.data.length > 0) {
+            const role = response.result.data[0];
+            // console.log('Role based on id:', role);
+            this.localStorageService.set('roleModules', JSON.stringify(role.modules));
+            // console.log('Role Modules:', this.localStorageService.get('roleModules'));
+          } else {
+            console.error('No roles found:', response?.message);
+          }
+          resolve();
+        },
+        error: (err) => {
+          //console.error('API Error:', err);
+          resolve();
         }
-      },
-      error: (err) => {
-        //console.error('API Error:', err);
-      }
+      });
     });
   }
 
@@ -2114,7 +2218,10 @@ export class LoginComponent implements OnInit {
           this.loaderService.emitComplete();
           if (resp) {
             this.customerdata = resp.result.data[0];
-            this.localService.set('MemberId', this.customerdata.customer_member_id);
+            const memberId = this.customerdata.customer_member_id && this.customerdata.customer_member_id.trim() !== ''
+              ? this.customerdata.customer_member_id.trim()
+              : (this.customerdata.member_id ? this.customerdata.member_id.trim() : null);
+            this.localService.set('MemberId', memberId);
             resolve();
           }
         },
@@ -2218,18 +2325,22 @@ export class LoginComponent implements OnInit {
       'TASK MANAGEMENT',
       'BOOKINGS',
       'OUTLETS',
-      'RESTAURANTS',
-      'FEATURES'
+      // 'RESTAURANTS',
+      'FEATURES',
+      'DUE PAYMENTS'
     ];
-    return moduleNames.map(name => ({
-      module_name: name,
-      permission: {
-        has_add_permission: true,
-        has_edit_permission: true,
-        has_read_permission: true,
-        has_delete_permission: true
-      }
-    }));
+    return moduleNames.map(name => {
+      const isDuePayments = name === 'DUE PAYMENTS';
+      return {
+        module_name: name,
+        permission: {
+          has_add_permission: isDuePayments ? false : true,
+          has_edit_permission: isDuePayments ? false : true,
+          has_read_permission: true,
+          has_delete_permission: isDuePayments ? false : true
+        }
+      };
+    });
   }
 
   async updateCustomerRole(customerId: any, roleId: number, roleName: string): Promise<boolean> {
@@ -2313,6 +2424,515 @@ export class LoginComponent implements OnInit {
      });
    } */
 
+  // async resetNewPassword(): Promise<void> {
+  //   this.localService.set('UserId', this.hotelId);
+  //   const resetRequest = {
+  //     domain_name: DOMAIN_NAME,
+  //     user_id: USER_ID,
+  //     extras: {
+  //       find: {
+  //         username: String(this.forgot_phone_number)
+  //       }
+  //     },
+  //     payload: {
+  //       update: {
+  //         password: this.passwordForm.value.new_password,
+  //         password_to_customer: this.passwordForm.value.new_password
+  //       }
+  //     }
+  //   };
+  //   this.loginService.checkoutAPICall(ENDPOINTS.RESET_PASSWORD, resetRequest).then(async resetResp => {
+  //     const resetRes: any = resetResp;
+  //     if (resetRes.success === 1 && resetRes.status_code === 200) {
+  //       this.alertService.success("Password reset successfully!", this.options);
+  //       this.alertClear();
+  //       this.localService.set('Password', this.passwordForm.value.new_password);
+  //       // Determine if staff or customer based on navigatingValue
+  //       const enteredValue = this.navigatingValue || '';
+  //       const isEmailLogin = enteredValue.includes('@');
+  //       const empIdPattern = /^[A-Z]{4}\d{8}$/;
+  //       const isStaff = empIdPattern.test(enteredValue);
+  //       // Re-fetch user data to get fresh details (same as signIn does)
+  //       const fetchBody = {
+  //         domain_name: DOMAIN_NAME,
+  //         user_id: USER_ID,
+  //         extras: {
+  //           find: isEmailLogin
+  //             ? { email: enteredValue }
+  //             : { staff_employee_number: enteredValue }
+  //         }
+  //       };
+  //       this.hotellistService.getSignupAllCustomers(fetchBody).subscribe(
+  //         async (resp: any) => {
+  //           if (resp.success === 1 && resp.status_code === 200 && resp.result.data.length > 0) {
+  //             const userData = resp.result.data[0];
+  //             if (isStaff) {
+  //               // ── Staff post-reset logic ──
+  //               this.notificationService.clearAll();
+  //               this.localService.set('CustomerType', 'Staff');
+  //               this.localService.set('StaffData', JSON.stringify(userData));
+  //               this.localService.set('hierarchy', JSON.stringify(userData.hierarchy));
+  //               this.localService.set('UserId', Number(userData.staff_id));
+  //               this.localService.set('CustomerId', Number(userData.id));
+  //               this.localService.set('MemberId', userData.member_id);
+  //               // Newly commented because no need of fo desk 
+  //               // this.localService.set('frontOfficeDeskStaff', userData.front_office_desk);
+  //               // End of newly commented code
+  //               this.localService.set('domainName', DOMAIN_NAME);
+  //               this.localService.set('Name', userData.first_name);
+  //               // Staff hierarchy-based IDs
+  //               const member = userData.member_id;
+  //               const department = userData?.hierarchy?.map((item: any) => item.department);
+  //               this.getAllStaffIds(userData.staff_id, department, member);
+  //               // Update FCM token for staff
+  //               try {
+  //                 const userId: any = this.localService.get('UserId');
+  //                 const token = await this.pushService.requestPermissionAndGetToken(userId);
+  //                 const staffFetchBody = {
+  //                   domain_name: DOMAIN_NAME,
+  //                   user_id: USER_ID,
+  //                   extras: { find: { id: userData.staff_id } }
+  //                 };
+  //                 this.taskManagementService.getAllStaves(staffFetchBody).subscribe(
+  //                   (staffResp: any) => {
+  //                     if (staffResp.success === 1 && staffResp.status_code === 200 && staffResp.result.data.length > 0) {
+  //                       const staff = staffResp.result.data[0];
+  //                       if (!Array.isArray(staff.fcm_token)) { staff.fcm_token = []; }
+  //                       staff.fcm_token.push(token);
+  //                       const updateBody = {
+  //                         domain_name: DOMAIN_NAME,
+  //                         user_id: USER_ID,
+  //                         payload: { staff_updation: { fcm_token: staff.fcm_token } },
+  //                         extras: { find: { id: userData.staff_id } }
+  //                       };
+  //                       this.staffService.updateStaff(updateBody).subscribe(
+  //                         (updateResp: any) => {
+  //                           if (!(updateResp.success === 1 && updateResp.status_code === 200)) {
+  //                             console.error('Failed to update staff FCM token:', updateResp?.message);
+  //                           }
+  //                         },
+  //                         (err: any) => { console.error('Error updating staff FCM token:', err); }
+  //                       );
+  //                     }
+  //                   },
+  //                   (err: any) => { console.error('Error fetching staff for FCM update:', err); }
+  //                 );
+  //               } catch (err) {
+  //                 console.error('Failed to get FCM token for staff:', err);
+  //               }
+  //               // Navigate staff to task-management
+  //               this.router.navigate(['/task-management'], { skipLocationChange: false });
+  //             }
+  //             else {
+  //               // ── Customer post-reset logic ──
+  //               this.localService.set('CustomerType', 'Customer');
+  //               this.localService.set('UserId', Number(userData.id));
+  //               const memberId = userData.customer_member_id ? userData.customer_member_id : userData.member_id;
+  //               this.localService.set('MemberId', memberId);
+  //               this.localService.set('domainName', DOMAIN_NAME);
+  //               this.localService.set('Name', userData.first_name);
+  //               this.localService.set('UserEmail', userData.email);
+  //               this.localService.set('db_schema', userData.db_schema);
+  //               this.dbSchema = userData.db_schema;
+  //               // Role details
+  //               const role_id = userData.role_id;
+  //               const role_name = userData.role_name;
+  //               this.localService.set('roleId', role_id);
+  //               this.localService.set('roleName', role_name);
+  //               if (role_id) {
+  //                 this.getRoleById(role_id);
+  //               }
+  //               // Update FCM token for customer
+  //               try {
+  //                 const userId: any = this.localService.get('UserId');
+  //                 const token = await this.pushService.requestPermissionAndGetToken(userId);
+  //                 const customerFetchBody = {
+  //                   domain_name: DOMAIN_NAME,
+  //                   user_id: USER_ID,
+  //                   extras: {
+  //                     find: isEmailLogin
+  //                       ? { email: enteredValue }
+  //                       : { staff_employee_number: enteredValue }
+  //                   }
+  //                 };
+  //                 this.hotellistService.getSignupAllCustomers(customerFetchBody).subscribe(
+  //                   (fcmResp: any) => {
+  //                     if (fcmResp.success === 1 && fcmResp.status_code === 200 && fcmResp.result.data.length > 0) {
+  //                       const customer = fcmResp.result.data[0];
+  //                       if (!Array.isArray(customer.fcm_token)) { customer.fcm_token = []; }
+  //                       customer.fcm_token.push(token);
+  //                       const updateBody = {
+  //                         domain_name: DOMAIN_NAME,
+  //                         user_id: USER_ID,
+  //                         payload: { customer_update: { fcm_token: customer.fcm_token } },
+  //                         extras: {
+  //                           find: isEmailLogin
+  //                             ? { email: enteredValue }
+  //                             : { staff_employee_number: enteredValue }
+  //                         }
+  //                       };
+  //                       this.hotelenrollmenttabviewService.updateCustomerFcm(updateBody).subscribe(
+  //                         (updateResp: any) => {
+  //                           if (!(updateResp.success === 1 && updateResp.status_code === 200)) {
+  //                             console.error('Failed to update FCM token:', updateResp?.message);
+  //                           }
+  //                         },
+  //                         (err: any) => { console.error('Error updating customer FCM token:', err); }
+  //                       );
+  //                     }
+  //                   },
+  //                   (err: any) => { console.error('Error fetching customer for FCM update:', err); }
+  //                 );
+  //               } catch (err) {
+  //                 console.error('Failed to get FCM token for customer:', err);
+  //               }
+  //               // Navigate customer based on customer_member_id
+  //               if (userData.customer_member_id) {
+  //                 this.router.navigate([`/edit-new-hotel/${userData.id}`], { skipLocationChange: false });
+  //               } else {
+  //                 this.router.navigate(['/profile'], { skipLocationChange: false });
+  //               }
+  //             }
+  //           }
+  //         },
+  //         (err: any) => {
+  //           console.error('Error re-fetching user after password reset:', err);
+  //         }
+  //       );
+  //     } else {
+  //       this.alertService.error(resetRes.message || "Failed to reset password.");
+  //       this.alertClear();
+  //     }
+  //   }).catch(err => {
+  //     this.alertService.error("Something went wrong during password reset.", this.options);
+  //     this.alertClear();
+  //   });
+  // }
+
+  // Newly commanding & updating for port change
+  /*   getAllCustomers() {
+      const email = String(this.signupForm.value.email);
+      const phoneNumber = String(this.signupForm.value.phone_number);
+      // First check for email
+      const emailRequestBody = {
+        domain_name: DOMAIN_NAME,
+        user_id: USER_ID,
+        extras: {
+          find: { email: email }
+        }
+      };
+      this.hotellistService.getSignupAllCustomers(emailRequestBody).subscribe(
+        (emailResp: any) => {
+          const emailExists = emailResp.success === 1 && emailResp.status_code === 200 && emailResp.result.data.length > 0;
+          // Now check for phone number
+          const phoneRequestBody = {
+            domain_name: DOMAIN_NAME,
+            user_id: USER_ID,
+            extras: {
+              find: { phone_number: phoneNumber }
+            }
+          }
+          this.hotellistService.getSignupAllCustomers(phoneRequestBody).subscribe(
+            (phoneResp: any) => {
+              this.loaderService.emitComplete();
+              const phoneExists = phoneResp.success === 1 && phoneResp.status_code === 200 && phoneResp.result.data.length > 0;
+              if (emailExists || phoneExists) {
+                this.alertService.error("User with this email or phone number already exists. Please login.", this.options);
+                this.alertClear();
+                this.signup = false;
+                this.login = true;
+              } else {
+                this.signup = false;
+                this.hasEmailAndPhone = true;
+                this.sendOTP(Number(phoneNumber));
+                this.localStorageService.set('UserEmail', email);
+                this.localStorageService.set('UserPhoneNumber', phoneNumber);
+                this.phoneNumber = phoneNumber;
+                this.email = email;
+                // this.alertService.success("OTP has been sent to your mobile number.", this.options);
+                this.alertClear();
+                this.otp = true;
+                // Newly added for browser back button
+                history.pushState(null, '', location.href);
+              }
+            },
+            (err: any) => this.handleSignupError(err)
+          );
+        },
+        (err: any) => this.handleSignupError(err)
+      );
+    } */
+
+  getAllCustomers() {
+    const email = String(this.signupForm.value.email);
+    const phoneNumber = String(this.signupForm.value.phone_number);
+    // First check for email
+    const emailRequestBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: {
+        find: { email: email }
+      }
+    };
+    this.hotellistService.getSignupAllCustomers(emailRequestBody).subscribe(
+      (emailResp: any) => {
+        const emailExists = emailResp.success === 1 && emailResp.status_code === 200 && emailResp.result.data.length > 0;
+        if (emailExists) {
+          this.alertService.error("User with this email already exists. Please login.", this.options);
+          this.alertClear();
+          this.signup = false;
+          this.login = true;
+          this.signupForm.reset();
+          this.otpForm.reset();
+        }
+        else {
+          this.signup = false;
+          this.hasEmailAndPhone = true;
+          this.sendOTP(Number(phoneNumber));
+          this.localStorageService.set('UserEmail', email);
+          this.localStorageService.set('UserPhoneNumber', phoneNumber);
+          this.phoneNumber = phoneNumber;
+          this.email = email;
+          // this.alertService.success("OTP has been sent to your mobile number.", this.options);
+          this.alertClear();
+          this.otp = true;
+          // Newly added for browser back button
+          history.pushState(null, '', location.href);
+        }
+      },
+      (err: any) => this.handleSignupError(err)
+    );
+  }
+
+  /*   login1() {
+    this.signup = false;
+    this.login = true;
+    this.otp = false;
+  } */
+
+  login1() {
+    this.signup = false;
+    this.login = true;
+    this.otp = false;
+    this.signupForm.reset();
+    this.otpForm.reset();
+    if (this.passwordForm) {
+      this.passwordForm.reset();
+    }
+    this.alertService.clear();
+  }
+
+  /*  signUp() {
+     this.login = false;
+     this.signup = true;
+     this.otp = false;
+     // Newly added for browser back button
+     history.pushState(null, '', location.href);
+   } */
+
+  signUp() {
+    this.login = false;
+    this.signup = true;
+    this.otp = false;
+    this.loginForm.reset();
+    this.loginErrorMessage = '';
+    this.alertService.clear();
+    // Newly added for browser back button
+    history.pushState(null, '', location.href);
+  }
+
+  //newly added for automatic login after password reset and ensuring tokens are set before calling protected APIs
+  // async resetNewPassword(): Promise<void> {
+  //   this.localService.set('UserId', this.hotelId);
+  //   const resetRequest = {
+  //     domain_name: DOMAIN_NAME,
+  //     user_id: USER_ID,
+  //     extras: {
+  //       find: {
+  //         username: String(this.forgot_phone_number)
+  //       }
+  //     },
+  //     payload: {
+  //       update: {
+  //         password: this.passwordForm.value.new_password,
+  //         password_to_customer: this.passwordForm.value.new_password
+  //       }
+  //     }
+  //   };
+  //   try {
+  //     const resetResp: any = await this.loginService.checkoutAPICall(ENDPOINTS.RESET_PASSWORD, resetRequest);
+  //     if (!(resetResp && resetResp.success === 1 && resetResp.status_code === 200)) {
+  //       this.alertService.error(resetResp?.message || "Failed to reset password.", this.options);
+  //       this.alertClear();
+  //       return;
+  //     }
+  //     this.alertService.success("Password reset successfully!", this.options);
+  //     this.alertClear();
+  //     this.localService.set('Password', this.passwordForm.value.new_password);
+  //     // Identify login type
+  //     const enteredValue = this.navigatingValue || '';
+  //     const isEmailLogin = enteredValue.includes('@');
+  //     const empIdPattern = /^[a-zA-Z]{2}[a-zA-Z0-9]*\d{8}$/;
+  //     const isStaff = empIdPattern.test(enteredValue);
+  //     const password = this.passwordForm.value.new_password;
+  //     // Build username according to login type (do not always append -DOMAIN_NAME for staff)
+  //     const loginUsername = isEmailLogin ? `${enteredValue}-${DOMAIN_NAME}` : enteredValue;
+  //     const loginPayload = {
+  //       domain_name: DOMAIN_NAME,
+  //       username: loginUsername,
+  //       password: password
+  //     };
+  //     const loginObservable = isEmailLogin ? this.appService.login(loginPayload) : this.appService.staffLogin(loginPayload);
+  //     // Attempt automatic login and require tokens before calling protected APIs
+  //     loginObservable.subscribe(
+  //       (loginResp: any) => {
+  //         if (!(loginResp && loginResp.success === 1 && loginResp.access_token)) {
+  //           // Inform user and stop — password changed but automatic login failed
+  //           this.alertService.success("Password reset succeeded. Please sign in with your new password.", this.options);
+  //           this.alertClear();
+  //           return;
+  //         }
+  //         // Set tokens and expiry
+  //         this.authService.setExpiryTime(new Date().getTime() + (loginResp.access_token_expires_in * 1000));
+  //         this.authService.setRTokenExpireTime(new Date().getTime() + (loginResp.refresh_token_expires_in * 1000));
+  //         this.authService.setAccessToken(loginResp.access_token);
+  //         this.authService.setRefreshToken(loginResp.refresh_token);
+  //         // Clear global loggedOut flag so app.component guard won't auto-redirect to /login
+  //         try {
+  //           this.localStorageService.remove('loggedOut');
+  //         } catch (e) {
+  //           // fallback if different service instance used
+  //           try { this.localService.remove('loggedOut'); } catch (err) { /* ignore */ }
+  //         }
+  //         // Now re-fetch user data and continue with existing protected calls
+  //         const fetchBody = {
+  //           domain_name: DOMAIN_NAME,
+  //           user_id: USER_ID,
+  //           extras: {
+  //             find: isEmailLogin ? { email: enteredValue } : { staff_employee_number: enteredValue }
+  //           }
+  //         };
+  //         this.hotellistService.getSignupAllCustomers(fetchBody).subscribe(
+  //           async (resp: any) => {
+  //             if (resp.success === 1 && resp.status_code === 200 && resp.result.data.length > 0) {
+  //               const userData = resp.result.data[0];
+  //               if (isStaff) {
+  //                 // Staff post-reset logic (unchanged)
+  //                 this.notificationService.clearAll();
+  //                 this.localService.set('CustomerType', 'Staff');
+  //                 this.localService.set('StaffData', JSON.stringify(userData));
+  //                 this.localService.set('hierarchy', JSON.stringify(userData.hierarchy));
+  //                 this.localService.set('UserId', Number(userData.staff_id));
+  //                 this.localService.set('CustomerId', Number(userData.id));
+  //                 this.localService.set('MemberId', userData.member_id);
+  //                 this.localService.set('domainName', DOMAIN_NAME);
+  //                 this.localService.set('Name', userData.first_name);
+  //                 const member = userData.member_id;
+  //                 const department = userData?.hierarchy?.map((item: any) => item.department);
+  //                 this.getAllStaffIds(userData.staff_id, department, member);
+  //                 // Update staff FCM token (existing)
+  //                 try {
+  //                   const userId: any = this.localService.get('UserId');
+  //                   const token = await this.pushService.requestPermissionAndGetToken(userId);
+  //                   const staffFetchBody = {
+  //                     domain_name: DOMAIN_NAME,
+  //                     user_id: USER_ID,
+  //                     extras: { find: { id: userData.staff_id } }
+  //                   };
+  //                   this.taskManagementService.getAllStaves(staffFetchBody).subscribe(
+  //                     (staffResp: any) => {
+  //                       if (staffResp.success === 1 && staffResp.status_code === 200 && staffResp.result.data.length > 0) {
+  //                         const staff = staffResp.result.data[0];
+  //                         if (!Array.isArray(staff.fcm_token)) { staff.fcm_token = []; }
+  //                         staff.fcm_token.push(token);
+  //                         const updateBody = {
+  //                           domain_name: DOMAIN_NAME,
+  //                           user_id: USER_ID,
+  //                           payload: { staff_updation: { fcm_token: staff.fcm_token } },
+  //                           extras: { find: { id: userData.staff_id } }
+  //                         };
+  //                         this.staffService.updateStaff(updateBody).subscribe(() => { }, (err: any) => { console.error('Error updating staff FCM token:', err); });
+  //                       }
+  //                     },
+  //                     (err: any) => { console.error('Error fetching staff for FCM update:', err); }
+  //                   );
+  //                 } catch (err) {
+  //                   console.error('Failed to get FCM token for staff:', err);
+  //                 }
+  //                 this.router.navigate(['/task-management'], { skipLocationChange: false });
+  //               } else {
+  //                 // Customer post-reset logic (unchanged)
+  //                 this.localService.set('CustomerType', 'Customer');
+  //                 this.localService.set('UserId', Number(userData.id));
+  //                 const memberId = userData.customer_member_id ? userData.customer_member_id : userData.member_id;
+  //                 this.localService.set('MemberId', memberId);
+  //                 this.localService.set('domainName', DOMAIN_NAME);
+  //                 this.localService.set('Name', userData.first_name);
+  //                 this.localService.set('UserEmail', userData.email);
+  //                 this.localService.set('db_schema', userData.db_schema);
+  //                 this.dbSchema = userData.db_schema;
+  //                 const role_id = userData.role_id;
+  //                 const role_name = userData.role_name;
+  //                 this.localService.set('roleId', role_id);
+  //                 this.localService.set('roleName', role_name);
+  //                 if (role_id) { await this.getRoleById(role_id); }
+  //                 // Update customer FCM (existing)
+  //                 try {
+  //                   const userId: any = this.localService.get('UserId');
+  //                   const token = await this.pushService.requestPermissionAndGetToken(userId);
+  //                   const customerFetchBody = {
+  //                     domain_name: DOMAIN_NAME,
+  //                     user_id: USER_ID,
+  //                     extras: { find: isEmailLogin ? { email: enteredValue } : { staff_employee_number: enteredValue } }
+  //                   };
+  //                   this.hotellistService.getSignupAllCustomers(customerFetchBody).subscribe(
+  //                     (fcmResp: any) => {
+  //                       if (fcmResp.success === 1 && fcmResp.status_code === 200 && fcmResp.result.data.length > 0) {
+  //                         const customer = fcmResp.result.data[0];
+  //                         if (!Array.isArray(customer.fcm_token)) { customer.fcm_token = []; }
+  //                         customer.fcm_token.push(token);
+  //                         const updateBody = {
+  //                           domain_name: DOMAIN_NAME,
+  //                           user_id: USER_ID,
+  //                           payload: { customer_update: { fcm_token: customer.fcm_token } },
+  //                           extras: { find: isEmailLogin ? { email: enteredValue } : { staff_employee_number: enteredValue } }
+  //                         };
+  //                         this.hotelenrollmenttabviewService.updateCustomerFcm(updateBody).subscribe(() => { }, (err: any) => { console.error('Error updating customer FCM token:', err); });
+  //                       }
+  //                     },
+  //                     (err: any) => { console.error('Error fetching customer for FCM update:', err); }
+  //                   );
+  //                 } catch (err) {
+  //                   console.error('Failed to get FCM token for customer:', err);
+  //                 }
+
+  //                 // Navigate based on member id
+  //                 if (userData.customer_member_id) {
+  //                   this.router.navigate([`/edit-new-hotel/${userData.id}`], { skipLocationChange: false });
+  //                 } else {
+  //                   this.router.navigate(['/profile'], { skipLocationChange: false });
+  //                 }
+  //               }
+  //             } else {
+  //               console.error('User not found after reset when re-fetching:', resp);
+  //             }
+  //           },
+  //           (err: any) => {
+  //             console.error('Error re-fetching user after password reset:', err);
+  //           }
+  //         );
+  //       },
+  //       (err: any) => {
+  //         this.alertService.error('Automatic login failed after password reset. Please login manually.', this.options);
+  //         this.alertClear();
+  //       }
+  //     );
+  //   } catch (err) {
+  //     this.alertService.error("Something went wrong during password reset.", this.options);
+  //     this.alertClear();
+  //   }
+  // }
+
   async resetNewPassword(): Promise<void> {
     this.localService.set('UserId', this.hotelId);
     const resetRequest = {
@@ -2320,7 +2940,7 @@ export class LoginComponent implements OnInit {
       user_id: USER_ID,
       extras: {
         find: {
-          username: String(this.forgot_phone_number)
+          username: String(this.mail)
         }
       },
       payload: {
@@ -2330,172 +2950,178 @@ export class LoginComponent implements OnInit {
         }
       }
     };
-    this.loginService.checkoutAPICall(ENDPOINTS.RESET_PASSWORD, resetRequest).then(async resetResp => {
-      const resetRes: any = resetResp;
-      if (resetRes.success === 1 && resetRes.status_code === 200) {
-        this.alertService.success("Password reset successfully!", this.options);
+    try {
+      const resetResp: any = await this.loginService.checkoutAPICall(ENDPOINTS.RESET_PASSWORD, resetRequest);
+      if (!(resetResp && resetResp.success === 1 && resetResp.status_code === 200)) {
+        this.alertService.error(resetResp?.message || "Failed to reset password.", this.options);
         this.alertClear();
-        this.localService.set('Password', this.passwordForm.value.new_password);
-        // Determine if staff or customer based on navigatingValue
-        const enteredValue = this.navigatingValue || '';
-        const isEmailLogin = enteredValue.includes('@');
-        const empIdPattern = /^[A-Z]{4}\d{8}$/;
-        const isStaff = empIdPattern.test(enteredValue);
-        // Re-fetch user data to get fresh details (same as signIn does)
-        const fetchBody = {
-          domain_name: DOMAIN_NAME,
-          user_id: USER_ID,
-          extras: {
-            find: isEmailLogin
-              ? { email: enteredValue }
-              : { staff_employee_number: enteredValue }
-          }
-        };
-        this.hotellistService.getSignupAllCustomers(fetchBody).subscribe(
-          async (resp: any) => {
-            if (resp.success === 1 && resp.status_code === 200 && resp.result.data.length > 0) {
-              const userData = resp.result.data[0];
-              if (isStaff) {
-                // ── Staff post-reset logic ──
-                this.notificationService.clearAll();
-                this.localService.set('CustomerType', 'Staff');
-                this.localService.set('StaffData', JSON.stringify(userData));
-                this.localService.set('hierarchy', JSON.stringify(userData.hierarchy));
-                this.localService.set('UserId', Number(userData.staff_id));
-                this.localService.set('CustomerId', Number(userData.id));
-                this.localService.set('MemberId', userData.member_id);
-                // Newly commented because no need of fo desk 
-                // this.localService.set('frontOfficeDeskStaff', userData.front_office_desk);
-                // End of newly commented code
-                this.localService.set('domainName', DOMAIN_NAME);
-                this.localService.set('Name', userData.first_name);
-                // Staff hierarchy-based IDs
-                const member = userData.member_id;
-                const department = userData?.hierarchy?.map((item: any) => item.department);
-                this.getAllStaffIds(userData.staff_id, department, member);
-                // Update FCM token for staff
-                try {
-                  const userId: any = this.localService.get('UserId');
-                  const token = await this.pushService.requestPermissionAndGetToken(userId);
-                  const staffFetchBody = {
-                    domain_name: DOMAIN_NAME,
-                    user_id: USER_ID,
-                    extras: { find: { id: userData.staff_id } }
-                  };
-                  this.taskManagementService.getAllStaves(staffFetchBody).subscribe(
-                    (staffResp: any) => {
-                      if (staffResp.success === 1 && staffResp.status_code === 200 && staffResp.result.data.length > 0) {
-                        const staff = staffResp.result.data[0];
-                        if (!Array.isArray(staff.fcm_token)) { staff.fcm_token = []; }
-                        staff.fcm_token.push(token);
-                        const updateBody = {
-                          domain_name: DOMAIN_NAME,
-                          user_id: USER_ID,
-                          payload: { staff_updation: { fcm_token: staff.fcm_token } },
-                          extras: { find: { id: userData.staff_id } }
-                        };
-                        this.staffService.updateStaff(updateBody).subscribe(
-                          (updateResp: any) => {
-                            if (!(updateResp.success === 1 && updateResp.status_code === 200)) {
-                              console.error('Failed to update staff FCM token:', updateResp?.message);
-                            }
-                          },
-                          (err: any) => { console.error('Error updating staff FCM token:', err); }
-                        );
-                      }
-                    },
-                    (err: any) => { console.error('Error fetching staff for FCM update:', err); }
-                  );
-                } catch (err) {
-                  console.error('Failed to get FCM token for staff:', err);
-                }
-                // Navigate staff to task-management
-                this.router.navigate(['/task-management'], { skipLocationChange: false });
-              }
-              else {
-                // ── Customer post-reset logic ──
-                this.localService.set('CustomerType', 'Customer');
-                this.localService.set('UserId', Number(userData.id));
-                const memberId = userData.customer_member_id ? userData.customer_member_id : userData.member_id;
-                this.localService.set('MemberId', memberId);
-                this.localService.set('domainName', DOMAIN_NAME);
-                this.localService.set('Name', userData.first_name);
-                this.localService.set('UserEmail', userData.email);
-                this.localService.set('db_schema', userData.db_schema);
-                this.dbSchema = userData.db_schema;
-                // Role details
-                const role_id = userData.role_id;
-                const role_name = userData.role_name;
-                this.localService.set('roleId', role_id);
-                this.localService.set('roleName', role_name);
-                if (role_id) {
-                  this.getRoleById(role_id);
-                }
-                // Update FCM token for customer
-                try {
-                  const userId: any = this.localService.get('UserId');
-                  const token = await this.pushService.requestPermissionAndGetToken(userId);
-                  const customerFetchBody = {
-                    domain_name: DOMAIN_NAME,
-                    user_id: USER_ID,
-                    extras: {
-                      find: isEmailLogin
-                        ? { email: enteredValue }
-                        : { staff_employee_number: enteredValue }
-                    }
-                  };
-                  this.hotellistService.getSignupAllCustomers(customerFetchBody).subscribe(
-                    (fcmResp: any) => {
-                      if (fcmResp.success === 1 && fcmResp.status_code === 200 && fcmResp.result.data.length > 0) {
-                        const customer = fcmResp.result.data[0];
-                        if (!Array.isArray(customer.fcm_token)) { customer.fcm_token = []; }
-                        customer.fcm_token.push(token);
-                        const updateBody = {
-                          domain_name: DOMAIN_NAME,
-                          user_id: USER_ID,
-                          payload: { customer_update: { fcm_token: customer.fcm_token } },
-                          extras: {
-                            find: isEmailLogin
-                              ? { email: enteredValue }
-                              : { staff_employee_number: enteredValue }
-                          }
-                        };
-                        this.hotelenrollmenttabviewService.updateCustomerFcm(updateBody).subscribe(
-                          (updateResp: any) => {
-                            if (!(updateResp.success === 1 && updateResp.status_code === 200)) {
-                              console.error('Failed to update FCM token:', updateResp?.message);
-                            }
-                          },
-                          (err: any) => { console.error('Error updating customer FCM token:', err); }
-                        );
-                      }
-                    },
-                    (err: any) => { console.error('Error fetching customer for FCM update:', err); }
-                  );
-                } catch (err) {
-                  console.error('Failed to get FCM token for customer:', err);
-                }
-                // Navigate customer based on customer_member_id
-                if (userData.customer_member_id) {
-                  this.router.navigate([`/edit-new-hotel/${userData.id}`], { skipLocationChange: false });
-                } else {
-                  this.router.navigate(['/profile'], { skipLocationChange: false });
-                }
-              }
-            }
-          },
-          (err: any) => {
-            console.error('Error re-fetching user after password reset:', err);
-          }
-        );
-      } else {
-        this.alertService.error(resetRes.message || "Failed to reset password.");
-        this.alertClear();
+        return;
       }
-    }).catch(err => {
+      this.alertService.success("Password reset successfully!", this.options);
+      this.alertClear();
+      this.localService.set('Password', this.passwordForm.value.new_password);
+      // Identify login type
+      const enteredValue = this.navigatingValue || '';
+      const isEmailLogin = enteredValue.includes('@');
+      const empIdPattern = /^[a-zA-Z]{2}[a-zA-Z0-9]*\d{8}$/;
+      const isStaff = empIdPattern.test(enteredValue);
+      const password = this.passwordForm.value.new_password;
+      // Build username according to login type (do not always append -DOMAIN_NAME for staff)
+      const loginUsername = isEmailLogin ? `${enteredValue}-${DOMAIN_NAME}` : enteredValue;
+      const loginPayload = {
+        domain_name: DOMAIN_NAME,
+        username: loginUsername,
+        password: password
+      };
+      const loginObservable = isEmailLogin ? this.appService.login(loginPayload) : this.appService.staffLogin(loginPayload);
+      // Attempt automatic login and require tokens before calling protected APIs
+      loginObservable.subscribe(
+        (loginResp: any) => {
+          if (!(loginResp && loginResp.success === 1 && loginResp.access_token)) {
+            // Inform user and stop — password changed but automatic login failed
+            this.alertService.success("Password reset succeeded. Please sign in with your new password.", this.options);
+            this.alertClear();
+            return;
+          }
+          // Set tokens and expiry
+          this.authService.setExpiryTime(new Date().getTime() + (loginResp.access_token_expires_in * 1000));
+          this.authService.setRTokenExpireTime(new Date().getTime() + (loginResp.refresh_token_expires_in * 1000));
+          this.authService.setAccessToken(loginResp.access_token);
+          this.authService.setRefreshToken(loginResp.refresh_token);
+          // Clear global loggedOut flag so app.component guard won't auto-redirect to /login
+          try {
+            this.localStorageService.remove('loggedOut');
+          } catch (e) {
+            // fallback if different service instance used
+            try { this.localService.remove('loggedOut'); } catch (err) { /* ignore */ }
+          }
+          // Now re-fetch user data and continue with existing protected calls
+          const fetchBody = {
+            domain_name: DOMAIN_NAME,
+            user_id: USER_ID,
+            extras: {
+              find: isEmailLogin ? { email: enteredValue } : { staff_employee_number: enteredValue }
+            }
+          };
+          this.hotellistService.getSignupAllCustomers(fetchBody).subscribe(
+            async (resp: any) => {
+              if (resp.success === 1 && resp.status_code === 200 && resp.result.data.length > 0) {
+                const userData = resp.result.data[0];
+                if (isStaff) {
+                  // Staff post-reset logic (unchanged)
+                  this.notificationService.clearAll();
+                  this.localService.set('CustomerType', 'Staff');
+                  this.localService.set('StaffData', JSON.stringify(userData));
+                  this.localService.set('hierarchy', JSON.stringify(userData.hierarchy));
+                  this.localService.set('UserId', Number(userData.staff_id));
+                  this.localService.set('CustomerId', Number(userData.id));
+                  this.localService.set('MemberId', userData.member_id);
+                  this.localService.set('domainName', DOMAIN_NAME);
+                  this.localService.set('Name', userData.first_name);
+                  const member = userData.member_id;
+                  const department = userData?.hierarchy?.map((item: any) => item.department);
+                  this.getAllStaffIds(userData.staff_id, department, member);
+                  // Update staff FCM token (existing)
+                  try {
+                    const userId: any = this.localService.get('UserId');
+                    const token = await this.pushService.requestPermissionAndGetToken(userId);
+                    const staffFetchBody = {
+                      domain_name: DOMAIN_NAME,
+                      user_id: USER_ID,
+                      extras: { find: { id: userData.staff_id } }
+                    };
+                    this.taskManagementService.getAllStaves(staffFetchBody).subscribe(
+                      (staffResp: any) => {
+                        if (staffResp.success === 1 && staffResp.status_code === 200 && staffResp.result.data.length > 0) {
+                          const staff = staffResp.result.data[0];
+                          if (!Array.isArray(staff.fcm_token)) { staff.fcm_token = []; }
+                          staff.fcm_token.push(token);
+                          const updateBody = {
+                            domain_name: DOMAIN_NAME,
+                            user_id: USER_ID,
+                            payload: { staff_updation: { fcm_token: staff.fcm_token } },
+                            extras: { find: { id: userData.staff_id } }
+                          };
+                          this.staffService.updateStaff(updateBody).subscribe(() => { }, (err: any) => { console.error('Error updating staff FCM token:', err); });
+                        }
+                      },
+                      (err: any) => { console.error('Error fetching staff for FCM update:', err); }
+                    );
+                  } catch (err) {
+                    console.error('Failed to get FCM token for staff:', err);
+                  }
+                  this.router.navigate(['/task-management'], { skipLocationChange: false });
+                } else {
+                  // Customer post-reset logic (unchanged)
+                  this.localService.set('CustomerType', 'Customer');
+                  this.localService.set('UserId', Number(userData.id));
+                  const memberId = userData.customer_member_id ? userData.customer_member_id : userData.member_id;
+                  this.localService.set('MemberId', memberId);
+                  this.localService.set('domainName', DOMAIN_NAME);
+                  this.localService.set('Name', userData.first_name);
+                  this.localService.set('UserEmail', userData.email);
+                  this.localService.set('db_schema', userData.db_schema);
+                  this.dbSchema = userData.db_schema;
+                  const role_id = userData.role_id;
+                  const role_name = userData.role_name;
+                  this.localService.set('roleId', role_id);
+                  this.localService.set('roleName', role_name);
+                  if (role_id) { await this.getRoleById(role_id); }
+                  // Update customer FCM (existing)
+                  try {
+                    const userId: any = this.localService.get('UserId');
+                    const token = await this.pushService.requestPermissionAndGetToken(userId);
+                    const customerFetchBody = {
+                      domain_name: DOMAIN_NAME,
+                      user_id: USER_ID,
+                      extras: { find: isEmailLogin ? { email: enteredValue } : { staff_employee_number: enteredValue } }
+                    };
+                    this.hotellistService.getSignupAllCustomers(customerFetchBody).subscribe(
+                      (fcmResp: any) => {
+                        if (fcmResp.success === 1 && fcmResp.status_code === 200 && fcmResp.result.data.length > 0) {
+                          const customer = fcmResp.result.data[0];
+                          if (!Array.isArray(customer.fcm_token)) { customer.fcm_token = []; }
+                          customer.fcm_token.push(token);
+                          const updateBody = {
+                            domain_name: DOMAIN_NAME,
+                            user_id: USER_ID,
+                            payload: { customer_update: { fcm_token: customer.fcm_token } },
+                            extras: { find: isEmailLogin ? { email: enteredValue } : { staff_employee_number: enteredValue } }
+                          };
+                          this.hotelenrollmenttabviewService.updateCustomerFcm(updateBody).subscribe(() => { }, (err: any) => { console.error('Error updating customer FCM token:', err); });
+                        }
+                      },
+                      (err: any) => { console.error('Error fetching customer for FCM update:', err); }
+                    );
+                  } catch (err) {
+                    console.error('Failed to get FCM token for customer:', err);
+                  }
+
+                  // Navigate based on member id
+                  if (userData.customer_member_id) {
+                    this.router.navigate([`/edit-new-hotel/${userData.id}`], { skipLocationChange: false });
+                  } else {
+                    this.router.navigate(['/profile'], { skipLocationChange: false });
+                  }
+                }
+              } else {
+                console.error('User not found after reset when re-fetching:', resp);
+              }
+            },
+            (err: any) => {
+              console.error('Error re-fetching user after password reset:', err);
+            }
+          );
+        },
+        (err: any) => {
+          this.alertService.error('Automatic login failed after password reset. Please login manually.', this.options);
+          this.alertClear();
+        }
+      );
+    } catch (err) {
       this.alertService.error("Something went wrong during password reset.", this.options);
       this.alertClear();
-    });
+    }
   }
 
 }

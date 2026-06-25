@@ -51,7 +51,10 @@ export class TaskManagementComponent implements OnInit {
   @ViewChild('cancelled') cancelledComponent: any;
 
   // Tab contents
-  tabs = ['ASAP', 'Priority', 'Schedule', 'Processing', 'My Escalation', 'Staff Escalation', 'Staff Delivered', 'Delivered', 'Cancelled'];
+  // Newly added for task allocation purpose
+  // tabs = ['ASAP', 'Priority', 'Schedule', 'Processing', 'My Escalation', 'Staff Escalation', 'Staff Delivered', 'Delivered', 'Cancelled'];
+  tabs = ['ASAP', 'Priority', 'Processing', 'My Escalation', 'Staff Escalation', 'Staff Delivered', 'Delivered', 'Cancelled'];
+  // Ended for task allocation purpose
   selectedTab = this.tabs[0]; // Default tab
   // For all task
   tasks: any = [];
@@ -191,6 +194,8 @@ export class TaskManagementComponent implements OnInit {
   // Newly added for room filter
   roomSearchTerm: string = '';
   userDepartment: string[] = [];
+  // Newly added for task allocation purpose
+  selfStaffId: any;
 
   constructor(
     private alertService: AlertsService,
@@ -235,6 +240,8 @@ export class TaskManagementComponent implements OnInit {
     //console.log('customerType of staff:', customerType);
     // To initially load all task data's
     this.member_id = this.localService.get('MemberId');
+    // Newly added for task allocation purpose
+    this.selfStaffId = Number(this.localService.get('UserId'));
     this.getCustomerData(this.member_id);
     // Assume you already have roomRange from API or constant
     // this.getAllEscalatedTask();
@@ -544,6 +551,8 @@ export class TaskManagementComponent implements OnInit {
       "higher_level_officer.id": Number(this.localService.get('UserId')),
       "member_id": this.member_id,
       // "room_no": this.labelRoomArray
+      // Newly added for task allocation purpose
+      "task_allocation_purpose": true,
     };
     // Newly added & commented - started
     // if (this.userDepartment === 'Select') {
@@ -576,9 +585,9 @@ export class TaskManagementComponent implements OnInit {
           // Filter by higherLevel + room_no.label
           this.staves = allStaves.filter((staff: any) => {
             // exclude if already a higher_level_officer
-            if (higherLevelIds.includes(staff.id)) {
+            /* if (higherLevelIds.includes(staff.id)) {
               return false;
-            }
+            } */
             // if no room_no array, skip
             if (!staff.room_no || staff.room_no.length === 0) {
               return false;
@@ -608,6 +617,7 @@ export class TaskManagementComponent implements OnInit {
       }
     );
   }
+
   assignDuty() {
     // check if task already has an assignee
     let requestBody = {
@@ -621,7 +631,7 @@ export class TaskManagementComponent implements OnInit {
       }
     };
     this.taskManagementService.getAllTask(requestBody).subscribe({
-      next: (response) => {
+      next: async (response) => {
         if (response?.success && response.result.data?.length) {
           // update with fresh task details
           this.assigningTask = response.result.data[0];
@@ -647,7 +657,7 @@ export class TaskManagementComponent implements OnInit {
           }
           // assign if staff selected - if not assigned
           if (this.isStaffSelected) {
-            this.updateStaffDetailsInTask(this.assigningTask);
+            await this.updateStaffDetailsInTask(this.assigningTask);
           }
           this.closeModal();
           this.selectedStaff = {}; // reset
@@ -674,7 +684,13 @@ export class TaskManagementComponent implements OnInit {
     if ((task.status == "ASAP" && task.service.belongs_to == "Menu Ordering") && (!task.time_line?.some((t: any) => t.status === "Assigned"))) {
       // console.log('task.status == "ASAP" && task.service.belongs_to == "Menu Ordering"');
       // this.pushKot =true;
-      this.callPosApi(task.pms_order_summary);
+      try {
+        await this.callPosApi(task.pms_order_summary);
+      } catch (error: any) {
+        const errorMsg = error?.message ? `${error.message} Staff assignment failed.` : 'Due to an issue pushing the order, staff cannot be assigned.';
+        this.alertService.error(errorMsg, this.options);
+        return;
+      }
     }
     else {
       //  this.pushKot =false;
@@ -694,9 +710,14 @@ export class TaskManagementComponent implements OnInit {
       user_id: USER_ID,
       payload: {
         update_task: {
+          ...task,
           "guest_id": task.guest_id,
           "staff_desk_id": deskStaffId,
-          "status": "Assigned",
+          // Newly added for tasl allocation purpose
+          // "status": "Assigned",
+          "status": this.selectedStaff.id == this.selfStaffId ? "Processing" : "Assigned",
+          "is_self_assigned": this.selectedStaff.id == this.selfStaffId,
+          // End of newly added for task allocation purpose
           "assigned_staff_id": this.selectedStaff.id,
           "assigned_staff_name": this.selectedStaff.full_name,
           "assigned_staff_employee_number": this.selectedStaff.staff_employee_number,
@@ -748,20 +769,42 @@ export class TaskManagementComponent implements OnInit {
   }
 
 
-  callPosApi(orderPayload: any) {
-    // console.log('Sending Payload:', orderPayload);
-    this.taskManagementService.pushOrder(orderPayload).subscribe({
-      next: (response) => {
-        if (response?.success == 1) {
-          // console.log('Order pushed successfully:', response);
+  // callPosApi(orderPayload: any) {
+  //   // console.log('Sending Payload:', orderPayload);
+  //   this.taskManagementService.pushOrder(orderPayload).subscribe({
+  //     next: (response) => {
+  //       if (response?.success == 1) {
+  //         // console.log('Order pushed successfully:', response);
+  //       }
+  //       else {
+  //         console.error('Error pushing order:', response);
+  //       }
+  //     },
+  //     error: (error) => {
+  //       console.error('Error pushing order:', error);
+  //     }
+  //   });
+  // }
+
+  callPosApi(orderPayload: any): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      // console.log('Sending Payload:', orderPayload);
+      this.taskManagementService.pushOrder(orderPayload).subscribe({
+        next: (response: any) => {
+          if (response?.success == 1 || response?.response?.success == 1) {
+            // console.log('Order pushed successfully:', response);
+            resolve(true);
+          }
+          else {
+            console.error('Error pushing order:', response);
+            reject(new Error(response?.response?.message || response?.message || 'Failed to push order.'));
+          }
+        },
+        error: (error: any) => {
+          console.error('Error pushing order:', error);
+          reject(new Error(error?.error?.message || 'Error pushing order.'));
         }
-        else {
-          console.error('Error pushing order:', response);
-        }
-      },
-      error: (error) => {
-        console.error('Error pushing order:', error);
-      }
+      });
     });
   }
 
