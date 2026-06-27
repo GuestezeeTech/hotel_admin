@@ -615,7 +615,12 @@ export const ENDPOINTS = {
 
   //Newly added for username & password
   // GENERRATE_NAME_PASSWORD: API_URL + ':5622/sms/SendUserDataSms',
-  GENERRATE_NAME_PASSWORD: API_URL + ':8009/sms/send-customer-credentials'
+  GENERRATE_NAME_PASSWORD: API_URL + ':8009/sms/send-customer-credentials',
 
+  // Newly added for tech info check
+  CHECK_IS_TECHNICAL_INFO_EXIST: API_URL + ':3354/integrations/create',
+
+  // Newly added for welcome email
+  SEND_WELCOME_EMAIL: API_URL + ':8008/email/send'
 }
 

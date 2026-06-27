@@ -221,6 +221,7 @@ export class FeaturesListComponent implements OnInit {
 
   getCustomerById(): Promise<void> {
     return new Promise((resolve, reject) => {
+      this.loaderService.emitLoading();
       let requestBody = {
         domain_name: DOMAIN_NAME,
         user_id: USER_ID,
@@ -268,14 +269,17 @@ export class FeaturesListComponent implements OnInit {
         }
       }
     };
+    this.loaderService.emitLoading();
     this.upsellService.getAllUpsells(payload).subscribe(
       resp => {
+        this.loaderService.emitComplete();
         if (resp && resp.success === 1 && resp.result?.data?.length > 0) {
           // Merge fetched category data (including image/icon) into upsell object
           this.upsell = { ...this.upsell, ...resp.result.data[0] };
         }
       },
       err => {
+        this.loaderService.emitComplete();
         console.error('Error fetching upsell details:', err);
       }
     );
@@ -397,8 +401,10 @@ export class FeaturesListComponent implements OnInit {
         sorting: false
       }
     };
+    this.loaderService.emitLoading();
     this.taskManagementService.getAllOutlets(requestBody).subscribe(
       (resp: any) => {
+        this.loaderService.emitComplete();
         if (resp?.success === 1 && resp.status_code === 200) {
           // this.menuOutlets = resp.result?.data || [];
           // this.menuOutlets = (resp.result?.data || []).map((outlet: any) => ({
@@ -450,6 +456,7 @@ export class FeaturesListComponent implements OnInit {
         }
       },
       () => {
+        this.loaderService.emitComplete();
         this.menuOutlets = [];
         this.selectedOutlet = null;
         this.offers = [];
@@ -498,8 +505,10 @@ export class FeaturesListComponent implements OnInit {
         }
       }
     };
+    this.loaderService.emitLoading();
     this.featuresListService.postApiCall(requestBody, ENDPOINTS.GET_OFFERS_BY_OUTLET).subscribe(
       (resp: any) => {
+        this.loaderService.emitComplete();
         if (resp?.success === 1 && resp.status_code === 200) {
           this.offers = resp.result.data;
           // console.log('Offers:', this.offers);
@@ -515,6 +524,7 @@ export class FeaturesListComponent implements OnInit {
         }
       },
       (err: any) => {
+        this.loaderService.emitComplete();
         console.error('Error fetching offer details:', err);
         this.offers = [];
         this.paginatedOffers = [];
@@ -685,8 +695,10 @@ export class FeaturesListComponent implements OnInit {
       formData.append('upload', file);
       const headers = { source: 'Brand', domain_name: DOMAIN_NAME };
       // Call your API to upload the image
+      this.loaderService.emitLoading();
       this.profileService.sendImage(formData, headers).subscribe(
         (resp: any) => {
+          this.loaderService.emitComplete();
           if (resp && resp.success === 1 && resp.status_code === 200) {
             const uploadedImage = resp.result.data[0];
             this.offerForm.imageUrl = uploadedImage.location;
@@ -697,6 +709,7 @@ export class FeaturesListComponent implements OnInit {
           }
         },
         (err: any) => {
+          this.loaderService.emitComplete();
           this.offerErrors.image = 'Image upload failed. Try again.';
           this.alertService.error(this.offerErrors.image, this.options);
         }
@@ -887,10 +900,12 @@ export class FeaturesListComponent implements OnInit {
       }
     };
     // console.log('Payload of create offer:', payload);
+    this.loaderService.emitLoading();
     this.featuresListService
       .postApiCall(payload, ENDPOINTS.CREATE_OFFER)
       .subscribe({
         next: (resp: any) => {
+          this.loaderService.emitComplete();
           if (resp?.success === 1 && resp.status_code === 200) {
             this.alertService.success('Offer created successfully', this.options);
             this.closeOfferModal();
@@ -900,6 +915,7 @@ export class FeaturesListComponent implements OnInit {
           }
         },
         error: (err: any) => {
+          this.loaderService.emitComplete();
           this.alertService.error(err?.error?.message || 'Something went wrong', this.options);
         }
       });
@@ -919,10 +935,12 @@ export class FeaturesListComponent implements OnInit {
       }
     };
     // console.log('Payload of update offer:', payload);
+    this.loaderService.emitLoading();
     this.featuresListService
       .postApiCall(payload, ENDPOINTS.UPDATE_OFFER)
       .subscribe({
         next: (resp: any) => {
+          this.loaderService.emitComplete();
           if (resp?.success === 1 && resp.status_code === 200) {
             this.alertService.success('Offer updated successfully', this.options);
             this.closeOfferModal();
@@ -932,6 +950,7 @@ export class FeaturesListComponent implements OnInit {
           }
         },
         error: (err: any) => {
+          this.loaderService.emitComplete();
           this.alertService.error(err?.error?.message || 'Something went wrong', this.options);
         }
       });
@@ -986,9 +1005,11 @@ export class FeaturesListComponent implements OnInit {
       }
     };
     // console.log('Payload of delete offer:', payload);
+    this.loaderService.emitLoading();
     this.featuresListService
       .postApiCall(payload, ENDPOINTS.DELETE_OFFER)
       .subscribe((resp: any) => {
+        this.loaderService.emitComplete();
         if (resp && resp.success === 1 && resp.status_code === 200) {
           this.alertService.success('Offer deleted successfully', this.options);
           this.isDeleteOfferModalOpen = false;
@@ -1061,8 +1082,10 @@ export class FeaturesListComponent implements OnInit {
         sorting: false
       }
     };
+    this.loaderService.emitLoading();
     this.featuresListService.postApiCall(requestBody, ENDPOINTS.GET_ALL_RESERVATION_ROOMS).subscribe(
       (resp: any) => {
+        this.loaderService.emitComplete();
         if (resp?.success === 1 && resp.status_code === 200 && resp.result?.data) {
           this.checkInRooms.clear();
           const occupiedEvents = ['check-in', 'in-house(amend)'];
@@ -1074,6 +1097,7 @@ export class FeaturesListComponent implements OnInit {
         }
       },
       (err: any) => {
+        this.loaderService.emitComplete();
         console.error('Error fetching check-in rooms:', err);
       }
     );
@@ -1112,6 +1136,7 @@ export class FeaturesListComponent implements OnInit {
       return;
     }
     this.isGuestSaving = true;
+    this.loaderService.emitLoading();
     const payload = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
@@ -1131,6 +1156,7 @@ export class FeaturesListComponent implements OnInit {
       .subscribe({
         next: (resp: any) => {
           this.isGuestSaving = false;
+          this.loaderService.emitComplete();
           if (resp?.success === 1 && resp.status_code === 200) {
             // this.alertService.success('Guest rooms saved successfully', this.options);
             //newly added
@@ -1149,6 +1175,7 @@ export class FeaturesListComponent implements OnInit {
         },
         error: (err: any) => {
           this.isGuestSaving = false;
+          this.loaderService.emitComplete();
           this.alertService.error(
             err?.error?.message || 'Something went wrong while saving guest rooms',
             this.options
@@ -1219,9 +1246,11 @@ export class FeaturesListComponent implements OnInit {
         }
       }
     };
+    this.loaderService.emitLoading();
     this.featuresListService
       .postApiCall(payload, ENDPOINTS.OUTLET_DELETE)
       .subscribe((resp: any) => {
+        this.loaderService.emitComplete();
         if (resp && resp.success === 1 && resp.status_code === 200) {
           this.alertService.success('Outlet deleted successfully', this.options);
           this.isDeleteOutletModalOpen = false;

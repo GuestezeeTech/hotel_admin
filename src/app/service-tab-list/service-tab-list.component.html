@@ -72,9 +72,15 @@
                 <p class="no-dept">No service tabs added yet.</p>
             </ng-template>
             <div class="service-list" *ngIf="selectedTab && canReadSystemSettings">
-                <h5 class="service-title">
-                    Services under "{{ selectedTab.name }}"
-                </h5>
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="service-title mb-0">
+                        Services under "{{ selectedTab.name }}"
+                    </h5>
+                    <button class="add-btn" (click)="canAddSystemSettings ? navigateToAddService() : null"
+                        [disabled]="!canAddSystemSettings">
+                        + Add Service
+                    </button>
+                </div>
                 <!-- Loader for Services -->
                 <div *ngIf="isLoadingServices" class="d-flex justify-content-center align-items-center py-5">
                     <div class="text-center">

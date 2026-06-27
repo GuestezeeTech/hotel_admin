@@ -102,12 +102,14 @@ export class AdminDashboardComponent implements OnInit {
   roomNo: string = '';
   startDate: string = '';
   endDate: string = '';
+  minDate: string = '';
+  maxDate: string = '';
   // year (graph)
   years: number[] = [];
-  selectedYear: any = '2026';
+  selectedYear: any = new Date().getFullYear().toString();
   guestUsageChart: Chart | undefined;
   // reviews
-  selectedReviewYear: any = '2026';
+  selectedReviewYear: any = new Date().getFullYear().toString();
   isReviewDropdownOpen: boolean = false;
   review: any = {
     reviews_count: 0,
@@ -122,40 +124,144 @@ export class AdminDashboardComponent implements OnInit {
   dateError = false;
   // End of newly added for validation
 
-  async ngOnInit(): Promise<void> {
-    // this.memberId = this.localStorageService.get('MemberId');
-    // console.log('Member ID:', this.localStorageService.get('UserId'));
-    const hotelId = Number(this.localStorageService.get('UserId'));
-    this.loaderService.emitLoading();
-    try {
-      // Newly added for getting member id for customer type
-      // const customer = await this.getCustomerById(hotelId);
-      // this.memberId = customer.customer_member_id;
-      this.memberId = this.localStorageService.get('MemberId');
-      // console.log('Member ID from admin dashboard:', this.memberId);
-      if (this.memberId !== undefined && this.memberId !== null && this.memberId !== '' && this.memberId !== 'undefined' && this.memberId !== 'null') {
-        const customer = await this.getCustomerById(this.memberId);
+  /*   async ngOnInit(): Promise<void> {
+      const currentYear = new Date().getFullYear();
+      this.selectedYear = currentYear.toString();
+      this.selectedReviewYear = currentYear.toString();
+  
+      // Default min/max date and report dates
+      this.minDate = `${currentYear}-01-01`;
+      this.maxDate = `${currentYear}-12-31`;
+  
+      const today = new Date();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      this.startDate = `${currentYear}-01-01`;
+      this.endDate = `${currentYear}-${mm}-${dd}`;
+  
+      this.loaderService.emitLoading();
+      try {
+        this.memberId = this.localStorageService.get('MemberId');
+        console.log('Local Storage MemberId:', this.memberId);
+        let createdYear = currentYear;
+        if (this.memberId !== undefined && this.memberId !== null && this.memberId !== '' && this.memberId !== 'undefined' && this.memberId !== 'null') {
+          const customer = await this.getCustomerById(this.memberId);
+          console.log('Customer fetched from API:', customer);
+          if (customer && customer.created_on) {
+            createdYear = new Date(customer.created_on).getFullYear();
+            console.log('Customer created_on:', customer.created_on, 'Evaluated createdYear:', createdYear);
+          }
+        }
+  
+        // Update year dropdown range
+        this.years = [];
+        const startYear = Math.min(createdYear, currentYear);
+        for (let year = startYear; year <= currentYear; year++) {
+          this.years.push(year);
+        }
+        console.log('Generated years range:', this.years);
+  
+        // Update Report calendar min/max
+        this.minDate = `${createdYear}-01-01`;
+        this.maxDate = `${currentYear}-12-31`;
+        console.log('minDate:', this.minDate, 'maxDate:', this.maxDate);
+  
+        this.pendingRequests = 3;
+        this.guestActivity(this.selectedYear, this.selectedReviewYear);
+        this.getAllBookings();
+        this.selectButton('asap', false);
+      } catch (err) {
+        console.error('Error fetching customer:', err);
+        this.years = [currentYear];
+        this.pendingRequests = 3;
+        this.guestActivity(this.selectedYear, this.selectedReviewYear);
+        this.getAllBookings();
+        this.selectButton('asap', false);
       }
-      // End of newly added for getting member id for customer type
-      // this.getAllAsapTask();
+    }
+   */
+
+  async ngOnInit(): Promise<void> {
+    const currentYear = new Date().getFullYear();
+    const today = new Date();
+
+    // Default selected year
+    this.selectedYear = currentYear.toString();
+    this.selectedReviewYear = currentYear.toString();
+
+    // Temporary defaults (will be updated after API call)
+    this.minDate = `${currentYear}-01-01`;
+    this.maxDate = today.toISOString().split('T')[0];
+
+    this.startDate = `${currentYear}-01-01`;
+    this.endDate = today.toISOString().split('T')[0];
+
+    this.loaderService.emitLoading();
+
+    try {
+      this.memberId = this.localStorageService.get('MemberId');
+      console.log('Local Storage MemberId:', this.memberId);
+
+      let createdDate = new Date(currentYear, 0, 1);
+
+      if (
+        this.memberId &&
+        this.memberId !== 'undefined' &&
+        this.memberId !== 'null'
+      ) {
+        const customer = await this.getCustomerById(this.memberId);
+        console.log('Customer fetched:', customer);
+
+        if (customer?.created_on) {
+          createdDate = new Date(customer.created_on);
+        }
+      }
+
+      const createdYear = createdDate.getFullYear();
+
+      // Populate year dropdown (Created Year -> Current Year)
+      this.years = [];
+      for (let year = createdYear; year <= currentYear; year++) {
+        this.years.push(year);
+      }
+
+      console.log('Year Dropdown:', this.years);
+
+      // Report calendar limits
+      this.minDate = createdDate.toISOString().split('T')[0];
+      this.maxDate = today.toISOString().split('T')[0];
+
+      // Default report dates
+      // this.startDate = `${currentYear}-01-01`;
+
+      // If customer was created in current year after Jan 1,
+      // use created_on date instead.
+      // if (createdYear === currentYear && createdDate > new Date(currentYear, 0, 1)) {
+      //   this.startDate = createdDate.toISOString().split('T')[0];
+      // }
+
+      // this.endDate = today.toISOString().split('T')[0];
+      this.startDate = '';
+      this.endDate = '';
+
+      console.log('Min Date:', this.minDate);
+      console.log('Max Date:', this.maxDate);
+
       this.pendingRequests = 3;
       this.guestActivity(this.selectedYear, this.selectedReviewYear);
       this.getAllBookings();
       this.selectButton('asap', false);
+
     } catch (err) {
       console.error('Error fetching customer:', err);
-      this.loaderService.emitComplete();
+
+      this.years = [currentYear];
+
+      this.pendingRequests = 3;
+      this.guestActivity(this.selectedYear, this.selectedReviewYear);
+      this.getAllBookings();
+      this.selectButton('asap', false);
     }
-    // this.getCustomerById(hotelId)
-    // Load chart for default year
-    // this.guestActivity(this.selectedYear, this.selectedReviewYear);
-    // this.createGuestUsageChart();
-    // this.getAllBookings();
-    const currentYear = 2026;
-    for (let year = currentYear; year <= 3026; year++) {
-      this.years.push(year);
-    }
-    // console.log('All years:', this.years);
   }
 
   // getCustomerById(hotelId: any): Promise<any> {
@@ -187,8 +293,22 @@ export class AdminDashboardComponent implements OnInit {
     });
   }
 
-  toggleUsageDropdown() {
+  @HostListener('document:click', ['$event'])
+  clickout(event: any) {
+    const usageContainer = this.eRef.nativeElement.querySelector('.usage-dropdown-container');
+    const reviewContainer = this.eRef.nativeElement.querySelector('.review-dropdown-container');
+
+    if (usageContainer && !usageContainer.contains(event.target)) {
+      this.isUsageDropdownOpen = false;
+    }
+    if (reviewContainer && !reviewContainer.contains(event.target)) {
+      this.isReviewDropdownOpen = false;
+    }
+  }
+
+  toggleUsageDropdown(event: Event) {
     // console.log('Toggle Usage Dropdown');
+    event.stopPropagation();
     this.isUsageDropdownOpen = !this.isUsageDropdownOpen;
   }
 
@@ -207,7 +327,8 @@ export class AdminDashboardComponent implements OnInit {
     this.guestActivity(this.selectedYear, this.selectedReviewYear);
   }
 
-  toggleReviewDropdown() {
+  toggleReviewDropdown(event: Event) {
+    event.stopPropagation();
     this.isReviewDropdownOpen = !this.isReviewDropdownOpen;
   }
 

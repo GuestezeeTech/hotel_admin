@@ -60,6 +60,12 @@ input[type="number"] {
   padding: 10px;
   font-size: 13px;
   font-weight: 400;
+
+  &::placeholder {
+    color: #b5b5b5 !important;
+    opacity: 1;
+    font-weight: 300;
+  }
 }
 
 /* Error & Required Asterisk */

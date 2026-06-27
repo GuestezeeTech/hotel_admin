@@ -27,7 +27,8 @@
             <td colspan="10" class="text-center text-muted">No guest tasks found</td>
         </tr>
         <tr *ngFor="let task of allDeliveredTasks">
-            <td (click)="navigateToTimeline(task.id)" style="cursor: pointer;">{{ task.guest_name || task.task_created_by }}</td>
+            <td (click)="navigateToTimeline(task.id)" style="cursor: pointer;">{{ task.guest_name ||
+                task.task_created_by }}</td>
             <td>{{ task.room_no }}</td>
             <!-- Newly added & commented for all department -->
             <!-- <td>{{ task.service.service_name }}<span
@@ -171,7 +172,7 @@
               white-space: pre-wrap;
               word-wrap: break-word;
            ">
-                    {{ selectedHelpServiceTask?.task_description || 'No description provided' }}
+                    {{ selectedHelpServiceTask?.help_remarks || 'No description provided' }}
                 </span>
             </div>
         </div>

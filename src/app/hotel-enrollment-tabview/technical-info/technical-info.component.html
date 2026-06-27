@@ -45,7 +45,7 @@
       <div class="mb-4">
         <!-- Single-selection hint for lock and pos tabs -->
         <div
-          *ngIf="(selectedTab === 'lock' || selectedTab === 'pos') && generalTechInfoData?.length > 1 && this.customerStatus != 'approved'"
+          *ngIf="(selectedTab === 'lock' || selectedTab === 'pos') && generalTechInfoData?.length > 0 && this.customerStatus != 'approved'"
           class="tech-single-select-hint d-flex align-items-start">
           <i class="fas fa-info-circle mt-1 me-2"></i>
           <div class="">
@@ -234,7 +234,7 @@
     (click)="nextTabInfo()">Next Info</button> -->
   <button type="submit" class="next_bt"
     *ngIf="((this.activeTab == 1 || this.activeTab == 2)  && this.customerStatus !== 'approved')"
-    (click)="nextTabInfo()">Save & Next</button>
+    (click)="nextTabInfo()">Next</button>
   <!-- <button type="submit" class="save_bt" data-toggle="modal" data-target="#paymentType" *ngIf="this.activeTab == 3 "
     (click)="save()">Save &
     Continue</button> -->

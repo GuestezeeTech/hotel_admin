@@ -1002,11 +1002,47 @@ export class PropertyDetails1Component {
                      }
                    }); */
 
-                  // Final success actions
-                  this.hotelenrollmenttabviewService.clearAdminFormEvent();
-                  this.alertService.success(resp.message, this.options);
-                  this.executeFunctions();
-                  this.onContinue();
+                  const checkPayload = {
+                    domain_name: DOMAIN_NAME,
+                    user_id: USER_ID,
+                    payload: {
+                      integration_settings: {
+                        member_id: customerMemberId
+                      }
+                    }
+                  };
+                  this.hotelenrollmenttabviewService.checkIsTechnicalInfoExist(checkPayload).subscribe({
+                    next: (checkResp: any) => {
+                      if (checkResp) {
+                        if (checkResp.success === 1 && checkResp.status_code === 200) {
+                          // Final success actions
+                          this.hotelenrollmenttabviewService.clearAdminFormEvent();
+                          this.alertService.success(resp.message, this.options);
+                          this.executeFunctions();
+                          this.onContinue();
+                        } else if (checkResp.success === 0) {
+                          if (checkResp.message) {
+                            this.alertService.error(checkResp.message, this.options);
+                          }
+                        } else if (checkResp.message && checkResp.status_code !== 200) {
+                          this.alertService.error(checkResp.message, this.options);
+                        } else {
+                          this.alertService.error('Something bad happened. Please try again!', this.options);
+                        }
+                      }
+                    },
+                    error: (err: any) => {
+                      this.loaderService.emitComplete();
+                      if (err.error && err.error.statusCode === 403) {
+                        this.alertService.error('Session Time Out! Please login Again', this.options);
+                        this.router.navigate(['/login'], { skipLocationChange: false });
+                      } else if (err.error && err.error.message) {
+                        this.alertService.error(err.error.message, this.options);
+                      } else {
+                        this.alertService.error('Something bad happened. Please try again!', this.options);
+                      }
+                    }
+                  });
                 }
               },
               err => {

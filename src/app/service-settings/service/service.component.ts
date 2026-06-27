@@ -67,6 +67,7 @@ export class ServiceComponent implements OnInit {
   // Newly added for loader
   isLoadingDepartments: boolean = false;
   isLoadingServiceTabs: boolean = false;
+  from: string | null = null;
 
   constructor(
     private loaderService: LoaderService,
@@ -126,7 +127,7 @@ export class ServiceComponent implements OnInit {
       is_active: new FormControl(false),
       is_time_bound: new FormControl(true), // Mandatory by default
       hours_before: new FormControl(''),
-      service_type: new FormControl('', Validators.required),
+      service_type: new FormControl('Non-Scheduled', Validators.required),
       time_bound_value: new FormControl('', [
         Validators.required,
         CustomValidators.minValueValidator(1)
@@ -146,10 +147,17 @@ export class ServiceComponent implements OnInit {
     const navState = history.state;
     // console.log('Navigation State:', navState);
     this.isViewMode = navState?.['mode'] === 'view';
+    this.from = navState?.['from'] || null;
     // console.log('Is view mode:', this.isViewMode);
     // disable if view mode
     if (this.isViewMode) {
       this.serviceForm.disable();
+    }
+    if (navState && !serviceId) {
+      if (navState.service_tab) {
+        this.serviceForm.get('service_tab')?.setValue(navState.service_tab);
+        this.serviceForm.get('service_tab')?.disable();
+      }
     }
     if (serviceId != null && serviceId != undefined) {
       this.service_id = Number(serviceId);
@@ -283,8 +291,8 @@ export class ServiceComponent implements OnInit {
         ]);
       }
     }
-    timeBoundValueControl?.updateValueAndValidity();
-    isTimeBoundControl?.updateValueAndValidity();
+    timeBoundValueControl?.updateValueAndValidity({ emitEvent: false });
+    isTimeBoundControl?.updateValueAndValidity({ emitEvent: false });
   }
 
   preventInvalidNumberInput(event: KeyboardEvent): void {
@@ -368,7 +376,11 @@ export class ServiceComponent implements OnInit {
 
   navigateBack() {
     this.showBackModal = false;
-    this.router.navigate(['/service-list']);
+    if (this.from === 'service-tab-list') {
+      this.router.navigate(['/service-tab-list']);
+    } else {
+      this.router.navigate(['/service-list']);
+    }
   }
 
   selectedServiceType(event: any) {
@@ -708,31 +720,32 @@ export class ServiceComponent implements OnInit {
 
   addNewService() {
     // Convert quantity and time bound values to numbers
-    const minQty = this.serviceForm.value.minimum_quantity
-      ? Number(this.serviceForm.value.minimum_quantity)
+    const formRawValue = this.serviceForm.getRawValue();
+    const minQty = formRawValue.minimum_quantity
+      ? Number(formRawValue.minimum_quantity)
       : 0;
-    const maxQty = this.serviceForm.value.maximum_quantity
-      ? Number(this.serviceForm.value.maximum_quantity)
+    const maxQty = formRawValue.maximum_quantity
+      ? Number(formRawValue.maximum_quantity)
       : 0;
-    const timeBoundValue = this.serviceForm.value.time_bound_value
-      ? Number(this.serviceForm.value.time_bound_value)
+    const timeBoundValue = formRawValue.time_bound_value
+      ? Number(formRawValue.time_bound_value)
       : 0;
     let serviceObject = {
-      name: this.serviceForm.value.service_name?.trim(),
-      department: this.serviceForm.value.department,
-      service_tab: this.serviceForm.value.service_tab,
-      description: this.serviceForm.value.description,
-      is_active: this.serviceForm.value.is_active,
-      service_type: this.serviceForm.value.service_type,
-      hours_before: this.serviceForm.value.hours_before,
-      is_time_bound: this.serviceForm.value.is_time_bound,
+      name: formRawValue.service_name?.trim(),
+      department: formRawValue.department,
+      service_tab: formRawValue.service_tab,
+      description: formRawValue.description,
+      is_active: formRawValue.is_active,
+      service_type: 'Non-Scheduled',
+      hours_before: formRawValue.hours_before,
+      is_time_bound: formRawValue.is_time_bound,
       time_bound_value: timeBoundValue,
-      quantity: this.serviceForm.value.quantity,
+      quantity: formRawValue.quantity,
       minimum_quantity: minQty,
       maximum_quantity: maxQty,
       icon: this.logo_image,
       image: this.service_image,
-      belongs_to: this.serviceForm.value.belongs_to,
+      belongs_to: formRawValue.belongs_to,
       member_id: this.member_id,
       customer_id: this.hotel_id
     };
@@ -798,7 +811,11 @@ export class ServiceComponent implements OnInit {
         this.serviceSettingsService.createService(createReq).subscribe(
           res => {
             if (res?.success === 1) {
-              this.router.navigate(['/service-list']);
+              if (this.from === 'service-tab-list') {
+                this.router.navigate(['/service-tab-list']);
+              } else {
+                this.router.navigate(['/service-list']);
+              }
               this.alertService.success('Service created successfully', this.alertOptions);
             }
             else {
@@ -895,7 +912,7 @@ export class ServiceComponent implements OnInit {
               description: this.serviceData.description != null ? this.serviceData.description : '',
               is_active: this.serviceData.is_active != null ? this.serviceData.is_active : false,
               hours_before: this.serviceData.hours_before != null ? this.serviceData.hours_before : '',
-              service_type: this.serviceData.service_type != null ? this.serviceData.service_type : '',
+              service_type: 'Non-Scheduled',
               is_time_bound: this.serviceData.is_time_bound != null ? this.serviceData.is_time_bound : false,
               time_bound_value: this.serviceData.time_bound_value != null && this.serviceData.time_bound_value > 0
                 ? this.serviceData.time_bound_value
@@ -912,7 +929,7 @@ export class ServiceComponent implements OnInit {
             // Set time bound enabled state
             this.timeBoundEnabled = this.serviceData.is_time_bound === true;
             // Set showHoursBefore based on service type
-            this.showHoursBefore = this.serviceData.service_type === 'Scheduled';
+            this.showHoursBefore = false;
 
             // Ensure validators are set for enabled fields
             if (this.quantityEnabled) {
@@ -992,6 +1009,10 @@ export class ServiceComponent implements OnInit {
           else {
             this.departments = allDepartments.map((dept: any) => dept.name);
           }
+          const navState = history.state;
+          if (navState && navState.department && !this.departments.includes(navState.department)) {
+            this.departments.push(navState.department);
+          }
           // console.log('Department Data:', this.departments);
         } else {
           console.error('Failed to fetch department details:', resp.message);
@@ -1025,6 +1046,10 @@ export class ServiceComponent implements OnInit {
           }
           else {
             this.serviceTabs = allServiceTabs.map((serviceTab: any) => serviceTab.name);
+          }
+          const navState = history.state;
+          if (navState && navState.service_tab && !this.serviceTabs.includes(navState.service_tab)) {
+            this.serviceTabs.push(navState.service_tab);
           }
           // console.log('Service Tab Data:', this.serviceTabs);
         }

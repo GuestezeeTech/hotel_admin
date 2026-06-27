@@ -94,10 +94,13 @@ export class HierarchyFormComponent implements OnInit {
       const item = this.hierarchyService.getHierarchyData().find(i => i.id === this.editId);
       if (item) {
         this.items.clear();
+        const isTop = !item.parentId || item.parentId === 0;
         const itemForm = this.formBuilder.group({
           id: [item.id],
           designation: [item.designation, [Validators.required, Validators.maxLength(50)]],
-          escalationTime: [item.escalationTime, [Validators.required, Validators.min(1), Validators.pattern("^[0-9]*$")]],
+          escalationTime: isTop
+            ? [0]
+            : [item.escalationTime, [Validators.required, Validators.min(1), Validators.pattern("^[0-9]*$")]],
           // escalationTime: [item.escalationTime, [Validators.required, Validators.min(1)]],
           department: [item.department, Validators.required],
           isTopLevel: [item.isTopLevel],
@@ -347,10 +350,11 @@ export class HierarchyFormComponent implements OnInit {
       this.parentDepartment &&
       this.parentDepartment !== '' &&
       this.parentDepartment !== 'Default';
+    const isTop = !this.parentId || this.parentId === 0;
     const itemForm = this.formBuilder.group({
       id: [null],
       designation: ['', Validators.required],
-      escalationTime: ['', [Validators.required, Validators.min(1)]],
+      escalationTime: isTop ? [0] : ['', [Validators.required, Validators.min(1)]],
       department: [
         isParentNotDefault ? this.parentDepartment : '',
         Validators.required
@@ -390,10 +394,11 @@ export class HierarchyFormComponent implements OnInit {
       this.items.removeAt(index);
     } else {
       // If it's the only row, just reset its values
+      const isTop = !this.parentId || this.parentId === 0;
       this.items.at(0).reset({
         id: null,
         designation: '',
-        escalationTime: '',
+        escalationTime: isTop ? 0 : '',
         department: '',
         isTopLevel: false,
         parentId: this.parentId ?? 0
@@ -413,14 +418,18 @@ export class HierarchyFormComponent implements OnInit {
     this.isSubmitting = true;
     // collect rows (each row already contains parentId)
     // const formRows: any[] = this.items.value.map((r: any) => ({
-    const formRows: any[] = this.items.getRawValue().map((r: any) => ({
-      id: r.id, // may be null for new rows
-      parentId: r.parentId,
-      designation: r.designation,
-      department: r.department,
-      escalationTime: Number(r.escalationTime) || 0,
-      isTopLevel: !!r.isTopLevel
-    }));
+    const formRows: any[] = this.items.getRawValue().map((r: any, idx: number) => {
+      const itemGroup = this.items.at(idx) as FormGroup;
+      const isTop = this.isRowTopLevel(itemGroup);
+      return {
+        id: r.id, // may be null for new rows
+        parentId: r.parentId,
+        designation: r.designation,
+        department: r.department,
+        escalationTime: isTop ? 0 : (Number(r.escalationTime) || 0),
+        isTopLevel: !!r.isTopLevel
+      };
+    });
     // console.log('Form rows:', formRows);
     // If parentDepartment is forced, apply to first row
     // if (this.parentDepartment) {
@@ -736,5 +745,14 @@ export class HierarchyFormComponent implements OnInit {
     if (/[eE.-]/.test(pastedData) || /^0/.test(pastedData) || !/^\d+$/.test(pastedData)) {
       event.preventDefault();
     }
+  }
+
+  isRowTopLevel(itemForm: any): boolean {
+    const parentIdCtrl = itemForm.get('parentId');
+    if (!parentIdCtrl) {
+      return true;
+    }
+    const val = parentIdCtrl.value;
+    return val === 0 || val === null || val === undefined;
   }
 }

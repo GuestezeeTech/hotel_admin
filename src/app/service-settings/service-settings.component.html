@@ -58,16 +58,13 @@
         </ul>
         <!-- DELETE + CREATE BUTTONS -->
         <div class="action-buttons" #rightButtons>
-          <button
-            class="delete-btn-top"
+          <button class="delete-btn-top"
             (click)="canDeleteSystemSettings && !isDefault && idlistToDelete.length > 0 ? openDeleteModal() : null"
             [disabled]="isDefault || !canDeleteSystemSettings || !canReadSystemSettings || idlistToDelete.length === 0"
             [ngClass]="{ 'button-disabled': (isDefault && !isServiceTab) || !canDeleteSystemSettings || !canReadSystemSettings || idlistToDelete.length === 0 }">
             Delete
           </button>
-          <button
-            class="create-btn-top"
-            (click)="canAddSystemSettings && !isDefault ? navigateTNewService() : null"
+          <button class="create-btn-top" (click)="canAddSystemSettings && !isDefault ? navigateTNewService() : null"
             [disabled]="isDefault || !canAddSystemSettings || !canReadSystemSettings"
             [ngClass]="{ 'button-disabled': isDefault && !isServiceTab || !canAddSystemSettings || !canReadSystemSettings }">
             Create
@@ -102,13 +99,8 @@
               </tr>
               <tr *ngFor="let data of paginatedServiceList">
                 <td>
-                  <input
-                    type="checkbox"
-                    id="vehicle1"
-                    name="vehicle1"
-                    class="colored-checkbox"
-                    *ngIf="!data.isHelpService && canDeleteSystemSettings"
-                    (click)="getIdToDeleteService(data.id)"
+                  <input type="checkbox" id="vehicle1" name="vehicle1" class="colored-checkbox"
+                    *ngIf="!data.isHelpService && canDeleteSystemSettings" (click)="getIdToDeleteService(data.id)"
                     [disabled]="!canDeleteSystemSettings" />
                 </td>
                 <td>{{data.name}}</td>
@@ -117,47 +109,33 @@
                 <td class="gold">{{data.department}}</td>
                 <td>{{data.belongs_to}}</td>
                 <td><button
-                    [ngClass]="data.is_active ? 'bt_active' : 'bt_inactive'">{{data.is_active==true?"Active":'Inactive'}}</button>
+                    [ngClass]="data.is_active ? 'bt_active' : 'bt_inactive'">{{data.is_active==true?"Active":'Inactive'}}
+                  </button>
                 </td>
                 <td>
                   <!-- View icon for all services (read permission) -->
-                  <i
-                    class="fa fa-eye view-icon"
-                    style="color: #800020; cursor: pointer; margin-right: 8px;"
+                  <i class="fa fa-eye view-icon" style="color: #800020; cursor: pointer; margin-right: 8px;"
                     (click)="canReadSystemSettings ? viewService(data.id) : null"
                     [style.opacity]="canReadSystemSettings ? '1' : '0.5'"
-                    [style.cursor]="canReadSystemSettings ? 'pointer' : 'not-allowed'"
-                    title="View"></i>
+                    [style.cursor]="canReadSystemSettings ? 'pointer' : 'not-allowed'" title="View"></i>
                   <!-- If Help Service: only view (no edit) -->
                   <!-- If normal member service: allow edit (when edit permission) -->
-                  <i
-                    *ngIf="!data.isHelpService"
-                    class="fa fa-pen-to-square edit-icon"
+                  <i *ngIf="!data.isHelpService" class="fa fa-pen-to-square edit-icon"
                     style="color: #800020; cursor: pointer;"
                     (click)="canEditSystemSettings ? editService(data.id) : null"
                     [style.opacity]="canEditSystemSettings ? '1' : '0.5'"
-                    [style.cursor]="canEditSystemSettings ? 'pointer' : 'not-allowed'"
-                    title="Edit"></i>
+                    [style.cursor]="canEditSystemSettings ? 'pointer' : 'not-allowed'" title="Edit"></i>
                 </td>
               </tr>
             </tbody>
           </table>
           <!-- Pagination Controls (General / Services tab) -->
           <div class="pagination-container" *ngIf="serviceList.length > 0">
-            <button
-              (click)="prevPage()"
-              [disabled]="currentPage === 1"
-              class="pagination-btn">
+            <button (click)="prevPage()" [disabled]="currentPage === 1" class="pagination-btn">
               Previous
             </button>
-            <input
-              type="text"
-              class="pagination-input"
-              [(ngModel)]="currentPage"
-              readonly>
-            <button
-              (click)="nextPage()"
-              [disabled]="currentPage === totalPages || totalPages === 0"
+            <input type="text" class="pagination-input" [(ngModel)]="currentPage" readonly>
+            <button (click)="nextPage()" [disabled]="currentPage === totalPages || totalPages === 0"
               class="pagination-btn">
               Next
             </button>
@@ -170,7 +148,7 @@
             <thead>
               <tr>
                 <th>Service Name</th>
-                <th>Service Type</th>
+                <!-- <th>Service Type</th> -->
                 <th>Department</th>
                 <th>Belongs To</th>
                 <th>Status</th>
@@ -183,20 +161,17 @@
               </tr>
               <tr *ngFor="let data of serviceList">
                 <td>{{data.name}}</td>
-                <td>{{data.service_type}}</td>
+                <!-- <td>{{data.service_type}}</td> -->
                 <td class="gold">{{data.department}}</td>
                 <td>{{data.belongs_to}}</td>
                 <td><button
                     [ngClass]="data.is_active ? 'bt_active' : 'bt_inactive'">{{data.is_active==true?"Active":'Inactive'}}</button>
                 </td>
                 <td>
-                  <i
-                    class="fa fa-eye view-icon"
-                    style="color: #800020; cursor: pointer;"
+                  <i class="fa fa-eye view-icon" style="color: #800020; cursor: pointer;"
                     (click)="canReadSystemSettings ? viewService(data.id) : null"
                     [style.opacity]="canReadSystemSettings ? '1' : '0.5'"
-                    [style.cursor]="canReadSystemSettings ? 'pointer' : 'not-allowed'"
-                    title="View"></i>
+                    [style.cursor]="canReadSystemSettings ? 'pointer' : 'not-allowed'" title="View"></i>
                 </td>
               </tr>
             </tbody>
@@ -210,7 +185,7 @@
             <thead>
               <tr>
                 <th>Service Name</th>
-                <th>Service Type</th>
+                <!-- <th>Service Type</th> -->
                 <th>Department</th>
                 <th>Belongs To</th>
                 <th>Status</th>
@@ -223,20 +198,17 @@
               </tr>
               <tr *ngFor="let data of serviceList">
                 <td>{{data.name}}</td>
-                <td>{{data.service_type}}</td>
+                <!-- <td>{{data.service_type}}</td> -->
                 <td class="gold">{{data.department}}</td>
                 <td>{{data.belongs_to}}</td>
                 <td><button
                     [ngClass]="data.is_active ? 'bt_active' : 'bt_inactive'">{{data.is_active==true?"Active":'Inactive'}}</button>
                 </td>
                 <td>
-                  <i
-                    class="fa fa-eye view-icon"
-                    style="color: #800020; cursor: pointer;"
+                  <i class="fa fa-eye view-icon" style="color: #800020; cursor: pointer;"
                     (click)="canReadSystemSettings ? viewService(data.id) : null"
                     [style.opacity]="canReadSystemSettings ? '1' : '0.5'"
-                    [style.cursor]="canReadSystemSettings ? 'pointer' : 'not-allowed'"
-                    title="View"></i>
+                    [style.cursor]="canReadSystemSettings ? 'pointer' : 'not-allowed'" title="View"></i>
                 </td>
               </tr>
             </tbody>
@@ -250,7 +222,7 @@
             <thead>
               <tr>
                 <th>Service Name</th>
-                <th>Service Type</th>
+                <!-- <th>Service Type</th> -->
                 <th>Department</th>
                 <th>Belongs To</th>
                 <th>Status</th>
@@ -263,20 +235,17 @@
               </tr>
               <tr *ngFor="let data of serviceList">
                 <td>{{data.name}}</td>
-                <td>{{data.service_type}}</td>
+                <!-- <td>{{data.service_type}}</td> -->
                 <td class="gold">{{data.department}}</td>
                 <td>{{data.belongs_to}}</td>
                 <td><button
                     [ngClass]="data.is_active ? 'bt_active' : 'bt_inactive'">{{data.is_active==true?"Active":'Inactive'}}</button>
                 </td>
                 <td>
-                  <i
-                    class="fa fa-eye view-icon"
-                    style="color: #800020; cursor: pointer;"
+                  <i class="fa fa-eye view-icon" style="color: #800020; cursor: pointer;"
                     (click)="canReadSystemSettings ? viewService(data.id) : null"
                     [style.opacity]="canReadSystemSettings ? '1' : '0.5'"
-                    [style.cursor]="canReadSystemSettings ? 'pointer' : 'not-allowed'"
-                    title="View"></i>
+                    [style.cursor]="canReadSystemSettings ? 'pointer' : 'not-allowed'" title="View"></i>
                 </td>
               </tr>
             </tbody>

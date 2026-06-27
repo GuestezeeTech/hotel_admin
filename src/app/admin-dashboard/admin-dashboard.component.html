@@ -48,9 +48,10 @@
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <h6 class="fw-semibold mb-0">Guest Usage</h6>
                                 <!-- Guest Usage Year Dropdown -->
-                                <div class="position-relative d-inline-block me-2">
+                                <div class="position-relative d-inline-block me-2 usage-dropdown-container">
                                     <button class="btn shadow-none btn-sm dropdown-toggle"
-                                        (click)="toggleUsageDropdown()" style="width: 90px; background-color: #F5F4FD;">
+                                        (click)="toggleUsageDropdown($event)"
+                                        style="width: 90px; background-color: #F5F4FD;">
                                         {{ selectedYear }}
                                     </button>
                                     <ul class="dropdown-menu" [class.show]="isUsageDropdownOpen"
@@ -83,9 +84,9 @@
                                         <option value="Week">2025</option>
                                         <option value="Month">Month</option>
                                     </select> -->
-                                    <div class="position-relative d-inline-block">
+                                    <div class="position-relative d-inline-block review-dropdown-container">
                                         <button class="btn shadow-none btn-sm dropdown-toggle"
-                                            (click)="toggleReviewDropdown()"
+                                            (click)="toggleReviewDropdown($event)"
                                             style="width: 90px; background-color: #F5F4FD;">
                                             {{ selectedReviewYear }}
                                         </button>
@@ -153,7 +154,7 @@
                                                 Date</label>
                                             <input type="date" class="form-control bg-white" style="font-size: 14px;"
                                                 [(ngModel)]="startDate" name="startDate"
-                                                (change)="clearStartDateError()" />
+                                                (change)="clearStartDateError()" [min]="minDate" [max]="maxDate" />
                                             <!-- Newly added for validation -->
                                             <div *ngIf="startDateError" style="color:red;font-size:13px;margin-top:4px">
                                                 Start Date is required
@@ -164,7 +165,8 @@
                                             <label class="form-label fw-bold">End Date</label>
                                             <input type="date" class="form-control"
                                                 style="font-size: 14px; background-color: white;" [(ngModel)]="endDate"
-                                                name="endDate" (change)="clearEndDateError()" />
+                                                name="endDate" (change)="clearEndDateError()" [min]="minDate"
+                                                [max]="maxDate" />
                                             <!-- Newly added for validation -->
                                             <div *ngIf="endDateError" style="color:red;font-size:13px;margin-top:4px">
                                                 End Date is required

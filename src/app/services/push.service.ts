@@ -60,7 +60,7 @@ export class PushService {
   //   });
   // }
 
-onMessageListener(): Observable<MessagePayload> {
+  onMessageListener(): Observable<MessagePayload> {
     return new Observable((observer) => {
       onMessage(this.messaging, (payload: MessagePayload) => {
         // console.log('[PushService] Foreground message received:', payload);
@@ -72,19 +72,9 @@ onMessageListener(): Observable<MessagePayload> {
           return;
         }
         this.lastHandledId = messageId;
-        // Build structured notification
-        const structuredData = {
-          id: messageId,
-          title: payload.notification?.title || payload.data?.['title'],
-          body: payload.notification?.body || payload.data?.['body'],
-          time: new Date().toLocaleTimeString(),
-        };
-        // Add notification to UI
-        this.notificationService.addNotification(structuredData);
-        // Play sound
-        const audio = new Audio('assets/images/guestezee/alarm.mp3');
-        audio.play().catch((err) => console.warn('[PushService] Sound blocked:', err));
-        // Emit payload to subscribers
+        // Emit payload to subscribers only. The UI update (addNotification) and
+        // the notification sound are handled once in the subscriber (app.component)
+        // to avoid adding and playing the same foreground message twice.
         observer.next(payload);
       });
     });
@@ -116,6 +106,7 @@ onMessageListener(): Observable<MessagePayload> {
     }
   }
 
+
   private playNotificationSound() {
     try {
       const audio = new Audio('/assets/images/guestezee/alarm.mp3');
@@ -127,3 +118,5 @@ onMessageListener(): Observable<MessagePayload> {
   }
 
 }
+
+

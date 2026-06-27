@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { Router, NavigationStart, NavigationEnd, NavigationCancel, NavigationError, RouteConfigLoadStart, RouteConfigLoadEnd, RouterOutlet } from '@angular/router';
 import { LoginComponent } from './login/login.component';
 import { MenuBarComponent } from './shared/menu-bar/menu-bar.component';
@@ -10,6 +10,9 @@ import { ProfileService } from './profile/profile.service';
 import { LogoutService } from './services/logout.service';
 import { PermissionService } from './services/permission.service';
 import { LoaderComponent } from './shared/loader/loader.component';
+import { TaskManagementService } from './task-management/task-management.service';
+import { HotelEnrollmentTabviewService } from './hotel-enrollment-tabview/hotel-enrollment-tabview.service';
+import { ENDPOINTS, DOMAIN_NAME, USER_ID } from './app.config';
 
 @Component({
   selector: 'app-root',
@@ -152,6 +155,8 @@ export class AppComponent implements OnInit, OnDestroy {
   isRouteLoading = false;
   isPendingApproval = false;
   private isInitialNavigation = true;
+  private tokenSyncInterval: any;
+  private isFcmInitialized = false;
   notifications: any[] = [];
 
   private routesWithoutSidebar = ['/login', '/', '/view'];
@@ -162,7 +167,9 @@ export class AppComponent implements OnInit, OnDestroy {
     private pushService: PushService,
     private notificationService: NotificationService,
     private logoutService: LogoutService,
-    private permissionService: PermissionService
+    private permissionService: PermissionService,
+    private taskManagementService: TaskManagementService,
+    private hotelEnrollmentService: HotelEnrollmentTabviewService
   ) {
     // --- Sidebar and menu tracking ---
     this.router.events.subscribe(event => {
@@ -346,6 +353,7 @@ export class AppComponent implements OnInit, OnDestroy {
         if (!isWildcard && isLoggedIn && !isBypassRoute && this.isRouteAuthorized) {
           this.localservice.set('lastValidUrl', url);
         }
+        this.initFcmHandling();
       }
     });
   }
@@ -353,6 +361,7 @@ export class AppComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     document.addEventListener('keydown', this.handleGlobalKeydown, true);
     document.addEventListener('input', this.handleGlobalInput, true);
+
     // --- Restore user info ---
     this.customerType = this.localservice.get('CustomerType');
     // console.log('[App] Customer Type:', this.customerType);
@@ -424,15 +433,170 @@ export class AppComponent implements OnInit, OnDestroy {
       //   window.location.href = '/task-management';
       // }
     });
-    // --- Staff-specific panel handling ---
-    if (this.customerType === 'Staff') {
-      this.notificationService.showPanel$.subscribe(show => this.showNotification = show);
+    this.initFcmHandling();
+  }
+
+  initFcmHandling(): void {
+    const currentCustomerType = this.localservice.get('CustomerType');
+    if (!currentCustomerType) {
+      if (this.isFcmInitialized) {
+        this.isFcmInitialized = false;
+        window.removeEventListener('focus', this.handleWindowFocus);
+        if (this.tokenSyncInterval) {
+          clearInterval(this.tokenSyncInterval);
+          this.tokenSyncInterval = null;
+        }
+      }
+      return;
+    }
+
+    if (this.isFcmInitialized) return;
+
+    this.customerType = currentCustomerType;
+    if (this.customerType === 'Staff' || this.customerType === 'Customer') {
+      this.isFcmInitialized = true;
+
+      if (this.customerType === 'Staff') {
+        this.notificationService.showPanel$.subscribe(show => this.showNotification = show);
+      }
+
+      // --- Sync & Polling for FCM tokens ---
+      window.addEventListener('focus', this.handleWindowFocus);
+      this.tokenSyncInterval = setInterval(() => {
+        this.syncFcmTokensFromDb();
+      }, 20000);
+
+      (async () => {
+        try {
+          const currentToken = await this.pushService.getCurrentToken();
+          if (currentToken) {
+            sessionStorage.setItem('CurrentTabFcmToken', currentToken);
+          }
+          this.syncFcmTokensFromDb();
+        } catch (err) {
+          console.error('[App] Failed to hydrate FCM tokens:', err);
+        }
+      })();
     }
   }
 
   ngOnDestroy(): void {
     document.removeEventListener('keydown', this.handleGlobalKeydown, true);
     document.removeEventListener('input', this.handleGlobalInput, true);
+    window.removeEventListener('focus', this.handleWindowFocus);
+    if (this.tokenSyncInterval) {
+      clearInterval(this.tokenSyncInterval);
+    }
+  }
+
+  private handleWindowFocus = () => {
+    this.syncFcmTokensFromDb();
+  };
+
+  syncFcmTokensFromDb(): void {
+    const customerType = this.localservice.get('CustomerType');
+    const userId = this.localservice.get('UserId');
+    if (!userId || (customerType !== 'Staff' && customerType !== 'Customer')) return;
+
+    const fetchBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: { find: { id: Number(userId) } }
+    };
+
+    if (customerType === 'Staff') {
+      this.taskManagementService.getAllStaves(fetchBody).subscribe((resp: any) => {
+        if (resp?.success === 1 && resp.result?.data?.length > 0) {
+          const staff = resp.result.data[0];
+          if (Array.isArray(staff.fcm_token)) {
+            localStorage.setItem('UserFcmTokens', JSON.stringify(staff.fcm_token));
+          }
+        }
+      });
+    } else if (customerType === 'Customer') {
+      this.hotelEnrollmentService.getLoginCustomerById(fetchBody).subscribe((resp: any) => {
+        if (resp?.success === 1 && resp.result?.data?.length > 0) {
+          const customer = resp.result.data[0];
+          if (Array.isArray(customer.fcm_token)) {
+            localStorage.setItem('UserFcmTokens', JSON.stringify(customer.fcm_token));
+          }
+        }
+      });
+    }
+  }
+
+  @HostListener('window:beforeunload', ['$event'])
+  beforeUnloadHandler(event: any): void {
+    const customerType = this.localservice.get('CustomerType');
+    const isFcmUnavailable = this.localservice.get('isFcmUnavailable') === 'true';
+
+    if ((customerType === 'Staff' || customerType === 'Customer') && !isFcmUnavailable) {
+      const userId = this.localservice.get('UserId');
+      const currentToken = sessionStorage.getItem('CurrentTabFcmToken');
+      const rawTokens = localStorage.getItem('UserFcmTokens');
+
+      if (userId && currentToken && rawTokens) {
+        try {
+          const tokens: string[] = JSON.parse(rawTokens);
+          const filteredTokens = tokens.filter(t => t !== currentToken);
+
+          let updateBody: any;
+          let endpointUrl: string;
+
+          if (customerType === 'Staff') {
+            const remainingCount = filteredTokens.length;
+            const isAvailableValue = remainingCount >= 1;
+            updateBody = {
+              domain_name: DOMAIN_NAME,
+              user_id: USER_ID,
+              payload: {
+                staff_updation: {
+                  fcm_token: filteredTokens,
+                  is_available: isAvailableValue
+                }
+              },
+              extras: { find: { id: Number(userId) } }
+            };
+            endpointUrl = ENDPOINTS.UPDATE_STAFF;
+          } else {
+            updateBody = {
+              domain_name: DOMAIN_NAME,
+              user_id: USER_ID,
+              payload: {
+                customer_update: {
+                  fcm_token: filteredTokens
+                }
+              },
+              extras: { find: { id: Number(userId) } }
+            };
+            endpointUrl = ENDPOINTS.UPDATE_LOGIN_CUSTOMER_FCM;
+          }
+
+          const tokenHeaders = new Headers({
+            'Content-Type': 'application/json',
+            'authorization': 'Bearer ' + this.localservice.get('accessToken')
+          });
+
+          fetch(endpointUrl, {
+            method: 'POST',
+            headers: tokenHeaders,
+            body: JSON.stringify(updateBody),
+            keepalive: true
+          });
+
+          // Busy-wait for 150ms to allow the browser's network thread to dispatch the request/preflight
+          const start = Date.now();
+          while (Date.now() - start < 150) {
+            // block execution briefly
+          }
+
+          // Sync local storage for other tabs
+          localStorage.setItem('UserFcmTokens', JSON.stringify(filteredTokens));
+        } catch (e) {
+          console.error('[App] Error in beforeunload handler:', e);
+        }
+      }
+    }
   }
 
   updateMenu(value: string) {
@@ -460,9 +624,35 @@ export class AppComponent implements OnInit, OnDestroy {
     } catch (err) {
       console.warn('[App] Failed to parse payload.data.message:', err);
     }
+    /*  const structured = {
+       title: payload?.notification?.title || 'No Title',
+       body: payload?.notification?.body || '',
+       task_id: parsedMessage?.task_id || null,
+       redirection_tab: parsedMessage?.redirection_tab || null,
+     }; */
+    /*   const structured = {
+        // id and time are required by the notification panel, which only shows
+        // entries that have an id and displays the time; id is also used to
+        // de-duplicate notifications in the notification service.
+        id: payload?.messageId || null,
+        title: payload?.notification?.title || 'No Title',
+        body: payload?.notification?.body || '',
+        time: new Date().toLocaleTimeString(),
+        task_id: parsedMessage?.task_id || null,
+        redirection_tab: parsedMessage?.redirection_tab || null,
+      }; */
     const structured = {
-      title: payload?.notification?.title || 'No Title',
-      body: payload?.notification?.body || '',
+
+      // id and time are required by the notification panel, which only shows
+      // entries that have an id and displays the time; id is also used to
+      // de-duplicate notifications in the notification service.
+      id: payload?.messageId || null,
+      // Fall back to payload.data for data-only messages (same as the service
+      // worker and the previous push service); without this, data-only messages
+      // produce an empty body and get dropped by addNotification's guard.
+      title: payload?.notification?.title || payload?.data?.['title'] || 'No Title',
+      body: payload?.notification?.body || payload?.data?.['body'] || '',
+      time: new Date().toLocaleTimeString(),
       task_id: parsedMessage?.task_id || null,
       redirection_tab: parsedMessage?.redirection_tab || null,
     };

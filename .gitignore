@@ -49,3 +49,9 @@ Thumbs.db
 *.mov
 *.wmv
 
+# files to ingnore
+.angular/
+.vscode/
+.src(mine)/
+
+

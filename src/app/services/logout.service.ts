@@ -107,14 +107,19 @@ export class LogoutService {
             await this.staffService.updateStaff(updateBody).toPromise();
           }
 
-          // Mark staff as unavailable
-          const availBody = {
-            domain_name: DOMAIN_NAME,
-            user_id: USER_ID,
-            payload: { staff_updation: { is_available: false } },
-            extras: { find: { id: userId } }
-          };
-          await this.staffService.updateStaff(availBody).toPromise();
+          // Mark staff as unavailable conditionally
+          const isFcmUnavailable = this.localService.get('isFcmUnavailable') === 'true';
+          if (!isFcmUnavailable) {
+            const remainingCount = Array.isArray(staff.fcm_token) ? staff.fcm_token.length : 0;
+            const isAvailableValue = remainingCount >= 1;
+            const availBody = {
+              domain_name: DOMAIN_NAME,
+              user_id: USER_ID,
+              payload: { staff_updation: { is_available: isAvailableValue } },
+              extras: { find: { id: userId } }
+            };
+            await this.staffService.updateStaff(availBody).toPromise();
+          }
         }
       }
 

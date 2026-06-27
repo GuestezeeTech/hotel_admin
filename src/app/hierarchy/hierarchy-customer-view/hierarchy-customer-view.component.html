@@ -11,7 +11,7 @@
               <i class="fas" [ngClass]="isExpanded(item.id) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
             </span>
             <span class="card-title highlight-designation">{{ item.designation }}
-              <span class="escalation-time"><i class="fas fa-clock"></i> {{ item.escalationTime }}</span>
+              <span class="escalation-time" *ngIf="item.parentId"><i class="fas fa-clock"></i> {{ item.escalationTime }}</span>
             </span>
           </div>
           <div class="icons">

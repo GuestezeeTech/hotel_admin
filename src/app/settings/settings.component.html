@@ -238,7 +238,7 @@
             <div class="d-flex justify-content-end">
                 <button type="button" class="mr-3"
                     style="padding: 12px; background: #959FA34D; color: #000000B2; border: none; cursor: pointer; width: 25%; margin-top: 10px; font-size: 16px; border-radius: 8px;"
-                    (click)="closePasswordModal($event)">
+                    (click)="closePasswordModal()">
                     Cancel
                 </button>
                 <!-- Save Button -->
@@ -337,16 +337,16 @@
                     <i class="fa-solid fa-plus"></i> Add Shift
                 </button>
             </div>
+        </div>
+        <!-- Action Buttons (Fixed at Bottom) -->
+        <div style="padding: 15px 20px; border-top: 1px solid #e0e0e0; flex-shrink: 0;">
             <!-- Validation Error -->
             <div *ngIf="errorMessage && errorMessage.length > 0"
-                style="color: red; font-size: 14px; text-align: left; margin-top: 5px;">
+                style="color: red; font-size: 14px; text-align: left; margin-bottom: 10px;">
                 <div *ngFor="let error of errorMessage" style="margin-bottom: 5px;">
                     • {{ error }}
                 </div>
             </div>
-        </div>
-        <!-- Action Buttons (Fixed at Bottom) -->
-        <div style="padding: 15px 20px; border-top: 1px solid #e0e0e0; flex-shrink: 0;">
             <!-- Disabled Message -->
             <div *ngIf="!hasAtLeastOneShift"
                 style="color: #d32f2f; font-size: 13px; text-align: center; margin-bottom: 10px; font-style: italic;">
@@ -447,16 +447,16 @@
                     <i class="fa-solid fa-plus"></i> Add Room
                 </button>
             </div>
+        </div>
+        <!-- Action Buttons (Fixed at Bottom) -->
+        <div style="padding: 15px 20px; border-top: 1px solid #e0e0e0; flex-shrink: 0;">
             <!-- Validation Error -->
             <div *ngIf="roomErrorMessage && roomErrorMessage.length > 0"
-                style="color: red; font-size: 14px; text-align: left; margin-top: 5px;">
+                style="color: red; font-size: 14px; text-align: left; margin-bottom: 10px;">
                 <div *ngFor="let error of roomErrorMessage" style="margin-bottom: 5px;">
                     • {{ error }}
                 </div>
             </div>
-        </div>
-        <!-- Action Buttons (Fixed at Bottom) -->
-        <div style="padding: 15px 20px; border-top: 1px solid #e0e0e0; flex-shrink: 0;">
             <!-- Disabled Message -->
             <div *ngIf="!hasAtLeastOneRoomRange"
                 style="color: #d32f2f; font-size: 13px; text-align: center; margin-bottom: 10px; font-style: italic;">

@@ -14,6 +14,7 @@ import { ServiceSettingsService } from '../service-settings/service-settings.ser
 import { DOMAIN_NAME } from '../app.config';
 import { AlertsComponent } from '../shared/alerts/alerts.component';
 import { PermissionService } from '../services/permission.service';
+import { LoaderService } from '../shared/loader/loader.service';
 
 
 @Component({
@@ -86,7 +87,8 @@ export class FeaturesComponent implements OnInit {
     private authTokenService: AuthTokenService,
     private alertService: AlertsService,
     private serviceSettingsService: ServiceSettingsService,
-    private permissionService: PermissionService
+    private permissionService: PermissionService,
+    private loaderService: LoaderService
   ) { }
 
   get canReadFeatures(): boolean {
@@ -131,13 +133,16 @@ export class FeaturesComponent implements OnInit {
         }
       }
     };
+    this.loaderService.emitLoading();
     this.upsellService.getAllUpsells(payload).subscribe(
       resp => {
+        this.loaderService.emitComplete();
         if (resp && resp.success === 1) {
           this.upsellList = resp.result.data || [];
         }
       },
       err => {
+        this.loaderService.emitComplete();
         console.error('Error fetching upsells:', err);
       }
     );
@@ -193,6 +198,7 @@ export class FeaturesComponent implements OnInit {
     if (!this.itemToDelete) return;
 
     this.isLoading = true;
+    this.loaderService.emitLoading();
     const payload = {
       domain_name: DOMAIN_NAME,
       user_id: this.authTokenService.getUserId(),
@@ -208,6 +214,7 @@ export class FeaturesComponent implements OnInit {
     this.upsellService.deleteUpsell(payload).subscribe(
       resp => {
         this.isLoading = false;
+        this.loaderService.emitComplete();
         this.closeDeleteModal();
         if (resp && resp.success === 1) {
           this.alertService.success('Feature deleted successfully', this.options);
@@ -218,6 +225,7 @@ export class FeaturesComponent implements OnInit {
       },
       err => {
         this.isLoading = false;
+        this.loaderService.emitComplete();
         this.closeDeleteModal();
         this.alertService.error('API Error: ' + err.message, this.options);
       }
@@ -241,6 +249,7 @@ export class FeaturesComponent implements OnInit {
     }
 
     this.isLoading = true;
+    this.loaderService.emitLoading();
     try {
       // Save Feature (Create or Update)
       const payloadData: any = {
@@ -271,6 +280,7 @@ export class FeaturesComponent implements OnInit {
         this.upsellService.updateUpsell(updatePayload).subscribe(
           resp => {
             this.isLoading = false;
+            this.loaderService.emitComplete();
             if (resp && resp.success === 1) {
               this.alertService.success(resp?.message || 'Upselling feature updated successfully!', this.options);
               this.closeModal();
@@ -281,6 +291,7 @@ export class FeaturesComponent implements OnInit {
           },
           err => {
             this.isLoading = false;
+            this.loaderService.emitComplete();
             this.showModalAlert('API Error: ' + err.message);
           }
         );
@@ -297,6 +308,7 @@ export class FeaturesComponent implements OnInit {
         this.upsellService.createUpsell(createPayload).subscribe(
           resp => {
             this.isLoading = false;
+            this.loaderService.emitComplete();
             if (resp && resp.success === 1) {
               this.alertService.success('Upselling feature created successfully!', this.options);
               this.closeModal();
@@ -307,6 +319,7 @@ export class FeaturesComponent implements OnInit {
           },
           err => {
             this.isLoading = false;
+            this.loaderService.emitComplete();
             this.showModalAlert('API Error: ' + err.message);
           }
         );
@@ -314,6 +327,7 @@ export class FeaturesComponent implements OnInit {
 
     } catch (err: any) {
       this.isLoading = false;
+      this.loaderService.emitComplete();
       this.showModalAlert('Process failed: ' + err.message);
     }
   }
@@ -369,6 +383,7 @@ export class FeaturesComponent implements OnInit {
       this.iconPreview = iconUrl;
       this.iconError = '';
       this.isLoading = true;
+      this.loaderService.emitLoading();
       try {
         const uploadHeaders = new HttpHeaders()
           .set("source", "Brand")
@@ -391,6 +406,7 @@ export class FeaturesComponent implements OnInit {
         this.showModalAlert('Icon upload failed: ' + err.message);
       } finally {
         this.isLoading = false;
+        this.loaderService.emitComplete();
       }
     };
     iconImg.onerror = () => {
@@ -443,6 +459,7 @@ export class FeaturesComponent implements OnInit {
       this.imagePreview = mainUrl;
       this.imageError = '';
       this.isLoading = true;
+      this.loaderService.emitLoading();
       try {
         const uploadHeaders = new HttpHeaders()
           .set("source", "Brand")
@@ -465,6 +482,7 @@ export class FeaturesComponent implements OnInit {
         this.showModalAlert('Image upload failed: ' + err.message);
       } finally {
         this.isLoading = false;
+        this.loaderService.emitComplete();
       }
     };
     mainImg.onerror = () => {

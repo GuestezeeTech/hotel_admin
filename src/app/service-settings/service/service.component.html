@@ -39,7 +39,7 @@
       </div>
       <!-- Service Type + Belongs To -->
       <div class="form-grid">
-        <div class="form-group form1_div">
+        <!-- <div class="form-group form1_div">
           <label>Service Type</label>
           <select class="input_box" formControlName="service_type"
             [disabled]="isViewMode || (!service_id && !canAddSystemSettings) || (!!service_id && !canEditSystemSettings)"
@@ -50,7 +50,7 @@
             *ngIf="serviceForm.get('service_type')?.invalid && serviceForm.get('service_type')?.touched">
             Service type is required
           </div>
-        </div>
+        </div> -->
         <div class="form-group form1_div">
           <label>Belongs To</label>
           <input class="input_box" type="text" formControlName="belongs_to"

@@ -60,7 +60,7 @@ export class PushService {
   //   });
   // }
 
-onMessageListener(): Observable<MessagePayload> {
+  onMessageListener(): Observable<MessagePayload> {
     return new Observable((observer) => {
       onMessage(this.messaging, (payload: MessagePayload) => {
         // console.log('[PushService] Foreground message received:', payload);

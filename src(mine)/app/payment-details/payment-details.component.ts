@@ -53,7 +53,7 @@ export class PaymentDetailsComponent implements OnInit {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
       extras: {
-        find: { 
+        find: {
           // Newly added for getting member id for customer type
           // customer_id: Number(this.hotelId) 
           "customer_member_id": this.localStorageService.get('MemberId')

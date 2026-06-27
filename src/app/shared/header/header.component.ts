@@ -353,13 +353,18 @@ export class HeaderComponent implements OnInit {
                   };
                   await this.staffService.updateStaff(updateBody).toPromise();
                 }
-                const availableUpdateBody = {
-                  domain_name: DOMAIN_NAME,
-                  user_id: USER_ID,
-                  payload: { staff_updation: { is_available: false } },
-                  extras: { find: { id: userId } }
-                };
-                await this.staffService.updateStaff(availableUpdateBody).toPromise();
+                const isFcmUnavailable = this.localService.get('isFcmUnavailable') === 'true';
+                if (!isFcmUnavailable) {
+                  const remainingCount = Array.isArray(staff.fcm_token) ? staff.fcm_token.length : 0;
+                  const isAvailableValue = remainingCount >= 1;
+                  const availableUpdateBody = {
+                    domain_name: DOMAIN_NAME,
+                    user_id: USER_ID,
+                    payload: { staff_updation: { is_available: isAvailableValue } },
+                    extras: { find: { id: userId } }
+                  };
+                  await this.staffService.updateStaff(availableUpdateBody).toPromise();
+                }
               }
             }
           })(),
@@ -410,6 +415,9 @@ export class HeaderComponent implements OnInit {
     this.localService.remove('Name');
     this.localService.remove('paymentDone');
     this.localService.remove('lastValidUrl');
+    this.localService.remove('UserFcmTokens');
+    this.localService.remove('isFcmUnavailable');
+    sessionStorage.removeItem('CurrentTabFcmToken');
     this.localService.set('loggedOut', 'true');
     this.router.navigate([''], { skipLocationChange: false, replaceUrl: true });
     this.userAccessService.removeUserAccess();

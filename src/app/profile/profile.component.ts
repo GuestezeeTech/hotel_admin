@@ -481,84 +481,96 @@ export class ProfileComponent implements OnInit {
   // }
 
   savePasswordChanges() {
-    if (this.passwordUpdateForm.valid) {
-      this.validateForm2 = true;
-      const storedPassword = this.localService.get('Password');
-      //console.log("pwrd", storedPassword)
-      const currentPassword = this.p['current_password'].value;
-      let hasError = false;
+    // Reset custom validation errors to allow validation re-run
+    const currentPassCtrl = this.p['current_password'];
+    const newPassCtrl = this.p['new_password'];
+    const confirmPassCtrl = this.p['confirm_password'];
 
-      // Check if current password matches the stored password
-      if (storedPassword && storedPassword !== currentPassword) {
-        this.p['current_password'].setErrors({ incorrect: true });
-        this.alertService.error("Current Password is incorrect.", this.options);
-        hasError = true;
-      }
-      // Ensure new password isn't same as old password
-      if (storedPassword && this.p['new_password'].value == storedPassword) {
-        this.p['new_password'].setErrors({ sameAsOld: true });
-        this.alertService.error("New Password cannot be same as old Password", this.options);
-        hasError = true;
-      }
-      // Ensure passwords match
-      if (this.p['new_password'].value !== this.p['confirm_password'].value) {
-        this.p['confirm_password'].setErrors({ matchError: true });
-        this.alertService.error("New Password and Confirm Password do not match.", this.options);
-        hasError = true;
-      }
+    if (currentPassCtrl.errors) {
+      const errors = { ...currentPassCtrl.errors };
+      delete errors['incorrect'];
+      currentPassCtrl.setErrors(Object.keys(errors).length ? errors : null);
+    }
+    if (newPassCtrl.errors) {
+      const errors = { ...newPassCtrl.errors };
+      delete errors['sameAsOld'];
+      newPassCtrl.setErrors(Object.keys(errors).length ? errors : null);
+    }
+    if (confirmPassCtrl.errors) {
+      const errors = { ...confirmPassCtrl.errors };
+      delete errors['matchError'];
+      confirmPassCtrl.setErrors(Object.keys(errors).length ? errors : null);
+    }
 
-      if (hasError) {
-        return;
-      }
-      let formData: any = {
-        new_password: this.p['new_password'].value
-        // password_to_customer: this.p['new_password'].value,
-        // old_password: this.p['current_password'].value
-      };
-      // Add password_to_customer only if NOT staff
-      if (this.customerType !== 'Staff') {
-        formData.password_to_customer = this.p['new_password'].value;
-      }
-      let jsonObj = {
-        domain_name: DOMAIN_NAME,
-        user_id: USER_ID,
-        payload: { password_details: formData },
-        extras: {
-          find:
-            this.customerType == 'Staff'
-              ? { staff_id: this.hotelId }
-              : { id: this.hotelId }
-        }
-      };
-      this.profileService.updatePassword(jsonObj).subscribe(
-        resp => {
-          if (resp?.success === 1) {
-            this.localService.set('Password', this.p['new_password'].value);
-            this.passwordUpdateForm.reset();
-            this.isPasswordModalOpen = false;
-            this.alertService.success("Password updated successfully!", this.options);
-            // setTimeout(() => {
-            //   this.alertService.clear(); // Clears the alert message
-            // }, 2000);
-          } else {
-            this.alertService.error(resp?.message || "Something went wrong.", this.options);
-            // setTimeout(() => {
-            //   this.alertService.clear(); // Clears the alert message
-            // }, 2000);
-          }
-        },
-        err => {
-          this.alertService.error("Error updating password: " + (err.error?.message || "Please try again!"), this.options);
-          setTimeout(() => {
-            this.alertService.clear(); // Clears the alert message
-          }, 6000);
-        }
-      );
-    } else {
+    // Force validation update
+    this.passwordUpdateForm.updateValueAndValidity();
+
+    // 1. First check if all filled / valid
+    if (!this.passwordUpdateForm.valid) {
       this.passwordUpdateForm.markAllAsTouched();
       this.validateForm2 = true;
-      //console.log('sss')
+      return;
     }
+
+    this.validateForm2 = true;
+    const storedPassword = this.localService.get('Password');
+    const currentPassword = currentPassCtrl.value;
+
+    // 2. Then check current password (only if storedPassword exists in local storage)
+    if (storedPassword && storedPassword !== currentPassword) {
+      currentPassCtrl.setErrors({ incorrect: true });
+      this.alertService.error("Current Password is incorrect.", this.options);
+      return;
+    }
+
+    // 3. Then new and confirm password match
+    if (newPassCtrl.value !== confirmPassCtrl.value) {
+      confirmPassCtrl.setErrors({ matchError: true });
+      this.alertService.error("New Password and Confirm Password do not match.", this.options);
+      return;
+    }
+
+    // 4. Then current and new password (new password cannot be same as old/current password)
+    if (storedPassword && newPassCtrl.value === storedPassword) {
+      newPassCtrl.setErrors({ sameAsOld: true });
+      this.alertService.error("New Password cannot be same as old Password", this.options);
+      return;
+    }
+
+    let formData: any = {
+      new_password: newPassCtrl.value
+    };
+    // Add password_to_customer only if NOT staff
+    if (this.customerType !== 'Staff') {
+      formData.password_to_customer = newPassCtrl.value;
+    }
+    let jsonObj = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      payload: { password_details: formData },
+      extras: {
+        find:
+          this.customerType == 'Staff'
+            ? { staff_id: this.hotelId }
+            : { id: this.hotelId }
+      }
+    };
+    this.profileService.updatePassword(jsonObj).subscribe(
+      resp => {
+        if (resp?.success === 1) {
+          this.localService.set('Password', newPassCtrl.value);
+          this.passwordUpdateForm.reset();
+          this.isPasswordModalOpen = false;
+          this.validateForm2 = false;
+          this.alertService.success("Password updated successfully!", this.options);
+        } else {
+          this.alertService.error(resp?.message || "Something went wrong.", this.options);
+        }
+      },
+      err => {
+        this.alertService.error("Error updating password: " + (err.error?.message || "Please try again!"), this.options);
+      }
+    );
   }
 
   toggleStatus() {
@@ -567,14 +579,14 @@ export class ProfileComponent implements OnInit {
 
   openPasswordModal() {
     this.isPasswordModalOpen = true;
+    this.alertService.clear();
   }
 
-  closePasswordModal(event: Event) {
-    if (event.target === event.currentTarget) {
-      this.passwordUpdateForm.reset(); // Resets all input fields
-      this.isPasswordModalOpen = false;
-      this.validateForm2 = false; // Clear validation state so errors don't show when reopened
-    }
+  closePasswordModal() {
+    this.passwordUpdateForm.reset(); // Resets all input fields
+    this.isPasswordModalOpen = false;
+    this.validateForm2 = false; // Clear validation state so errors don't show when reopened
+    this.alertService.clear();
   }
 
   togglePasswordVisibility(type: string) {
@@ -749,6 +761,9 @@ export class ProfileComponent implements OnInit {
     this.localService.remove('Name');
     this.localService.remove('paymentDone');
     this.localService.remove('lastValidUrl');
+    this.localService.remove('UserFcmTokens');
+    this.localService.remove('isFcmUnavailable');
+    sessionStorage.removeItem('CurrentTabFcmToken');
     this.localService.set('loggedOut', 'true');
     this.router.navigate([''], { skipLocationChange: false, replaceUrl: true });
     this.userAccessService.removeUserAccess();
@@ -763,7 +778,7 @@ export class ProfileComponent implements OnInit {
         return;
       }
       const errors = { ...matchingControl.errors };
-      if (control.value !== matchingControl.value) {
+      if (matchingControl.value && control.value !== matchingControl.value) {
         errors['matchError'] = true;
         matchingControl.setErrors(errors);
       } else {

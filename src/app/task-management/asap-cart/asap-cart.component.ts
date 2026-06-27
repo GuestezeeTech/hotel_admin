@@ -1728,6 +1728,7 @@ export class AsapCartComponent implements OnInit, OnDestroy {
 
   // Newly added - Help Service
   openHelpServiceModal(task: any) {
+    console.log('Help service modal:', task);
     this.selectedHelpServiceTask = task;
     this.isHelpServiceModalOpen = true;
   }

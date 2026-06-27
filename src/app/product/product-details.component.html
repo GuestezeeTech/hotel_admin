@@ -127,9 +127,9 @@
           </div>
         </div>
       </div>
-      <div class="modal-overlay" *ngIf="isModalOpen" (click)="closeModal()">
+      <div class="modal-overlay" *ngIf="isModalOpen">
         <div class="modal-content" (click)="$event.stopPropagation()">
-          <button (click)="closeModal()" class="close-btn">X</button>
+          <button (click)="closeModal()" class="close-btn"><i class="fa fa-times"></i></button>
           <img [src]="selectedImageUrl" alt="Document Preview" class="modal-image">
         </div>
       </div>

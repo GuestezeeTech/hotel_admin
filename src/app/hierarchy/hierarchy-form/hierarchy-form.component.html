@@ -63,7 +63,7 @@
                 </option>
               </select>
             </div>
-            <div class="form-field">
+            <div class="form-field" *ngIf="!isRowTopLevel(item)">
               <label>Escalation Time (in minutes):</label>
               <input type="number" formControlName="escalationTime" placeholder="Enter time in minutes"
                 [disabled]="!canEditForm" step="1" min="1" (keydown)="blockInvalidKeys($event)"

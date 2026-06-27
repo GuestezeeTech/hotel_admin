@@ -377,4 +377,14 @@ export class HotelEnrollmentTabviewService {
     }
   }
 
+  // Newly added for tech info check
+  checkIsTechnicalInfoExist(jsonObj: any): Observable<any> {
+    if (this.authTokenService.isTokenExpired()) {
+      this.router.navigate([`/login`], { skipLocationChange: false });
+      return new Observable();
+    } else {
+      return this.http.post(ENDPOINTS.CHECK_IS_TECHNICAL_INFO_EXIST, jsonObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
+    }
+  }
+
 }

@@ -185,27 +185,27 @@ export class SettingsComponent implements OnInit {
 
   openPasswordModal() {
     this.isPasswordModalOpen = true;
+    this.alertService.clear();
     this.updateBodyScrollLock();
   }
 
-  closePasswordModal(event: Event) {
-    if (event.target === event.currentTarget) {
-      // Clear all entered values and validation states when closing the modal
-      if (this.passwordUpdateForm) {
-        this.passwordUpdateForm.reset();
-        this.passwordUpdateForm.markAsPristine();
-        this.passwordUpdateForm.markAsUntouched();
-      }
-      // Reset eye icon visibility states
-      this.showCurrentPassword = false;
-      this.showNewPassword = false;
-      this.showConfirmPassword = false;
-      // Reset internal validation flag if used elsewhere
-      this.validateForm2 = false;
-
-      this.isPasswordModalOpen = false;
-      this.updateBodyScrollLock();
+  closePasswordModal() {
+    // Clear all entered values and validation states when closing the modal
+    if (this.passwordUpdateForm) {
+      this.passwordUpdateForm.reset();
+      this.passwordUpdateForm.markAsPristine();
+      this.passwordUpdateForm.markAsUntouched();
     }
+    // Reset eye icon visibility states
+    this.showCurrentPassword = false;
+    this.showNewPassword = false;
+    this.showConfirmPassword = false;
+    // Reset internal validation flag if used elsewhere
+    this.validateForm2 = false;
+    this.alertService.clear();
+
+    this.isPasswordModalOpen = false;
+    this.updateBodyScrollLock();
   }
 
   togglePasswordVisibility(type: string) {
@@ -219,84 +219,99 @@ export class SettingsComponent implements OnInit {
   }
 
   savePasswordChanges() {
-    if (this.passwordUpdateForm.valid) {
-      this.validateForm2 = true;
-      const storedPassword = this.localService.get('Password');
-      //console.log("pwrd", storedPassword)
-      const currentPassword = this.p['current_password'].value;
-      // Check if current password matches the stored password
-      if (storedPassword && storedPassword !== currentPassword) {
-        // console.log("storedPassword", storedPassword, "currentPassword", currentPassword)
-        this.p['current_password'].setErrors({ incorrect: true });
-        this.alertService.error(("Current Password is incorrect."), this.options);
-        return;
-      }
-      // Ensure passwords match
-      if (this.p['new_password'].value !== this.p['confirm_password'].value) {
-        // console.log("newPassword", this.p['new_password'].value, "confirmPassword", this.p['confirm_password'].value)
-        this.p['confirm_password'].setErrors({ matchError: true });
-        this.alertService.error(("New Password and Confirm Password do not match."), this.options);
-        return;
-      }
-      // Ensure passwords match
-      if (storedPassword && this.p['new_password'].value == storedPassword) {
-        // console.log("newPassword", this.p['new_password'].value, "storedPassword", storedPassword)
-        this.alertService.error(("New Password cannot be same as old Password"), this.options);
-        return;
-      }
-      this.localService.set('Password', this.p['new_password'].value);
-      let formData: any = {
-        new_password: this.p['new_password'].value,
-        // password_to_customer: this.p['new_password'].value
-        // old_password: this.p['current_password'].value
-      };
-      // Add password_to_customer only if NOT staff
-      if (this.customerType !== 'Staff') {
-        formData.password_to_customer = this.p['new_password'].value;
-      }
-      let jsonObj: any = {
-        domain_name: DOMAIN_NAME,
-        user_id: USER_ID,
-        payload: { password_details: formData },
-        extras: { find: {} }
-      };
-      // console.log("Password request body", jsonObj)
-      const customerType = this.localService.get('CustomerType');
-      // conditionally assign
-      if (customerType === 'Staff') {
-        jsonObj.extras.find['staff_id'] = this.hotelId;  // use staff_id
-      } else {
-        jsonObj.extras.find['id'] = this.hotelId; // use id
-      }
-      this.profileService.updatePassword(jsonObj).subscribe(
-        resp => {
-          if (resp?.success === 1) {
-            this.localService.set('Password', this.p['new_password'].value);
-            this.passwordUpdateForm.reset();
-            this.isPasswordModalOpen = false;
-            this.alertService.success(("Password updated successfully!"), this.options);
-            // setTimeout(() => {
-            //   this.alertService.clear(); // Clears the alert message
-            // }, 2000);
-          } else {
-            this.alertService.error((resp?.message || "Something went wrong."), this.options);
-            // setTimeout(() => {
-            //   this.alertService.clear(); // Clears the alert message
-            // }, 2000);
-          }
-        },
-        err => {
-          this.alertService.error(("Error updating password: " + (err.error?.message || "Please try again!")), this.options);
-          setTimeout(() => {
-            this.alertService.clear(); // Clears the alert message
-          }, 6000);
-        }
-      );
-    } else {
+    // Reset custom validation errors to allow validation re-run
+    const currentPassCtrl = this.p['current_password'];
+    const newPassCtrl = this.p['new_password'];
+    const confirmPassCtrl = this.p['confirm_password'];
+
+    if (currentPassCtrl.errors) {
+      const errors = { ...currentPassCtrl.errors };
+      delete errors['incorrect'];
+      currentPassCtrl.setErrors(Object.keys(errors).length ? errors : null);
+    }
+    if (newPassCtrl.errors) {
+      const errors = { ...newPassCtrl.errors };
+      delete errors['sameAsOld'];
+      newPassCtrl.setErrors(Object.keys(errors).length ? errors : null);
+    }
+    if (confirmPassCtrl.errors) {
+      const errors = { ...confirmPassCtrl.errors };
+      delete errors['matchError'];
+      confirmPassCtrl.setErrors(Object.keys(errors).length ? errors : null);
+    }
+
+    // Force validation update
+    this.passwordUpdateForm.updateValueAndValidity();
+
+    // 1. First check if all filled / valid
+    if (!this.passwordUpdateForm.valid) {
       this.passwordUpdateForm.markAllAsTouched();
       this.validateForm2 = true;
-      //console.log('sss')
+      return;
     }
+
+    this.validateForm2 = true;
+    const storedPassword = this.localService.get('Password');
+    const currentPassword = currentPassCtrl.value;
+
+    // 2. Then check current password (only if storedPassword exists in local storage)
+    if (storedPassword && storedPassword !== currentPassword) {
+      currentPassCtrl.setErrors({ incorrect: true });
+      this.alertService.error(("Current Password is incorrect."), this.options);
+      return;
+    }
+
+    // 3. Then new and confirm password match
+    if (newPassCtrl.value !== confirmPassCtrl.value) {
+      confirmPassCtrl.setErrors({ matchError: true });
+      this.alertService.error(("New Password and Confirm Password do not match."), this.options);
+      return;
+    }
+
+    // 4. Then current and new password (new password cannot be same as old/current password)
+    if (storedPassword && newPassCtrl.value === storedPassword) {
+      newPassCtrl.setErrors({ sameAsOld: true });
+      this.alertService.error(("New Password cannot be same as old Password"), this.options);
+      return;
+    }
+
+    this.localService.set('Password', newPassCtrl.value);
+    let formData: any = {
+      new_password: newPassCtrl.value
+    };
+    // Add password_to_customer only if NOT staff
+    if (this.customerType !== 'Staff') {
+      formData.password_to_customer = newPassCtrl.value;
+    }
+    let jsonObj: any = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      payload: { password_details: formData },
+      extras: { find: {} }
+    };
+    const customerType = this.localService.get('CustomerType');
+    // conditionally assign
+    if (customerType === 'Staff') {
+      jsonObj.extras.find['staff_id'] = this.hotelId;  // use staff_id
+    } else {
+      jsonObj.extras.find['id'] = this.hotelId; // use id
+    }
+    this.profileService.updatePassword(jsonObj).subscribe(
+      resp => {
+        if (resp?.success === 1) {
+          this.localService.set('Password', newPassCtrl.value);
+          this.passwordUpdateForm.reset();
+          this.isPasswordModalOpen = false;
+          this.validateForm2 = false;
+          this.alertService.success(("Password updated successfully!"), this.options);
+        } else {
+          this.alertService.error((resp?.message || "Something went wrong."), this.options);
+        }
+      },
+      err => {
+        this.alertService.error(("Error updating password: " + (err.error?.message || "Please try again!")), this.options);
+      }
+    );
   }
 
   openPaymentPlan() {
@@ -2073,7 +2088,7 @@ export class SettingsComponent implements OnInit {
         return;
       }
       const errors = { ...matchingControl.errors };
-      if (control.value !== matchingControl.value) {
+      if (matchingControl.value && control.value !== matchingControl.value) {
         errors['matchError'] = true;
         matchingControl.setErrors(errors);
       } else {

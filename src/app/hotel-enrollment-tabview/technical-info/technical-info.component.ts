@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { DOMAIN_NAME, USER_ID, ENDPOINTS } from './../../app.config';
 import { AlertsService } from './../../shared/alerts/alerts.service';
-import { Component, Output, EventEmitter, AfterViewInit, Input, OnInit } from '@angular/core';
+import { Component, Output, EventEmitter, AfterViewInit, Input, OnInit, HostListener } from '@angular/core';
 import { LocalStorageService } from './../../auth-services/local-storage.service';
 import { Router, ActivatedRoute, NavigationEnd } from '@angular/router';
 import { ProfileService } from '../../profile/profile.service';
@@ -78,6 +78,7 @@ export class TechnicalInfoComponent implements OnInit {
   // Newly added for payment modal
   @ViewChild('paymentModal') paymentModal!: ElementRef;
   modalInstance: any;
+  isPaymentModalOpen: boolean = false;
   customerStatus: any;
   // Ecom Integration Settings 
   @ViewChild('ecomIntegrationModal') ecomIntegrationModal!: ElementRef;
@@ -179,7 +180,7 @@ export class TechnicalInfoComponent implements OnInit {
         }
       }
     }
-    this.hotelenrollmentservice.updateCustomer(requestBody).subscribe(
+    this.hotelenrollmentservice.updateCustomerSettings(requestBody).subscribe(
       resp => {
         this.loaderService.emitComplete();
         if (resp) {
@@ -895,7 +896,7 @@ export class TechnicalInfoComponent implements OnInit {
         }
       }
     }
-    this.hotelenrollmentservice.updateCustomer(requestBody).subscribe(
+    this.hotelenrollmentservice.updateCustomerSettings(requestBody).subscribe(
       resp => {
         this.loaderService.emitComplete();
         if (resp) {
@@ -904,8 +905,9 @@ export class TechnicalInfoComponent implements OnInit {
             this.hotelenrollmentservice.clearAdminFormEvent();
             ////console.log(resp.message, "resp.message")
             this.alertsService.success(resp.message, this.options);
-
-
+            if (this.customerdata) {
+              this.customerdata.is_technical_info_exists = true;
+            }
           }
           else if (resp.success === 0) {
             if (resp.message) {
@@ -1842,6 +1844,11 @@ export class TechnicalInfoComponent implements OnInit {
     // console.log('Brand error', this.customerdata);
     // console.log('Amount to be paid:', Number(nextUnpaid.order_total_amount.toFixed(2)));
     // 6 Prepare orderData (kept exactly as you provided)
+    const isIndia = this.customerdata?.property_details?.property_address?.property_country === 'India';
+    const taxInfo = isIndia
+      ? { gst_number: this.customerdata?.property_details?.property_address?.property_gst || "" }
+      : { vat_number: this.customerdata?.property_details?.property_address?.property_vat || "" };
+
     const orderData = {
       customer_id: this.customerdata?.id,
       status: "Awaiting Payment",
@@ -1875,7 +1882,7 @@ export class TechnicalInfoComponent implements OnInit {
             "customer_id": this.customerdata?.id,
             "alias": "",
             "first_name": this.customerdata?.first_name,
-            "gst_number": "",
+            ...taxInfo,
             "last_name": "",
             "company_name": "",
             "entire_location": this.customerdata?.email,
@@ -2097,6 +2104,8 @@ export class TechnicalInfoComponent implements OnInit {
   }
 
   openModal() {
+    this.isPaymentModalOpen = true;
+    window.history.pushState(null, '', window.location.href);
     // Lazy‑create the Bootstrap modal instance when first opened
     if (!this.modalInstance && this.paymentModal) {
       this.modalInstance = new bootstrap.Modal(this.paymentModal.nativeElement, {
@@ -2122,8 +2131,15 @@ export class TechnicalInfoComponent implements OnInit {
   }
 
   closeModal() {
-    // console.log('Close button clicked');  // Will now work
+    this.isPaymentModalOpen = false;
     this.modalInstance.hide();
+  }
+
+  @HostListener('window:popstate', ['$event'])
+  onBrowserBack(event: any) {
+    if (this.isPaymentModalOpen) {
+      window.history.pushState(null, '', window.location.href);
+    }
   }
 
   //Ecom Integration Settings 
@@ -3085,7 +3101,6 @@ export class TechnicalInfoComponent implements OnInit {
 
       return;
     }
-
     const changedRecords = this.generalTechInfoData.filter(
       (item: any) =>
         this.originalEnabledState[item.id] !== item.is_enabled
@@ -3136,14 +3151,26 @@ export class TechnicalInfoComponent implements OnInit {
 
       return;
     }
-
+    // Newly added for is_technical_info_exists key updation
+    if (!this.customerdata?.is_technical_info_exists) {
+      this.updateCustomer();
+    }
+    // End of is_technical_info_exists key updation
     const changedRecords = this.generalTechInfoData.filter(
       (item: any) =>
         this.originalEnabledState[item.id] !== item.is_enabled
     );
 
     if (changedRecords.length === 0) {
-      this.openModal();
+      // Newly added for not opening payment modal once done
+      // this.openModal();
+      if (this.paymentDone) {
+        this.continue.emit();
+      }
+      else {
+        this.openModal();
+      }
+      // End of not opening payment modal once done
       return;
     }
 
@@ -3163,7 +3190,14 @@ export class TechnicalInfoComponent implements OnInit {
           );
 
           await this.syncCustomerHotelCodeFromActivePms();
-          this.openModal();
+          // Newly added for not opening payment modal once done
+          // this.openModal();
+          if (this.paymentDone) {
+            this.continue.emit();
+          } else {
+            this.openModal();
+          }
+          // End of not opening payment modal once done
         }
 
       });

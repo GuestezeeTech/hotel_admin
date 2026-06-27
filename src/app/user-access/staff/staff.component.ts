@@ -240,7 +240,7 @@ export class StaffComponent implements OnInit {
   getCustomerById(): Promise<void> {
     const memberId = this.localStorageService.get('MemberId');
     // console.log('getCustomerById called with hotelId:', memberId, this.hotelId);
-    this.loaderService.emitLoading(); // newly added for loading
+    // this.loaderService.emitLoading(); // newly added for loading
     return new Promise((resolve, reject) => {
       let requestBody = {
         domain_name: DOMAIN_NAME,
@@ -255,7 +255,7 @@ export class StaffComponent implements OnInit {
       };
       this.hotelenrollmentservice.getLoginCustomerById(requestBody).subscribe(
         resp => {
-          this.loaderService.emitComplete();
+          // this.loaderService.emitComplete();
           if (resp) {
             const customerdata = resp.result.data[0];
             // console.log('Customer Data:', customerdata);
@@ -285,7 +285,7 @@ export class StaffComponent implements OnInit {
           }
         },
         err => {
-          this.loaderService.emitComplete();
+          // this.loaderService.emitComplete();
           if (err.error.statusCode === 403) {
             this.alertService.error('Session Time Out! Please login Again', this.options);
             this.routerUrl.navigate([`/login`], { skipLocationChange: false });
@@ -1257,7 +1257,7 @@ export class StaffComponent implements OnInit {
   getOfficerDetails(supervisorIds: any[]) {
     // console.log('Calling 1')
     // console.log('Fetching officers for higher level hierarchy IDs:', supervisorIds);
-    this.loaderService.emitLoading(); //newly added for loading
+    // this.loaderService.emitLoading(); //newly added for loading
     const requestBody = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
@@ -1265,7 +1265,7 @@ export class StaffComponent implements OnInit {
     };
     this.staffListingService.getAllStaves(requestBody).subscribe(
       (resp: any) => {
-        this.loaderService.emitComplete(); //newly added for loading
+        // this.loaderService.emitComplete(); //newly added for loading
         if (resp?.success === 1 && resp.status_code === 200) {
           const allStaff = resp.result.data || [];
           const officersForSelected: any[] = [];
@@ -1331,7 +1331,7 @@ export class StaffComponent implements OnInit {
         }
       },
       (err) => {
-        this.loaderService.emitComplete(); //newly added for loading
+        // this.loaderService.emitComplete(); //newly added for loading
         console.error('Error fetching officers:', err);
         if (err?.error?.statusCode === 403) {
           this.routerUrl.navigate(['/login']);
@@ -1396,7 +1396,7 @@ export class StaffComponent implements OnInit {
 
   async getChildHierarchy(supervisorIds: any[], respData?: any) {
     // console.log('Fetching child hierarchy for supervisor IDs:', supervisorIds);
-    this.loaderService.emitLoading(); //newly added for loading
+    // this.loaderService.emitLoading(); //newly added for loading
     const requestBody = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
@@ -1410,7 +1410,7 @@ export class StaffComponent implements OnInit {
       }
     };
     this.hierarchyService.getAllHierarchy(requestBody).subscribe(async (resp: any) => {
-      this.loaderService.emitComplete();
+      // this.loaderService.emitComplete();
       if (resp?.success === 1 && resp.status_code === 200) {
         const allHierarchies = resp.result.data.flatMap((item: any) => item.hierarchy || []);
         // children for selected supervisors
@@ -1472,7 +1472,7 @@ export class StaffComponent implements OnInit {
         this.alertService.error(resp?.message || 'Something bad happened!', this.alertOptions);
       }
     }, err => {
-      this.loaderService.emitComplete();
+      // this.loaderService.emitComplete();
       this.alertService.error(err?.error?.message || 'Something bad happened!', this.alertOptions);
     });
   }
@@ -2023,10 +2023,10 @@ export class StaffComponent implements OnInit {
         find: { id: Number(staffId), member_id: this.memberId }
       }
     };
-    this.loaderService.emitLoading();
+    // this.loaderService.emitLoading();
     this.staffService.getStaffById(jsonObj).subscribe(
       (resp: any) => {
-        this.loaderService.emitComplete();
+        // this.loaderService.emitComplete();
         this.isPageLoading = false; //newly added for loading
         if (resp.success === 1 && resp.status_code === 200) {
           const respData = resp.result.data[0];
@@ -2113,7 +2113,7 @@ export class StaffComponent implements OnInit {
         }
       },
       (err) => {
-        this.loaderService.emitComplete();
+        // this.loaderService.emitComplete();
         this.isPageLoading = false; // newly added for loading
         if (err.error?.statusCode === 403) {
           this.alertService.error('Session Time Out! Please login Again', this.alertOptions);
@@ -2126,7 +2126,7 @@ export class StaffComponent implements OnInit {
   }
 
   getCustomerHierarchy(): void {
-    this.loaderService.emitLoading(); //newly added for loading
+    // this.loaderService.emitLoading(); //newly added for loading
     const requestBody = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
@@ -2140,7 +2140,7 @@ export class StaffComponent implements OnInit {
     };
     this.hierarchyService.getAllHierarchy(requestBody).subscribe(
       (resp: any) => {
-        this.loaderService.emitComplete();
+        // this.loaderService.emitComplete();
         if (resp?.success === 1 && resp.status_code === 200) {
           this.customerHierarchy = resp.result.data[0];
           // console.log("Fetched customer hierarchy(in staff creation):", this.customerHierarchy);
@@ -2194,7 +2194,7 @@ export class StaffComponent implements OnInit {
         }
       },
       (err: any) => {
-        this.loaderService.emitComplete();
+        // this.loaderService.emitComplete();
         const errorMsg = err?.error?.message || 'Something bad happened. Please try again!';
         this.alertService.error(errorMsg, this.alertOptions);
         if (err?.error?.statusCode === 403) {

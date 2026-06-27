@@ -261,8 +261,19 @@ export class LoginService {
     });
   }
 
+  /*  sendWelcomeEmail(payload: any): Observable<any> {
+     return this.http.post(`${this.baseUrl}/enrollmentsuccessemail`, payload);
+   } */
+
+
   sendWelcomeEmail(payload: any): Observable<any> {
-    return this.http.post(`${this.baseUrl}/enrollmentsuccessemail`, payload);
+    if (this.authTokenService.isTokenExpired()) {
+      this.router.navigate([`/login`], { skipLocationChange: false });
+      return new Observable();
+    }
+    else {
+      return this.http.post(ENDPOINTS.SEND_WELCOME_EMAIL, payload, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) })
+    }
   }
 
   sendSMS(tokenObj: any): Observable<any> {

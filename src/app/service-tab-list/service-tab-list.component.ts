@@ -8,6 +8,8 @@ import { ServiceTabListService } from './service-tab-list.service';
 import { AlertsComponent } from '../shared/alerts/alerts.component';
 import { ServiceSettingsService } from '../service-settings/service-settings.service';
 import { PermissionService, ModulePermission } from '../services/permission.service';
+import { Router } from '@angular/router';
+import { DepartmentListService } from '../department-list/department-list.service';
 
 interface ServiceTabs {
   id: number;
@@ -50,6 +52,7 @@ export class ServiceTabListComponent {
   isLoadingServices: boolean = false;
   // View-only mode for modal
   isViewMode: boolean = false;
+  departments: any[] = [];
 
   ngOnInit() {
     this.member_id = this.localService.get('MemberId');
@@ -58,6 +61,7 @@ export class ServiceTabListComponent {
     // console.log('Hotel Id:', this.hotel_id);
     if (this.member_id) {
       this.getServiceTabById(this.member_id);
+      this.getDepartmentsById(this.member_id);
     }
   }
 
@@ -66,8 +70,45 @@ export class ServiceTabListComponent {
     private serviceTabListService: ServiceTabListService,
     private alertsService: AlertsService,
     private serviceSettingsService: ServiceSettingsService,
-    private permissionService: PermissionService
+    private permissionService: PermissionService,
+    private departmentService: DepartmentListService,
+    private router: Router
   ) { }
+
+  getDepartmentsById(memberId: any) {
+    const jsonObj = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: {
+        find: {
+          member_id: memberId
+        }
+      }
+    };
+    this.departmentService.getAllDepartments(jsonObj).subscribe(
+      (resp: any) => {
+        if (resp.success === 1 && resp.status_code === 200) {
+          const allDepartments = resp.result.data;
+          this.departments = allDepartments.map((dept: any) => dept.name);
+        } else {
+          this.departments = [];
+        }
+      },
+      (error: any) => {
+        this.departments = [];
+      }
+    );
+  }
+
+  navigateToAddService() {
+    if (!this.selectedTab) return;
+    this.router.navigate(['/add-new-service'], {
+      state: {
+        service_tab: this.selectedTab.name,
+        from: 'service-tab-list'
+      }
+    });
+  }
 
   // -------------
   // Permission helpers for template bindings

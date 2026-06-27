@@ -208,9 +208,9 @@ export class BookingsManagementComponent {
   memberId: any;
   allGuestTask: any;
   // Newly added for loader
-  isLoading: boolean = false;
-  isLoadingGuestLogs: boolean = false;
-  isLoadingTasks: boolean = false;
+  isLoading: boolean = true;
+  isLoadingGuestLogs: boolean = true;
+  isLoadingTasks: boolean = true;
 
   constructor(
     private route: ActivatedRoute,
@@ -249,10 +249,17 @@ export class BookingsManagementComponent {
         if (id) {
           this.guestId = Number(id);
           this.getBookingsById(this.guestId);
+        } else {
+          this.isLoading = false;
+          this.isLoadingGuestLogs = false;
+          this.isLoadingTasks = false;
         }
       });
     } catch (error) {
       console.error("Error fetching customer:", error);
+      this.isLoading = false;
+      this.isLoadingGuestLogs = false;
+      this.isLoadingTasks = false;
     }
   }
 
@@ -375,7 +382,7 @@ export class BookingsManagementComponent {
   getAllTask(guestid: any) {
     this.isLoadingTasks = true;
     let object: any = {
-      // "member_id": this.memberId,
+      "member_id": this.memberId,
       "guest_id": guestid
     };
     let requestBody = {

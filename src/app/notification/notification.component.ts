@@ -199,7 +199,11 @@ export class NotificationComponent {
     }
     else if (title === 'Escalated' && body === 'Immediate attention needed') {
       targetTab = 'Priority';
-    } else if (title === 'Escalated' && body === 'Your task is escalated') {
+    }
+    else if (title === 'Escalated' && body === 'Desk staff is currently offline') {
+      targetTab = 'Priority';
+    }
+    else if (title === 'Escalated' && body === 'Your task is escalated') {
       targetTab = 'My Escalation';
     }
     else if (title === 'Completed') {
@@ -232,6 +236,9 @@ export class NotificationComponent {
       targetTab = 'ASAP';
     }
     else if (notify.title === 'Escalated' && notify.body === 'Immediate attention needed') {
+      targetTab = 'Priority';
+    }
+    else if (notify.title === 'Escalated' && notify.body === 'Desk staff is currently offline') {
       targetTab = 'Priority';
     }
     else if (notify.title === 'Escalated' && notify.body === 'Your task is escalated') {

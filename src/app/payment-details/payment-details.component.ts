@@ -53,7 +53,7 @@ export class PaymentDetailsComponent implements OnInit {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
       extras: {
-        find: { 
+        find: {
           // Newly added for getting member id for customer type
           // customer_id: Number(this.hotelId) 
           "customer_member_id": this.localStorageService.get('MemberId')
@@ -110,7 +110,8 @@ export class PaymentDetailsComponent implements OnInit {
   }
 
   downloadInvoice(id: number) {
-    window.open("https://www.guestezee.com:5520/api/Email/DownloadEnrollmentInvoicePdf?domain_name=" + DOMAIN_NAME + "&order_id=" + id + "", '_blank')
+    // window.open("https://www.guestezee.com:5520/api/Email/DownloadEnrollmentInvoicePdf?domain_name=" + DOMAIN_NAME + "&order_id=" + id + "", '_blank')
+    window.open(`https://www.guestezee.com:8010/attachments/invoice?domain_name=https://www.guestezee.com&order_id=${id}`, '_blank');
   }
 
 }
