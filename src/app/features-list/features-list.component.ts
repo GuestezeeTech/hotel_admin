@@ -572,6 +572,9 @@ export class FeaturesListComponent implements OnInit {
   }
 
   openOfferModal(outlet: any) {
+    if (this.selectedOutlet?.winhms_outlet_id !== outlet.winhms_outlet_id) {
+      this.applyOutletChange(outlet);
+    }
     this.selectedOfferOutlet = outlet;
     this.resetOfferForm();
     this.isOfferModalOpen = true;
@@ -607,6 +610,12 @@ export class FeaturesListComponent implements OnInit {
     }
     //  keep max 2 decimals, no rounding
     this.offerForm.afterDiscount = Number(finalAmount.toFixed(2));
+  }
+
+  onOfferTypeChange() {
+    this.offerForm.discountValue = null;
+    this.offerErrors.discountType = null;
+    this.calculateDiscountResult();
   }
 
   onConsiderBaseAmountChange() {

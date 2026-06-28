@@ -14,13 +14,17 @@
                     <!-- Spacer if no warning -->
                     <div class="upsell-header-note" style="width: fit-content;">
                         <i class="fas fa-info-circle"></i>
-                        <span>
-                            Menus can be added only for Restaurants.
-                            <span *ngIf="customerdata && !customerdata.Hotel_Code && !customerdata.hotel_code"
-                                style="font-weight: 600;">
-                                Please set Hotel Code in Technical Info before adding any Outlet.
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <span>
+                                &bull; Menus can be added only for Restaurants.
+                                <span *ngIf="customerdata && !customerdata.Hotel_Code" style="font-weight: 600;">
+                                    Please set Hotel Code in Technical Info before adding any Outlet.
+                                </span>
                             </span>
-                        </span>
+                            <span>
+                                &bull; Features (Upselling) must be created before creating an outlet.
+                            </span>
+                        </div>
                     </div>
                     <button class="add-btn submit" *ngIf="!isLoading"
                         style="font-size:14px; background: #800020; color: white; border-radius: 5px; border: 1px solid white; padding: 5px 20px;"

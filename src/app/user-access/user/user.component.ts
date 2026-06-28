@@ -543,7 +543,7 @@ export class UserComponent implements OnInit {
           email: respData.email,
           role_name: respData.role_name,
           created_by_name: respData.created_by_name,
-          is_locked: respData.is_locked,
+          is_locked: false, // Force false by default
           is_active: respData.is_active,
           role_id: respData.role_id,
           // is_password_reset_next_login: respData.is_password_reset_next_login,

@@ -84,7 +84,7 @@ export class RoleComponent implements OnInit {
     this.roleService.clearAdminFormEvent();
     this.roleForm = new FormGroup({
       role_name: this.formBuilder.control('', [Validators.required, Validators.maxLength(40)]),
-      is_standard: this.formBuilder.control(false),
+      is_standard: this.formBuilder.control(true),
       is_active: this.formBuilder.control(false)
     })
     //console.log('Standard Role:', this.roleForm.controls['is_standard'].value)
@@ -517,7 +517,7 @@ export class RoleComponent implements OnInit {
       if (resp.success === 1 && resp.status_code === 200) {
         let respData = resp.result.data[0];
         this.roleForm.controls["role_name"].setValue(respData.name)
-        this.roleForm.controls["is_standard"].setValue(respData.is_standard)
+        this.roleForm.controls["is_standard"].setValue(true) // Force true by default
         this.roleForm.controls["is_active"].setValue(respData.is_active)
         respData.modules.forEach((element: any) => {
           if (element.module_name === "DASHBOARD") {
@@ -620,7 +620,7 @@ export class RoleComponent implements OnInit {
   resetForm() {
     this.validateForm = false;
     this.roleForm.controls["role_name"].setValue("");
-    this.roleForm.controls["is_standard"].setValue(false);
+    this.roleForm.controls["is_standard"].setValue(true);
     this.roleForm.controls["is_active"].setValue(false);
     this.dashboardForm.controls["create"].setValue(false);
     this.dashboardForm.controls["edit"].setValue(false);

@@ -603,17 +603,20 @@ export class LoginComponent implements OnInit {
                               staff.fcm_token = [];
                             }
                             if (token !== null && token !== undefined && token.trim() !== '') {
-                              staff.fcm_token.push(token);
+                              if (!staff.fcm_token.includes(token)) {
+                                staff.fcm_token.push(token);
+                              }
                               sessionStorage.setItem('CurrentTabFcmToken', token);
                             }
                             localStorage.setItem('UserFcmTokens', JSON.stringify(staff.fcm_token));
-                            // Step 3: Update staff FCM token
+                            // Step 3: Update staff FCM token and is_available
                             const updateBody = {
                               domain_name: DOMAIN_NAME,
                               user_id: USER_ID,
                               payload: {
                                 staff_updation: {
-                                  fcm_token: staff.fcm_token
+                                  fcm_token: staff.fcm_token,
+                                  is_available: true
                                 }
                               },
                               extras: {
@@ -625,45 +628,15 @@ export class LoginComponent implements OnInit {
                             this.staffService.updateStaff(updateBody).subscribe(
                               (updateResp: any) => {
                                 if (updateResp.success === 1 && updateResp.status_code === 200) {
-                                  // console.log('Staff FCM token updated successfully:', token);
+                                  // console.log('Staff FCM token and is_available updated successfully');
                                 } else {
-                                  console.error('Failed to update staff FCM token:', updateResp?.message);
+                                  console.error('Failed to update staff FCM token and is_available:', updateResp?.message);
                                 }
                               },
                               (err: any) => {
-                                console.error('Error updating staff FCM token:', err);
+                                console.error('Error updating staff FCM token and is_available:', err);
                               }
                             );
-                             // Newly added is_available to true on staff login
-                             const isFcmUnavailable = this.localService.get('isFcmUnavailable') === 'true';
-                             if (!isFcmUnavailable) {
-                               const availableUpdateBody = {
-                                 domain_name: DOMAIN_NAME,
-                                 user_id: USER_ID,
-                                 payload: {
-                                   staff_updation: {
-                                     is_available: true
-                                   }
-                                 },
-                                 extras: {
-                                   find: {
-                                     id: userData.staff_id
-                                   }
-                                 }
-                               };
-                               this.staffService.updateStaff(availableUpdateBody).subscribe(
-                                 (availResp: any) => {
-                                   if (availResp.success === 1 && availResp.status_code === 200) {
-                                     // console.log('Staff is_available set to true on login');
-                                   } else {
-                                     console.error('Failed to update staff is_available on login:', availResp?.message);
-                                   }
-                                 },
-                                 (err: any) => {
-                                   console.error('Error updating staff is_available on login:', err);
-                                 }
-                               );
-                             }
                           }// End of newly added is_available to true on staff login
                           else {
                             console.error('Staff not found for ID:', userData.staff_id);
@@ -772,18 +745,15 @@ export class LoginComponent implements OnInit {
                     this.localService.set('isFcmUnavailable', isFcmUnavailable ? 'true' : 'false');
                     // this.token = await this.pushService.requestPermission();
                     // console.log('User FCM Token:', token);
-                    // Step 1: Fetch customer by email
+                    // Step 1: Fetch customer by id
                     const fetchBody = {
                       domain_name: DOMAIN_NAME,
                       user_id: USER_ID,
                       extras: {
-                        // find: {
-                        // email: this.loginForm.value.email
-                        find: isEmailLogin ? { email: enteredValue } : { staff_employee_number: enteredValue }
-                        // }
+                        find: { id: userData.id }
                       }
                     };
-                    this.hotellistService.getSignupAllCustomers(fetchBody).subscribe(
+                    this.hotelenrollmenttabviewService.getLoginCustomerById(fetchBody).subscribe(
                       (resp: any) => {
                         if (resp.success === 1 && resp.status_code === 200 && resp.result.data.length > 0) {
                           const customer = resp.result.data[0];
@@ -792,7 +762,9 @@ export class LoginComponent implements OnInit {
                             customer.fcm_token = [];
                           }
                           if (token !== null && token !== undefined && token.trim() !== '') {
-                            customer.fcm_token.push(token);
+                            if (!customer.fcm_token.includes(token)) {
+                              customer.fcm_token.push(token);
+                            }
                             sessionStorage.setItem('CurrentTabFcmToken', token);
                           }
                           localStorage.setItem('UserFcmTokens', JSON.stringify(customer.fcm_token));
@@ -806,10 +778,7 @@ export class LoginComponent implements OnInit {
                               }
                             },
                             extras: {
-                              // find: {
-                              //   email: this.loginForm.value.email
-                              // }
-                              find: isEmailLogin ? { email: enteredValue } : { staff_employee_number: enteredValue }
+                              find: { id: userData.id }
                             }
                           };
                           this.hotelenrollmenttabviewService.updateCustomerFcm(updateBody).subscribe(
