@@ -79,11 +79,23 @@
                 <input type="checkbox" formControlName="isTopLevel" /> Top Level
               </label>
             </div> -->
+            <!-- Newly changed: replaced the single Intermediate checkbox with Child / Intermediate / Upper Level radios -->
             <div *ngIf="showTopLevelOption" class="form-field"
-              style="margin-top: 0.5rem; display: flex; align-items: center; gap: 6px;">
+              style="margin-top: 0.5rem; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
               <label style="display: flex; align-items: center; gap: 6px; white-space: nowrap;">
-                <input type="checkbox" formControlName="isTopLevel" [disabled]="!canEditForm" />
+                <input type="radio" formControlName="levelType" value="child" [disabled]="!canEditForm"
+                  (change)="onLevelTypeChange(i)" />
+                Child
+              </label>
+              <label style="display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+                <input type="radio" formControlName="levelType" value="intermediate" [disabled]="!canEditForm"
+                  (change)="onLevelTypeChange(i)" />
                 Intermediate Level
+              </label>
+              <label style="display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+                <input type="radio" formControlName="levelType" value="upper" [disabled]="!canEditForm"
+                  (change)="onLevelTypeChange(i)" />
+                Upper Level
               </label>
             </div>
           </div>

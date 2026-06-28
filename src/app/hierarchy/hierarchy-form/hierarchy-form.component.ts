@@ -254,18 +254,52 @@ export class HierarchyFormComponent implements OnInit {
     this.addItem();
     // Show Top Level option if adding a child to a parent with children
     if (this.parentId !== undefined) {
-      const siblings = this.hierarchyService.getHierarchyData().filter(item => item.parentId === this.parentId);
-      this.showTopLevelOption = siblings.length > 0;
-      // Reset isTopLevel checkbox in form
+      // Newly changed: always show the Child / Intermediate / Upper Level radios
+      // when adding under a clicked node (no longer gated on existing children).
+      this.showTopLevelOption = true;
+      // Reset the level radio (and its flags) to the default Child option
       if (this.items.length > 0) {
+        this.items.at(0).get('levelType')?.setValue('child');
         this.items.at(0).get('isTopLevel')?.setValue(false);
+        this.items.at(0).get('isUpperLevel')?.setValue(false);
       }
     } else {
       this.showTopLevelOption = false;
       if (this.items.length > 0) {
+        this.items.at(0).get('levelType')?.setValue('child');
         this.items.at(0).get('isTopLevel')?.setValue(false);
+        this.items.at(0).get('isUpperLevel')?.setValue(false);
       }
     }
+  }
+
+  // Newly added: keep the persisted flags + escalation-time rule in sync with the
+  // selected level radio (Child / Intermediate / Upper Level).
+  onLevelTypeChange(index: number) {
+    const itemForm = this.items.at(index) as FormGroup;
+    const levelType = itemForm.get('levelType')?.value || 'child';
+    // Keep the two persisted flags aligned with the selected radio
+    itemForm.get('isTopLevel')?.setValue(levelType === 'intermediate');
+    itemForm.get('isUpperLevel')?.setValue(levelType === 'upper');
+    // Work out the effective parent of the new node so the escalation-time field
+    // shows/validates correctly (root nodes use 0 and hide the field).
+    let effectiveParentId: any = this.parentId ?? 0;
+    if (levelType === 'upper') {
+      // Upper Level: the new node takes the clicked node's current parent.
+      const clickedNode = this.hierarchyService.getHierarchyData().find(i => i.id === this.parentId);
+      effectiveParentId = (clickedNode && clickedNode.parentId) ? clickedNode.parentId : 0;
+    }
+    itemForm.get('parentId')?.setValue(effectiveParentId);
+    // Mirror addItem()'s escalation-time rule for the new effective parent
+    const escCtrl = itemForm.get('escalationTime');
+    const isTop = !effectiveParentId || effectiveParentId === 0;
+    if (isTop) {
+      escCtrl?.clearValidators();
+      escCtrl?.setValue(0);
+    } else {
+      escCtrl?.setValidators([Validators.required, Validators.min(1)]);
+    }
+    escCtrl?.updateValueAndValidity();
   }
 
   showTreeForm() {
@@ -346,24 +380,35 @@ export class HierarchyFormComponent implements OnInit {
 
   // Newly added & commented for disabling department field
   addItem() {
-    const isParentNotDefault =
-      this.parentDepartment &&
-      this.parentDepartment !== '' &&
-      this.parentDepartment !== 'Default';
+    // Determine the parent node's department so it can be retained (locked) when
+    // adding under an existing node. Fall back to the shared hierarchy data when
+    // the department wasn't passed through navigation state.
+    const hasParent = this.parentId != null && this.parentId !== 0;
+    let parentDept = (this.parentDepartment && this.parentDepartment !== '') ? this.parentDepartment : '';
+    if (hasParent && !parentDept) {
+      const parentNode = this.hierarchyService.getHierarchyData().find(i => i.id === this.parentId);
+      parentDept = parentNode?.department || '';
+    }
+    // Retain the parent's department (lock the dropdown) whenever adding under an
+    // existing node; allow choosing only when there is no parent (first node).
+    const retainParentDept = hasParent && !!parentDept;
     const isTop = !this.parentId || this.parentId === 0;
     const itemForm = this.formBuilder.group({
       id: [null],
       designation: ['', Validators.required],
       escalationTime: isTop ? [0] : ['', [Validators.required, Validators.min(1)]],
       department: [
-        isParentNotDefault ? this.parentDepartment : '',
+        retainParentDept ? parentDept : '',
         Validators.required
       ],
       isTopLevel: [false],
+      // Newly added for Upper Level radio option (Child / Intermediate / Upper Level)
+      isUpperLevel: [false],
+      levelType: ['child'],
       parentId: [this.parentId ?? 0]
     });
-    // Disable department if parent is not Default
-    if (isParentNotDefault) {
+    // Lock the department field when retaining the parent's department
+    if (retainParentDept) {
       itemForm.get('department')?.disable();
     }
     this.items.push(itemForm);
@@ -427,7 +472,9 @@ export class HierarchyFormComponent implements OnInit {
         designation: r.designation,
         department: r.department,
         escalationTime: isTop ? 0 : (Number(r.escalationTime) || 0),
-        isTopLevel: !!r.isTopLevel
+        isTopLevel: !!r.isTopLevel,
+        // Newly added for Upper Level option
+        isUpperLevel: !!r.isUpperLevel
       };
     });
     // console.log('Form rows:', formRows);
@@ -436,6 +483,8 @@ export class HierarchyFormComponent implements OnInit {
     //   formRows[0].department = this.parentDepartment;
     // }
     const isTopLevelChecked = this.items.at(0).value.isTopLevel;
+    // Newly added for Upper Level option
+    const isUpperLevelChecked = this.items.at(0).value.isUpperLevel;
     const existing = this.hierarchyService.getHierarchyData() || [];
     // ---------- EDIT MODE ----------
     if (this.isEditMode && this.editId !== undefined) {
@@ -492,6 +541,38 @@ export class HierarchyFormComponent implements OnInit {
         return;
       }
     }
+    // Upper Level insertion: the new node is placed ABOVE the clicked node only.
+    // The new node takes the clicked node's current parent, and the clicked node
+    // becomes a child of the new node (siblings of the clicked node stay put).
+    if (this.showTopLevelOption && isUpperLevelChecked && this.parentId !== undefined) {
+      const clickedIdx = mergedResult.findIndex(item => item.id === this.parentId);
+      if (clickedIdx !== -1) {
+        const clickedNode = mergedResult[clickedIdx];
+        const oldParentId = clickedNode.parentId;
+        let nextId = this.hierarchyService.getNextId();
+        if (!formRows[0].id) formRows[0].id = nextId++;
+        const newItem: any = {
+          id: formRows[0].id,
+          designation: formRows[0].designation,
+          department: formRows[0].department,
+          escalationTime: formRows[0].escalationTime,
+          isTopLevel: false,
+          isUpperLevel: true,
+          isTreeItem: this.isTreeForm
+        };
+        // New node inherits the clicked node's old parent (omit when root, matching existing pattern)
+        if (oldParentId && oldParentId !== 0) {
+          newItem.parentId = oldParentId;
+        }
+        // Clicked node now hangs under the new node
+        mergedResult[clickedIdx] = { ...clickedNode, parentId: newItem.id };
+        // Insert the new node just before the clicked node
+        mergedResult.splice(clickedIdx, 0, newItem);
+        this.hierarchyService['hierarchyData'].next([...mergedResult]);
+        this.createHierarchy(mergedResult);
+        return;
+      }
+    }
     // Regular insertion (multiple rows under same parent)
     // 1) compute nextId based on existing mergedResult
     let nextId = (existing.length ? Math.max(...existing.map((x: any) => x.id || 0)) : 0) + 1;
@@ -509,6 +590,8 @@ export class HierarchyFormComponent implements OnInit {
         department: row.department,
         escalationTime: row.escalationTime,
         isTopLevel: row.isTopLevel,
+        // Newly added for Upper Level option
+        isUpperLevel: row.isUpperLevel,
         isTreeItem: this.isTreeForm
       };
       // Only include parentId when it is not 0  
