@@ -43,6 +43,9 @@ export class HierarchyFormComponent implements OnInit {
   member_id: any;
   departments: any;
   isSubmitting = false;
+  // Newly added for hierarchy change
+  hasChildren = false;
+  showIntermediateOption = false;
 
   constructor(
     private formBuilder: FormBuilder,
@@ -68,13 +71,20 @@ export class HierarchyFormComponent implements OnInit {
       }
       if (navigation.extras.state['department'] !== undefined) {
         this.parentDepartment = navigation.extras.state['department'];
-      } else {
+      }
+      else {
         this.parentDepartment = "";
       }
       if (navigation.extras.state['editId'] !== undefined) {
         this.editId = navigation.extras.state['editId'];
         this.isEditMode = true;
       }
+      // Newly added for hierarchy change
+      if (navigation.extras.state['hasChildren'] !== undefined) {
+        this.hasChildren = navigation.extras.state['hasChildren'];
+        this.showIntermediateOption = navigation.extras.state['hasChildren'];
+      }
+      // End of newly added for hierarchy change
     }
   }
 
@@ -275,32 +285,104 @@ export class HierarchyFormComponent implements OnInit {
 
   // Newly added: keep the persisted flags + escalation-time rule in sync with the
   // selected level radio (Child / Intermediate / Upper Level).
+  /*  onLevelTypeChange(index: number) {
+     const itemForm = this.items.at(index) as FormGroup;
+     const levelType = itemForm.get('levelType')?.value || 'child';
+     // Keep the two persisted flags aligned with the selected radio
+     itemForm.get('isTopLevel')?.setValue(levelType === 'intermediate');
+     itemForm.get('isUpperLevel')?.setValue(levelType === 'upper');
+     // Work out the effective parent of the new node so the escalation-time field
+     // shows/validates correctly (root nodes use 0 and hide the field).
+     let effectiveParentId: any = this.parentId ?? 0;
+     if (levelType === 'upper') {
+       // Upper Level: the new node takes the clicked node's current parent.
+       const clickedNode = this.hierarchyService.getHierarchyData().find(i => i.id === this.parentId);
+       effectiveParentId = (clickedNode && clickedNode.parentId) ? clickedNode.parentId : 0;
+     }
+     itemForm.get('parentId')?.setValue(effectiveParentId);
+     // Mirror addItem()'s escalation-time rule for the new effective parent
+     const escCtrl = itemForm.get('escalationTime');
+     const isTop = !effectiveParentId || effectiveParentId === 0;
+     if (isTop) {
+       escCtrl?.clearValidators();
+       escCtrl?.setValue(0);
+     } else {
+       escCtrl?.setValidators([Validators.required, Validators.min(1)]);
+     }
+     escCtrl?.updateValueAndValidity();
+   }
+  */
   onLevelTypeChange(index: number) {
     const itemForm = this.items.at(index) as FormGroup;
     const levelType = itemForm.get('levelType')?.value || 'child';
-    // Keep the two persisted flags aligned with the selected radio
+
+    // Keep the persisted flags aligned with the selected radio
     itemForm.get('isTopLevel')?.setValue(levelType === 'intermediate');
     itemForm.get('isUpperLevel')?.setValue(levelType === 'upper');
-    // Work out the effective parent of the new node so the escalation-time field
-    // shows/validates correctly (root nodes use 0 and hide the field).
-    let effectiveParentId: any = this.parentId ?? 0;
-    if (levelType === 'upper') {
-      // Upper Level: the new node takes the clicked node's current parent.
-      const clickedNode = this.hierarchyService.getHierarchyData().find(i => i.id === this.parentId);
-      effectiveParentId = (clickedNode && clickedNode.parentId) ? clickedNode.parentId : 0;
+
+    // Get the clicked hierarchy
+    const clickedNode = this.hierarchyService
+      .getHierarchyData()
+      .find(i => i.id === this.parentId);
+
+    const parentDept = clickedNode?.department || '';
+
+    // Department control
+    const deptCtrl = itemForm.get('department');
+
+    // Freeze logic
+    /* const shouldFreezeDepartment =
+      this.hasChildren || parentDept !== 'Default'; */
+    const shouldFreezeDepartment =
+      parentDept !== 'Default';
+
+    if (levelType === 'upper' || levelType === 'intermediate') {
+      // Always inherit clicked hierarchy's department
+      deptCtrl?.setValue(parentDept);
+      deptCtrl?.disable();
+    } else {
+      // Child
+      if (shouldFreezeDepartment) {
+        deptCtrl?.setValue(parentDept);
+        deptCtrl?.disable();
+      } else {
+        // Parent has no child AND parent department is Default
+        deptCtrl?.enable();
+        deptCtrl?.setValue('');
+      }
     }
+
+    // Work out the effective parent
+    let effectiveParentId: any = this.parentId ?? 0;
+
+    if (levelType === 'upper') {
+      // Upper Level becomes the parent of the clicked hierarchy
+      effectiveParentId =
+        clickedNode && clickedNode.parentId
+          ? clickedNode.parentId
+          : 0;
+    }
+
     itemForm.get('parentId')?.setValue(effectiveParentId);
-    // Mirror addItem()'s escalation-time rule for the new effective parent
+
+    // Escalation Time
     const escCtrl = itemForm.get('escalationTime');
     const isTop = !effectiveParentId || effectiveParentId === 0;
+
     if (isTop) {
       escCtrl?.clearValidators();
+      escCtrl?.setValidators([]);
       escCtrl?.setValue(0);
     } else {
-      escCtrl?.setValidators([Validators.required, Validators.min(1)]);
+      escCtrl?.setValidators([
+        Validators.required,
+        Validators.min(1)
+      ]);
     }
+
     escCtrl?.updateValueAndValidity();
   }
+
 
   showTreeForm() {
     this.showForm = true;
@@ -391,7 +473,16 @@ export class HierarchyFormComponent implements OnInit {
     }
     // Retain the parent's department (lock the dropdown) whenever adding under an
     // existing node; allow choosing only when there is no parent (first node).
-    const retainParentDept = hasParent && !!parentDept;
+    //  Newly added for hierarchy change
+    //  const retainParentDept = hasParent && !!parentDept;
+    /*   const retainParentDept =
+        hasParent &&
+        this.hasChildren; */
+    const retainParentDept =
+      hasParent &&
+      this.hasChildren &&
+      parentDept !== 'Default';
+    // End of newly added hierarchy change
     const isTop = !this.parentId || this.parentId === 0;
     const itemForm = this.formBuilder.group({
       id: [null],
@@ -412,7 +503,12 @@ export class HierarchyFormComponent implements OnInit {
       itemForm.get('department')?.disable();
     }
     this.items.push(itemForm);
+    // Apply the default Child logic immediately
+    const index = this.items.length - 1;
+    this.onLevelTypeChange(index);
   }
+
+
 
 
   /* addItem() {

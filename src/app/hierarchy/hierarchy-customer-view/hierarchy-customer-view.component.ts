@@ -88,17 +88,6 @@ export class HierarchyCustomerViewComponent {
     this.expandedMap[id] = !this.isExpanded(id);
   }
 
-  onAdd(parentId?: number, department?: string) {
-    // Block add when user has no add permission
-    if (!this.canAddSystemSettings) {
-      return;
-    }
-    //console.log("onAdd", parentId, department)
-    this.router.navigate(['/edit-hierarchy', this.hierarchyId], {
-      state: { parentId, department }
-    });
-  }
-
   onAddRoot() {
     // Block root add when user has no add permission
     if (!this.canAddSystemSettings) {
@@ -445,6 +434,30 @@ export class HierarchyCustomerViewComponent {
     }
   }
 
+  /*   onAdd(parentId?: number, department?: string) {
+    // Block add when user has no add permission
+    if (!this.canAddSystemSettings) {
+      return;
+    }
+    //console.log("onAdd", parentId, department)
+    this.router.navigate(['/edit-hierarchy', this.hierarchyId], {
+      state: { parentId, department }
+    });
+  } */
+
+  onAdd(parentId?: number, department?: string) {
+    if (!this.canAddSystemSettings) {
+      return;
+    }
+    const hasChildren = this.getChildren(parentId).length > 0;
+    this.router.navigate(['/edit-hierarchy', this.hierarchyId], {
+      state: {
+        parentId,
+        department,
+        hasChildren
+      }
+    });
+  }
 
 }
 

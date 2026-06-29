@@ -87,7 +87,10 @@
                   (change)="onLevelTypeChange(i)" />
                 Child
               </label>
-              <label style="display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+              <!-- Newly added for hierarchy change -->
+              <!-- <label style="display: flex; align-items: center; gap: 6px; white-space: nowrap;" *ngIf="showIntermediateOption"> -->
+              <label style="display: flex; align-items: center; gap: 6px; white-space: nowrap;"
+                *ngIf="showIntermediateOption">
                 <input type="radio" formControlName="levelType" value="intermediate" [disabled]="!canEditForm"
                   (change)="onLevelTypeChange(i)" />
                 Intermediate Level
