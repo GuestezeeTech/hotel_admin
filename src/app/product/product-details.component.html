@@ -152,7 +152,7 @@
               aria-expanded="false"
               style="background-color: white; font-size: 14px; color: #333; box-shadow: none;"
               [disabled]="isViewMode || (!isEditMode && !canAddOutlets) || (isEditMode && !canEditOutlets)">
-              <span class="text-truncate">{{ categoryForm.get('selectedCategory')?.value?.name || (categoryForm.get('selectedCategory')?.value === 'othercat' ? 'Other Category' : 'Select Category') }}</span>
+              <span class="text-truncate">{{ categoryForm.get('selectedCategory')?.value?.name || 'Select Category' }}</span>
               <i class="fa fa-angle-down ms-2" style="font-size: 14px;"></i>
             </button>
             <ul class="dropdown-menu w-100 p-0 shadow-sm" style="max-height: 250px; overflow-y: auto; background-color: #ffffff; border: 1px solid #ccc; border-radius: 4px;">
@@ -165,9 +165,9 @@
                   </div>
                 </div>
               </li>
-              <li>
-                <div class="dropdown-item custom-option" (click)="selectCategory('othercat')">
-                  Other Category
+              <li *ngIf="!categories || categories.length === 0">
+                <div class="dropdown-item text-center text-muted disabled py-2" style="font-size: 13px;">
+                  No categories found.
                 </div>
               </li>
             </ul>

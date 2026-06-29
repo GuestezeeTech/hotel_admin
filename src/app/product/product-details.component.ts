@@ -5,14 +5,16 @@ import { HttpClient } from '@angular/common/http';
 import { HttpHeaders } from '@angular/common/http';
 import { ProductDetailService } from './product-detail.service';
 import { LocalStorageService } from "../auth-services/local-storage.service";
-import { ENDPOINTS } from '../app.config';
+import { ENDPOINTS, DOMAIN_NAME, USER_ID } from '../app.config';
 // import { ENDPOINTS } from 'src/app/app.config';
-import { Validators } from '@angular/forms';
+import { Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { AlertsService } from '../shared/alerts/alerts.service';
 import { ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Route, ActivatedRoute } from '@angular/router';
 import { AlertsComponent } from '../shared/alerts/alerts.component';
+import { LoaderService } from '../shared/loader/loader.service';
+import { forkJoin, of } from 'rxjs';
 import { PermissionService, ModulePermission } from '../services/permission.service';
 
 @Component({
@@ -84,6 +86,7 @@ export class ProductDetailsComponent {
   selectedCategoryToEdit: any = null;
   isDeleteCategoryModalOpen: boolean = false;
   categoryToDelete: any = null;
+  outletData: any;
 
   constructor(private fb: FormBuilder,
     private cdr: ChangeDetectorRef,
@@ -93,13 +96,14 @@ export class ProductDetailsComponent {
     private productDetailService: ProductDetailService,
     private alertService: AlertsService,
     private route: ActivatedRoute,
-    private permissionService: PermissionService
+    private permissionService: PermissionService,
+    private loaderService: LoaderService
   ) {
     this.companyForm = this.fb.group({
-      name: ['', Validators.required],
+      name: ['', [this.noWhitespaceValidator.bind(this)]],
       // sku: ['', Validators.required],
-      offer_price: ['', Validators.required],
-      price: ['', Validators.required],
+      offer_price: ['', [this.noWhitespaceValidator.bind(this)]],
+      price: ['', [this.noWhitespaceValidator.bind(this)]],
       description: [''],
       uploadedDocuments: [[]] // Placeholder for uploaded documents
     });
@@ -117,47 +121,33 @@ export class ProductDetailsComponent {
     // Check if in view mode from navigation state
     const navState = window.history.state as any;
     this.isViewMode = navState?.mode === 'view';
-    /*  this.route.paramMap.subscribe(params => {
-       const id = params.get('id');
-       this.outlet_id = Number(id)
-       if (id) {
-         // console.log('Editing Outlet with ID:', id);
-         this.outlet_id = Number(id);
-         // fetch and patch data
-       }
-       else {
-         // console.log('Creating new product');
-       }
-     }); */
+
     this.route.paramMap.subscribe(params => {
       const outlet_id = params.get('outlet_id');
       const id = params.get('id');
-      // console.log('Outlet id:', outlet_id);
-      // console.log('Product id:', id);
       if (outlet_id) {
-        // console.log('Product list ofOutlet(ID):', outlet_id);
         this.outlet_id = Number(outlet_id);
         this.localService.set('outlet_id', outlet_id);
       }
       else if (id) {
-        // console.log('Editing product(Id):', id);
         this.productId = Number(id);
-        this.getAllProductsList(this.productId);
         this.isEditMode = true;
         this.newProduct = false;
       }
       else {
-        // console.log('Creating new product');
         this.newProduct = false;
         this.isEditMode = false;
       }
+
+      // Always ensure we have outlet_id set
+      if (!this.outlet_id) {
+        this.outlet_id = Number(this.localService.get('outlet_id'));
+      }
+      this.loadInitialData();
     });
+
     // Check if payment done or not
     this.isPaymentDone = (this.localService.get('isPaymentDone') == 'true') ? true : false;
-    // Category List
-    this.getAllCategories();
-    // Product List
-    this.getAllProducts();
 
     // Disable forms if in view mode
     if (this.isViewMode) {
@@ -214,6 +204,7 @@ export class ProductDetailsComponent {
 
   deleteProduct(id: any) {
     if (!this.canDeleteOutlets) return;
+    this.loaderService.emitLoading();
     let requestBody = {
       "domain_name": "https://www.guestezee.com",
       "user_id": 1,
@@ -228,6 +219,7 @@ export class ProductDetailsComponent {
       }
     }
     this.productDetailService.postApiCall1(requestBody, ENDPOINTS.DELETE_PRODUCT).subscribe((res: any) => {
+      this.loaderService.emitComplete();
       if (res && res.success === 1) {
         this.alertService.success('Product deleted successfully!', this.options);
         this.getAllProducts();
@@ -235,6 +227,9 @@ export class ProductDetailsComponent {
       else {
         this.alertService.error('Product deletion failed!', this.options);
       }
+    }, error => {
+      this.loaderService.emitComplete();
+      this.alertService.error('Product deletion failed!', this.options);
     })
   }
 
@@ -258,7 +253,7 @@ export class ProductDetailsComponent {
       const category = product?.categories?.[0];
       const matchedCategory = this.categories.find(c => c.id === category?.id);
       this.categoryForm.patchValue({
-        selectedCategory: matchedCategory || 'othercat'
+        selectedCategory: matchedCategory || null
       });
       // Set uploaded image files - ensure we always have 3 slots
       const assetsArray = product.assets || [];
@@ -288,14 +283,142 @@ export class ProductDetailsComponent {
     }
   }
 
+  loadInitialData() {
+    this.loaderService.emitLoading();
+    const outletObservable = this.outlet_id ?
+      this.productDetailService.postApiCall({
+        domain_name: DOMAIN_NAME,
+        user_id: USER_ID,
+        extras: {
+          find: {
+            id: this.outlet_id,
+            member_id: this.memberId
+          }
+        }
+      }, ENDPOINTS.OUTLET_GETBYID) : of(null);
+
+    outletObservable.subscribe({
+      next: (resp: any) => {
+        if (resp && resp.success === 1 && resp.result?.data?.[0]) {
+          this.outletData = resp.result.data[0];
+        }
+
+        const resolvedOutletId = this.getResolvedOutletId();
+
+        const categoriesObservable = this.productDetailService.getAllCategories({
+          "domain_name": 'https://www.guestezee.com',
+          "user_id": 1,
+          "extras": {
+            "find": {
+              outlet_id: resolvedOutletId
+            },
+            "pagination": false,
+            "paginationDetails": {
+              "limit": 100,
+              "pageSize": 1
+            },
+            "sorting": true,
+            "sortingDetails": {
+              "name": -1
+            }
+          }
+        });
+
+        const productsObservable = this.productDetailService.postApiCall1({
+          "domain_name": "https://www.guestezee.com",
+          "user_id": 1,
+          "extras": {
+            "find": {
+              "outlet_id": resolvedOutletId,
+              "member_id": this.localService.get('MemberId')
+            }
+          }
+        }, ENDPOINTS.GET_ALL_PRODUCTS);
+
+        const editProductObservable = (this.isEditMode && this.productId) ?
+          this.productDetailService.postApiCall1({
+            "domain_name": "https://www.guestezee.com",
+            "user_id": 1,
+            "extras": {
+              "find": {
+                "outlet_id": resolvedOutletId,
+                "member_id": this.localService.get('MemberId')
+              },
+              "pagination": true,
+              "paginationDetails": {
+                "limit": 10,
+                "pageSize": 1
+              },
+              "sorting": true,
+              "sortingDetails": {
+                "id": -1
+              }
+            }
+          }, ENDPOINTS.GET_ALL_PRODUCTS) : of(null);
+
+        forkJoin([categoriesObservable, productsObservable, editProductObservable]).subscribe({
+          next: ([catResp, prodResp, editProdResp]: any[]) => {
+            if (catResp && catResp.success == 1) {
+              this.categories = catResp.result.data;
+            }
+            if (prodResp && prodResp.success === 1) {
+              this.allProducts = prodResp.result.data;
+              this.totalProducts = this.allProducts.length;
+              this.totalPages = Math.ceil(this.totalProducts / this.pageSize);
+              this.updatePaginatedProducts();
+            }
+            if (editProdResp && editProdResp.success === 1) {
+              this.allProducts = editProdResp.result.data;
+              this.setInitialValues(this.productId);
+            }
+            this.loaderService.emitComplete();
+          },
+          error: (err) => {
+            console.error("Error loading component data", err);
+            this.loaderService.emitComplete();
+          }
+        });
+      },
+      error: (err) => {
+        console.error("Error loading outlet details", err);
+        this.loaderService.emitComplete();
+      }
+    });
+  }
+
+  getResolvedOutletId(): any {
+    if (this.outletData) {
+      const isExist = !!(this.outletData.is_third_party_outlet_id_exist || 
+                         this.outletData.third_party_outlet_id || 
+                         this.outletData.winhms_outlet_id);
+      if (isExist) {
+        const val = this.outletData.third_party_outlet_id || this.outletData.winhms_outlet_id;
+        if (val) {
+          return isNaN(Number(val)) ? val : Number(val);
+        }
+      }
+    }
+    return this.outlet_id;
+  }
+
+  noWhitespaceValidator(control: AbstractControl): ValidationErrors | null {
+    const value = control.value;
+    if (value === null || value === undefined) {
+      return { 'required': true };
+    }
+    const isWhitespace = value.toString().trim().length === 0;
+    return isWhitespace ? { 'required': true } : null;
+  }
+
   getAllCategories() {
+    this.loaderService.emitLoading();
     this.productDetailService.getAllCategories(
       {
         "domain_name": 'https://www.guestezee.com',
         "user_id": 1,
         "extras": {
           "find": {
-            outlet_id: Number(this.localService.get('outlet_id'))
+            outlet_id: this.getResolvedOutletId()
           },
           "pagination": false,
           "paginationDetails": {
@@ -309,6 +432,7 @@ export class ProductDetailsComponent {
         }
       }
     ).subscribe(response => {
+      this.loaderService.emitComplete();
       if (response && response.success == 1) {
         this.categories = response.result.data;
         // console.log("Categoies list:", this.categories)
@@ -316,17 +440,19 @@ export class ProductDetailsComponent {
       else {
         // console.log(response.message);
       }
-    }
-    )
+    }, error => {
+      this.loaderService.emitComplete();
+    })
   }
 
   getAllProducts() {
+    this.loaderService.emitLoading();
     let requestBody = {
       "domain_name": "https://www.guestezee.com",
       "user_id": 1,
       "extras": {
         "find": {
-          "outlet_id": Number(this.localService.get('outlet_id')),
+          "outlet_id": this.getResolvedOutletId(),
           // Newly added for getting member id for customer type
           // "customer_id": this.customerId,
           "member_id": this.localService.get('MemberId')
@@ -343,6 +469,7 @@ export class ProductDetailsComponent {
       }
     }
     this.productDetailService.postApiCall1(requestBody, ENDPOINTS.GET_ALL_PRODUCTS).subscribe(resp => {
+      this.loaderService.emitComplete();
       if (resp && resp.success === 1) {
         this.allProducts = resp.result.data;
         // console.log("All Products Raw:", this.allProducts);
@@ -354,6 +481,8 @@ export class ProductDetailsComponent {
       } else {
         console.error("Error fetching products", resp?.message);
       }
+    }, error => {
+      this.loaderService.emitComplete();
     })
   }
 
@@ -548,14 +677,8 @@ export class ProductDetailsComponent {
   // }
 
   selectCategory(category: any) {
-    if (category === 'othercat') {
-      this.categoryForm.get('selectedCategory')?.setValue('othercat');
-      // this.opencate();
-      this.categoryForm.get('selectedCategory')?.markAsTouched();
-    } else {
-      this.categoryForm.get('selectedCategory')?.setValue(category);
-      this.categoryForm.get('selectedCategory')?.markAsTouched();
-    }
+    this.categoryForm.get('selectedCategory')?.setValue(category);
+    this.categoryForm.get('selectedCategory')?.markAsTouched();
   }
 
   editCategory(category: any, event: Event) {
@@ -583,6 +706,7 @@ export class ProductDetailsComponent {
 
   confirmDeleteCategory() {
     if (!this.categoryToDelete) return;
+    this.loaderService.emitLoading();
     // Logic to delete category
     // let requestBody = {
     //     domain_name: 'https://www.guestezee.com',
@@ -611,6 +735,7 @@ export class ProductDetailsComponent {
 
     this.productDetailService.postApiCall1(requestBody, ENDPOINTS.DELETE_CATEGORY).subscribe(
       (res: any) => {
+        this.loaderService.emitComplete();
         if (res && res.success === 1) {
           this.alertService.success('Category deleted successfully!', this.options);
           if (this.categoryForm.get('selectedCategory')?.value?.id === this.categoryToDelete.id) {
@@ -624,6 +749,7 @@ export class ProductDetailsComponent {
         }
       },
       error => {
+        this.loaderService.emitComplete();
         this.alertService.error('Category deletion failed or API not available', this.options);
         this.closeDeleteCategoryModal();
       }
@@ -639,6 +765,7 @@ export class ProductDetailsComponent {
     }
     let orderDetails = this.categoryForm.value.name;
 
+    this.loaderService.emitLoading();
     if (this.isEditCategoryMode && this.selectedCategoryToEdit) {
       let updateRequest = {
         domain_name: 'https://www.guestezee.com',
@@ -658,6 +785,7 @@ export class ProductDetailsComponent {
       };
       this.productDetailService.postApiCall1(updateRequest, ENDPOINTS.UPDATE_CATEGORY).subscribe(
         resp => {
+          this.loaderService.emitComplete();
           if (resp && resp.success === 1) {
             this.alertService.success('Category Updated Successfully', this.options);
             this.getAllCategories();
@@ -673,6 +801,10 @@ export class ProductDetailsComponent {
           else {
             this.alertService.error(resp?.message || 'Update failed', this.options);
           }
+        },
+        error => {
+          this.loaderService.emitComplete();
+          this.alertService.error('Category update failed or API not available', this.options);
         }
       );
 
@@ -698,7 +830,7 @@ export class ProductDetailsComponent {
             "horizontal_name": [],
             "filter_name": [],
             "language": "EN",
-            "outlet_id": Number(this.localService.get('outlet_id')),
+            "outlet_id": this.getResolvedOutletId(),
             "tags": "",
             "column": "",
             "is_active": true,
@@ -711,6 +843,7 @@ export class ProductDetailsComponent {
       }
       this.productDetailService.addCategory(jsonRequest).subscribe(
         resp => {
+          this.loaderService.emitComplete();
           if (resp && resp.success === 1 && resp.status_code == 200) {
             this.alertService.success('Category Created Successfully', this.options);
             this.getAllCategories();
@@ -721,6 +854,7 @@ export class ProductDetailsComponent {
           }
         },
         error => {
+          this.loaderService.emitComplete();
           this.alertService.error('Category creation failed or API not available', this.options);
         }
       )
@@ -756,7 +890,7 @@ export class ProductDetailsComponent {
     let orderDetails = {
       customer_id: this.customerId,
       member_id: this.memberId,
-      outlet_id: Number(this.localService.get('outlet_id')),
+      outlet_id: this.getResolvedOutletId(),
       name: this.companyForm.get('name')?.value,
       product_type: "Simple",
       stock_status: this.isAvailable ? "Available" : "Out of Stock",
@@ -877,6 +1011,7 @@ export class ProductDetailsComponent {
       },
 
     };
+    this.loaderService.emitLoading();
     if (!this.isEditMode) {
       let requestData = {
         domain_name: 'https://www.guestezee.com',
@@ -887,6 +1022,7 @@ export class ProductDetailsComponent {
       }
       this.productDetailService.postApiCall1(requestData, ENDPOINTS.ADD_PRODUCT).subscribe(
         respData => {
+          this.loaderService.emitComplete();
           if (respData?.success === 1) {
             this.alertService.success('Product added successfully', this.options);
             setTimeout(() => {
@@ -907,6 +1043,10 @@ export class ProductDetailsComponent {
             this.alertService.error(respData?.message, this.options);
           }
           // this.router.navigate([`/list-view/products`]);
+        },
+        error => {
+          this.loaderService.emitComplete();
+          this.alertService.error('Product addition failed', this.options);
         })
     }
     else {
@@ -924,6 +1064,7 @@ export class ProductDetailsComponent {
       }
       this.productDetailService.postApiCall1(requestData, ENDPOINTS.UPDATE_PRODUCT).subscribe(
         respData => {
+          this.loaderService.emitComplete();
           if (respData?.success === 1) {
             this.alertService.success('Product updated successfully', this.options);
             setTimeout(() => {
@@ -944,6 +1085,10 @@ export class ProductDetailsComponent {
             this.alertService.error(respData?.message, this.options);
           }
           // this.router.navigate([`/list-view/products`]);
+        },
+        error => {
+          this.loaderService.emitComplete();
+          this.alertService.error('Product update failed', this.options);
         })
     }
   }
@@ -975,12 +1120,13 @@ export class ProductDetailsComponent {
 
   // Newly added
   getAllProductsList(productId: any) {
+    this.loaderService.emitLoading();
     let requestBody = {
       "domain_name": "https://www.guestezee.com",
       "user_id": 1,
       "extras": {
         "find": {
-          "outlet_id": Number(this.localService.get('outlet_id')),
+          "outlet_id": this.getResolvedOutletId(),
           // Newly added for getting member id for customer type
           // "customer_id": this.customerId,
           "member_id": this.localService.get('MemberId')
@@ -997,6 +1143,7 @@ export class ProductDetailsComponent {
       }
     }
     this.productDetailService.postApiCall1(requestBody, ENDPOINTS.GET_ALL_PRODUCTS).subscribe(resp => {
+      this.loaderService.emitComplete();
       if (resp && resp.success === 1) {
         this.allProducts = resp.result.data;
         // console.log("All Products Raw(While taking list):", this.allProducts);
@@ -1004,6 +1151,8 @@ export class ProductDetailsComponent {
       } else {
         console.error("Error fetching products", resp?.message);
       }
+    }, error => {
+      this.loaderService.emitComplete();
     })
   }
 

@@ -194,8 +194,16 @@
               Close time is required
             </p>
           </div>
-          <!-- WINHMS -->
+          <!-- Is Third Party Outlet ID Exist -->
           <div class="form-group form1_div">
+            <label>Is Third Party Outlet ID Exist?<span class="required-asterisk">*</span></label>
+            <select class="input_box" formControlName="is_third_party_outlet_id_exist">
+              <option [value]="true">Yes</option>
+              <option [value]="false">No</option>
+            </select>
+          </div>
+          <!-- WINHMS -->
+          <div class="form-group form1_div" *ngIf="outletForm.get('is_third_party_outlet_id_exist')?.value === true || outletForm.get('is_third_party_outlet_id_exist')?.value === 'true'">
             <label>Third Party Outlet ID<span class="required-asterisk">*</span></label>
             <input type="text" class="input_box" formControlName="third_party_outlet_id" />
             <!-- <p class="error" *ngIf="(submitted || outletForm.controls['winhms_outlet_id'].touched) && outletForm.controls['winhms_outlet_id'].hasError('required')"> Third Party Outlet ID is

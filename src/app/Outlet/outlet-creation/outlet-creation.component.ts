@@ -439,13 +439,25 @@ export class OutletCreationComponent implements OnInit {
     this.member_id = this.localService.get('MemberId');
     // console.log('Member id:', this.member_id);
 
-    // Capture outlet_type from query params (mirrors feature-creation)
-    // this.route.queryParams.subscribe(params => {
-    //   if (params['outlet_type']) {
-    //     this.passedOutletType = params['outlet_type'];
-    //     this.upsellName = params['outlet_type'];
-    //   }
-    // });
+    this.outletForm.get('is_third_party_outlet_id_exist')?.valueChanges.subscribe(exist => {
+      const idControl = this.outletForm.get('third_party_outlet_id');
+      if (exist === true || exist === 'true') {
+        idControl?.setValidators([this.noWhitespaceValidator.bind(this)]);
+      } else {
+        idControl?.setValue('', { emitEvent: false });
+        idControl?.clearValidators();
+      }
+      idControl?.updateValueAndValidity();
+    });
+    // Trigger initial validation setup
+    const initialExist = this.outletForm.get('is_third_party_outlet_id_exist')?.value;
+    const idControl = this.outletForm.get('third_party_outlet_id');
+    if (initialExist === true || initialExist === 'true') {
+      idControl?.setValidators([this.noWhitespaceValidator.bind(this)]);
+    } else {
+      idControl?.clearValidators();
+    }
+    idControl?.updateValueAndValidity();
 
     // Check if in view mode from navigation state
     const navState = window.history.state as any;
@@ -495,11 +507,11 @@ export class OutletCreationComponent implements OnInit {
 
   private buildForm() {
     this.outletForm = this.fb.group({
-      owner_name: ['', [Validators.required, Validators.maxLength(50)]],
-      email: ['', [Validators.required, Validators.pattern(/^[a-zA-Z0-9_%+-]+@[a-zA-Z0-9-]+\.[a-zA-Z]{2,4}$/)]],
-      phone: ['', [Validators.required, Validators.minLength(10), Validators.maxLength(10), this.onlyNumbersValidator]],
+      owner_name: ['', [this.noWhitespaceValidator.bind(this), Validators.maxLength(50)]],
+      email: ['', [this.noWhitespaceValidator.bind(this), Validators.pattern(/^[a-zA-Z0-9_%+-]+@[a-zA-Z0-9-]+\.[a-zA-Z]{2,4}$/)]],
+      phone: ['', [this.noWhitespaceValidator.bind(this), Validators.minLength(10), Validators.maxLength(10), this.onlyNumbersValidator]],
       companyphone: ['', [this.optionalNumbersValidator]],
-      name: ['', [Validators.required, Validators.maxLength(50)]],
+      name: ['', [this.noWhitespaceValidator.bind(this), Validators.maxLength(50)]],
       // gstno: ['', [Validators.required, this.gstValidator]],
       gstno: ['', [this.gstValidator]],
       association: [''],
@@ -519,7 +531,8 @@ export class OutletCreationComponent implements OnInit {
       enable_distance_radius: [false],
       sendordermail: [true],
       takephoto: [''],
-      third_party_outlet_id: ['', Validators.required],
+      third_party_outlet_id: [''],
+      is_third_party_outlet_id_exist: [false],
       // winhms_outlet_id: ['', Validators.required],
       // property_name: ['', Validators.required],
       // x_api_key: ['', Validators.required],
@@ -552,6 +565,15 @@ export class OutletCreationComponent implements OnInit {
     const v = control.value;
     if (!v) return null;
     return /^[0-9]+$/.test(v) ? null : { numbersOnly: true };
+  }
+
+  noWhitespaceValidator(control: AbstractControl): ValidationErrors | null {
+    const value = control.value;
+    if (value === null || value === undefined) {
+      return { 'required': true };
+    }
+    const isWhitespace = value.toString().trim().length === 0;
+    return isWhitespace ? { 'required': true } : null;
   }
 
   time12HrValidator(control: AbstractControl): ValidationErrors | null {
@@ -720,7 +742,14 @@ export class OutletCreationComponent implements OnInit {
         const data = resp?.result?.data?.[0] || {};
         this.outletdata = data;
         // console.log('Outlet data(based on id:', this.outletdata);
-        this.outletForm.patchValue({ ...data });
+        
+        // Determine whether third party outlet ID exists
+        const hasThirdPartyId = !!(data.third_party_outlet_id || data.winhms_outlet_id || data.is_third_party_outlet_id_exist);
+        
+        this.outletForm.patchValue({ 
+          ...data,
+          is_third_party_outlet_id_exist: hasThirdPartyId
+        });
         this.photoPreview = data.takephoto || data.takePhoto || '';
         this.photoName = this.getFileNameFromUrl(data.takephoto || data.takePhoto);
         // Split existing time strings into dropdowns
@@ -834,6 +863,7 @@ export class OutletCreationComponent implements OnInit {
     const closeTime = fv.close_hour && fv.close_minute && fv.close_period ?
       `${fv.close_hour}:${fv.close_minute} ${fv.close_period}` : '';
 
+    const existBool = fv.is_third_party_outlet_id_exist === true || fv.is_third_party_outlet_id_exist === 'true';
     const outletObj = {
       ...fv,
       open_time: openTime,
@@ -844,6 +874,7 @@ export class OutletCreationComponent implements OnInit {
       // Programmatic mapping (mirrors feature-creation)
       Hotel_Code: this.customerData?.Hotel_Code || '',
       winhms_outlet_id: fv.third_party_outlet_id,
+      is_third_party_outlet_id_exist: existBool,
       property_name: this.extractTechInfo('property_name') || this.extractTechInfo('Property Name') || '',
       x_api_key: this.extractTechInfo('x_api_key') || this.extractTechInfo('X API Key') || ''
     };
