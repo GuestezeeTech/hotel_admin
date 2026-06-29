@@ -204,7 +204,7 @@ export class AppComponent implements OnInit, OnDestroy {
         const url = event.urlAfterRedirects || event.url || '';
         // Allow enrollment routes even when loggedOut flag is set (payment callbacks, cancellations)
         const path = (this.router?.url || window.location.pathname || '').toLowerCase().replace(/\/+$/, '');
-        const isEnrollmentRoute = path.includes('confirmation') || path.includes('cancellation') || path.includes('payment');
+        const isEnrollmentRoute = path.includes('confirmation') || path.includes('cancellation') || path.includes('payment') || path.includes('edit-new-hotel') || path.includes('add-new-hotel');
         // Global Guard: If not logged in, prevent access to any page except public/bypass and enrollment routes
         const userId = this.localservice.get('UserId');
         const isLoggedOut = this.localservice.get('loggedOut') === 'true';
@@ -370,6 +370,7 @@ export class AppComponent implements OnInit, OnDestroy {
     if (customerIdFromUrl) {
       localStorage.setItem('customer_id', customerIdFromUrl);
       this.localservice.set('UserId', customerIdFromUrl);
+      this.localservice.remove('loggedOut');
       // console.log('[App] Restored customer_id:', customerIdFromUrl);
     }
 

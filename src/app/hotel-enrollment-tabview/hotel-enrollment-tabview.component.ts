@@ -108,6 +108,12 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
         this.hotelId = Number(customerId);
       }
     });
+    this.route.paramMap.subscribe(params => {
+      const id = params.get('id');
+      if (id) {
+        this.hotelId = Number(id);
+      }
+    });
     // Handle tab query param from menu (e.g. /edit-new-hotel/:id?tab=1) so submenu navigates to the correct tab
     // Old: only handled tab == 3: if (!isNaN(tabIndex) && tabIndex == 3) { this.hierarchyTab = true; this.goToTab(tabIndex, true); }
     this.route.queryParams.subscribe(params => {
@@ -146,43 +152,8 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
       } else {
         this.parentLoaderDone = true;
       }
-      if (navType === "reload" && !this.router.url.includes('confirmation')) {
-        //console.log("Page was reloaded");
-        setTimeout(() => {
-          // console.log("✔️ checkAndActivateInvalidTab ran after 3 seconds");
-          // console.log('Auto check:', this.skipAutoTabCheck);
-          // Newly added for back navigation - skipAutoTabCheck
-          // Newly added for skip auto tab check
-          if (!this.skipAutoTabCheck) {
-            this.checkAndActivateInvalidTabOnLoad();
-            //console.log("checkAndActivateInvalidTab ran after 3 seconds");
-          }
-        }, 2000); // 3000 ms = 3 seconds
-        this.isReadyToRender = true;
-      } else if (navType === "navigate" && !this.router.url.includes('confirmation')) {
-        //console.log("Page was loaded normally (navigation)");
-        setTimeout(() => {
-          // console.log("✔️ checkAndActivateInvalidTab ran after 3 seconds from edit");
-          // console.log('Auto check:', this.skipAutoTabCheck);
-          // Newly added for back navigation - skipAutoTabCheck
-          // Newly added for skip auto tab check
-          if (!this.skipAutoTabCheck) {
-            this.checkAndActivateInvalidTabOnLoad();
-            // console.log("✔️ checkAndActivateInvalidTab ran after 3 seconds");
-          }
-        }, 2000); // 3000 ms = 3 seconds
-      } else if (navType === "back_forward" && !this.router.url.includes('confirmation')) {
-        //console.log("Page was accessed via back or forward button");
-        setTimeout(() => {
-          // Newly added for skip auto tab check
-          if (!this.skipAutoTabCheck) {
-            this.checkAndActivateInvalidTabOnLoad();
-          }
-          //console.log("✔️ checkAndActivateInvalidTab ran after 3 seconds");
-        }, 2000); // 3000 ms = 3 seconds
-      } else {
-        //console.log("Page load type:", navType);
-      }
+      // Ensure loggedOut flag is removed during active enrollment session
+      this.localService.remove('loggedOut');
     }
     //   if(this.callonce==true){
     // this.callonce=false;
@@ -287,6 +258,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
           // this.currentTab = 5;
           this.currentTab = 3;
           this.localService.set('CustomerType', 'Customer');
+          this.localService.remove('loggedOut');
           // console.log('Type:', this.localService.get('CustomerType'));
           const currentUrl = this.router.url;
           //console.log(currentUrl, "currentUrl");
@@ -401,7 +373,9 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
     // console.log('Current Tab:', this.currentTab);
 
     // Newly added - hotelId missed
-    this.hotelId = Number(this.localService.get('UserId'));
+    if (!this.hotelId) {
+      this.hotelId = Number(this.localService.get('UserId'));
+    }
     this.memberId = this.localService.get('MemberId');
     // console.log('Member id(goToTab):', this.memberId);
     if (force) {
@@ -598,7 +572,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
   getOrderById() {
     this.memberId = this.localService.get('MemberId');
     // let findObj = (this.iscancelVisible || this.isVisible)
-    let findObj = this.isPaymentRoute()
+    let findObj = (this.isPaymentRoute() || (this.hotelId && !isNaN(Number(this.hotelId))))
       ? { customer_id: Number(this.hotelId) }
       : { customer_member_id: this.memberId };
     // console.log('Member id(getOrderById):', this.memberId);
@@ -766,10 +740,20 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
           // Shared logic after data fetch (always run)
           const memberId = this.orderdata.customer_member_id;
           this.localService.set('MemberId', memberId);
+        } else {
+          this.orderdata = null;
+          this.isOrderExist = false;
+          this.paymentDone = false;
+          this.localService.set('paymentDone', false);
         }
+        this.checkNavigationAndActivateTab();
       },
       err => {
         this.loaderService.emitComplete();
+        this.orderdata = null;
+        this.isOrderExist = false;
+        this.paymentDone = false;
+        this.localService.set('paymentDone', false);
         if (err.error.statusCode === 403) {
           // this.alertsService.error('Session Time Ot! Please login Again', this.options);
           this.router.navigate([`/login`], { skipLocationChange: false });
@@ -778,7 +762,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
         } else {
           // this.alertsService.error('Something  happened. Please try again!', this.options);
         }
-        // Reject promise if there is an error
+        this.checkNavigationAndActivateTab();
       }
     );
 
@@ -1157,6 +1141,32 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
     }
   }
 
+  checkNavigationAndActivateTab() {
+    const isConfirmation = this.router.url.includes('confirmation');
+    const isCancellation = this.router.url.includes('cancellation');
+
+    if (isCancellation) {
+      this.isReadyToRender = true;
+      this.currentTab = 2; // Technical Info tab where they pay
+      return;
+    }
+
+    const navigationEntries = performance.getEntriesByType("navigation") as PerformanceNavigationTiming[];
+    if (navigationEntries.length > 0) {
+      const navType = navigationEntries[0].type;
+
+      if (!isConfirmation) {
+        if (!this.skipAutoTabCheck) {
+          this.checkAndActivateInvalidTabOnLoad();
+        } else {
+          this.isReadyToRender = true;
+        }
+      }
+    } else {
+      this.isReadyToRender = true;
+    }
+  }
+
   async checkAndActivateInvalidTabOnLoad() {
     // console.log('Hierarchy Tab', this.hierarchyTab);
     if (this.getCustomerData.is_office_details_exists == false || this.getCustomerData.is_office_details_exists == undefined) {
@@ -1211,7 +1221,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
     this.memberId = this.localService.get('MemberId');
     // console.log('Member id(getCustomerById):', this.memberId);
     // let findObj = (this.iscancelVisible || this.isVisible)
-    let findObj = this.isPaymentRoute()
+    let findObj = (this.isPaymentRoute() || (this.hotelId && !isNaN(Number(this.hotelId))))
       ? { id: Number(this.hotelId) }
       : { customer_member_id: this.memberId };
 
@@ -1238,6 +1248,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
             // this.hotelId = this.customerdata.id;
             this.hotelId = resp.result.data[0].id;
             this.localService.set('CustomerType', 'Customer');
+            this.localService.remove('loggedOut');
             // Newly added for customer status(hint)
             this.customerStatus = this.customerdata.status;
             // Newly added for member id
