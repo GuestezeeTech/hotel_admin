@@ -98,6 +98,10 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
   order_review: any;
   // Newly added for customer status(hint)
   customerStatus: any = '';
+  isFirstPayment: boolean = true;
+  lastGeneratedInvoiceOrderId: number | null = null;
+
+
 
   ngOnInit(): void {
     this.memberId = this.localService.get('MemberId');
@@ -268,6 +272,30 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
             this.isReadyToRender = true;
             //console.log('ID:', id);
             //console.log('Customer ID:', customerId);
+
+            // Call invoice generator if not already called for this order ID
+            if (id && Number(id) !== this.lastGeneratedInvoiceOrderId) {
+              this.lastGeneratedInvoiceOrderId = Number(id);
+              const invoicePayload = {
+                order_id: Number(id),
+                domain_name: DOMAIN_NAME,
+                user_id: String(USER_ID)
+              };
+              this.hotelenrollmentservice.invoiceGenerator(invoicePayload).subscribe(
+                invoiceResp => {
+                  if (invoiceResp && invoiceResp.success === 1 && invoiceResp.status_code === 200) {
+                    console.log('Invoice generated successfully:', invoiceResp);
+                  }
+                  else {
+                    console.log('Invoice not generated successfully:', invoiceResp);
+                  }
+                },
+                invoiceErr => {
+                  console.error('Error generating invoice:', invoiceErr);
+                }
+              );
+            }
+
             this.router.navigate(['/hotel-registration/confirmation'], {
               queryParams: {
                 id: id,
@@ -621,6 +649,9 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
           );
           // Assign first confirmed order or fallback
           this.orderdata = confirmedOrders[0] || resp.result.data[0];
+          // Check if this is the first payment (registration) or a subsequent one
+          this.isFirstPayment = confirmedOrders.length <= 1;
+
           // console.log('Confirmed Order Data:', this.orderdata);
           // Flag for order existence
           this.isOrderExist = confirmedOrders.length > 0;
@@ -1527,7 +1558,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
 
   async updateCustomerWelcomeSms(customerId: any): Promise<boolean> {
     const updateBody = {
-      domain_name: this.authTokenService.getDomain(),
+      domain_name: "https://www.guestezee.com",
       user_id: this.authTokenService.getUserId(),
       extras: {
         find: {

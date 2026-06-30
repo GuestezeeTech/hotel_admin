@@ -387,4 +387,15 @@ export class HotelEnrollmentTabviewService {
     }
   }
 
+  // Newly added for invoice generator
+  invoiceGenerator(jsonObj: any): Observable<any> {
+    if (this.authTokenService.isTokenExpired()) {
+      this.router.navigate([`/login`], { skipLocationChange: false });
+      return new Observable();
+    } else {
+      return this.http.post(ENDPOINTS.INVOICE_GENERATOR, jsonObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
+    }
+  }
+
+
 }

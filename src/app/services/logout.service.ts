@@ -49,10 +49,6 @@ export class LogoutService {
 
       const currentToken = await this.pushService.getCurrentToken();
       console.log('[LogoutService] currentToken:', currentToken);
-      if (!currentToken) {
-        console.log('[LogoutService] No token found — skipping DB removal.');
-        return;
-      }
 
       // ── Customer / Staff table ──
       const customerFindKey = customerType === 'Staff' ? 'staff_id' : 'id';
@@ -68,12 +64,20 @@ export class LogoutService {
 
       if (customerResp?.success === 1 && customerResp.result?.data?.length > 0) {
         const customer = customerResp.result.data[0];
-        if (Array.isArray(customer.fcm_token)) {
-          customer.fcm_token = customer.fcm_token.filter((t: string) => t !== currentToken);
+        let hasTokenChanged = false;
+        let updatedTokens = customer.fcm_token || [];
+        if (currentToken && Array.isArray(customer.fcm_token)) {
+          const initialLength = customer.fcm_token.length;
+          updatedTokens = customer.fcm_token.filter((t: string) => t !== currentToken);
+          if (updatedTokens.length !== initialLength) {
+            hasTokenChanged = true;
+          }
+        }
+        if (hasTokenChanged) {
           const updateBody = {
             domain_name: DOMAIN_NAME,
             user_id: USER_ID,
-            payload: { customer_update: { fcm_token: customer.fcm_token } },
+            payload: { customer_update: { fcm_token: updatedTokens } },
             extras: { find: { [customerFindKey]: userId } }
           };
           await this.hotelenrollmenttabviewService
@@ -96,30 +100,34 @@ export class LogoutService {
 
         if (staffResp?.success === 1 && staffResp.result?.data?.length > 0) {
           const staff = staffResp.result.data[0];
-          if (Array.isArray(staff.fcm_token)) {
-            staff.fcm_token = staff.fcm_token.filter((t: string) => t !== currentToken);
+          let hasTokenChanged = false;
+          let updatedTokens = staff.fcm_token || [];
+          if (currentToken && Array.isArray(staff.fcm_token)) {
+            const initialLength = staff.fcm_token.length;
+            updatedTokens = staff.fcm_token.filter((t: string) => t !== currentToken);
+            if (updatedTokens.length !== initialLength) {
+              hasTokenChanged = true;
+            }
+          }
+          if (hasTokenChanged) {
             const updateBody = {
               domain_name: DOMAIN_NAME,
               user_id: USER_ID,
-              payload: { staff_updation: { fcm_token: staff.fcm_token } },
+              payload: { staff_updation: { fcm_token: updatedTokens } },
               extras: { find: { id: userId } }
             };
             await this.staffService.updateStaff(updateBody).toPromise();
           }
 
-          // Mark staff as unavailable conditionally
-          const isFcmUnavailable = this.localService.get('isFcmUnavailable') === 'true';
-          if (!isFcmUnavailable) {
-            const remainingCount = Array.isArray(staff.fcm_token) ? staff.fcm_token.length : 0;
-            const isAvailableValue = remainingCount >= 1;
-            const availBody = {
-              domain_name: DOMAIN_NAME,
-              user_id: USER_ID,
-              payload: { staff_updation: { is_available: isAvailableValue } },
-              extras: { find: { id: userId } }
-            };
-            await this.staffService.updateStaff(availBody).toPromise();
-          }
+          const remainingCount = updatedTokens.length;
+          const isAvailableValue = remainingCount >= 1;
+          const availBody = {
+            domain_name: DOMAIN_NAME,
+            user_id: USER_ID,
+            payload: { staff_updation: { is_available: isAvailableValue } },
+            extras: { find: { id: userId } }
+          };
+          await this.staffService.updateStaff(availBody).toPromise();
         }
       }
 

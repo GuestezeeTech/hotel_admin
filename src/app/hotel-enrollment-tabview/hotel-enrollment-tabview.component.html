@@ -40,7 +40,8 @@
 
         <div *ngIf="iscancelVisible" class="payment-note" style="margin-top: 2%;">
           <p style="color: #800020; font-weight: bold;  margin-bottom: 0;">
-            NOTE : Your payment was cancelled. Please click 'Save & Continue' to retry the payment process.
+            NOTE : Your payment was cancelled. {{ paymentDone ? "Please click the due payment button in the header to
+            retry the payment process." : "Please click 'Save & Continue' to retry the payment process." }}
           </p>
         </div>
         <button class="escalated-btn border-0 fw-medium float"
@@ -112,8 +113,11 @@
               <div class="modal-content confetti-background">
                 <div class="modal-body text-center">
                   <img src="../../../assets/images/guestezee/membership 1.png">
-                  <h5 class="mt-2">Membership ID Created Successfully</h5>
-                  <p class="mt-2">We are verifying your account and will update you soon. Thank you for your patience!
+                  <h5 class="mt-2">{{ isFirstPayment ? 'Membership ID Created Successfully' : 'Payment Successful' }}
+                  </h5>
+                  <p class="mt-2">
+                    {{ isFirstPayment ? 'We are verifying your account and will update you soon. Thank you for your
+                    patience!' : 'Your payment has been processed successfully. Thank you!' }}
                   </p>
                   <h3 class="membership-id">{{this.customerdata?.customer_member_id}}</h3>
                   <div class="d-flex justify-content-center gap-3 mt-3">

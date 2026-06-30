@@ -621,6 +621,10 @@ export const ENDPOINTS = {
   CHECK_IS_TECHNICAL_INFO_EXIST: API_URL + ':3354/integrations/create',
 
   // Newly added for welcome email
-  SEND_WELCOME_EMAIL: API_URL + ':8008/email/send'
+  SEND_WELCOME_EMAIL: API_URL + ':8008/email/send',
+
+  // Newly added for invoice generator
+  INVOICE_GENERATOR: API_URL + ':8015/guest-invoice/create-invoice'
+
 }
 
