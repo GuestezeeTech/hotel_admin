@@ -334,7 +334,7 @@ export class HierarchyFormComponent implements OnInit {
     /* const shouldFreezeDepartment =
       this.hasChildren || parentDept !== 'Default'; */
     const shouldFreezeDepartment =
-      parentDept !== 'Default';
+      parentDept !== '' && parentDept !== 'Default';
 
     if (levelType === 'upper' || levelType === 'intermediate') {
       // Always inherit clicked hierarchy's department
@@ -481,6 +481,7 @@ export class HierarchyFormComponent implements OnInit {
     const retainParentDept =
       hasParent &&
       this.hasChildren &&
+      parentDept !== '' &&
       parentDept !== 'Default';
     // End of newly added hierarchy change
     const isTop = !this.parentId || this.parentId === 0;
