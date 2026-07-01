@@ -261,8 +261,10 @@ export class ProductDetailsComponent {
       for (let i = 0; i < 3; i++) {
         if (i < assetsArray.length && assetsArray[i]) {
           const img = assetsArray[i];
-          const fullName = img.image_source?.split('/').pop() || '';
-          const namePart = fullName.split('%20-%20')[1]?.split('.')[0] || `Image ${i + 1}`;
+          const decodedSource = img.image_source ? decodeURIComponent(img.image_source) : '';
+          const fullName = decodedSource.split('/').pop() || '';
+          const match = fullName.match(/^\d+\s*-\s*(.+)$/);
+          const namePart = match ? match[1] : (fullName || `Image ${i + 1}`);
           const hasImage = img.image_source && img.image_source.trim() !== '';
           this.uploadedFiles.push({
             name: `Image ${i + 1}`,
