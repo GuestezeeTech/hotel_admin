@@ -773,8 +773,8 @@ export class ServiceComponent implements OnInit {
     }
     // Fetch all services to check for duplicates
     let fetchReq = {
-      domain_name: this.authTokenService.getDomain(),
-      user_id: this.authTokenService.getUserId(),
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
       extras: {
         find: { member_id: this.member_id }
       }
@@ -803,20 +803,22 @@ export class ServiceComponent implements OnInit {
       // Cretate 
       if (!this.service_id) {
         let createReq = {
-          domain_name: this.authTokenService.getDomain(),
-          user_id: this.authTokenService.getUserId(),
+          domain_name: DOMAIN_NAME,
+          user_id: USER_ID,
           // payload: { service_creation: serviceObject }
           payload: { create: serviceObject }
         };
         this.serviceSettingsService.createService(createReq).subscribe(
           res => {
             if (res?.success === 1) {
-              if (this.from === 'service-tab-list') {
-                this.router.navigate(['/service-tab-list']);
-              } else {
-                this.router.navigate(['/service-list']);
-              }
               this.alertService.success('Service created successfully', this.alertOptions);
+              setTimeout(() => {
+                if (this.from === 'service-tab-list') {
+                  this.router.navigate(['/service-tab-list']);
+                } else {
+                  this.router.navigate(['/service-list']);
+                }
+              }, 1500);
             }
             else {
               this.alertService.error(res.message || 'Create failed', this.options);
@@ -828,8 +830,8 @@ export class ServiceComponent implements OnInit {
       }
       // Update
       let updateReq = {
-        domain_name: this.authTokenService.getDomain(),
-        user_id: this.authTokenService.getUserId(),
+        domain_name: DOMAIN_NAME,
+        user_id: USER_ID,
         // payload: { service_updation: serviceObject },
         payload: { update: serviceObject },
         extras: {
@@ -840,7 +842,9 @@ export class ServiceComponent implements OnInit {
         res => {
           if (res?.success === 1) {
             this.alertService.success('Service updated successfully', this.alertOptions);
-            this.router.navigate(['/service-list']);
+            setTimeout(() => {
+              this.router.navigate(['/service-list']);
+            }, 1500);
           }
           else {
             this.alertService.error(res.message || 'Update failed', this.options);
@@ -887,8 +891,8 @@ export class ServiceComponent implements OnInit {
   getserviceById(): Promise<void> {
     return new Promise((resolve, reject) => {
       let requestBody = {
-        domain_name: this.authTokenService.getDomain(),
-        user_id: this.authTokenService.getUserId(),
+        domain_name: DOMAIN_NAME,
+        user_id: USER_ID,
         extras: {
           find: {
             id: this.service_id

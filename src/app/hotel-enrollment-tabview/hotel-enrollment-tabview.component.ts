@@ -1559,7 +1559,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
   async updateCustomerWelcomeSms(customerId: any): Promise<boolean> {
     const updateBody = {
       domain_name: "https://www.guestezee.com",
-      user_id: this.authTokenService.getUserId(),
+      user_id: USER_ID,
       extras: {
         find: {
           id: customerId

@@ -209,4 +209,16 @@
 
     </div>
   </div>
+
+  <!-- Custom Deactivated Modal -->
+  <div *ngIf="showDeactivatedModal" class="deactivated-modal-backdrop">
+    <div class="deactivated-modal-card">
+      <div class="modal-icon-container">
+        <i class="fa fa-exclamation-triangle"></i>
+      </div>
+      <h3>Account Deactivated</h3>
+      <p>Your hotel account is deactivated. Please contact the administrator for assistance.</p>
+      <button class="btn-modal-ok" (click)="closeDeactivatedModal()">OK</button>
+    </div>
+  </div>
 </div>

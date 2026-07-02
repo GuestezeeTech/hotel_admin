@@ -61,6 +61,10 @@
               <br>
               3) Make sure to add your respective Hotel Code in the settings once the PMS is enabled & saved.
             </ng-container>
+            <br>
+            <span>
+              {{ selectedTab === 'lock' ? '3)' : selectedTab === 'pos' ? '4)' : '' }}
+              Click <strong>Next</strong> button to save changes. Direct tab selection won't save.</span>
           </div>
         </div>
 

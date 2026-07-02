@@ -5,7 +5,8 @@
         <thead>
           <tr>
             <th>Order Id</th>
-            <th>Plan</th>
+            <!-- <th>Plan</th> -->
+            <th>Payment Type</th>
             <th>Payment Date</th>
             <th>Payment Amount</th>
             <th>Subscription Period</th>
@@ -22,7 +23,8 @@
             <td>{{ inst.paid_date_time | date: 'dd-MM-yyyy' }}</td>
             <td>{{ inst.order_total_amount | currency:'INR' }}</td>
             <td>{{ inst.subscription_end_date }}</td>
-            <td class="gold"><i class="fa-regular fa-file-lines" style="color: #800020; cursor: pointer;" (click)="downloadInvoice(inst.orderId)"></i></td>
+            <td class="gold"><i class="fa-regular fa-file-lines" style="color: #800020; cursor: pointer;"
+                (click)="downloadInvoice(inst.orderId)"></i></td>
           </tr>
         </tbody>
       </table>

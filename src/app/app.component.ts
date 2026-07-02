@@ -154,8 +154,12 @@ export class AppComponent implements OnInit, OnDestroy {
   isRouteAuthorized = true;
   isRouteLoading = false;
   isPendingApproval = false;
+  // Newly addedfor inactive log out
+  isUserInactive = false;
+  // End of newly added for inactive log out
   private isInitialNavigation = true;
   private tokenSyncInterval: any;
+  private hotelStatusInterval: any;
   private isFcmInitialized = false;
   notifications: any[] = [];
 
@@ -447,6 +451,10 @@ export class AppComponent implements OnInit, OnDestroy {
           clearInterval(this.tokenSyncInterval);
           this.tokenSyncInterval = null;
         }
+        if (this.hotelStatusInterval) {
+          clearInterval(this.hotelStatusInterval);
+          this.hotelStatusInterval = null;
+        }
       }
       return;
     }
@@ -462,10 +470,25 @@ export class AppComponent implements OnInit, OnDestroy {
       }
 
       // --- Sync & Polling for FCM tokens ---
+      // Always remove before re-adding to prevent duplicate listeners across fast login/logout cycles
+      window.removeEventListener('focus', this.handleWindowFocus);
       window.addEventListener('focus', this.handleWindowFocus);
+      // Clear any leftover interval before starting a fresh one
+      if (this.tokenSyncInterval) {
+        clearInterval(this.tokenSyncInterval);
+        this.tokenSyncInterval = null;
+      }
       this.tokenSyncInterval = setInterval(() => {
         this.syncFcmTokensFromDb();
       }, 20000);
+
+      if (this.hotelStatusInterval) {
+        clearInterval(this.hotelStatusInterval);
+        this.hotelStatusInterval = null;
+      }
+      this.hotelStatusInterval = setInterval(() => {
+        this.checkHotelStatus();
+      }, 60000);
 
       (async () => {
         try {
@@ -474,6 +497,7 @@ export class AppComponent implements OnInit, OnDestroy {
             sessionStorage.setItem('CurrentTabFcmToken', currentToken);
           }
           this.syncFcmTokensFromDb();
+          this.checkHotelStatus();
         } catch (err) {
           console.error('[App] Failed to hydrate FCM tokens:', err);
         }
@@ -488,17 +512,22 @@ export class AppComponent implements OnInit, OnDestroy {
     if (this.tokenSyncInterval) {
       clearInterval(this.tokenSyncInterval);
     }
+    if (this.hotelStatusInterval) {
+      clearInterval(this.hotelStatusInterval);
+    }
   }
 
   private handleWindowFocus = () => {
     this.syncFcmTokensFromDb();
+    this.checkHotelStatus();
   };
 
   syncFcmTokensFromDb(): void {
     const customerType = this.localservice.get('CustomerType');
     const userId = this.localservice.get('UserId');
-    if (!userId || (customerType !== 'Staff' && customerType !== 'Customer')) return;
-
+    // Skip polling if the user is in the process of logging out or already logged out
+    const isLoggedOut = this.localservice.get('loggedOut') === 'true';
+    if (!userId || isLoggedOut || (customerType !== 'Staff' && customerType !== 'Customer')) return;
     const fetchBody = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
@@ -525,6 +554,113 @@ export class AppComponent implements OnInit, OnDestroy {
       });
     }
   }
+
+  // Newly added for inactive log out
+  checkHotelStatus(): void {
+    const memberId = this.localservice.get('MemberId');
+    const isLoggedOut = this.localservice.get('loggedOut') === 'true';
+    const userId = this.localservice.get('UserId');
+    if (!memberId || isLoggedOut || !userId) {
+      this.isUserInactive = false;
+      return;
+    }
+    const fetchBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: { find: { customer_member_id: memberId } }
+    };
+    this.hotelEnrollmentService.getLoginCustomerById(fetchBody).subscribe({
+      next: (resp: any) => {
+        // Double check login status before modifying state (handles in-flight request race conditions)
+        const currentUserId = this.localservice.get('UserId');
+        const currentLoggedOut = this.localservice.get('loggedOut') === 'true';
+        if (!currentUserId || currentLoggedOut) {
+          this.isUserInactive = false;
+          return;
+        }
+
+        if (resp?.success === 1 && resp.result?.data?.length > 0) {
+          const customer = resp.result.data[0];
+          if (customer.hotel_enabled === false) {
+            this.isUserInactive = true;
+          } else {
+            this.isUserInactive = false;
+          }
+        }
+      },
+      error: (err: any) => {
+        console.error('Error checking hotel status:', err);
+      }
+    });
+  }
+
+  async handleInactiveLogout(): Promise<void> {
+    this.isUserInactive = false;
+    // Clear interval and event listeners immediately to stop further requests
+    if (this.tokenSyncInterval) {
+      clearInterval(this.tokenSyncInterval);
+      this.tokenSyncInterval = null;
+    }
+    if (this.hotelStatusInterval) {
+      clearInterval(this.hotelStatusInterval);
+      this.hotelStatusInterval = null;
+    }
+    this.isFcmInitialized = false;
+    window.removeEventListener('focus', this.handleWindowFocus);
+
+    // ── Step 1: FCM token cleanup (same as manual logout — async fire-and-forget) ──
+    const userId = Number(this.localservice.get('UserId'));
+    const customerType = this.localservice.get('CustomerType');
+    if (userId) {
+      this.logoutService.removeFcmToken(userId, customerType).catch(err => {
+        console.error('[App] Inactive logout FCM cleanup failed:', err);
+      });
+    }
+    // ── Step 2: Clear all localStorage keys (mirrors header.component.ts logout) ──
+    this.localservice.remove('accessToken');
+    this.localservice.remove('refreshToken');
+    this.localservice.remove('expireTime');
+    this.localservice.remove('UserName');
+    this.localservice.remove('UserEmail');
+    this.localservice.remove('UserId');
+    this.localservice.remove('domainName');
+    this.localservice.remove('rexpireTime');
+    this.localservice.remove('MemberId');
+    this.localservice.remove('CustomerType');
+    this.localservice.remove('guestData');
+    this.localservice.remove('maxTabReached');
+    this.localservice.remove('currentTab');
+    this.localservice.remove('StaffData');
+    this.localservice.remove('hierarchy');
+    this.localservice.remove('roleName');
+    this.localservice.remove('role_id');
+    this.localservice.remove('Password');
+    this.localservice.remove('db_schema');
+    this.localservice.remove('selectedSlots');
+    this.localservice.remove('baseStaffIds');
+    this.localservice.remove('allLowerStaffIds');
+    this.localservice.remove('roomRange');
+    this.localservice.remove('USERACCESS');
+    this.localservice.remove('payNowButtonState');
+    this.localservice.remove('isFirstStaff');
+    this.localservice.remove('defaultHierarchy');
+    this.localservice.remove('Role');
+    this.localservice.remove('roleId');
+    this.localservice.remove('roleModules');
+    this.localservice.remove('outlet_id');
+    this.localservice.remove('profile_name');
+    this.localservice.remove('profile_image');
+    this.localservice.remove('Name');
+    this.localservice.remove('paymentDone');
+    this.localservice.remove('lastValidUrl');
+    this.localservice.remove('UserFcmTokens');
+    this.localservice.remove('isFcmUnavailable');
+    sessionStorage.removeItem('CurrentTabFcmToken');
+    this.localservice.set('loggedOut', 'true');
+    // ── Step 3: Navigate to login ──
+    this.router.navigate([''], { skipLocationChange: false, replaceUrl: true });
+  }
+  // End of newly added for inactive log out
 
   @HostListener('window:beforeunload', ['$event'])
   beforeUnloadHandler(event: any): void {

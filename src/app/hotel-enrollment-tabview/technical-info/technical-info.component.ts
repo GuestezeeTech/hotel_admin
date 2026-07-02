@@ -3162,14 +3162,66 @@ export class TechnicalInfoComponent implements OnInit {
     });
   }
 
-  save() {
+  async save() {
+    this.isLoading = true;
+    const dbData = await new Promise<any[]>((resolve) => {
+      const requestBody = {
+        domain_name: DOMAIN_NAME,
+        user_id: USER_ID,
+        extras: {
+          find: {
+            member_id: this.memberId
+          }
+        }
+      };
+      this.hotelenrollmentservice.getAllTechnicalInfo(requestBody).subscribe(
+        (resp: any) => {
+          this.loaderService.emitComplete();
+          if (resp && resp.success === 1 && resp.status_code === 200) {
+            const list = resp.result.data || [];
+            resolve(
+              list.filter(
+                (item: any) =>
+                  item.is_active === true &&
+                  !["SMS Delivery Template", "HDFC Gateway"].includes(item.name)
+              )
+            );
+          } else {
+            resolve([]);
+          }
+        },
+        () => {
+          this.loaderService.emitComplete();
+          resolve([]);
+        }
+      );
+    });
+    this.isLoading = false;
 
-    const hasEnabledLock = this.allinfoData && this.allinfoData.some(
-      (item: any) => item.type === 'lock' && (item.is_enabled === true || item.is_enabled === 'true')
-    );
-    const hasEnabledPms = this.allinfoData && this.allinfoData.some(
-      (item: any) => item.type === 'pos' && (item.is_enabled === true || item.is_enabled === 'true')
-    );
+    // Check Lock integration (local check if active tab is Lock, otherwise DB check)
+    let hasEnabledLock = false;
+    if (this.selectedTab === 'lock') {
+      hasEnabledLock = this.generalTechInfoData && this.generalTechInfoData.some(
+        (item: any) => item.is_enabled === true || item.is_enabled === 'true'
+      );
+    } else {
+      hasEnabledLock = dbData && dbData.some(
+        (item: any) => item.type === 'lock' && (item.is_enabled === true || item.is_enabled === 'true')
+      );
+    }
+
+    // Check PMS integration (local check if active tab is PMS, otherwise DB check)
+    let hasEnabledPms = false;
+    if (this.selectedTab === 'pos') {
+      hasEnabledPms = this.generalTechInfoData && this.generalTechInfoData.some(
+        (item: any) => item.is_enabled === true || item.is_enabled === 'true'
+      );
+    } else {
+      hasEnabledPms = dbData && dbData.some(
+        (item: any) => item.type === 'pos' && (item.is_enabled === true || item.is_enabled === 'true')
+      );
+    }
+
     if (!hasEnabledLock) {
       this.alertsService.error(
         'Please enable at least one Lock integration before proceeding.',

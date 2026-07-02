@@ -11,7 +11,7 @@ import { AuthTokenService } from '../auth-services/auth-token.service';
 import { AlertsService } from '../shared/alerts/alerts.service';
 import { Alert } from '../shared/alerts/alerts.model';
 import { ServiceSettingsService } from '../service-settings/service-settings.service';
-import { DOMAIN_NAME } from '../app.config';
+import { DOMAIN_NAME, USER_ID } from '../app.config';
 import { AlertsComponent } from '../shared/alerts/alerts.component';
 import { PermissionService } from '../services/permission.service';
 import { LoaderService } from '../shared/loader/loader.service';
@@ -20,7 +20,7 @@ import { LoaderService } from '../shared/loader/loader.service';
 @Component({
   selector: 'app-features',
   standalone: true,
-  imports: [ CommonModule, FormsModule, AlertsComponent ],
+  imports: [CommonModule, FormsModule, AlertsComponent],
   templateUrl: './features.component.html',
   styleUrl: './features.component.scss'
 })
@@ -126,7 +126,7 @@ export class FeaturesComponent implements OnInit {
   getAllUpsells() {
     const payload = {
       domain_name: DOMAIN_NAME,
-      user_id: this.authTokenService.getUserId(),
+      user_id: USER_ID,
       extras: {
         find: {
           member_id: this.member_id
@@ -201,7 +201,7 @@ export class FeaturesComponent implements OnInit {
     this.loaderService.emitLoading();
     const payload = {
       domain_name: DOMAIN_NAME,
-      user_id: this.authTokenService.getUserId(),
+      user_id: USER_ID,
       payload: {},
       extras: {
         find: {
@@ -238,7 +238,7 @@ export class FeaturesComponent implements OnInit {
       this.restaurantData.image = file;
     }
   }
- 
+
   saveFeature() {
     this.submitted = true;
     this.nameError = '';
@@ -265,7 +265,7 @@ export class FeaturesComponent implements OnInit {
         // UPDATE
         const updatePayload = {
           domain_name: DOMAIN_NAME,
-          user_id: this.authTokenService.getUserId(),
+          user_id: USER_ID,
           payload: {
             "upsell updation": payloadData
           },
@@ -299,7 +299,7 @@ export class FeaturesComponent implements OnInit {
         // CREATE
         const createPayload = {
           domain_name: DOMAIN_NAME,
-          user_id: this.authTokenService.getUserId(),
+          user_id: USER_ID,
           payload: {
             "upsell creation": payloadData
           }

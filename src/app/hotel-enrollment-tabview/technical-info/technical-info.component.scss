@@ -763,3 +763,25 @@ input[type="checkbox"]:disabled+.slider {
     opacity: 0.5;
   }
 }
+
+.tech-save-warning-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background-color: #fff8e1;
+  border-left: 4px solid #f9a825;
+  border-radius: 6px;
+  font-size: 13.5px;
+  color: #6d5000;
+  font-family: urbanist;
+  font-weight: 500;
+  margin-top: 15px;
+  margin-bottom: 10px;
+
+  i {
+    color: #f9a825;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+}

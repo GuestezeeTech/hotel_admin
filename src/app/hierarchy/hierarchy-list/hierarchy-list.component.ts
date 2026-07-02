@@ -103,8 +103,8 @@ export class HierarchyListComponent implements OnInit {
     this.isLoading = true;
     return new Promise((resolve, reject) => {
       let requestBody = {
-        domain_name: this.authTokenService.getDomain(),
-        user_id: this.authTokenService.getUserId(),
+        domain_name: DOMAIN_NAME,
+        user_id: USER_ID,
         extras: {
           find: {
             member_id: memberId
@@ -165,8 +165,8 @@ export class HierarchyListComponent implements OnInit {
   getHierarchyById(hierarchyId: number): Promise<void> {
     return new Promise((resolve, reject) => {
       let requestBody = {
-        domain_name: this.authTokenService.getDomain(),
-        user_id: this.authTokenService.getUserId(),
+        domain_name: DOMAIN_NAME,
+        user_id: USER_ID,
         extras: {
           find: {
             id: hierarchyId
@@ -209,8 +209,8 @@ export class HierarchyListComponent implements OnInit {
     delete this.hierarchyData._id;
     this.hierarchyData["name"] = this.hierarchyName;
     let requestBody = {
-      domain_name: this.authTokenService.getDomain(),
-      user_id: this.authTokenService.getUserId(),
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
       payload: {
         hierarchy_updation: this.hierarchyData
       },
@@ -327,10 +327,10 @@ export class HierarchyListComponent implements OnInit {
     );
   }
 
-  checkNameLength(){
-    if(this.hierarchyName.length >= 50){
+  checkNameLength() {
+    if (this.hierarchyName.length >= 50) {
       this.nameLengthError = true;
-    }else{
+    } else {
       this.nameLengthError = false;
     }
   }

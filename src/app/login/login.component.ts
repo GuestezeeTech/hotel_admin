@@ -86,6 +86,7 @@ export class LoginComponent implements OnInit {
   navigatingValue: any = '';
   hasEmailAndPhone: boolean = false;
   loginErrorMessage: any;
+  showDeactivatedModal: boolean = false;
 
   constructor(private fb: FormBuilder, private alertService: AlertsService,
     private appService: LoginService,
@@ -541,6 +542,11 @@ export class LoginComponent implements OnInit {
             loginObservable.subscribe(
               async (resp: any) => {
                 if (resp && resp.success === 1 && resp.status_code === 200) {
+                  if (userData.hotel_enabled === false || userData.hotel_enabled === 'false') {
+                    this.loaderService.emitComplete();
+                    this.showDeactivatedModal = true;
+                    return;
+                  }
                   // Newly added for browser back button
                   this.localStorageService.remove('loggedOut');
                   // Staff type
@@ -610,14 +616,17 @@ export class LoginComponent implements OnInit {
                             }
                             localStorage.setItem('UserFcmTokens', JSON.stringify(staff.fcm_token));
                             // Step 3: Update staff FCM token and is_available
+                            const staffUpdationPayload: any = {
+                              fcm_token: staff.fcm_token
+                            };
+                            if (!isFcmUnavailable) {
+                              staffUpdationPayload.is_available = true;
+                            }
                             const updateBody = {
                               domain_name: DOMAIN_NAME,
                               user_id: USER_ID,
                               payload: {
-                                staff_updation: {
-                                  fcm_token: staff.fcm_token,
-                                  is_available: true
-                                }
+                                staff_updation: staffUpdationPayload
                               },
                               extras: {
                                 find: {
@@ -852,6 +861,10 @@ export class LoginComponent implements OnInit {
     } else {
       this.validateForm = true;
     }
+  }
+
+  closeDeactivatedModal(): void {
+    this.showDeactivatedModal = false;
   }
 
   getServiceById(callback: (value: boolean) => void) {
@@ -1143,8 +1156,8 @@ export class LoginComponent implements OnInit {
           // resolve(true);
           {
             let roleObj = {
-              "domain_name": this.authService.getDomain(),
-              "user_id": this.authService.getUserId(),
+              "domain_name": DOMAIN_NAME,
+              "user_id": USER_ID,
               "extras": {
                 "find": {
                   "id": Number(role_id)

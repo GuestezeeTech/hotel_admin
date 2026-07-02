@@ -149,8 +149,13 @@ export class HierarchyViewComponent {
     if (!this.canDeleteSystemSettings) {
       return;
     }
+    const all = this.hierarchyService.getHierarchyData();
+    const children = all.filter(item => item.parentId === id);
+    if (children.length > 1) {
+      this.alertService.error('Before deleting this specific hierarchy delete the child hierarchies', this.options);
+      return;
+    }
     if (confirm('Are you sure you want to delete this item? Only this item will be deleted; its children will be moved up one level.')) {
-      const all = this.hierarchyService.getHierarchyData();
       // Find the item to delete
       const itemToDelete = all.find(item => item.id === id);
       if (!itemToDelete) return;

@@ -720,7 +720,7 @@ export class OutletCreationComponent implements OnInit {
     // Reset the file input field
     const input: any = document.getElementById('photoInput');
     if (input) input.value = '';
-    const message = this.editScreen 
+    const message = this.editScreen
       ? 'Photo removed successfully. Changes are not saved yet — please click "Save" to apply the update.'
       : 'Photo removed successfully!';
     this.alertService.success(message, this.options);
@@ -742,11 +742,11 @@ export class OutletCreationComponent implements OnInit {
         const data = resp?.result?.data?.[0] || {};
         this.outletdata = data;
         // console.log('Outlet data(based on id:', this.outletdata);
-        
+
         // Determine whether third party outlet ID exists
         const hasThirdPartyId = !!(data.third_party_outlet_id || data.winhms_outlet_id || data.is_third_party_outlet_id_exist);
-        
-        this.outletForm.patchValue({ 
+
+        this.outletForm.patchValue({
           ...data,
           is_third_party_outlet_id_exist: hasThirdPartyId
         });
@@ -782,7 +782,7 @@ export class OutletCreationComponent implements OnInit {
   private loadUpsellList() {
     const payload = {
       domain_name: DOMAIN_NAME,
-      user_id: this.authTokenService.getUserId(),
+      user_id: USER_ID,
       extras: { find: { member_id: this.member_id } }
     };
     this.upsellService.getAllUpsells(payload).subscribe((resp: any) => {

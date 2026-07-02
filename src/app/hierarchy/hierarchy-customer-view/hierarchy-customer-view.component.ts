@@ -39,6 +39,22 @@ export class HierarchyCustomerViewComponent {
   deleteId: number | null = null;
   memberId: any;
 
+  isLoading = false;
+  private activeRequests = 0;
+
+  showLoader() {
+    this.activeRequests++;
+    this.isLoading = true;
+  }
+
+  hideLoader() {
+    this.activeRequests--;
+    if (this.activeRequests <= 0) {
+      this.activeRequests = 0;
+      this.isLoading = false;
+    }
+  }
+
   constructor(
     private hierarchyService: HierarchyService,
     private router: Router,
@@ -115,6 +131,19 @@ export class HierarchyCustomerViewComponent {
     // Find the item to delete
     const itemToDelete = all.find(item => item.id === id);
     if (!itemToDelete) return;
+
+    // Check if that specific hierarchy has more than one child
+    const children = all.filter(item => item.parentId === id);
+    if (children.length > 1) {
+      this.alertService.error('Before deleting this specific hierarchy delete the child hierarchies', this.options);
+      this.showDeleteModal = false;
+      this.deleteId = null;
+      return;
+    }
+
+    // Dismiss the delete modal immediately
+    this.showDeleteModal = false;
+
     // Re-parent all direct children to the deleted item's parent
     const updated = all.map(item =>
       item.parentId === id ? { ...item, parentId: itemToDelete.parentId } : item
@@ -128,6 +157,12 @@ export class HierarchyCustomerViewComponent {
   onDeleteClick(id: number) {
     // Block delete when user has no delete permission
     if (!this.canDeleteSystemSettings) {
+      return;
+    }
+    const all = this.hierarchyService.getHierarchyData();
+    const children = all.filter(item => item.parentId === id);
+    if (children.length > 1) {
+      this.alertService.error('Before deleting this specific hierarchy delete the child hierarchies', this.options);
       return;
     }
     this.deleteId = id; // newly added
@@ -163,6 +198,7 @@ export class HierarchyCustomerViewComponent {
   }
 
   async getHierarchyById(hierarchyId: number): Promise<void> {
+    this.showLoader();
     return new Promise((resolve, reject) => {
       let requestBody = {
         domain_name: DOMAIN_NAME,
@@ -206,11 +242,15 @@ export class HierarchyCustomerViewComponent {
 
 
 
+            this.hideLoader();
             resolve();  // Resolve promise when data is set
+          } else {
+            this.hideLoader();
+            resolve();
           }
         },
         err => {
-
+          this.hideLoader();
           if (err.error.statusCode === 403) {
             this.alertService.error('Session Time Out! Please login Again', this.options);
             this.router.navigate([`/login`], { skipLocationChange: false });
@@ -227,6 +267,7 @@ export class HierarchyCustomerViewComponent {
 
 
   async updateHierarchyById(hierarchyId: number): Promise<void> {
+    this.showLoader();
     return new Promise((resolve, reject) => {
       let requestBody = {
         domain_name: DOMAIN_NAME,
@@ -256,6 +297,7 @@ export class HierarchyCustomerViewComponent {
               this.hierarchyData.length === 0) {
               // Redirect to edit-hierarchy page if hierarchy is empty
               this.router.navigate(['/edit-hierarchy', this.hierarchyId]);
+              this.hideLoader();
               resolve();
               return;
             }
@@ -285,10 +327,15 @@ export class HierarchyCustomerViewComponent {
               // Clear hierarchy data if empty
               this.hierarchyService.clearHierarchyData();
             }
+            this.hideLoader();
             resolve();  // Resolve promise when data is set
+          } else {
+            this.hideLoader();
+            resolve();
           }
         },
         err => {
+          this.hideLoader();
           if (err.error.statusCode === 403) {
             this.alertService.error('Session Time Out! Please login Again', this.options);
             this.router.navigate([`/login`], { skipLocationChange: false });
@@ -304,6 +351,7 @@ export class HierarchyCustomerViewComponent {
   }
 
   updateHierarchyData(obj: any) {
+    this.showLoader();
     let requestBody = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
@@ -321,7 +369,7 @@ export class HierarchyCustomerViewComponent {
     //console.log("123")
     this.hierarchyService.apiCall(requestBody, ENDPOINTS.UPDATE_HIERARCHY).subscribe(
       resp => {
-
+        this.hideLoader();
         if (resp) {
           if (resp.success === 1 && resp.status_code === 200) {
             this.hierarchyService.clearHierarchyData();
@@ -361,6 +409,7 @@ export class HierarchyCustomerViewComponent {
         }
       },
       err => {
+        this.hideLoader();
         this.showDeleteModal = false; //newly added to close the delete modal
         if (err.error.statusCode === 403) {
           this.alertService.error('Session Time Out! Please login Again', this.options)
@@ -381,6 +430,7 @@ export class HierarchyCustomerViewComponent {
   }
 
   async getCustomerById(): Promise<void> {
+    this.showLoader();
     // console.log('Hotel ID:', this.hotelId);
     return new Promise((resolve, reject) => {
       const requestBody = {
@@ -396,6 +446,7 @@ export class HierarchyCustomerViewComponent {
       };
       this.hotelenrollmentservice.getLoginCustomerById(requestBody).subscribe(
         async (resp: any) => {
+          this.hideLoader();
           if (resp?.result?.data?.length) {
             const customerdata = resp.result.data[0];
             // console.log('Customer Data:', customerdata);
@@ -407,6 +458,7 @@ export class HierarchyCustomerViewComponent {
           }
         },
         (err: any) => {
+          this.hideLoader();
           if (err.error?.statusCode === 403) {
             this.alertService.error('Session Time Out! Please login Again', this.options);
             this.router.navigate(['/login'], { skipLocationChange: false });

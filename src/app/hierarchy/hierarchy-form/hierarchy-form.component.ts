@@ -47,6 +47,22 @@ export class HierarchyFormComponent implements OnInit {
   hasChildren = false;
   showIntermediateOption = false;
 
+  isLoading = false;
+  private activeRequests = 0;
+
+  showLoader() {
+    this.activeRequests++;
+    this.isLoading = true;
+  }
+
+  hideLoader() {
+    this.activeRequests--;
+    if (this.activeRequests <= 0) {
+      this.activeRequests = 0;
+      this.isLoading = false;
+    }
+  }
+
   constructor(
     private formBuilder: FormBuilder,
     private hierarchyService: HierarchyService,
@@ -181,10 +197,11 @@ export class HierarchyFormComponent implements OnInit {
   }
 
   getHierarchyById(hierarchyId: number): Promise<void> {
+    this.showLoader();
     return new Promise((resolve, reject) => {
       let requestBody = {
-        domain_name: this.authTokenService.getDomain(),
-        user_id: this.authTokenService.getUserId(),
+        domain_name: DOMAIN_NAME,
+        user_id: USER_ID,
         extras: {
           find: {
             id: hierarchyId
@@ -193,6 +210,7 @@ export class HierarchyFormComponent implements OnInit {
       };
       this.hierarchyService.apiCall(requestBody, ENDPOINTS.GETBYID_HIERARCHY).subscribe(
         resp => {
+          this.hideLoader();
           if (resp) {
             this.hierarchyData = resp.result.data[0].hierarchy;
             // console.log('Hierarchy data of this member:', this.hierarchyData)
@@ -219,10 +237,12 @@ export class HierarchyFormComponent implements OnInit {
               this.hierarchyService.clearHierarchyData();
             }
             resolve();
+          } else {
+            resolve();
           }
         },
         err => {
-
+          this.hideLoader();
           if (err.error.statusCode === 403) {
             this.alertService.error('Session Time Out! Please login Again', this.options);
             this.router.navigate([`/login`], { skipLocationChange: false });
@@ -707,6 +727,7 @@ export class HierarchyFormComponent implements OnInit {
   async createHierarchy(obj: any) {
     // console.log('Hierarchy id:', this.hierarchyId);
     if (this.hierarchyId == undefined || this.hierarchyId == 0 || this.hierarchyId == null) {
+      this.showLoader();
       let requestBody = {
         domain_name: DOMAIN_NAME,
         user_id: USER_ID,
@@ -720,6 +741,7 @@ export class HierarchyFormComponent implements OnInit {
       }
       this.hierarchyService.apiCall(requestBody, ENDPOINTS.CREATE_HIERARCHY).subscribe(
         resp => {
+          this.hideLoader();
           if (resp) {
             if (resp.success === 1 && resp.status_code === 200) {
               this.hierarchyId = resp.result.data[0].id;
@@ -765,6 +787,7 @@ export class HierarchyFormComponent implements OnInit {
           this.isSubmitting = false;
         },
         err => {
+          this.hideLoader();
           if (err.error.statusCode === 403) {
             this.alertService.error('Session Time Out! Please login Again', this.options)
             this.router.navigate([`/login`], { skipLocationChange: false });
@@ -789,6 +812,7 @@ export class HierarchyFormComponent implements OnInit {
 
 
   getDepartmentsById(member_id: any) {
+    this.showLoader();
     const jsonObj = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
@@ -800,6 +824,7 @@ export class HierarchyFormComponent implements OnInit {
     };
     this.departmentService.getAllDepartments(jsonObj).subscribe(
       (resp: any) => {
+        this.hideLoader();
         if (resp.success === 1 && resp.status_code === 200) {
           // Assigns department data
           this.departments = ['Default', ...resp.result.data.map((item: any) => item.name)];
@@ -810,6 +835,7 @@ export class HierarchyFormComponent implements OnInit {
         }
       },
       (error: any) => {
+        this.hideLoader();
         console.error('Error fetching department details:', error);
       }
     );
@@ -857,6 +883,7 @@ export class HierarchyFormComponent implements OnInit {
   }
 
   updateHierarchyData(obj: any) {
+    this.showLoader();
     let requestBody = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
@@ -873,7 +900,7 @@ export class HierarchyFormComponent implements OnInit {
     }
     this.hierarchyService.apiCall(requestBody, ENDPOINTS.UPDATE_HIERARCHY).subscribe(
       resp => {
-
+        this.hideLoader();
         if (resp) {
           if (resp.success === 1 && resp.status_code === 200) {
             this.hierarchyService.clearHierarchyData();
@@ -898,6 +925,7 @@ export class HierarchyFormComponent implements OnInit {
         }
       },
       err => {
+        this.hideLoader();
         if (err.error.statusCode === 403) {
           this.alertService.error('Session Time Out! Please login Again', this.options)
           this.router.navigate([`/login`], { skipLocationChange: false });

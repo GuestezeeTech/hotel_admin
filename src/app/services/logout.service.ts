@@ -109,25 +109,36 @@ export class LogoutService {
               hasTokenChanged = true;
             }
           }
+          // Combine fcm_token removal and is_available into ONE call to avoid out-of-order writes
+          const isFcmUnavailable = this.localService.get('isFcmUnavailable') === 'true';
+          const remainingCount = updatedTokens.length;
+          const isAvailableValue = remainingCount >= 1;
+          const staffUpdationPayload: any = {
+            fcm_token: updatedTokens
+          };
+          if (!isFcmUnavailable) {
+            staffUpdationPayload.is_available = isAvailableValue;
+          }
           if (hasTokenChanged) {
             const updateBody = {
               domain_name: DOMAIN_NAME,
               user_id: USER_ID,
-              payload: { staff_updation: { fcm_token: updatedTokens } },
+              payload: {
+                staff_updation: staffUpdationPayload
+              },
               extras: { find: { id: userId } }
             };
             await this.staffService.updateStaff(updateBody).toPromise();
+          } else if (!isFcmUnavailable) {
+            // Token list did not change, but still sync is_available in case it drifted
+            const availBody = {
+              domain_name: DOMAIN_NAME,
+              user_id: USER_ID,
+              payload: { staff_updation: { is_available: isAvailableValue } },
+              extras: { find: { id: userId } }
+            };
+            await this.staffService.updateStaff(availBody).toPromise();
           }
-
-          const remainingCount = updatedTokens.length;
-          const isAvailableValue = remainingCount >= 1;
-          const availBody = {
-            domain_name: DOMAIN_NAME,
-            user_id: USER_ID,
-            payload: { staff_updation: { is_available: isAvailableValue } },
-            extras: { find: { id: userId } }
-          };
-          await this.staffService.updateStaff(availBody).toPromise();
         }
       }
 

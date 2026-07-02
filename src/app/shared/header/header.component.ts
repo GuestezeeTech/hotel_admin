@@ -3,6 +3,7 @@ import { TaskManagementService } from './../../task-management/task-management.s
 import { NotificationService } from './../../notification/notification.service';
 import { TechnicalInfoService } from './../../hotel-enrollment-tabview/technical-info/technical-info.service';
 import { DOMAIN_NAME, USER_ID } from './../../app.config';
+import { CheckoutApiService } from '../../hotel-enrollment-tabview/checkout.service';
 import { LoaderService } from './../loader/loader.service';
 import { Component, Input, OnInit } from '@angular/core';
 import { LocalStorageService } from '../../auth-services/local-storage.service';
@@ -62,6 +63,8 @@ export class HeaderComponent implements OnInit {
   paymentoptions = ['Quarterly Payment', 'Half-Yearly Payment', 'Full Payment'];
   selectedIndex: number = 2;
   paymentTypeModal: any;
+  activeSubscription: any;
+  upsertData: any;
   //  Newly added & commented for Payment modal 
   @ViewChild('paymentModal') paymentModal!: ElementRef;
   @ViewChild('accountDropdown', { static: false }) accountDropdown!: ElementRef;
@@ -86,7 +89,8 @@ export class HeaderComponent implements OnInit {
     private staffService: StaffService,
     private hotelenrollmenttabviewService: HotelEnrollmentTabviewService,
     private cd: ChangeDetectorRef,
-    public permissionService: PermissionService
+    public permissionService: PermissionService,
+    private checkoutApiService: CheckoutApiService
   ) {
     this.currentRoute$ = new BehaviorSubject<string>(this.router.url);
   }
@@ -240,11 +244,11 @@ export class HeaderComponent implements OnInit {
     else if (currentRoute.includes('task-management')) {
       return (this.selectedMenu = "Task Management");
     }
-    else if (currentRoute.includes('form') || currentRoute.includes('view')) {
-      return (this.selectedMenu = "Hierarchy");
-    }
     else if (currentRoute.includes('service')) {
       return (this.selectedMenu = "Service Settings");
+    }
+    else if (currentRoute.includes('form') || currentRoute.includes('view')) {
+      return (this.selectedMenu = "Hierarchy");
     }
     else if (currentRoute.includes('technical')) {
       return (this.selectedMenu = "Technical Info");
@@ -360,24 +364,36 @@ export class HeaderComponent implements OnInit {
                     hasTokenChanged = true;
                   }
                 }
+                // Combine fcm_token removal and is_available into ONE call to avoid out-of-order writes
+                const isFcmUnavailable = this.localService.get('isFcmUnavailable') === 'true';
+                const remainingCount = updatedTokens.length;
+                const isAvailableValue = remainingCount >= 1;
+                const staffUpdationPayload: any = {
+                  fcm_token: updatedTokens
+                };
+                if (!isFcmUnavailable) {
+                  staffUpdationPayload.is_available = isAvailableValue;
+                }
                 if (hasTokenChanged) {
                   const updateBody = {
                     domain_name: DOMAIN_NAME,
                     user_id: USER_ID,
-                    payload: { staff_updation: { fcm_token: updatedTokens } },
+                    payload: {
+                      staff_updation: staffUpdationPayload
+                    },
                     extras: { find: { id: userId } }
                   };
                   await this.staffService.updateStaff(updateBody).toPromise();
+                } else if (!isFcmUnavailable) {
+                  // Token list did not change, but still sync is_available in case it drifted
+                  const availableUpdateBody = {
+                    domain_name: DOMAIN_NAME,
+                    user_id: USER_ID,
+                    payload: { staff_updation: { is_available: isAvailableValue } },
+                    extras: { find: { id: userId } }
+                  };
+                  await this.staffService.updateStaff(availableUpdateBody).toPromise();
                 }
-                const remainingCount = updatedTokens.length;
-                const isAvailableValue = remainingCount >= 1;
-                const availableUpdateBody = {
-                  domain_name: DOMAIN_NAME,
-                  user_id: USER_ID,
-                  payload: { staff_updation: { is_available: isAvailableValue } },
-                  extras: { find: { id: userId } }
-                };
-                await this.staffService.updateStaff(availableUpdateBody).toPromise();
               }
             }
           })(),
@@ -535,8 +551,6 @@ export class HeaderComponent implements OnInit {
 
   // Newly added for payment
   async onPayNowClick() {
-    // Notify PaymentComponent to execute payNow
-    // this.paymentEventService.triggerPayNow();
     await this.getLastestOrderOfCustomer();
     const allCycles = this.orderdata?.payment_split || [];
     const hasUnpaid = allCycles.some((cycle: any) =>
@@ -544,12 +558,9 @@ export class HeaderComponent implements OnInit {
     );
     if (hasUnpaid) {
       // Continue normal installment payment flow
-      // console.log("Proceeding with existing installment payment...");
-      this.paymentEventService.triggerPayNow(null);
+      await this.payNow(null);
     } else {
       // All paid → open Payment Type modal
-      // console.log("All installments paid → opening modal for new payment type");
-      // this.paymentEventService.openModal();
       this.openPaymentModal();
     }
   }
@@ -558,10 +569,385 @@ export class HeaderComponent implements OnInit {
     this.selectedIndex = index;
   }
 
-  executePayment() {
-    // console.log('Executing payment with index:', this.selectedIndex);
-    this.paymentEventService.triggerPayNow(this.selectedIndex);
-    this.paymentTypeModal?.hide();
+  async executePayment() {
+    await this.payNow(this.selectedIndex);
+    this.closeModal();
+  }
+
+  async getActiveSubscription(): Promise<void> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const propertySize = this.customerdata?.property_details?.property_address?.property_size;
+        const customerSub = this.customerdata?.subscription_detail;
+        if (customerSub) {
+          this.activeSubscription = customerSub;
+          return resolve();
+        }
+        const reqBody = {
+          domain_name: DOMAIN_NAME,
+          user_id: USER_ID,
+          extras: {
+            find: {},
+            pagination: true,
+            paginationDetails: { limit: 0, pageSize: 100 },
+            sorting: true,
+            sortingDetails: { name: 1 }
+          }
+        };
+        const generalResp: any = await new Promise((res, rej) => {
+          this.hotelenrollmentservice.getAllSubscriptionDetails(reqBody).subscribe(
+            result => res(result),
+            error => rej(error)
+          );
+        });
+        if (generalResp?.result?.data?.length) {
+          const allSubs = generalResp.result.data;
+          let matched = allSubs.find((sub: any) => sub.name === propertySize);
+          if (!matched) {
+            console.warn(`No plan found matching "${propertySize}". Using first plan as default.`);
+            matched = allSubs[0];
+          }
+          this.activeSubscription = matched;
+          resolve();
+        } else {
+          reject('No general subscription plans found.');
+        }
+      } catch (err) {
+        console.error('Error in getActiveSubscription:', err);
+        reject(err);
+      }
+    });
+  }
+
+  async payNow(selectedIndex: number | null) {
+    if (selectedIndex !== null && selectedIndex !== undefined) {
+      this.selectedIndex = selectedIndex;
+    }
+    await this.getCustomerById();
+    await this.getLastestOrderOfCustomer();
+    const lastOrder = this.orderdata || null;
+    let payment_split: any[] = [];
+    let paymentType = "";
+    if (!lastOrder) {
+      payment_split = [];
+    } else {
+      payment_split = lastOrder.payment_split.map((cycle: any) => ({ ...cycle }));
+    }
+    const allPaid = payment_split.length === 0 || payment_split.every(cycle =>
+      cycle.installments.every((inst: any) => inst.status === "Paid")
+    );
+    if (allPaid) {
+      await this.getActiveSubscription();
+      const perRoomCost = Number(this.activeSubscription?.perRoomCost || 0);
+      const discountType = (this.activeSubscription?.discountType || "").toLowerCase();
+      const discountValue = Number(this.activeSubscription?.discountValue || 0);
+      const numberOfRooms = Number(this.customerdata?.property_details?.property_address?.number_of_rooms || 0);
+      let discountedCost = perRoomCost;
+      if (discountType === "percentage") {
+        discountedCost = perRoomCost - (perRoomCost * discountValue / 100);
+      } else if (discountType === "flat") {
+        discountedCost = perRoomCost - discountValue;
+      }
+      discountedCost = Number(discountedCost.toFixed(2));
+      const gstPerRoom = Number((discountedCost * 0.18).toFixed(2));
+      const yearlyCost = Number((discountedCost * numberOfRooms * 12).toFixed(2));
+      const yearlyGst = Number((gstPerRoom * numberOfRooms * 12).toFixed(2));
+      const totalYearlyAmount = Number((yearlyCost + yearlyGst).toFixed(2));
+      let installments = 1;
+      if (this.selectedIndex === 0) { paymentType = "quarterly"; installments = 4; }
+      if (this.selectedIndex === 1) { paymentType = "half-yearly"; installments = 2; }
+      if (this.selectedIndex === 2) { paymentType = "full"; installments = 1; }
+      const subTotalPerInstallment = Number((yearlyCost / installments).toFixed(2));
+      const taxPerInstallment = Number((yearlyGst / installments).toFixed(2));
+      const totalPerInstallment = Number((subTotalPerInstallment + taxPerInstallment).toFixed(2));
+      let baseDate = new Date();
+      const installmentArr = [];
+      for (let i = 0; i < installments; i++) {
+        let tempDate = new Date(baseDate);
+        if (paymentType === "quarterly") tempDate.setMonth(tempDate.getMonth() + (3 * (i + 1)));
+        if (paymentType === "half-yearly") tempDate.setMonth(tempDate.getMonth() + (6 * (i + 1)));
+        if (paymentType === "full") tempDate.setFullYear(tempDate.getFullYear() + 1);
+        const subscription_end_date = `${String(tempDate.getDate()).padStart(2, '0')}-${String(tempDate.getMonth() + 1).padStart(2, '0')}-${tempDate.getFullYear()}`;
+        installmentArr.push({
+          status: "Not Paid",
+          sub_total: subTotalPerInstallment,
+          tax: taxPerInstallment,
+          order_total_amount: totalPerInstallment,
+          subscription_end_date
+        });
+      }
+      payment_split.push({
+        name: paymentType,
+        installments: installmentArr
+      });
+    } else {
+      const nextUnpaidCycleIndex = payment_split.findIndex(cycle =>
+        cycle.installments.some((inst: any) => inst.status === "Not Paid")
+      );
+      if (nextUnpaidCycleIndex === -1) {
+        return;
+      }
+      paymentType = payment_split[nextUnpaidCycleIndex].name;
+    }
+    let nextUnpaid;
+    for (let cycle of payment_split) {
+      nextUnpaid = cycle.installments.find((inst: any) => inst.status === "Not Paid");
+      if (nextUnpaid) break;
+    }
+    if (!nextUnpaid) {
+      return;
+    }
+    const order_review = {
+      order_summary: {
+        sub_total: Number(nextUnpaid.sub_total.toFixed(2)),
+        tax: Number(nextUnpaid.tax.toFixed(2)),
+        order_total_amount: Number(nextUnpaid.order_total_amount.toFixed(2))
+      }
+    };
+    const isIndia = this.customerdata?.property_details?.property_address?.property_country === 'India';
+    const taxInfo = isIndia
+      ? { gst_number: this.customerdata?.property_details?.property_address?.property_gst || "" }
+      : { vat_number: this.customerdata?.property_details?.property_address?.property_vat || "" };
+
+    const orderData = {
+      customer_id: this.customerdata?.id,
+      status: "Awaiting Payment",
+      status_id: "1",
+      system_label: "Pending",
+      orderConfirmDate: new Date(),
+      subscription_end_date: nextUnpaid.subscription_end_date,
+      customer: {
+        customer_id: this.customerdata?.id,
+        customer_name: this.customerdata?.first_name,
+        email: this.customerdata?.email,
+        customer_type: "business customer",
+        phone_number: this.customerdata?.phone_number,
+        address: this.customerdata?.property_details?.property_address?.property_address,
+        brand: this.customerdata?.property_details?.contact_details?.brand,
+        hotel_name: this.customerdata?.property_details?.contact_details?.hotel_name,
+        property_size: this.customerdata?.property_details?.property_address?.property_size,
+        is_email_opt_in: false
+      },
+      "shipping": {
+        "shipping_address_count": "",
+        "fixed_shippping_price": false,
+        "pay_to_logistics": "",
+        "free_shipping": false,
+        "shipped_date": "",
+        "items_total": "",
+        "items_shipped": "",
+        "items_total_quantity": "",
+        "shipping_addresses": [
+          {
+            "customer_id": this.customerdata?.id,
+            "alias": "",
+            "first_name": this.customerdata?.first_name,
+            ...taxInfo,
+            "last_name": "",
+            "company_name": "",
+            "entire_location": this.customerdata?.email,
+            "address1": this.customerdata?.property_details?.property_address?.property_address,
+            "landmark": "",
+            "city": "",
+            "state": "",
+            "country": "",
+            "country_code": "104",
+            "zipcode": "",
+            "email": "",
+            "phone_number": "",
+            "is_preferred_address": false,
+            "address_type": "",
+            "latitude": "",
+            "longitude": ""
+          }
+        ],
+        "delivery_instructions": "",
+        "shipping_method": {
+          "name": "",
+          "delivery_charge": 0,
+          "pay_to_logistics": 0,
+          "total_shipping_price": 0
+        },
+        "shipping_carrier": {
+          "shipping_carrier_id": "",
+          "shipping_carrier_name": "",
+          "api_integration_id": "",
+          "api_integration_name": ""
+        },
+        "deliveries": [],
+        "geo_info": {},
+        "customer_comment": "",
+        "notes": ""
+      },
+      "payment": {
+        "status_flow": {
+          "name": "Online Payment",
+          "title": "Order - Online Payment",
+          "statuses": [
+            {
+              "name": "",
+              "title": "",
+              "status_id": 1,
+              "status_name": "Pending",
+              "status_system_label": "Pending",
+              "status_custom_label": "Order Placed",
+              "process": "Checkout",
+              "sequence": 1,
+              "sms_notification": false,
+              "email_notification": false,
+              "push_notification": false
+            },
+            {
+              "name": "",
+              "title": "",
+              "status_id": 2,
+              "status_name": "Awaiting Payment",
+              "status_system_label": "Awaiting Payment",
+              "status_custom_label": "Awaiting Payment",
+              "process": "Checkout",
+              "sequence": 2,
+              "sms_notification": false,
+              "email_notification": false,
+              "push_notification": false
+            },
+            {
+              "name": "",
+              "title": "",
+              "status_id": 3,
+              "status_name": "Confirmed",
+              "status_system_label": "Confirmed",
+              "status_custom_label": "Order Confirmed",
+              "process": "Checkout",
+              "sequence": 3,
+              "sms_notification": true,
+              "email_notification": true,
+              "push_notification": true
+            },
+            {
+              "name": "",
+              "title": "",
+              "status_id": 4,
+              "status_name": "Processing",
+              "status_system_label": "Processing",
+              "status_custom_label": "Being Prepared",
+              "process": "Manual",
+              "sequence": 4,
+              "sms_notification": false,
+              "email_notification": false,
+              "push_notification": false
+            },
+            {
+              "name": "",
+              "title": "",
+              "status_id": 5,
+              "status_name": "Awaiting Shipment",
+              "status_system_label": "Awaiting Shipment",
+              "status_custom_label": "Ready for Delivery",
+              "process": "Manual",
+              "sequence": 5,
+              "sms_notification": false,
+              "email_notification": false,
+              "push_notification": false
+            },
+            {
+              "name": "",
+              "title": "",
+              "status_id": 6,
+              "status_name": "Shipped",
+              "status_system_label": "Shipped",
+              "status_custom_label": "Out for Delivery",
+              "process": "Manual/API",
+              "sequence": 6,
+              "sms_notification": false,
+              "email_notification": false,
+              "push_notification": false
+            },
+            {
+              "name": "",
+              "title": "",
+              "status_id": 7,
+              "status_name": "Delivered",
+              "status_system_label": "Delivered",
+              "status_custom_label": "Delivered",
+              "process": "Manual/API",
+              "sequence": 7,
+              "sms_notification": true,
+              "email_notification": true,
+              "push_notification": false
+            },
+            {
+              "name": "",
+              "title": "",
+              "status_id": 8,
+              "status_name": "Cancelled",
+              "status_system_label": "Cancelled",
+              "status_custom_label": "Cancelled",
+              "process": "Manual/API",
+              "sequence": 8,
+              "sms_notification": true,
+              "email_notification": true,
+              "push_notification": false
+            }
+          ]
+        },
+        "payment_date": "",
+        "payment_reference_no": "",
+        "payment_status": ""
+      },
+      "delivery": {
+        "outlet_id": "1",
+        "outlet_name": "guest ezee",
+        "email": this.customerdata?.property_details?.contact_details?.email,
+        "phone_number": this.customerdata?.property_details?.contact_details?.primary_phone_number,
+        "address": this.customerdata?.property_details?.property_address?.property_address,
+        "is_email_opt_in": false
+      },
+      payment_type: paymentType,
+      payment_split,
+      order_review,
+      customer_member_id: this.customerdata?.customer_member_id,
+      organization_id: 46,
+      store_id: 1,
+      created_by: this.localService.get('UserId'),
+      is_deleted: false,
+      is_active: true,
+      modified_by: 16,
+      is_registration: true,
+      send_sms: true
+    };
+    const requestData = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      payload: { order_creation: orderData },
+      extras: { find: { id: "" } }
+    };
+    this.hotelenrollmentservice.orderUpsert(requestData).subscribe(resp => {
+      if (!resp.success) return console.error("Order creation failed");
+      this.upsertData = resp.result.data;
+      const hdfcData = {
+        domain_name: DOMAIN_NAME,
+        oid: this.upsertData[0].id,
+        amount: nextUnpaid.order_total_amount
+      };
+      this.checkoutApiService.getHDFClink(hdfcData).then(responseData3 => {
+        let respData3: any = responseData3;
+        if (!respData3) return console.error("Payment link generation failed");
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = respData3.link;
+        form.target = "_self";
+        const input1 = document.createElement("input");
+        input1.name = "encRequest";
+        input1.value = respData3.encrequest;
+        form.appendChild(input1);
+        const input2 = document.createElement("input");
+        input2.name = "access_code";
+        input2.value = respData3.accesscode;
+        form.appendChild(input2);
+        document.body.appendChild(form);
+        form.submit();
+      });
+    });
   }
 
   getLastestOrderOfCustomer(): Promise<any> {

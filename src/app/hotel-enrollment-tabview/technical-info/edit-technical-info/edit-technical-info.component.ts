@@ -77,7 +77,7 @@ export class EditTechnicalInfoComponent implements OnInit {
       }
     });
   }
-  
+
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['infoData'] && this.infoData) {
       // Example condition: infoData.type === 'lock'
@@ -124,8 +124,8 @@ export class EditTechnicalInfoComponent implements OnInit {
 
     let createobj =
     {
-      domain_name: this.authTokenService.getDomain(),
-      user_id: this.authTokenService.getUserId(),
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
       "payload": {
         "integration_settings": {
 
@@ -179,8 +179,8 @@ export class EditTechnicalInfoComponent implements OnInit {
   updateApiIntegration() {
     let createobj =
     {
-      domain_name: this.authTokenService.getDomain(),
-      user_id: this.authTokenService.getUserId(),
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
       "payload": {
         "integration_settings": {
           "name": this.techInfoForm.get('name')?.value,

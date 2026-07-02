@@ -154,7 +154,7 @@ export class ServiceSettingsComponent implements OnInit {
   //     lowerTypes.includes('checkout') || lowerTypes.includes('late checkout');
   //   // Prepare request body conditionally
   //   let requestBody: any = {
-  //     domain_name: this.authTokenService.getDomain(),
+  //     domain_name:DOMAIN_NAME,
   //     user_id: this.authTokenService.getUserId(),
   //     extras: { find: {} }
   //   };
@@ -456,7 +456,7 @@ export class ServiceSettingsComponent implements OnInit {
     // console.log('Is Checkout Type:', isCheckoutType);
     // Build Request
     let requestBody: any = {
-      domain_name: this.authTokenService.getDomain(),
+      domain_name: DOMAIN_NAME,
       user_id: USER_ID,
       extras: { find: {} }
     };

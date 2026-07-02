@@ -1,6 +1,10 @@
 <div class="main">
   <app-alerts></app-alerts>
-  <div class="centered-container">
+  <!-- Loader Overlay - Until the data is loaded -->
+  <div *ngIf="isLoading" class="loader-overlay">
+    <div class="loader-spinner"></div>
+  </div>
+  <div class="centered-container" [class.loading-content]="isLoading">
     <div class="container">
       <div *ngIf="!showForm" class="button-container">
         <button (click)="navigateToBack()" class="btn primary">BACK</button>

@@ -37,3 +37,16 @@
 </div>
 }
 <app-loader></app-loader>
+
+@if (isUserInactive) {
+<div class="deactivated-modal-backdrop">
+  <div class="deactivated-modal-card">
+    <div class="modal-icon-container">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+    </div>
+    <h3>Account Deactivated</h3>
+    <p>Your account has been deactivated by the administrator. Please contact support for assistance.</p>
+    <button class="btn-modal-ok" (click)="handleInactiveLogout()">OK</button>
+  </div>
+</div>
+}
