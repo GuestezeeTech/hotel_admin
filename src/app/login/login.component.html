@@ -212,13 +212,42 @@
 
   <!-- Custom Deactivated Modal -->
   <div *ngIf="showDeactivatedModal" class="deactivated-modal-backdrop">
-    <div class="deactivated-modal-card">
-      <div class="modal-icon-container">
-        <i class="fa fa-exclamation-triangle"></i>
+    <div *ngIf="showPaymentOptions; else mainModal" class="deactivated-modal-card">
+      <div class="modal-icon-container" style="color: #800020;">
+        <i class="fa fa-credit-card"></i>
       </div>
-      <h3>Account Deactivated</h3>
-      <p>Your hotel account is deactivated. Please contact the administrator for assistance.</p>
-      <button class="btn-modal-ok" (click)="closeDeactivatedModal()">OK</button>
+      <h3>Select Payment Plan</h3>
+      <p>Choose a billing cycle to reactivate your hotel account.</p>
+      
+      <div class="payment-options-list" style="margin-bottom: 2rem; text-align: left; padding: 0 1rem;">
+        <div *ngFor="let item of paymentOptions; let i = index" style="padding: 8px 0; display: flex; align-items: center; gap: 10px; cursor: pointer;" (click)="selectedIndex = i">
+          <input type="radio" name="paymentOption" [value]="i" [checked]="selectedIndex === i" style="accent-color: #800020; cursor: pointer;">
+          <label style="margin: 0; cursor: pointer; font-weight: 500; color: #333;">{{ item }}</label>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 10px;">
+        <button class="btn-modal-ok" style="background: white; color: #800020; border: 2px solid #800020;" (click)="showPaymentOptions = false">Cancel</button>
+        <button class="btn-modal-ok" (click)="executePaymentPlan()">Pay</button>
+      </div>
     </div>
+
+    <ng-template #mainModal>
+      <div class="deactivated-modal-card">
+        <div class="modal-icon-container">
+          <i class="fa fa-exclamation-triangle"></i>
+        </div>
+        <h3>Account Deactivated</h3>
+        <p>Your hotel account is deactivated. Please contact the administrator for assistance.</p>
+        
+        <div *ngIf="isHotelOwnerLogin; else standardBtn" style="display: flex; gap: 10px; width: 100%;">
+          <button class="btn-modal-ok" style="background: white; color: #800020; border: 2px solid #800020;" (click)="closeDeactivatedModal()">Cancel</button>
+          <button class="btn-modal-ok" (click)="initiatePaymentFlow()">Click to Pay</button>
+        </div>
+        <ng-template #standardBtn>
+          <button class="btn-modal-ok" (click)="closeDeactivatedModal()">OK</button>
+        </ng-template>
+      </div>
+    </ng-template>
   </div>
 </div>

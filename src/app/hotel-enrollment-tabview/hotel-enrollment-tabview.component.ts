@@ -756,6 +756,30 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
                       if (custRes.success === 1) console.log("Customer subscription_end_date updated after payment", custRes);
                       else console.error("Failed to update customer", custRes.message);
                     });
+
+                    // Call enableHotel to reactivate the account
+                    const enablePayload = {
+                      domain_name: DOMAIN_NAME,
+                      user_id: USER_ID,
+                      extras: {
+                        find: {
+                          member_id: this.orderdata.customer_member_id || this.customerdata?.customer_member_id || this.localService.get('MemberId')
+                        }
+                      }
+                    };
+                    this.hotelenrollmentservice.enableHotel(enablePayload).subscribe({
+                      next: (enableRes: any) => {
+                        if (enableRes.success === 1 && enableRes.status_code === 200) {
+                          console.log("Hotel enabled successfully after payment:", enableRes);
+                        } else {
+                          console.error("Failed to enable hotel after payment:", enableRes.message);
+                        }
+                      },
+                      error: (err: any) => {
+                        console.error("Error enabling hotel after payment:", err);
+                      }
+                    });
+
                     this.updateHeaderPayNowButton();
                   }
                 } else {

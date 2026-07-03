@@ -30,6 +30,7 @@ import { PushService } from '../services/push.service';
 import { StaffService } from '../user-access/staff/staff.service';
 import { Observable } from 'rxjs';
 import { RoleService } from '../user-access/role/role.service';
+import { PaymentHelperService } from '../services/payment-helper.service';
 
 @Component({
   selector: 'app-login',
@@ -87,11 +88,16 @@ export class LoginComponent implements OnInit {
   hasEmailAndPhone: boolean = false;
   loginErrorMessage: any;
   showDeactivatedModal: boolean = false;
+  isHotelOwnerLogin: boolean = false;
+  showPaymentOptions: boolean = false;
+  paymentOptions = ['Quarterly Payment', 'Half-Yearly Payment', 'Full Payment'];
+  selectedIndex = 2;
+  deactivatedUserData: any = null;
 
   constructor(private fb: FormBuilder, private alertService: AlertsService,
     private appService: LoginService,
     private authService: AuthTokenService,
-    private localService: LocalStorageService,
+    public localService: LocalStorageService,
     private loaderService: LoaderService,
     private router: Router,
     private userAccessService: UserAccessService,
@@ -111,7 +117,8 @@ export class LoginComponent implements OnInit {
     private notificationService: NotificationService,
     private cdr: ChangeDetectorRef,
     private roleListingService: RoleListingService,
-    private roleService: RoleService
+    private roleService: RoleService,
+    private paymentHelperService: PaymentHelperService
   ) { }
 
   @HostListener('window:popstate', ['$event'])
@@ -544,6 +551,32 @@ export class LoginComponent implements OnInit {
                 if (resp && resp.success === 1 && resp.status_code === 200) {
                   if (userData.hotel_enabled === false || userData.hotel_enabled === 'false') {
                     this.loaderService.emitComplete();
+                    
+                    // Store tokens and basic user info to allow checkout
+                    this.authService.setExpiryTime(new Date().getTime() + (resp.access_token_expires_in * 1000));
+                    this.authService.setRTokenExpireTime(new Date().getTime() + (resp.refresh_token_expires_in * 1000));
+                    this.authService.setAccessToken(resp.access_token);
+                    this.authService.setRefreshToken(resp.refresh_token);
+                    
+                    this.localService.set('CustomerType', userData.staff_employee_number != undefined ? 'Staff' : 'Customer');
+                    this.localService.set('UserId', Number(userData.id));
+                    
+                    const memberId = userData.customer_member_id && userData.customer_member_id.trim() !== ''
+                      ? userData.customer_member_id.trim()
+                      : (userData.member_id ? userData.member_id.trim() : null);
+                    if (memberId) {
+                      this.localService.set('MemberId', memberId);
+                    }
+                    this.localService.set('UserEmail', userData.email);
+                    this.localService.set('db_schema', userData.db_schema);
+                    this.localService.set('Password', String(this.loginForm.value.password));
+                    this.localService.set('Name', userData.first_name);
+                    this.localService.set('Status', userData.status);
+                    this.dbSchema = userData.db_schema;
+                    this.localService.set('domainName', DOMAIN_NAME);
+
+                    this.isHotelOwnerLogin = !!userData.customer_member_id && userData.staff_employee_number == undefined;
+                    this.deactivatedUserData = userData;
                     this.showDeactivatedModal = true;
                     return;
                   }
@@ -644,6 +677,61 @@ export class LoginComponent implements OnInit {
                               },
                               (err: any) => {
                                 console.error('Error updating staff FCM token and is_available:', err);
+                              }
+                            );
+
+                            // Update customer document for this staff member
+                            const customerFetchBody = {
+                              domain_name: DOMAIN_NAME,
+                              user_id: USER_ID,
+                              extras: {
+                                find: {
+                                  id: userData.id
+                                }
+                              }
+                            };
+                            this.hotelenrollmenttabviewService.getLoginCustomerById(customerFetchBody).subscribe(
+                              (custResp: any) => {
+                                if (custResp.success === 1 && custResp.status_code === 200 && custResp.result.data.length > 0) {
+                                  const customer = custResp.result.data[0];
+                                  if (!Array.isArray(customer.fcm_token)) {
+                                    customer.fcm_token = [];
+                                  }
+                                  if (token !== null && token !== undefined && token.trim() !== '') {
+                                    if (!customer.fcm_token.includes(token)) {
+                                      customer.fcm_token.push(token);
+                                    }
+                                  }
+                                  const customerUpdatePayload: any = {
+                                    fcm_token: customer.fcm_token
+                                  };
+                                  if (!isFcmUnavailable) {
+                                    customerUpdatePayload.is_available = true;
+                                  }
+                                  const customerUpdateBody = {
+                                    domain_name: DOMAIN_NAME,
+                                    user_id: USER_ID,
+                                    payload: {
+                                      customer_update: customerUpdatePayload
+                                    },
+                                    extras: {
+                                      find: {
+                                        id: userData.id
+                                      }
+                                    }
+                                  };
+                                  this.hotelenrollmenttabviewService.updateCustomerFcm(customerUpdateBody).subscribe(
+                                    (custUpdateResp: any) => {
+                                      // console.log('Customer FCM token and is_available updated successfully for staff login');
+                                    },
+                                    (err: any) => {
+                                      console.error('Error updating customer FCM token for staff login:', err);
+                                    }
+                                  );
+                                }
+                              },
+                              (err: any) => {
+                                console.error('Error fetching customer document for staff login:', err);
                               }
                             );
                           }// End of newly added is_available to true on staff login
@@ -865,6 +953,45 @@ export class LoginComponent implements OnInit {
 
   closeDeactivatedModal(): void {
     this.showDeactivatedModal = false;
+    this.showPaymentOptions = false;
+    localStorage.clear();
+  }
+
+  async initiatePaymentFlow(): Promise<void> {
+    if (!this.deactivatedUserData) return;
+    const memberId = this.localService.get('MemberId');
+    if (!memberId) return;
+
+    try {
+      const orderdata = await this.paymentHelperService.getLastestOrderOfCustomer(memberId);
+      let payment_split: any[] = [];
+      if (orderdata && orderdata.payment_split) {
+        payment_split = orderdata.payment_split;
+      }
+      
+      const hasUnpaid = payment_split.some((cycle: any) =>
+        cycle.installments.some((inst: any) => inst.status === "Not Paid")
+      );
+
+      if (hasUnpaid) {
+        // Direct checkout for existing unpaid installment
+        await this.paymentHelperService.payNow(this.deactivatedUserData, orderdata, null);
+      } else {
+        // Show billing selection screen
+        this.showPaymentOptions = true;
+      }
+    } catch (err) {
+      console.error('Error in deactivated payment flow:', err);
+    }
+  }
+
+  async executePaymentPlan(): Promise<void> {
+    if (!this.deactivatedUserData) return;
+    try {
+      await this.paymentHelperService.payNow(this.deactivatedUserData, null, this.selectedIndex);
+    } catch (err) {
+      console.error('Error executing payment plan:', err);
+    }
   }
 
   getServiceById(callback: (value: boolean) => void) {

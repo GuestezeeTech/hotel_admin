@@ -624,7 +624,10 @@ export const ENDPOINTS = {
   SEND_WELCOME_EMAIL: API_URL + ':8008/email/send',
 
   // Newly added for invoice generator
-  INVOICE_GENERATOR: API_URL + ':8015/guest-invoice/create-invoice'
+  INVOICE_GENERATOR: API_URL + ':8015/guest-invoice/create-invoice',
+
+  // Newly added for hotel enable
+  ENABLE_HOTEL: API_URL + ':5447/customer/enable-hotel'
 
 }
 

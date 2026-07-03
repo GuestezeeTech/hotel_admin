@@ -13,6 +13,7 @@ import { LoaderComponent } from './shared/loader/loader.component';
 import { TaskManagementService } from './task-management/task-management.service';
 import { HotelEnrollmentTabviewService } from './hotel-enrollment-tabview/hotel-enrollment-tabview.service';
 import { ENDPOINTS, DOMAIN_NAME, USER_ID } from './app.config';
+import { PaymentHelperService } from './services/payment-helper.service';
 
 @Component({
   selector: 'app-root',
@@ -157,6 +158,11 @@ export class AppComponent implements OnInit, OnDestroy {
   // Newly addedfor inactive log out
   isUserInactive = false;
   // End of newly added for inactive log out
+  inactiveCustomerData: any = null;
+  showPaymentOptions = false;
+  paymentOptions = ['Quarterly Payment', 'Half-Yearly Payment', 'Full Payment'];
+  selectedIndex = 2;
+
   private isInitialNavigation = true;
   private tokenSyncInterval: any;
   private hotelStatusInterval: any;
@@ -167,13 +173,14 @@ export class AppComponent implements OnInit, OnDestroy {
 
   constructor(
     private router: Router,
-    private localservice: LocalStorageService,
+    public localservice: LocalStorageService,
     private pushService: PushService,
     private notificationService: NotificationService,
     private logoutService: LogoutService,
     private permissionService: PermissionService,
     private taskManagementService: TaskManagementService,
-    private hotelEnrollmentService: HotelEnrollmentTabviewService
+    private hotelEnrollmentService: HotelEnrollmentTabviewService,
+    private paymentHelperService: PaymentHelperService
   ) {
     // --- Sidebar and menu tracking ---
     this.router.events.subscribe(event => {
@@ -557,6 +564,10 @@ export class AppComponent implements OnInit, OnDestroy {
 
   // Newly added for inactive log out
   checkHotelStatus(): void {
+    if (window.location.href.includes('confirmation')) {
+      this.isUserInactive = false;
+      return;
+    }
     const memberId = this.localservice.get('MemberId');
     const isLoggedOut = this.localservice.get('loggedOut') === 'true';
     const userId = this.localservice.get('UserId');
@@ -581,6 +592,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
         if (resp?.success === 1 && resp.result?.data?.length > 0) {
           const customer = resp.result.data[0];
+          this.inactiveCustomerData = customer;
           if (customer.hotel_enabled === false) {
             this.isUserInactive = true;
           } else {
@@ -592,6 +604,43 @@ export class AppComponent implements OnInit, OnDestroy {
         console.error('Error checking hotel status:', err);
       }
     });
+  }
+
+  async initiatePaymentFlow(): Promise<void> {
+    if (!this.inactiveCustomerData) return;
+    const memberId = this.localservice.get('MemberId');
+    if (!memberId) return;
+
+    try {
+      const orderdata = await this.paymentHelperService.getLastestOrderOfCustomer(memberId);
+      let payment_split: any[] = [];
+      if (orderdata && orderdata.payment_split) {
+        payment_split = orderdata.payment_split;
+      }
+      
+      const hasUnpaid = payment_split.some((cycle: any) =>
+        cycle.installments.some((inst: any) => inst.status === "Not Paid")
+      );
+
+      if (hasUnpaid) {
+        // Direct checkout for existing unpaid installment
+        await this.paymentHelperService.payNow(this.inactiveCustomerData, orderdata, null);
+      } else {
+        // Show billing selection screen
+        this.showPaymentOptions = true;
+      }
+    } catch (err) {
+      console.error('Error in deactivated payment flow:', err);
+    }
+  }
+
+  async executePaymentPlan(): Promise<void> {
+    if (!this.inactiveCustomerData) return;
+    try {
+      await this.paymentHelperService.payNow(this.inactiveCustomerData, null, this.selectedIndex);
+    } catch (err) {
+      console.error('Error executing payment plan:', err);
+    }
   }
 
   async handleInactiveLogout(): Promise<void> {

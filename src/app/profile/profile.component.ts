@@ -683,14 +683,33 @@ export class ProfileComponent implements OnInit {
                   hasTokenChanged = true;
                 }
               }
+              const remainingCount = updatedTokens.length;
+              const isAvailableValue = remainingCount >= 1;
+              const isFcmUnavailable = this.localService.get('isFcmUnavailable') === 'true';
+              const customerUpdatePayload: any = {
+                fcm_token: updatedTokens
+              };
+              if (customerType === 'Staff' && !isFcmUnavailable) {
+                customerUpdatePayload.is_available = isAvailableValue;
+              }
+
               if (hasTokenChanged) {
                 const updateBody = {
                   domain_name: DOMAIN_NAME,
                   user_id: USER_ID,
-                  payload: { customer_update: { fcm_token: updatedTokens } },
+                  payload: { customer_update: customerUpdatePayload },
                   extras: { find: { [customerFindKey]: userId } }
                 };
                 await this.hotelenrollmenttabviewService.updateCustomerFcm(updateBody).toPromise();
+              } else if (customerType === 'Staff' && !isFcmUnavailable) {
+                // Token list did not change, but still sync is_available in case it drifted
+                const availBody = {
+                  domain_name: DOMAIN_NAME,
+                  user_id: USER_ID,
+                  payload: { customer_update: { is_available: isAvailableValue } },
+                  extras: { find: { [customerFindKey]: userId } }
+                };
+                await this.hotelenrollmenttabviewService.updateCustomerFcm(availBody).toPromise();
               }
             }
             if (customerType === 'Staff') {

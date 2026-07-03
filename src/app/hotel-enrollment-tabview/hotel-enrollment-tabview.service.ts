@@ -397,5 +397,14 @@ export class HotelEnrollmentTabviewService {
     }
   }
 
+  // Newly added for 
+  enableHotel(jsonObj: any): Observable<any> {
+    if (this.authTokenService.isTokenExpired()) {
+      this.router.navigate([`/login`], { skipLocationChange: false });
+      return new Observable();
+    } else {
+      return this.http.post(ENDPOINTS.ENABLE_HOTEL, jsonObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
+    }
+  }
 
 }
