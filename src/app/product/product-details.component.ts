@@ -315,10 +315,10 @@ export class ProductDetailsComponent {
               outlet_id: resolvedOutletId
             },
             "pagination": false,
-            "paginationDetails": {
-              "limit": 100,
-              "pageSize": 1
-            },
+            /*  "paginationDetails": {
+               "limit": 100,
+               "pageSize": 1
+             }, */
             "sorting": true,
             "sortingDetails": {
               "name": -1
@@ -347,10 +347,10 @@ export class ProductDetailsComponent {
                 "member_id": this.localService.get('MemberId')
               },
               "pagination": true,
-              "paginationDetails": {
-                "limit": 10,
-                "pageSize": 1
-              },
+              /*  "paginationDetails": {
+                 "limit": 10,
+                 "pageSize": 1
+               }, */
               "sorting": true,
               "sortingDetails": {
                 "id": -1
@@ -390,9 +390,9 @@ export class ProductDetailsComponent {
 
   getResolvedOutletId(): any {
     if (this.outletData) {
-      const isExist = !!(this.outletData.is_third_party_outlet_id_exist || 
-                         this.outletData.third_party_outlet_id || 
-                         this.outletData.winhms_outlet_id);
+      const isExist = !!(this.outletData.is_third_party_outlet_id_exist ||
+        this.outletData.third_party_outlet_id ||
+        this.outletData.winhms_outlet_id);
       if (isExist) {
         const val = this.outletData.third_party_outlet_id || this.outletData.winhms_outlet_id;
         if (val) {
@@ -423,10 +423,10 @@ export class ProductDetailsComponent {
             outlet_id: this.getResolvedOutletId()
           },
           "pagination": false,
-          "paginationDetails": {
-            "limit": 100,
-            "pageSize": 1
-          },
+          /*  "paginationDetails": {
+             "limit": 100,
+             "pageSize": 1
+           }, */
           "sorting": true,
           "sortingDetails": {
             "name": -1
@@ -1133,11 +1133,11 @@ export class ProductDetailsComponent {
           // "customer_id": this.customerId,
           "member_id": this.localService.get('MemberId')
         },
-        "pagination": true,
-        "paginationDetails": {
-          "limit": 10,
-          "pageSize": 1
-        },
+        "pagination": false,
+        /*   "paginationDetails": {
+            "limit": 10,
+            "pageSize": 1
+          }, */
         "sorting": true,
         "sortingDetails": {
           "id": -1

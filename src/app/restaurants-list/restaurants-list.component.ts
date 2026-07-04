@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -26,7 +26,7 @@ import { PermissionService, ModulePermission } from '../services/permission.serv
   styleUrl: './restaurants-list.component.scss'
 })
 
-export class RestaurantsListComponent implements OnInit {
+export class RestaurantsListComponent implements OnInit, OnDestroy {
   customerdata: any = {};
   menuOutlets: any[] = [];
   selectedOutlet: any = null;
@@ -118,6 +118,10 @@ export class RestaurantsListComponent implements OnInit {
     if (this.member_id) {
       this.getCustomerById();
     }
+  }
+
+  ngOnDestroy(): void {
+    document.body.classList.remove('no-scroll-in-restaurants-list');
   }
 
   // Permission helpers for FEATURES

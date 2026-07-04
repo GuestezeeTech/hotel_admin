@@ -272,7 +272,7 @@ export class LoginService {
       return new Observable();
     }
     else {
-      return this.http.post(ENDPOINTS.SEND_WELCOME_EMAIL, payload, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) })
+      return this.http.post(ENDPOINTS.SEND_WELCOME_EMAIL_ON_SIGNUP, payload, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) })
     }
   }
 
@@ -288,6 +288,17 @@ export class LoginService {
 
   staffLogin(loginObj: any): Observable<any> {
     return this.http.post(ENDPOINTS.STAFF_LOGIN, loginObj, { headers: new HttpHeaders().set('Content-Type', 'application/json') });
+  }
+
+  // Ṇewly added for sms(username, password - welcome sms)
+  sendWelcomeSMS(tokenObj: any): Observable<any> {
+    if (this.authTokenService.isTokenExpired()) {
+      this.router.navigate([`/login`], { skipLocationChange: false });
+      return new Observable();
+    }
+    else {
+      return this.http.post(ENDPOINTS.GENERRATE_NAME_PASSWORD, tokenObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) })
+    }
   }
 
 }

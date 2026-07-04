@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -29,7 +29,7 @@ import { UpsellService } from '../features/upsell.service';
   styleUrl: './features-list.component.scss'
 })
 
-export class FeaturesListComponent implements OnInit {
+export class FeaturesListComponent implements OnInit, OnDestroy {
   customerdata: any = null; //hidden while the application is "checking" for the hotel code
   menuOutlets: any[] = [];
   selectedOutlet: any = null;
@@ -158,6 +158,11 @@ export class FeaturesListComponent implements OnInit {
       }
     }
 
+  }
+
+  ngOnDestroy(): void {
+    document.body.classList.remove('no-scroll-in-features-list');
+    document.body.classList.remove('no-scroll-in-restaurants-list');
   }
 
   // Permission helpers for FEATURES
@@ -466,9 +471,17 @@ export class FeaturesListComponent implements OnInit {
     );
   }
 
+  getOutletIdentifier(outlet: any): any {
+    if (!outlet) return null;
+    const isThirdParty = (outlet.hasOwnProperty('is_third_party_outlet_id_exist') && outlet.is_third_party_outlet_id_exist !== null && outlet.is_third_party_outlet_id_exist !== undefined)
+      ? (outlet.is_third_party_outlet_id_exist === true || outlet.is_third_party_outlet_id_exist === 'true')
+      : false;
+    return isThirdParty ? (outlet.winhms_outlet_id || outlet.third_party_outlet_id) : outlet.id;
+  }
+
   selectOutlet(outlet: any) {
     // Case 1: Same outlet clicked → UNSELECT
-    if (this.selectedOutlet?.winhms_outlet_id === outlet.winhms_outlet_id) {
+    if (this.getOutletIdentifier(this.selectedOutlet) === this.getOutletIdentifier(outlet)) {
       this.selectedOutlet = null;
       return;
     }
@@ -501,7 +514,7 @@ export class FeaturesListComponent implements OnInit {
       user_id: USER_ID,
       extras: {
         find: {
-          outlet_id: outlet.winhms_outlet_id
+          outlet_id: this.getOutletIdentifier(outlet)
         }
       }
     };
@@ -572,7 +585,7 @@ export class FeaturesListComponent implements OnInit {
   }
 
   openOfferModal(outlet: any) {
-    if (this.selectedOutlet?.winhms_outlet_id !== outlet.winhms_outlet_id) {
+    if (this.getOutletIdentifier(this.selectedOutlet) !== this.getOutletIdentifier(outlet)) {
       this.applyOutletChange(outlet);
     }
     this.selectedOfferOutlet = outlet;
@@ -893,7 +906,7 @@ export class FeaturesListComponent implements OnInit {
       end_time: this.offerForm.endTime,
       image_url: this.offerForm.imageUrl,
       hotel_code: this.selectedOfferOutlet?.Hotel_Code,
-      outlet_id: this.selectedOfferOutlet?.winhms_outlet_id,
+      outlet_id: this.getOutletIdentifier(this.selectedOfferOutlet),
       // outlet_type was previously missing — added to support server-side filtering
       outlet_type: this.passedOutletType,
       consider_base_amount: this.offerForm.considerBaseAmount
@@ -1055,7 +1068,7 @@ export class FeaturesListComponent implements OnInit {
     this.selectedRooms = [];
     this.initialSelectedRooms = [];
     this.checkInRooms.clear();
-    document.body.classList.remove('no-scroll-in-restaurants-list');
+    document.body.classList.remove('no-scroll-in-features-list');
   }
 
   toggleRoomSelection(room: string) {

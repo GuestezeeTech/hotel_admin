@@ -41,7 +41,8 @@ $logo-height:110px;
 }
 
 /* Prevent page scroll when a fullscreen modal is open */
-body.no-scroll-in-restaurants-list {
+body.no-scroll-in-restaurants-list,
+body.no-scroll-in-features-list {
     overflow: hidden;
 }
 

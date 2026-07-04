@@ -627,7 +627,12 @@ export const ENDPOINTS = {
   INVOICE_GENERATOR: API_URL + ':8015/guest-invoice/create-invoice',
 
   // Newly added for hotel enable
-  ENABLE_HOTEL: API_URL + ':5447/customer/enable-hotel'
+  ENABLE_HOTEL: API_URL + ':5447/customer/enable-hotel',
+
+  // Newly added for sending & verify otp in number & email
+  GENERATE_OTP: API_URL + ':8016/otp/send',
+  VERIFY_GENERATED_OTP: API_URL + ':8016/otp/verify',
+  SEND_WELCOME_EMAIL_ON_SIGNUP: API_URL + ':8008/email/welcome',
 
 }
 

@@ -72,6 +72,7 @@ export class LoginComponent implements OnInit {
   isLoggingIn: boolean = false;
   forgot_phone_number: any;
   mail: any;
+  reference_id: any;
   hotelId: any;
   orderdata: any;
   loginData: any;
@@ -549,18 +550,18 @@ export class LoginComponent implements OnInit {
             loginObservable.subscribe(
               async (resp: any) => {
                 if (resp && resp.success === 1 && resp.status_code === 200) {
-                  if (userData.hotel_enabled === false || userData.hotel_enabled === 'false') {
+                  if ((userData.hotel_enabled === false || userData.hotel_enabled === 'false') && (userData.status || '').toLowerCase() === 'approved') {
                     this.loaderService.emitComplete();
-                    
+
                     // Store tokens and basic user info to allow checkout
                     this.authService.setExpiryTime(new Date().getTime() + (resp.access_token_expires_in * 1000));
                     this.authService.setRTokenExpireTime(new Date().getTime() + (resp.refresh_token_expires_in * 1000));
                     this.authService.setAccessToken(resp.access_token);
                     this.authService.setRefreshToken(resp.refresh_token);
-                    
+
                     this.localService.set('CustomerType', userData.staff_employee_number != undefined ? 'Staff' : 'Customer');
                     this.localService.set('UserId', Number(userData.id));
-                    
+
                     const memberId = userData.customer_member_id && userData.customer_member_id.trim() !== ''
                       ? userData.customer_member_id.trim()
                       : (userData.member_id ? userData.member_id.trim() : null);
@@ -577,6 +578,7 @@ export class LoginComponent implements OnInit {
 
                     this.isHotelOwnerLogin = !!userData.customer_member_id && userData.staff_employee_number == undefined;
                     this.deactivatedUserData = userData;
+                    this.localStorageService.remove('loggedOut');
                     this.showDeactivatedModal = true;
                     return;
                   }
@@ -968,7 +970,7 @@ export class LoginComponent implements OnInit {
       if (orderdata && orderdata.payment_split) {
         payment_split = orderdata.payment_split;
       }
-      
+
       const hasUnpaid = payment_split.some((cycle: any) =>
         cycle.installments.some((inst: any) => inst.status === "Not Paid")
       );
@@ -1475,7 +1477,7 @@ export class LoginComponent implements OnInit {
             }
             //console.log(this.hotelId);
             this.hasEmailAndPhone = false;
-            this.sendOTP(Number(this.forgot_phone_number));
+            this.sendOTP(this.mail, Number(this.forgot_phone_number));
             // this.alertService.success("OTP has been sent to your mobile number.", this.options);
             this.forgotPassword = true
             this.login = false;
@@ -1633,22 +1635,20 @@ export class LoginComponent implements OnInit {
   }
 
 
-  sendOTP(mobileNo: number) {
+  sendOTP(email: string, mobileNo: number) {
     return new Promise((resolve, reject) => {
       let requestData = {
         "domain_name": DOMAIN_NAME,
-        "data": {
-          "otp": {
-            "countrycode": "+91",
-            "mobile": mobileNo,
-            "otppurpose": "signup"
-          }
-        }
+        "user_id": 1,
+        "recipient_email": email,
+        "recipient_mobile": Number(mobileNo),
+        "event": "OTP"
       }
-      this.loginService.checkoutAPICall(ENDPOINTS.SEND_OTP, requestData).then(
+      this.loginService.checkoutAPICall(ENDPOINTS.GENERATE_OTP, requestData).then(
         respData => {
           let res: any = respData;
           if (res.success === 1) {
+            this.reference_id = res.reference_id;
             this.alertService.success('OTP sent successfully to your mobile number.', this.options);
             resolve(true);
           }
@@ -1664,11 +1664,12 @@ export class LoginComponent implements OnInit {
   resendOtp() {
     // this.alertService.success("OTP sent successfully to your mobile number.", this.options);
     let targetedPhoneNumber = this.hasEmailAndPhone ? this.phoneNumber : this.forgot_phone_number;
+    let targetedEmail = this.hasEmailAndPhone ? this.email : this.mail;
     this.alertClear();
     Object.keys(this.otpForm.controls).forEach(key => {
       this.otpForm.controls[key].setValue('');
     });
-    this.sendOTP(targetedPhoneNumber);
+    this.sendOTP(targetedEmail, targetedPhoneNumber);
   }
 
   onOtpKeyUp(event: KeyboardEvent, index: number): void {
@@ -1719,14 +1720,11 @@ export class LoginComponent implements OnInit {
     return new Promise((resolve, reject) => {
       let requestData = {
         "domain_name": DOMAIN_NAME,
-        "data": {
-          "otp": {
-            "userotp": otp,
-            "mobile": phoneNumber
-          }
-        }
+        "user_id": 1,
+        "reference_id": this.reference_id,
+        "otp_code": otp
       }
-      this.loginService.checkoutAPICall(ENDPOINTS.VERIFY_OTP, requestData).then(
+      this.loginService.checkoutAPICall(ENDPOINTS.VERIFY_GENERATED_OTP, requestData).then(
         respdata => {
           let res: any = respdata;
           if (res.success === 1) {
@@ -1753,14 +1751,11 @@ export class LoginComponent implements OnInit {
     return new Promise((resolve, reject) => {
       let requestData = {
         "domain_name": DOMAIN_NAME,
-        "data": {
-          "otp": {
-            "userotp": otp,
-            "mobile": this.forgot_phone_number
-          }
-        }
+        "user_id": 1,
+        "reference_id": this.reference_id,
+        "otp_code": otp
       }
-      this.loginService.checkoutAPICall(ENDPOINTS.VERIFY_OTP, requestData).then(
+      this.loginService.checkoutAPICall(ENDPOINTS.VERIFY_GENERATED_OTP, requestData).then(
         respdata => {
           let res: any = respdata;
           if (res.success === 1) {
@@ -1876,8 +1871,7 @@ export class LoginComponent implements OnInit {
               // console.log('Resp:', resp);
               this.customerdata = resp.result.data[0];
               // console.log('Customer Data:', this.customerdata);
-              this.sendEmail(this.customerdata);
-              this.sendMessage(this.customerdata);
+              // this.sendEmail(this.customerdata);
               this.authService.setExpiryTime(new Date().getTime() + (resp.access_token_expires_in * 1000));
               this.authService.setRTokenExpireTime(new Date().getTime() + (resp.refresh_token_expires_in * 1000));
               this.authService.setAccessToken(resp.access_token);
@@ -1980,6 +1974,8 @@ export class LoginComponent implements OnInit {
                   if (customerRoleId !== null && customerRoleId !== undefined && customerRoleId !== '' && customerRoleId !== 'undefined' && customerRoleId !== 'null') {
                     await this.getRoleById(role_id);
                   }
+                  this.sendEmail(this.customerdata);
+                  this.sendMessage(this.customerdata);
                 }
               } catch (err) {
                 console.error('FCM token request failed:', err);
@@ -2239,8 +2235,9 @@ export class LoginComponent implements OnInit {
       "domain_name": 'https://www.guestezee.com',
       "user_id": USER_ID,
       "payload": {
-        "to": customerData.email,
-        "templateCode": "admin_welcome_email",
+        // "to": customerData.email,
+        "customer_member_id": customerData.customer_member_id,
+        "template_code": "admin_welcome_email"
       }
     };
     this.loginService.sendWelcomeEmail(payload).subscribe({
@@ -2291,16 +2288,12 @@ export class LoginComponent implements OnInit {
       // username: customerData.first_name,
       // email: customerData.email,
       // name: customerData.first_name,
-      domain_name: 'https://www.guestezee.com',
-      data: {
-        otp: {
-          countrycode: "+91",
-          mobile: customerData.phone_number,
-          otppurpose: "Register"
-        }
-      }
+      "domain_name": "https://www.guestezee.com",
+      "customer_member_id": customerData.customer_member_id,
+      "templateCode": "enrollment",
+      "user_id": 1
     };
-    this.loginService.sendSMS(payload).subscribe({
+    this.loginService.sendWelcomeSMS(payload).subscribe({
       next: (res) => {
         console.log('SMS API response:', res);
         // Newly added for sms updation 
@@ -2862,7 +2855,7 @@ export class LoginComponent implements OnInit {
         else {
           this.signup = false;
           this.hasEmailAndPhone = true;
-          this.sendOTP(Number(phoneNumber));
+          this.sendOTP(email, Number(phoneNumber));
           this.localStorageService.set('UserEmail', email);
           this.localStorageService.set('UserPhoneNumber', phoneNumber);
           this.phoneNumber = phoneNumber;

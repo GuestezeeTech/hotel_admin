@@ -571,14 +571,15 @@ export class AppComponent implements OnInit, OnDestroy {
     const memberId = this.localservice.get('MemberId');
     const isLoggedOut = this.localservice.get('loggedOut') === 'true';
     const userId = this.localservice.get('UserId');
-    if (!memberId || isLoggedOut || !userId) {
+    if (isLoggedOut || !userId) {
       this.isUserInactive = false;
       return;
     }
+    const findQuery = memberId ? { customer_member_id: memberId } : { id: Number(userId) };
     const fetchBody = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
-      extras: { find: { customer_member_id: memberId } }
+      extras: { find: findQuery }
     };
     this.hotelEnrollmentService.getLoginCustomerById(fetchBody).subscribe({
       next: (resp: any) => {
@@ -593,8 +594,15 @@ export class AppComponent implements OnInit, OnDestroy {
         if (resp?.success === 1 && resp.result?.data?.length > 0) {
           const customer = resp.result.data[0];
           this.inactiveCustomerData = customer;
-          if (customer.hotel_enabled === false) {
+          if (customer.hotel_enabled === false && (customer.status || '').toLowerCase() === 'approved') {
             this.isUserInactive = true;
+            // Restore MemberId if it was missing
+            if (!memberId) {
+              const restoredMemberId = customer.customer_member_id || customer.member_id;
+              if (restoredMemberId) {
+                this.localservice.set('MemberId', restoredMemberId);
+              }
+            }
           } else {
             this.isUserInactive = false;
           }
@@ -608,7 +616,13 @@ export class AppComponent implements OnInit, OnDestroy {
 
   async initiatePaymentFlow(): Promise<void> {
     if (!this.inactiveCustomerData) return;
-    const memberId = this.localservice.get('MemberId');
+    let memberId = this.localservice.get('MemberId');
+    if (!memberId && this.inactiveCustomerData) {
+      memberId = this.inactiveCustomerData.customer_member_id || this.inactiveCustomerData.member_id;
+      if (memberId) {
+        this.localservice.set('MemberId', memberId);
+      }
+    }
     if (!memberId) return;
 
     try {

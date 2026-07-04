@@ -732,8 +732,7 @@ export class OutletCreationComponent implements OnInit {
       user_id: USER_ID,
       extras: {
         find: {
-          id: id,
-          member_id: this.member_id
+          id: id
         }
       }
     };
@@ -743,12 +742,15 @@ export class OutletCreationComponent implements OnInit {
         this.outletdata = data;
         // console.log('Outlet data(based on id:', this.outletdata);
 
-        // Determine whether third party outlet ID exists
-        const hasThirdPartyId = !!(data.third_party_outlet_id || data.winhms_outlet_id || data.is_third_party_outlet_id_exist);
+        // Check if is_third_party_outlet_id_exist key exists and its value
+        const isThirdPartyIdExist = (data.hasOwnProperty('is_third_party_outlet_id_exist') && data.is_third_party_outlet_id_exist !== null && data.is_third_party_outlet_id_exist !== undefined)
+          ? (data.is_third_party_outlet_id_exist === true || data.is_third_party_outlet_id_exist === 'true')
+          : false;
 
         this.outletForm.patchValue({
           ...data,
-          is_third_party_outlet_id_exist: hasThirdPartyId
+          is_third_party_outlet_id_exist: isThirdPartyIdExist,
+          third_party_outlet_id: isThirdPartyIdExist ? (data.third_party_outlet_id || data.winhms_outlet_id || '') : ''
         });
         this.photoPreview = data.takephoto || data.takePhoto || '';
         this.photoName = this.getFileNameFromUrl(data.takephoto || data.takePhoto);

@@ -193,7 +193,7 @@ export class NotificationComponent {
 
   highlightTabBasedOnNotification(title: string, body: string) {
     // console.log('Highlighting tab based on notification:', title, body);
-    let targetTab = 'ASAP'; // default fallback
+    let targetTab = 'Priority'; // default fallback
     if (title === 'Task Created' && body === 'Please assign the staff') {
       targetTab = 'ASAP';
     }
@@ -228,7 +228,7 @@ export class NotificationComponent {
   navigateNotification(notify: any) {
     // console.log('Navigating based on notification:', notify);
     this.close.emit();
-    let targetTab;
+    let targetTab = 'Priority'; // default fallback
     if (notify.redirection_tab) {
       targetTab = notify.redirection_tab;
     }
