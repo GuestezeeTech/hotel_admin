@@ -98,6 +98,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
   order_review: any;
   // Newly added for customer status(hint)
   customerStatus: any = '';
+  paymentStatusInfo = { text: 'Not Paid', isPaid: false };
   isFirstPayment: boolean = true;
   lastGeneratedInvoiceOrderId: number | null = null;
 
@@ -801,6 +802,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
           this.paymentDone = false;
           this.localService.set('paymentDone', false);
         }
+        this.updatePaymentStatusInfo();
         this.checkNavigationAndActivateTab();
       },
       err => {
@@ -817,6 +819,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
         } else {
           // this.alertsService.error('Something  happened. Please try again!', this.options);
         }
+        this.updatePaymentStatusInfo();
         this.checkNavigationAndActivateTab();
       }
     );
@@ -1031,6 +1034,96 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
 
   capitalizeFirstLetter(str: string) {
     return str.charAt(0).toUpperCase() + str.slice(1);
+  }
+
+  updatePaymentStatusInfo() {
+    if (!this.orderdata) {
+      this.paymentStatusInfo = { text: 'Not Paid', isPaid: false };
+      return;
+    }
+
+    const overallStatus = this.orderdata.status;
+    if (overallStatus !== 'Order Confirmed' && overallStatus !== 'Confirmed') {
+      this.paymentStatusInfo = { text: 'Not Paid', isPaid: false };
+      return;
+    }
+
+    const allCycles: any[] = this.orderdata.payment_split || [];
+    if (allCycles.length === 0) {
+      this.paymentStatusInfo = { text: 'Paid', isPaid: true };
+      return;
+    }
+
+    // Find the first cycle that contains any unpaid installment
+    let nextUnpaidCycleIndex = allCycles.findIndex(cycle =>
+      cycle.installments && cycle.installments.some((inst: any) => inst.status === "Not Paid")
+    );
+
+    if (nextUnpaidCycleIndex === -1) {
+      // All installments in all cycles are paid!
+      const lastCycle = allCycles[allCycles.length - 1];
+      const cycleName = lastCycle.name ? this.capitalizeFirstLetter(lastCycle.name) : '';
+      const text = cycleName && cycleName.toLowerCase() !== 'full' ? `Paid (${cycleName})` : 'Paid';
+      this.paymentStatusInfo = { text, isPaid: true };
+      return;
+    }
+
+    // There is an unpaid installment.
+    const nextCycle = allCycles[nextUnpaidCycleIndex];
+
+    // Find the last paid installment in the cycle(s) to see if the paid period has expired
+    let lastPaidInstallment: any = null;
+    for (let i = 0; i <= nextUnpaidCycleIndex; i++) {
+      for (const inst of (allCycles[i].installments || [])) {
+        if (inst.status === 'Paid') {
+          lastPaidInstallment = inst;
+        }
+      }
+    }
+
+    const cycleLabel = nextCycle.name ? this.capitalizeFirstLetter(nextCycle.name) : '';
+
+    if (!lastPaidInstallment) {
+      // Not even the first installment has been paid
+      const text = cycleLabel && cycleLabel.toLowerCase() !== 'full' ? `Not Paid (${cycleLabel})` : 'Not Paid';
+      this.paymentStatusInfo = { text, isPaid: false };
+      return;
+    }
+
+    // Parse last paid installment's subscription_end_date (format DD-MM-YYYY)
+    try {
+      const parts = lastPaidInstallment.subscription_end_date.split('-');
+      if (parts.length === 3) {
+        const day = Number(parts[0]);
+        const month = Number(parts[1]);
+        const year = Number(parts[2]);
+        const expiryDate = new Date(year, month - 1, day);
+        const today = new Date();
+        
+        // Reset times to compare only dates
+        expiryDate.setHours(0, 0, 0, 0);
+        today.setHours(0, 0, 0, 0);
+
+        if (today > expiryDate) {
+          // Subscription has expired, and the next installment is unpaid (Overdue)
+          const text = cycleLabel && cycleLabel.toLowerCase() !== 'full' ? `Not Paid (${cycleLabel} - Overdue)` : 'Not Paid (Overdue)';
+          this.paymentStatusInfo = { text, isPaid: false };
+          return;
+        } else {
+          // Still in the paid period of the last installment, but future installments are pending
+          const text = cycleLabel && cycleLabel.toLowerCase() !== 'full' ? `Paid (${cycleLabel})` : 'Paid';
+          this.paymentStatusInfo = { text, isPaid: true };
+          return;
+        }
+      }
+    } catch (e) {
+      console.error('Error parsing subscription end date', e);
+    }
+
+    // Fallback if date parsing fails
+    const defaultCycleLabel = nextCycle.name ? this.capitalizeFirstLetter(nextCycle.name) : '';
+    const fallbackText = defaultCycleLabel && defaultCycleLabel.toLowerCase() !== 'full' ? `Paid (${defaultCycleLabel})` : 'Paid';
+    this.paymentStatusInfo = { text: fallbackText, isPaid: true };
   }
 
   getOrderByIdAsync(): Promise<boolean> {
