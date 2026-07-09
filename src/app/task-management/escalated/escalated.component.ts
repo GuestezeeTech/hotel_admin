@@ -311,35 +311,28 @@ export class EscalatedComponent {
           //   .filter((t: any) => t !== null);
           // console.log('Escalated Tasks(Before):', this.escalatedTasks);
           this.escalatedTasks = (response?.result?.data || [])
-            .flatMap((task: any) => {
+            .map((task: any) => {
               // Get all matches, not just first
               // Updated to handle escalated_from_id as array or single value
               const matches = (task?.time_line || []).filter(
                 (tl: any) => tl.status === "Escalated" && this.isUserIdInEscalatedFrom(tl.escalated_from_id, userId)
               );
-              // Old code - only handled single value:
-              // (tl: any) => tl.status === "Escalated" && tl.escalated_from_id === userId
-              // console.log("Matches:", matches);
-              // If no matches → return empty array (nothing added for this task)
-              if (!matches.length) return [];
-              // For each escalation, return a separate enriched task object
-              // Updated to handle escalated_to_id as array or single value
-              return matches.map((match: any) => {
-                // Handle escalated_to_id (can be array or single value)
-                const escalatedToId = match.escalated_to_id;
-                // Normalize to array for consistent handling
-                const normalizedEscalatedToId = this.normalizeEscalationId(escalatedToId);
-                // console.log("Escalated To Id's(My Escalation):", escalatedToId);
-                // console.log('Normalized Escalated To Id(My Escalation):', normalizedEscalatedToId);
-                // Store normalized as array - always array format for consistent handling
-                // Original format (array or single) is normalized to always be an array
-                return {
-                  ...task,
-                  escalated_to_name: match.escalated_to_name,
-                  escalated_to_id: normalizedEscalatedToId // Always stored as array for consistent handling
-                };
-              });
-            });
+              // If no matches → return null
+              if (!matches.length) return null;
+              // Only pick the last matching escalation (most recent) to avoid duplicate entries for the same task
+              const match = matches[matches.length - 1];
+              // Handle escalated_to_id (can be array or single value)
+              const escalatedToId = match.escalated_to_id;
+              // Normalize to array for consistent handling
+              const normalizedEscalatedToId = this.normalizeEscalationId(escalatedToId);
+              return {
+                ...task,
+                escalated_to_name: match.escalated_to_name,
+                escalated_to_id: normalizedEscalatedToId, // Always stored as array for consistent handling
+                escalated_time: match.time // Keep escalated_time populated for correct sorting
+              };
+            })
+            .filter((t: any) => t !== null);
           // console.log("Escalated Tasks:", this.escalatedTasks);
           // Ensure newest escalated tasks appear first
           this.sortEscalatedTasksByMostRecent();

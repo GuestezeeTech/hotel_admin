@@ -1866,6 +1866,7 @@ export class TechnicalInfoComponent implements OnInit {
         brand: this.customerdata?.property_details?.contact_details?.brand,
         hotel_name: this.customerdata?.property_details?.contact_details?.hotel_name,
         property_size: this.customerdata?.property_details?.property_address?.property_size,
+        number_of_rooms: this.customerdata?.property_details?.property_address?.number_of_rooms,
         is_email_opt_in: false
       },
       "shipping": {

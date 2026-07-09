@@ -212,10 +212,9 @@ export class StaffEscalatedComponent {
                   t.status === "Escalated"
                 );
               }
-              // console.log("Matched Escalations:", matchedEscalations);
-              // Push each matched escalation separately - loop from last index
-              for (let i = matchedEscalations.length - 1; i >= 0; i--) {
-                const esc = matchedEscalations[i];
+              // Push only the most recent matched escalation to avoid duplicate entries for the same task
+              if (matchedEscalations.length > 0) {
+                const esc = matchedEscalations[matchedEscalations.length - 1];
                 acc.push({
                   ...task,
                   escalated_from_id: esc.escalated_from_id,

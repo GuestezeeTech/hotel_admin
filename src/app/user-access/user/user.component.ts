@@ -134,7 +134,17 @@ export class UserComponent implements OnInit {
     this.userService.getAllRoles(this.memberId).subscribe(
       resp => {
         this.loaderService.emitComplete();
-        this.roleList = resp.result.data;
+        // Newly added for is_active check
+        if (resp && resp.success === 1 && resp.status_code === 200) {
+          this.roleList = (resp.result?.data || []).filter((role: any) => role.is_active === true);
+        }
+        else {
+          this.roleList = [];
+          if (resp && resp.message) {
+            this.alertService.error(resp.message, this.options);
+          }
+        }
+        // End of newly added for is_active check
         // console.log('Role list:', this.roleList);
       },
       err => {
