@@ -1,7 +1,7 @@
 import { HotelListService } from './../hotel-list/hotel-list.service';
 import { LocalStorageService } from './../auth-services/local-storage.service';
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, ElementRef, HostListener } from '@angular/core';
 import { AlertsService } from '../shared/alerts/alerts.service';
 import { AlertsComponent } from '../shared/alerts/alerts.component';
 import { Router } from '@angular/router';
@@ -196,8 +196,21 @@ export class BookingsComponent {
     private routeUrl: Router,
     private bookingService: BookingsService,
     private localStorageService: LocalStorageService,
-    private hotelListService: HotelListService
+    private hotelListService: HotelListService,
+    private elementRef: ElementRef
   ) { }
+
+  @HostListener('document:click', ['$event'])
+  onClickOutside(event: Event) {
+    if (!this.elementRef.nativeElement.contains(event.target)) {
+      this.showStatusDropdown = false;
+    } else {
+      const clickedInsideDropdown = (event.target as HTMLElement).closest('.filter-dropdown-container');
+      if (!clickedInsideDropdown) {
+        this.showStatusDropdown = false;
+      }
+    }
+  }
 
   async ngOnInit(): Promise<void> {
     // Newly added for getting member id for customer type
@@ -360,11 +373,7 @@ export class BookingsComponent {
           // Use all bookings directly without deduplication
           // This ensures ALL bookings from the API are displayed, not just one per guest
           this.masterBookings = rawBookings; // full data - all bookings
-          this.bookings = [...this.masterBookings]; // filtered copy
-          // console.log(this.masterBookings, "Bookings List");
-          this.totalTasks = this.bookings.length;
-          this.totalPages = Math.ceil(this.totalTasks / this.pageSize);
-          this.updatePaginatedTasks();
+          this.applyFilters();
           // ========== END OF FIXED CODE ==========
         }
         this.isLoading = false;
@@ -397,7 +406,7 @@ export class BookingsComponent {
     if (event.toLowerCase() === 'checked-out') {
       return 'Checked-out';
     }
-    if (event.toLowerCase() === 'Cancelled') {
+    if (event.toLowerCase() === 'cancelled') {
       return 'Cancelled';
     }
     return event; // fallback in case of unknown value
@@ -425,28 +434,63 @@ export class BookingsComponent {
     }
   }
 
-  // Newly added for room filter
-  onRoomSearchChange() {
+  // Status filter variables
+  selectedStatusFilter: string = '';
+  showStatusDropdown: boolean = false;
+
+  toggleStatusDropdown() {
+    this.showStatusDropdown = !this.showStatusDropdown;
+  }
+
+  onStatusFilterChange(status: string) {
+    this.selectedStatusFilter = status;
+    this.applyFilters();
+    this.showStatusDropdown = false;
+  }
+
+  applyFilters() {
     const searchValue = this.roomSearchTerm.trim().toLowerCase();
-    // console.log('Search Value:', searchValue);
-    if (!searchValue) {
-      // Reset to full list
-      this.bookings = [...this.masterBookings];
-    } else {
-      // Filter the full data, not paginated
-      this.bookings = this.masterBookings.filter(booking => {
-        // booking.Room_No?.toString().toLowerCase().startsWith(searchValue) 
-        const roomMatch = booking.Room_No?.toString().trim().toLowerCase().startsWith(searchValue);
-        const nameMatch = booking.Guest_detail[0].First_Name?.toString().trim().toLowerCase().startsWith(searchValue);
-        return roomMatch || nameMatch;
-      });
-    }
+    const statusValue = this.selectedStatusFilter;
+
+    this.bookings = this.masterBookings.filter(booking => {
+      // 1. Search term match (Room_No or First_Name)
+      let matchesSearch = true;
+      if (searchValue) {
+        const roomMatch = booking.Room_No?.toString().trim().toLowerCase().includes(searchValue);
+        const nameMatch = booking.Guest_detail?.[0]?.First_Name?.toString().trim().toLowerCase().includes(searchValue);
+        matchesSearch = roomMatch || nameMatch;
+      }
+
+      // 2. Status match
+      let matchesStatus = true;
+      if (statusValue) {
+        const event = booking.Event?.toLowerCase() || '';
+        if (statusValue === 'Reserved') {
+          matchesStatus = (event === 'reserved' || event === 'reserved(amend)');
+        } else if (statusValue === 'Check-in') {
+          matchesStatus = (event === 'check-in' || event === 'in-house(amend)');
+        } else if (statusValue === 'Late Checkout') {
+          matchesStatus = (event === 'late checkout');
+        } else if (statusValue === 'Checked-out') {
+          matchesStatus = (event === 'checked-out');
+        } else if (statusValue === 'Cancelled') {
+          matchesStatus = (event === 'cancelled');
+        }
+      }
+
+      return matchesSearch && matchesStatus;
+    });
+
     // Recalculate pagination
     this.totalTasks = this.bookings.length;
     this.totalPages = Math.ceil(this.totalTasks / this.pageSize);
     this.currentPage = 1;
     this.updatePaginatedTasks(); // updates allBookings (your table source)
-    // console.log('Filtered Bookings:', this.allBookings);
+  }
+
+  // Newly added for room filter
+  onRoomSearchChange() {
+    this.applyFilters();
   }
 
 }

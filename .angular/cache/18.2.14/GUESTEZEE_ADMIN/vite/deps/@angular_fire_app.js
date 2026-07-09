@@ -12,8 +12,8 @@ import {
   registerVersion,
   setLogLevel
 } from "./chunk-Y3KVDDMU.js";
-import "./chunk-7V5PYSAS.js";
 import "./chunk-TJ7FUAR5.js";
+import "./chunk-7V5PYSAS.js";
 import {
   DEFAULT_ENTRY_NAME,
   FirebaseError,
