@@ -52,6 +52,6 @@ Thumbs.db
 # files to ingnore
 .angular/
 .vscode/
-.src(mine)/
+
 
 
