@@ -94,6 +94,10 @@ export class LoginComponent implements OnInit {
   paymentOptions = ['Quarterly Payment', 'Half-Yearly Payment', 'Full Payment'];
   selectedIndex = 2;
   deactivatedUserData: any = null;
+  // Newly added for is_active check purpose
+  showInactiveUserModal: boolean = false;
+  inactiveUserModalMessage: string = '';
+  // End of newly added for is_active check purpose
 
   constructor(private fb: FormBuilder, private alertService: AlertsService,
     private appService: LoginService,
@@ -582,6 +586,21 @@ export class LoginComponent implements OnInit {
                     this.showDeactivatedModal = true;
                     return;
                   }
+                  // Newly added for is_active check purpose
+                  // Check if the specific user/staff/hotel is active
+                  if (userData.is_active === false || userData.is_active === 'false') {
+                    this.loaderService.emitComplete();
+                    let accountType = 'user account';
+                    if (userData.staff_employee_number) {
+                      accountType = 'staff profile';
+                    } else if (userData.customer_member_id) {
+                      accountType = 'hotel account';
+                    }
+                    this.inactiveUserModalMessage = `Your ${accountType} is currently inactive. Please contact the administrator for assistance.`;
+                    this.showInactiveUserModal = true;
+                    return;
+                  }
+                  // End of newly added for is_active check purpose
                   // Newly added for browser back button
                   this.localStorageService.remove('loggedOut');
                   // Staff type
@@ -3290,5 +3309,13 @@ export class LoginComponent implements OnInit {
       this.alertClear();
     }
   }
+
+  // Newly added for is_active check purpose
+  closeInactiveUserModal(): void {
+    this.showInactiveUserModal = false;
+    this.inactiveUserModalMessage = '';
+    localStorage.clear();
+  }
+  // End of newly added for is_active check purpose
 
 }

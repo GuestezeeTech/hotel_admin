@@ -113,7 +113,7 @@ export class RoleListingComponent implements OnInit {
       "user_id": USER_ID,
       "extras": {
         "find": {
-           "member_id": this.localStorageService.get('MemberId')
+          "member_id": this.localStorageService.get('MemberId')
         },
         "pagination": false,
         // "paginationDetails": {
@@ -232,7 +232,11 @@ export class RoleListingComponent implements OnInit {
           this.alertService.success("Roles deleted successfully!", this.options);
           this.selectedRoleIds = []; // Clear selected IDs after successful deletion
           this.getAllRoles(); // Refreshes the role list
-        } else {
+        }
+        else if (resp.success === 0 && resp.status_code === 200) {
+          this.alertService.error(resp.message, this.options);
+        }
+        else {
           this.alertService.error("Something went wrong. Please try again!", this.options);
         }
       },

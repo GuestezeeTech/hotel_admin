@@ -508,7 +508,10 @@ export class OutletCreationComponent implements OnInit {
   private buildForm() {
     this.outletForm = this.fb.group({
       owner_name: ['', [this.noWhitespaceValidator.bind(this), Validators.maxLength(50)]],
-      email: ['', [this.noWhitespaceValidator.bind(this), Validators.pattern(/^[a-zA-Z0-9_%+-]+@[a-zA-Z0-9-]+\.[a-zA-Z]{2,4}$/)]],
+      // Newly added & commented for consective dots
+      // email: ['', [this.noWhitespaceValidator.bind(this), Validators.pattern(/^[a-zA-Z0-9_%+-]+@[a-zA-Z0-9-]+\.[a-zA-Z]{2,4}$/)]],
+      email: ['', [this.noWhitespaceValidator.bind(this), Validators.pattern(/^[a-zA-Z0-9_%+-]+(?:\.[a-zA-Z0-9_%+-]+)*@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*\.[a-zA-Z]{2,}$/)]],
+      // End of newly added & commented for consective dots
       phone: ['', [this.noWhitespaceValidator.bind(this), Validators.minLength(10), Validators.maxLength(10), this.onlyNumbersValidator]],
       companyphone: ['', [this.optionalNumbersValidator]],
       name: ['', [this.noWhitespaceValidator.bind(this), Validators.maxLength(50)]],

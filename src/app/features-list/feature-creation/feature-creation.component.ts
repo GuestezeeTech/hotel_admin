@@ -194,12 +194,15 @@ export class FeatureCreationComponent implements OnInit {
   private buildForm() {
     this.outletForm = this.fb.group({
       owner_name: ['', [this.noWhitespaceValidator.bind(this), Validators.maxLength(50)]],
-      email: ['', [this.noWhitespaceValidator.bind(this), Validators.pattern(/^[a-zA-Z0-9_%+-]+@[a-zA-Z0-9-]+\.[a-zA-Z]{2,4}$/)]],
+      // Newly added & commented for consective dots
+      // email: ['', [this.noWhitespaceValidator.bind(this), Validators.pattern(/^[a-zA-Z0-9_%+-]+@[a-zA-Z0-9-]+\.[a-zA-Z]{2,4}$/)]],
+      email: ['', [this.noWhitespaceValidator.bind(this), Validators.pattern(/^[a-zA-Z0-9_%+-]+(?:\.[a-zA-Z0-9_%+-]+)*@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*\.[a-zA-Z]{2,}$/)]],
+      // End of newly added & commented for consective dots
       phone: ['', [this.noWhitespaceValidator.bind(this), Validators.minLength(10), Validators.maxLength(10), this.onlyNumbersValidator]],
       companyphone: ['', [this.optionalNumbersValidator]],
       name: ['', [this.noWhitespaceValidator.bind(this), Validators.maxLength(50)]],
       // gstno: ['', [Validators.required, this.gstValidator]],
-      gstno: ['',[this.gstValidator]],
+      gstno: ['', [this.gstValidator]],
       association: [''],
       // address: ['', Validators.required],
       address: [''],
@@ -339,7 +342,7 @@ export class FeatureCreationComponent implements OnInit {
     if (!c) return;
     let raw = c.value ?? '';
     let clean = raw.replace(/\D+/g, '');
-    
+
     // Set limits
     const limit = (field === 'pincode' || field === 'delivery_pickup_point_pincode') ? 6 : 10;
     if (clean.length > limit) {
@@ -463,13 +466,13 @@ export class FeatureCreationComponent implements OnInit {
       (resp: any) => {
         const data = resp?.result?.data?.[0] || {};
         this.outletdata = data;
-        
+
         // Check if is_third_party_outlet_id_exist key exists and its value
         const isThirdPartyIdExist = (data.hasOwnProperty('is_third_party_outlet_id_exist') && data.is_third_party_outlet_id_exist !== null && data.is_third_party_outlet_id_exist !== undefined)
           ? (data.is_third_party_outlet_id_exist === true || data.is_third_party_outlet_id_exist === 'true')
           : false;
-        
-        this.outletForm.patchValue({ 
+
+        this.outletForm.patchValue({
           ...data,
           is_third_party_outlet_id_exist: isThirdPartyIdExist,
           third_party_outlet_id: isThirdPartyIdExist ? (data.third_party_outlet_id || data.winhms_outlet_id || '') : ''
@@ -518,10 +521,10 @@ export class FeatureCreationComponent implements OnInit {
     const fv = this.outletForm.value;
 
     // Combine separate time controls back into strings
-    const openTime = fv.open_hour && fv.open_minute && fv.open_period ? 
-                     `${fv.open_hour}:${fv.open_minute} ${fv.open_period}` : '';
-    const closeTime = fv.close_hour && fv.close_minute && fv.close_period ? 
-                      `${fv.close_hour}:${fv.close_minute} ${fv.close_period}` : '';
+    const openTime = fv.open_hour && fv.open_minute && fv.open_period ?
+      `${fv.open_hour}:${fv.open_minute} ${fv.open_period}` : '';
+    const closeTime = fv.close_hour && fv.close_minute && fv.close_period ?
+      `${fv.close_hour}:${fv.close_minute} ${fv.close_period}` : '';
 
     const existBool = fv.is_third_party_outlet_id_exist === true || fv.is_third_party_outlet_id_exist === 'true';
     const outletObj = {
