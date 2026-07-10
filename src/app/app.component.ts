@@ -594,7 +594,11 @@ export class AppComponent implements OnInit, OnDestroy {
         if (resp?.success === 1 && resp.result?.data?.length > 0) {
           const customer = resp.result.data[0];
           this.inactiveCustomerData = customer;
-          if (customer.hotel_enabled === false && (customer.status || '').toLowerCase() === 'approved') {
+          const isStaff = customer.staff_employee_number != undefined;
+          const isHotelDisabled = customer.hotel_enabled === false;
+          const isStatusApproved = (customer.status || '').toLowerCase() === 'approved';
+
+          if (isHotelDisabled && (isStaff || isStatusApproved)) {
             this.isUserInactive = true;
             // Restore MemberId if it was missing
             if (!memberId) {

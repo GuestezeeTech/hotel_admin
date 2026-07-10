@@ -554,7 +554,11 @@ export class LoginComponent implements OnInit {
             loginObservable.subscribe(
               async (resp: any) => {
                 if (resp && resp.success === 1 && resp.status_code === 200) {
-                  if ((userData.hotel_enabled === false || userData.hotel_enabled === 'false') && (userData.status || '').toLowerCase() === 'approved') {
+                  const isStaff = userData.staff_employee_number != undefined;
+                  const isHotelDisabled = userData.hotel_enabled === false || userData.hotel_enabled === 'false';
+                  const isStatusApproved = (userData.status || '').toLowerCase() === 'approved';
+
+                  if (isHotelDisabled && (isStaff || isStatusApproved)) {
                     this.loaderService.emitComplete();
 
                     // Store tokens and basic user info to allow checkout
