@@ -303,7 +303,15 @@ export class FeaturesListComponent implements OnInit, OnDestroy {
     const rangeStrings: string[] = [];
     roomRange.forEach((r: any) => {
       if (r.startRoom && r.endRoom) {
-        rangeStrings.push(`${r.startRoom}-${r.endRoom}`);
+        // Newly added  & commented for room labelling
+        // rangeStrings.push(`${r.startRoom}-${r.endRoom}`);
+        if (String(r.startRoom).trim() === String(r.endRoom).trim()) {
+          rangeStrings.push(String(r.startRoom));
+        }
+        else {
+          rangeStrings.push(`${r.startRoom}-${r.endRoom}`);
+        }
+        // End of newly added for room labelling
       } else if (r.startRoom) {
         rangeStrings.push(String(r.startRoom));
       }
@@ -380,6 +388,16 @@ export class FeaturesListComponent implements OnInit, OnDestroy {
         roomList.push(trimmed); // single room
       }
     });
+    // Newly added for room labelling
+    const labelOption = this.customerdata?.settings?.label_option;
+    const customLabels = this.customerdata?.settings?.custom_labels || {};
+    if (labelOption === 'different') {
+      roomList = roomList.map(roomNum => {
+        const customVal = customLabels[roomNum];
+        return (customVal && customVal.trim()) ? customVal.trim() : roomNum;
+      });
+    }
+    // End of newly added for room labelling
     this.allRooms = roomList;
     this.filteredRooms = [...this.allRooms];
     this.selectedRooms = [];
@@ -1111,9 +1129,22 @@ export class FeaturesListComponent implements OnInit, OnDestroy {
         if (resp?.success === 1 && resp.status_code === 200 && resp.result?.data) {
           this.checkInRooms.clear();
           const occupiedEvents = ['check-in', 'in-house(amend)'];
+          // Newly added for room labelling
+          const labelOption = this.customerdata?.settings?.label_option;
+          const customLabels = this.customerdata?.settings?.custom_labels || {};
+          // End of newly added for room labelling
           resp.result.data.forEach((reservation: any) => {
             if (reservation.Room_No && occupiedEvents.includes(reservation.Event.toLowerCase())) {
-              this.checkInRooms.add(String(reservation.Room_No));
+              // Newly added  & commented for room labelling
+              // this.checkInRooms.add(String(reservation.Room_No));
+              const roomNo = String(reservation.Room_No);
+              if (labelOption === 'different') {
+                const customVal = customLabels[roomNo];
+                this.checkInRooms.add((customVal && customVal.trim()) ? customVal.trim() : roomNo);
+              } else {
+                this.checkInRooms.add(roomNo);
+              }
+              // End of newly added for room labelling
             }
           });
         }

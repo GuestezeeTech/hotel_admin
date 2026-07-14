@@ -98,9 +98,14 @@
                             <!-- Dropdown Menu -->
                             <div *ngIf="hierarchyDropdownOpen" (click)="$event.stopPropagation()"
                                 style="position: absolute; top: 100%; left: 0; width: 100%; border: 1px solid #ccc; background: white; z-index: 1000; max-height: 200px; overflow-y: auto; margin-top: 2px; border-radius: 5px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                                <div *ngIf="supervisorList.length === 0"
+                                    style="padding: 6px 12px; text-align: center; color: #9E9E9E; font-size: 14px;">
+                                    No hierarchies found
+                                </div>
                                 <div *ngFor="let supervisor of supervisorList"
                                     style="padding: 6px 8px; display: flex; align-items: flex-start;">
-                                    <input type="checkbox" [checked]="isHierarchySelected(supervisor)"
+                                    <input type="radio" name="higher_level_hierarchy"
+                                        [checked]="isHierarchySelected(supervisor)"
                                         (change)="onHierarchySelect(supervisor, $event); clearError('higher_level_hierarchy')"
                                         style="margin-top: 4px; flex-shrink: 0;" />
                                     <label
@@ -114,7 +119,7 @@
                         <div class="invalid-feedback d-block"
                             *ngIf="validateForm && f['higher_level_hierarchy'].errors && selectedHierarchies.length == 0 && !hierarchyDropdownOpen">
                             <div *ngIf="f['higher_level_hierarchy'].errors['required']">
-                                Please select at least one hierarchy
+                                Please select a hierarchy
                             </div>
                         </div>
                     </div>
@@ -145,9 +150,14 @@
                             <!-- Dropdown Menu -->
                             <div *ngIf="staffHierarchyDropdownOpen" (click)="$event.stopPropagation()"
                                 style="position: absolute; top: 100%; left: 0; width: 100%; border: 1px solid #ccc; background: white; z-index: 1000; max-height: 220px; overflow-y: auto; margin-top: 2px; border-radius: 5px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                                <div *ngIf="supervisorChildList.length === 0"
+                                    style="padding: 6px 12px; text-align: center; color: #9E9E9E; font-size: 14px;">
+                                    No staff hierarchies found
+                                </div>
                                 <div *ngFor="let staff of supervisorChildList"
                                     style="padding: 6px 8px; display: flex; align-items: flex-start;">
-                                    <input type="checkbox" [checked]="isStaffHierarchySelected(staff)"
+                                    <input type="radio" name="staff_hierarchy"
+                                        [checked]="isStaffHierarchySelected(staff)"
                                         (change)="onStaffHierarchyToggle(staff, $event); clearError('staffHierarchy')"
                                         style="margin-top: 4px; flex-shrink: 0;" />
                                     <label
@@ -161,7 +171,7 @@
                         <!-- Validation -->
                         <div class="invalid-feedback d-block"
                             *ngIf="validateForm && f['hierarchy'].errors && selectedStaffHierarchies.length == 0 && !staffHierarchyDropdownOpen">
-                            <div *ngIf="f['hierarchy'].errors['required']">Please select at least one staff hierarchy
+                            <div *ngIf="f['hierarchy'].errors['required']">Please select a staff hierarchy
                             </div>
                         </div>
                     </div>
@@ -184,7 +194,7 @@
                         </div>
                     </div>
                     <div class="col-md-4 mb-4 form-group pb-3"
-                        *ngIf="!isFirstStaff && showHigherLevelOfficer && showLowestHigherLevelOfficer">
+                        *ngIf="showHigherLevelOfficer && showLowestHigherLevelOfficer">
                         <label class="fw-semibold" style="font-size: 14px">
                             Higher Level Officer <span class="text-danger">*</span>
                         </label>
@@ -211,6 +221,10 @@
                             <!-- Dropdown panel -->
                             <div *ngIf="officerDropdownOpen" (click)="$event.stopPropagation()"
                                 style="position: absolute; top: 100%; left: 0; width: 100%; border: 1px solid #ccc; background: white; z-index: 1000; max-height: 220px; overflow-y: auto; margin-top: 2px; border-radius: 5px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                                <div *ngIf="officersData.length === 0"
+                                    style="padding: 6px 12px; text-align: center; color: #9E9E9E; font-size: 14px;">
+                                    No officers found
+                                </div>
                                 <div *ngFor="let officer of officersData"
                                     style="padding: 6px 8px; display: flex; align-items: flex-start;">
                                     <input type="checkbox" [checked]="isOfficerSelected(officer)"
@@ -252,6 +266,10 @@
                             <!-- Dropdown Menu -->
                             <div *ngIf="roomDropdownOpen" (click)="$event.stopPropagation()"
                                 style="position: absolute; top: 100%; left: 0; width: 100%; border: 1px solid #ccc; background: white; z-index: 1000; max-height: 200px; overflow-y: auto; margin-top: 2px; border-radius: 5px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                                <div *ngIf="roomRanges.length === 0"
+                                    style="padding: 6px 12px; text-align: center; color: #9E9E9E; font-size: 14px;">
+                                    No rooms found
+                                </div>
                                 <div *ngFor="let room of roomRanges"
                                     style="padding: 6px 8px; display: flex; align-items: flex-start;">
                                     <input type="checkbox" [checked]="isRoomSelected(room)"
@@ -294,13 +312,19 @@
                             </div>
                             <div *ngIf="shiftDropdownOpen" (click)="$event.stopPropagation()"
                                 style="position: absolute; top: 100%; left: 0; width: 100%; border: 1px solid #ccc; background: white; z-index: 1000; max-height: 200px; overflow-y: auto; margin-top: 2px; border-radius: 5px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                                <div *ngIf="selectedSlots.length === 0"
+                                    style="padding: 6px 12px; text-align: center; color: #9E9E9E; font-size: 14px;">
+                                    No shifts found
+                                </div>
                                 <div *ngFor="let slot of selectedSlots"
                                     style="padding: 6px 8px; display: flex; align-items: flex-start;">
                                     <input type="checkbox" [checked]="isShiftSelected(slot)"
                                         (change)="onShiftSelect(slot, $event); clearError('shift')"
                                         style="margin-top: 4px; flex-shrink: 0;" />
                                     <label
-                                        style="margin-left: 8px; margin-bottom: 0; font-size: 14px; line-height: 1.4;">{{slot.label}}</label>
+                                        style="margin-left: 8px; margin-bottom: 0; font-size: 14px; line-height: 1.4;">
+                                        {{slot.label}} ({{slot.startTime}} {{slot.startMeridian}} - {{slot.endTime}} {{slot.endMeridian}})
+                                    </label>
                                 </div>
                             </div>
                         </div>
@@ -310,8 +334,9 @@
                         </div>
                     </div>
                     <div class="col-md-4 form-group">
-                        <label class="fw-semibold" style="font-size: 14px">Password<span
-                                class="text-danger" *ngIf="!enableEdit && !isViewMode">*</span><small class="fw-medium text-muted" *ngIf="!isViewMode">(Minimum 6 characters
+                        <label class="fw-semibold" style="font-size: 14px">Password<span class="text-danger"
+                                *ngIf="!enableEdit && !isViewMode">*</span><small class="fw-medium text-muted"
+                                *ngIf="!isViewMode">(Minimum 6 characters
                                 long)</small></label>
                         <div class="input-group">
                             <input [type]="showPassword ? 'text' : 'password'" placeholder="********"
@@ -319,7 +344,8 @@
                                 [class.is-invalid]="validateForm && f['password'].errors"
                                 style="background-color: white !important; height: 38px;"
                                 [style.border-right]="(!isViewMode && staffForm.get('password')?.value) ? 'none' : null">
-                            <span *ngIf="!isViewMode && staffForm.get('password')?.value" class="input-group-text bg-white" [ngStyle]="{
+                            <span *ngIf="!isViewMode && staffForm.get('password')?.value"
+                                class="input-group-text bg-white" [ngStyle]="{
                                     'cursor': isPasswordToggleDisabled() ? 'not-allowed' : 'pointer',
                                     'opacity': isPasswordToggleDisabled() ? 0.5 : 1
                                 }" (click)="!isPasswordToggleDisabled() && togglePasswordVisibility()"

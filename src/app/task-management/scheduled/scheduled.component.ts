@@ -146,6 +146,7 @@ export class ScheduledComponent {
   deskStavesIds: number[] = []; // Store desk staff IDs
   // Newly added for getting room number based on label
   labelRoomArray: string[] = [];
+  customerSettings: any;
   currentPage: number = 1;
   pageSize: number = 10; // Show 10 roles per page
   totalTasks: number = 0; // Total number of roles
@@ -388,6 +389,7 @@ export class ScheduledComponent {
         const customer = res.result.data[0];
         // console.log('Customer Data:', customer);
         if (customer && customer.settings?.room_range) {
+          this.customerSettings = customer.settings;
           this.mapStaffRooms(customer.settings.room_range);
           // Now rooms ready → call Scheduled API
           this.prepareAndCallScheduledTaskApi();
@@ -499,6 +501,14 @@ export class ScheduledComponent {
         roomList.push(value); // single room
       }
     });
+    const labelOption = this.customerSettings?.label_option;
+    const customLabels = this.customerSettings?.custom_labels || {};
+    if (labelOption === 'different') {
+      roomList = roomList.map(roomNum => {
+        const customVal = customLabels[roomNum];
+        return (customVal && customVal.trim()) ? customVal.trim() : roomNum;
+      });
+    }
     this.labelRoomArray = roomList;
     // console.log('Room Number:', this.labelRoomArray);
     // Ended

@@ -420,7 +420,7 @@
         </span>)
       </span>
     </h5>
-    <div class="form-group mb-3">
+    <div class="form-group mb-3" *ngIf="allRooms.length > 0">
       <label class="fw-semibold search-room-label">Search Room Number</label>
       <small class="room-hint-text d-block mb-2" *ngIf="allRooms.length > 0">
         <span class="hint-icon">🟢</span>

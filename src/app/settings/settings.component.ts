@@ -52,8 +52,12 @@ export class SettingsComponent implements OnInit {
   rooms: any[] = [
     { id: '', startRoom: '', endRoom: '', label: '' }
   ];
+  labelOption: string = 'same';
+  customLabels: { [key: string]: string } = {};
   roomErrorMessage: string[] = [];
   roomRowErrors: { [key: number]: string } = {};
+  invalidFields: { [key: number]: { id?: boolean; startRoom?: boolean; endRoom?: boolean; label?: boolean } } = {};
+  invalidCustomLabels: { [key: string]: boolean } = {};
   isRoomModalOpen: boolean = false;
   isRoomFormValid: boolean = false;
   customerType: any;
@@ -664,7 +668,6 @@ export class SettingsComponent implements OnInit {
       return rest;
     });
     this.saveShiftSettings(cleanShifts);
-    this.closeShiftModal();
   }
 
   removeShift(index: number) {
@@ -836,6 +839,7 @@ export class SettingsComponent implements OnInit {
               if (updateResp.success === 1 && updateResp.status_code === 200) {
                 this.localService.set('selectedSlots', JSON.stringify(updatedShifts));
                 this.alertService.success('Shift timings saved successfully!', this.options);
+                this.closeShiftModal();
               } else {
                 const message = updateResp?.message || 'Something went wrong while saving shifts.';
                 this.alertService.error(message, this.options);
@@ -963,22 +967,23 @@ export class SettingsComponent implements OnInit {
       (resp: any) => {
         if (resp.success === 1 && resp.status_code === 200 && resp.result.data.length > 0) {
           const existingData = resp.result.data[0];
-          if (existingData.settings && existingData.settings.room_range) {
-            // If already exists → prefill modal
-            // this.rooms = [...existingData.settings.room_range];
-            // mark only for UI use
+          this.labelOption = existingData.settings?.label_option || 'same';
+          this.customLabels = existingData.settings?.custom_labels || {};
+          if (existingData.settings && existingData.settings.room_range && existingData.settings.room_range.length > 0) {
             this.rooms = existingData.settings.room_range.map((r: any) => ({ ...r, is_existing: true }));
           } else {
-            // No room_range found → add empty row
             this.rooms = [{ id: '', startRoom: '', endRoom: '', label: '' }];
           }
         } else {
-          // No data found → just initialize empty
+          this.labelOption = 'same';
+          this.customLabels = {};
           this.rooms = [{ id: '', startRoom: '', endRoom: '', label: '' }];
         }
         // console.log("Fetched rooms: ", this.rooms);
         // Clear row errors when opening modal
         this.roomRowErrors = {};
+        this.invalidFields = {};
+        this.invalidCustomLabels = {};
         this.roomErrorMessage = [];
         // Check if at least one room range is filled
         this.checkAtLeastOneRoomRange();
@@ -988,14 +993,50 @@ export class SettingsComponent implements OnInit {
       },
       (err: any) => {
         // API error → still open modal with empty row
+        this.labelOption = 'same';
+        this.customLabels = {};
         this.rooms = [{ id: '', startRoom: '', endRoom: '', label: '' }];
         this.roomRowErrors = {};
+        this.invalidFields = {};
+        this.invalidCustomLabels = {};
         this.roomErrorMessage = [];
         this.checkAtLeastOneRoomRange();
         this.isRoomModalOpen = true;
         this.updateBodyScrollLock();
       }
     );
+  }
+
+  getIndividualRoomNumbers(): string[] {
+    const list: string[] = [];
+    for (const room of this.rooms) {
+      if (room.startRoom !== undefined && room.startRoom !== null && String(room.startRoom).trim() !== '' &&
+          room.endRoom !== undefined && room.endRoom !== null && String(room.endRoom).trim() !== '') {
+        const start = Number(room.startRoom);
+        const end = Number(room.endRoom);
+        if (!isNaN(start) && !isNaN(end) && start <= end) {
+          for (let i = start; i <= end; i++) {
+            list.push(String(i));
+          }
+        }
+      }
+    }
+    const unique = Array.from(new Set(list));
+    return unique.sort((a, b) => Number(a) - Number(b));
+  }
+
+  onLabelOptionChange() {
+    if (this.labelOption === 'different') {
+      const individualRooms = this.getIndividualRoomNumbers();
+      for (const num of individualRooms) {
+        if (!this.customLabels[num]) {
+          this.customLabels[num] = '';
+        }
+      }
+    } else {
+      this.customLabels = {};
+    }
+    this.onRoomFieldChange();
   }
 
   /* addRoom() {
@@ -1007,6 +1048,7 @@ export class SettingsComponent implements OnInit {
 
   addRoom() {
     if (this.isRoomViewMode || !this.canModifySystemSettings) return;
+    if (this.allowedRoomCount === 1) return;
     const totalRoomsCreated = this.calculateTotalRooms();
     if (totalRoomsCreated >= this.allowedRoomCount) {
       this.roomErrorMessage = [
@@ -1029,6 +1071,7 @@ export class SettingsComponent implements OnInit {
     if (!roomToDelete.is_existing) {
       this.rooms.splice(index, 1);
       this.updateRoomRowErrorsAfterDelete(index);
+      this.cleanCustomLabelsAfterRangeUpdate();
       this.validateAllRoomsLive();
       this.checkAtLeastOneRoomRange();
       return;
@@ -1058,6 +1101,28 @@ export class SettingsComponent implements OnInit {
 
           const updatedRooms = existingData.settings.room_range.filter((r: any) => r.id !== roomToDelete.id);
 
+          // Compute active rooms for the updated ranges
+          const activeRooms: string[] = [];
+          for (const room of updatedRooms) {
+            if (room.startRoom !== undefined && room.startRoom !== null && String(room.startRoom).trim() !== '' &&
+                room.endRoom !== undefined && room.endRoom !== null && String(room.endRoom).trim() !== '') {
+              const start = Number(room.startRoom);
+              const end = Number(room.endRoom);
+              if (!isNaN(start) && !isNaN(end) && start <= end) {
+                for (let r = start; r <= end; r++) {
+                  activeRooms.push(String(r));
+                }
+              }
+            }
+          }
+          const activeSet = new Set(activeRooms);
+          const cleanedCustomLabels = { ...existingData.settings.custom_labels };
+          Object.keys(cleanedCustomLabels).forEach(key => {
+            if (!activeSet.has(key)) {
+              delete cleanedCustomLabels[key];
+            }
+          });
+
           const updateRequestBody = {
             domain_name: DOMAIN_NAME,
             user_id: USER_ID,
@@ -1065,7 +1130,9 @@ export class SettingsComponent implements OnInit {
               customer_update: {
                 settings: {
                   ...existingData.settings,
-                  room_range: updatedRooms
+                  room_range: updatedRooms,
+                  label_option: updatedRooms.length === 0 ? '' : (existingData.settings.label_option || ''),
+                  custom_labels: cleanedCustomLabels
                 }
               }
             },
@@ -1083,6 +1150,7 @@ export class SettingsComponent implements OnInit {
                 if (updateResp.message === 'Record successfully updated') {
                   this.rooms.splice(index, 1);
                   this.updateRoomRowErrorsAfterDelete(index);
+                  this.cleanCustomLabelsAfterRangeUpdate();
                   this.validateAllRoomsLive();
                   this.checkAtLeastOneRoomRange();
                   this.localService.set('roomRange', JSON.stringify(updatedRooms));
@@ -1148,18 +1216,19 @@ export class SettingsComponent implements OnInit {
 
   checkRoomFormValidity() {
     this.isRoomFormValid = this.rooms.every(r =>
-      r.id && r.startRoom && r.endRoom && r.label &&
-      r.startRoom.length <= 5 && r.endRoom.length <= 5
-    );
+      r.id && (r.startRoom !== undefined && r.startRoom !== null && String(r.startRoom).trim() !== '') &&
+      (r.endRoom !== undefined && r.endRoom !== null && String(r.endRoom).trim() !== '') && r.label &&
+      String(r.startRoom).length <= 5 && String(r.endRoom).length <= 5
+    ) && (this.labelOption !== 'different' || this.getIndividualRoomNumbers().every(num => this.customLabels[num] && this.customLabels[num].trim() !== ''));
   }
 
   checkAtLeastOneRoomRange() {
     this.hasAtLeastOneRoomRange = this.rooms.some(room =>
       room.id && room.id.trim() !== '' &&
-      room.startRoom && room.startRoom.trim() !== '' &&
-      room.endRoom && room.endRoom.trim() !== '' &&
+      room.startRoom !== undefined && room.startRoom !== null && String(room.startRoom).trim() !== '' &&
+      room.endRoom !== undefined && room.endRoom !== null && String(room.endRoom).trim() !== '' &&
       room.label && room.label.trim() !== ''
-    );
+    ) && (this.labelOption !== 'different' || this.getIndividualRoomNumbers().every(num => this.customLabels[num] && this.customLabels[num].trim() !== ''));
   }
 
   checkAtLeastOneShift() {
@@ -1473,7 +1542,9 @@ export class SettingsComponent implements OnInit {
           // Merge with existing settings (don't overwrite)
           const mergedSettings = {
             ...existingData.settings,
-            room_range: updatedRooms
+            room_range: updatedRooms,
+            label_option: updatedRooms.length === 0 ? '' : this.labelOption,
+            custom_labels: this.customLabels
           };
           const updateRequestBody = {
             domain_name: DOMAIN_NAME,
@@ -1495,6 +1566,7 @@ export class SettingsComponent implements OnInit {
               if (updateResp.success === 1 && updateResp.status_code === 200) {
                 this.localService.set('roomRange', JSON.stringify(updatedRooms));
                 this.alertService.success('Room ranges saved successfully!', this.options);
+                this.closeRoomModal();
               } else {
                 const message = updateResp?.message || 'Something went wrong while saving room ranges.';
                 this.alertService.error(message, this.options);
@@ -1780,7 +1852,8 @@ export class SettingsComponent implements OnInit {
   calculateTotalRooms(): number {
     let total = 0;
     for (const room of this.rooms) {
-      if (room.startRoom && room.endRoom) {
+      if (room.startRoom !== undefined && room.startRoom !== null && String(room.startRoom).trim() !== '' &&
+          room.endRoom !== undefined && room.endRoom !== null && String(room.endRoom).trim() !== '') {
         const start = Number(room.startRoom);
         const end = Number(room.endRoom);
         if (!isNaN(start) && !isNaN(end) && start <= end) {
@@ -1792,8 +1865,37 @@ export class SettingsComponent implements OnInit {
   }
 
   onRoomFieldChange() {
+    this.sanitizeRoomRanges();
+    this.cleanCustomLabelsAfterRangeUpdate();
     this.checkAtLeastOneRoomRange();
     this.validateAllRoomsLive();
+  }
+
+  sanitizeRoomRanges() {
+    for (const room of this.rooms) {
+      if (room.startRoom) {
+        let s = String(room.startRoom).replace(/^0+/, '');
+        if (s !== room.startRoom) {
+          room.startRoom = s;
+        }
+      }
+      if (room.endRoom) {
+        let e = String(room.endRoom).replace(/^0+/, '');
+        if (e !== room.endRoom) {
+          room.endRoom = e;
+        }
+      }
+    }
+  }
+
+  cleanCustomLabelsAfterRangeUpdate() {
+    const activeRooms = this.getIndividualRoomNumbers();
+    const activeSet = new Set(activeRooms);
+    Object.keys(this.customLabels).forEach(key => {
+      if (!activeSet.has(key)) {
+        delete this.customLabels[key];
+      }
+    });
   }
 
   saveRooms() {
@@ -1808,12 +1910,12 @@ export class SettingsComponent implements OnInit {
       return rest;
     });
     this.saveRoomSettings(cleanRooms);
-    this.closeRoomModal();
   }
-
 
   validateAllRoomsLive() {
     this.roomRowErrors = {};
+    this.invalidFields = {};
+    this.invalidCustomLabels = {};
     this.roomErrorMessage = [];
     const errors: string[] = [];
     // ------- Row-Level Validation --------
@@ -1821,34 +1923,51 @@ export class SettingsComponent implements OnInit {
       const room = this.rooms[i];
       const missingFields: string[] = [];
       const validationErrors: string[] = [];
-      if (!room.id?.trim()) missingFields.push('ID');
-      if (!room.startRoom?.trim()) missingFields.push('Start Room');
-      if (!room.endRoom?.trim()) missingFields.push('End Room');
-      if (!room.label?.trim()) missingFields.push('Label');
-      if (room.startRoom && room.startRoom.length > 5)
+      
+      const isIdInvalid = !room.id?.trim();
+      const isStartMissing = room.startRoom === undefined || room.startRoom === null || String(room.startRoom).trim() === '';
+      const isEndMissing = room.endRoom === undefined || room.endRoom === null || String(room.endRoom).trim() === '';
+      const isLabelInvalid = !room.label?.trim();
+      
+      let isStartInvalid = isStartMissing;
+      let isEndInvalid = isEndMissing;
+
+      if (isIdInvalid) missingFields.push('ID');
+      if (isStartMissing) missingFields.push('Start Room');
+      if (isEndMissing) missingFields.push('End Room');
+      if (isLabelInvalid) missingFields.push('Label');
+
+      if (room.startRoom && String(room.startRoom).length > 5) {
         validationErrors.push('Start Room exceeds 5 characters');
-      if (room.endRoom && room.endRoom.length > 5)
-        validationErrors.push('End Room exceeds 5 characters');
-      if (room.startRoom && room.endRoom) {
-        const startVal = room.startRoom.trim();
-        const endVal = room.endRoom.trim();
-        const startNum = parseInt(startVal, 10);
-        const endNum = parseInt(endVal, 10);
-        // 1. Check if same
-        if (startNum === endNum) {
-          validationErrors.push('Start and End Room cannot be same');
-        }
+        isStartInvalid = true;
       }
+      if (room.endRoom && String(room.endRoom).length > 5) {
+        validationErrors.push('End Room exceeds 5 characters');
+        isEndInvalid = true;
+      }
+
 
       if (room.startRoom && room.endRoom) {
         const start = Number(room.startRoom);
         const end = Number(room.endRoom);
         if (isNaN(start) || isNaN(end)) {
           validationErrors.push('Start/End Room must be numeric');
+          if (isNaN(start)) isStartInvalid = true;
+          if (isNaN(end)) isEndInvalid = true;
         } else if (start > end) {
           validationErrors.push('Start Room cannot be greater than End Room');
+          isStartInvalid = true;
+          isEndInvalid = true;
         }
       }
+
+      this.invalidFields[i] = {
+        id: isIdInvalid,
+        startRoom: isStartInvalid,
+        endRoom: isEndInvalid,
+        label: isLabelInvalid
+      };
+
       if (missingFields.length || validationErrors.length) {
         let message = '';
         if (missingFields.length) {
@@ -1876,41 +1995,134 @@ export class SettingsComponent implements OnInit {
         if (s1 <= e2 && s2 <= e1) {
           this.roomRowErrors[i] =
             `Room range overlaps with ${s2}-${e2}.`;
-
           this.roomRowErrors[j] =
             `Room range overlaps with ${s1}-${e1}.`;
+          
+          if (!this.invalidFields[i]) this.invalidFields[i] = {};
+          this.invalidFields[i].startRoom = true;
+          this.invalidFields[i].endRoom = true;
+
+          if (!this.invalidFields[j]) this.invalidFields[j] = {};
+          this.invalidFields[j].startRoom = true;
+          this.invalidFields[j].endRoom = true;
         }
       }
     }
+    // -------- Custom Labels Validation --------
+    const totalRoomsCreated = this.calculateTotalRooms();
+    if (this.labelOption === 'different' && this.getIndividualRoomNumbers().length > 0 && totalRoomsCreated <= this.allowedRoomCount) {
+      const individualRooms = this.getIndividualRoomNumbers();
+      let hasMissing = false;
+      let hasTooLong = false;
+      for (const num of individualRooms) {
+        const val = this.customLabels[num];
+        if (!val || !val.trim()) {
+          hasMissing = true;
+          this.invalidCustomLabels[num] = true;
+        } else if (val.trim().length > 10) {
+          hasTooLong = true;
+          this.invalidCustomLabels[num] = true;
+        }
+      }
+      if (hasMissing) {
+        errors.push('Please enter a label for each custom room number.');
+      }
+      if (hasTooLong) {
+        errors.push('Custom room labels cannot exceed 10 characters.');
+      }
+      // Check duplicate custom labels
+      const customLabelsMap = new Map<string, string[]>();
+      for (const num of individualRooms) {
+        const val = this.customLabels[num]?.trim().toLowerCase().replace(/\s+/g, ' ');
+        if (val) {
+          if (!customLabelsMap.has(val)) customLabelsMap.set(val, []);
+          customLabelsMap.get(val)!.push(num);
+        }
+      }
+      let hasDuplicateCustom = false;
+      customLabelsMap.forEach((nums) => {
+        if (nums.length > 1) {
+          hasDuplicateCustom = true;
+          nums.forEach(num => {
+            this.invalidCustomLabels[num] = true;
+          });
+        }
+      });
+      if (hasDuplicateCustom) {
+        errors.push('Custom room labels must be unique.');
+      }
+    }
     // -------- Duplicate Labels --------
-    // const labels = this.rooms
-    //   .map(r => r.label?.trim().toLowerCase())
-    //   .filter(Boolean);
-    const labels = this.rooms
-      .map(r => r.label?.trim().toLowerCase().replace(/\s+/g, ' '))
-      .filter(Boolean);
-    if (new Set(labels).size !== labels.length) {
+    const labelsMap = new Map<string, number[]>();
+    this.rooms.forEach((r, idx) => {
+      const lbl = r.label?.trim().toLowerCase().replace(/\s+/g, ' ');
+      if (lbl) {
+        if (!labelsMap.has(lbl)) labelsMap.set(lbl, []);
+        labelsMap.get(lbl)!.push(idx);
+      }
+    });
+    let hasDuplicateLabels = false;
+    labelsMap.forEach((indices) => {
+      if (indices.length > 1) {
+        hasDuplicateLabels = true;
+        indices.forEach(idx => {
+          if (!this.invalidFields[idx]) this.invalidFields[idx] = {};
+          this.invalidFields[idx].label = true;
+        });
+      }
+    });
+    if (hasDuplicateLabels) {
       errors.push('Room Labels must be unique!');
     }
+
     // -------- Duplicate IDs --------
-    // const ids = this.rooms
-    //   .map(r => r.id?.trim().toLowerCase())
-    //   .filter(Boolean);
-    const ids = this.rooms
-      .map(r => r.id?.trim().toLowerCase().replace(/\s+/g, ' '))
-      .filter(Boolean);
-    if (new Set(ids).size !== ids.length) {
+    const idsMap = new Map<string, number[]>();
+    this.rooms.forEach((r, idx) => {
+      const idVal = r.id?.trim().toLowerCase().replace(/\s+/g, ' ');
+      if (idVal) {
+        if (!idsMap.has(idVal)) idsMap.set(idVal, []);
+        idsMap.get(idVal)!.push(idx);
+      }
+    });
+    let hasDuplicateIds = false;
+    idsMap.forEach((indices) => {
+      if (indices.length > 1) {
+        hasDuplicateIds = true;
+        indices.forEach(idx => {
+          if (!this.invalidFields[idx]) this.invalidFields[idx] = {};
+          this.invalidFields[idx].id = true;
+        });
+      }
+    });
+    if (hasDuplicateIds) {
       errors.push('Room IDs must be unique!');
     }
+
     // -------- Duplicate Ranges --------
-    const ranges = this.rooms
-      .map(r => r.startRoom && r.endRoom ? `${r.startRoom}-${r.endRoom}` : '')
-      .filter(Boolean);
-    if (new Set(ranges).size !== ranges.length) {
+    const rangesMap = new Map<string, number[]>();
+    this.rooms.forEach((r, idx) => {
+      if (r.startRoom && r.endRoom) {
+        const rng = `${r.startRoom}-${r.endRoom}`;
+        if (!rangesMap.has(rng)) rangesMap.set(rng, []);
+        rangesMap.get(rng)!.push(idx);
+      }
+    });
+    let hasDuplicateRanges = false;
+    rangesMap.forEach((indices) => {
+      if (indices.length > 1) {
+        hasDuplicateRanges = true;
+        indices.forEach(idx => {
+          if (!this.invalidFields[idx]) this.invalidFields[idx] = {};
+          this.invalidFields[idx].startRoom = true;
+          this.invalidFields[idx].endRoom = true;
+        });
+      }
+    });
+    if (hasDuplicateRanges) {
       errors.push('Room ranges must be unique!');
     }
+
     // -------- Room Count Limit --------
-    const totalRoomsCreated = this.calculateTotalRooms();
     if (totalRoomsCreated > this.allowedRoomCount) {
       errors.push(
         `You are allowed to create only ${this.allowedRoomCount} rooms. Currently creating ${totalRoomsCreated}.`
@@ -2063,19 +2275,25 @@ export class SettingsComponent implements OnInit {
     }
   }
 
-  // Allow only numbers for room ranges
+  // Allow only numbers for room ranges, but do not allow a leading 0 (e.g., 0, 01, 000)
   allowOnlyNumbers(event: KeyboardEvent) {
     const allowed = /^[0-9]*$/;
     if (!allowed.test(event.key)) {
       event.preventDefault();
+      return;
+    }
+    const inputElement = event.target as HTMLInputElement;
+    const selectionStart = inputElement.selectionStart ?? 0;
+    if (event.key === '0' && selectionStart === 0) {
+      event.preventDefault();
     }
   }
 
-  // Handle numeric-only paste
+  // Handle numeric-only paste and prevent leading 0
   handleNumericPaste(event: ClipboardEvent) {
     const pasted = event.clipboardData?.getData('text') ?? '';
-    if (!/^[0-9]*$/.test(pasted)) {
-      event.preventDefault(); // Block non-numeric strings
+    if (!/^[0-9]*$/.test(pasted) || pasted.startsWith('0')) {
+      event.preventDefault(); // Block non-numeric or leading 0
     }
   }
 

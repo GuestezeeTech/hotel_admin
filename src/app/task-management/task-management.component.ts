@@ -523,6 +523,8 @@ export class TaskManagementComponent implements OnInit {
     // const roomRanges = customer.settings?.room_range || [];
     const labelToRoomsMap: { [label: string]: string[] } = {};
     // console.log('Label to Rooms Map(Empty):', labelToRoomsMap);
+    const labelOption = customerData?.settings?.label_option;
+    const customLabels = customerData?.settings?.custom_labels || {};
     roomRanges.forEach((range: any) => {
       const start = parseInt(range.startRoom);
       // console.log('Start Room:', start);
@@ -530,7 +532,12 @@ export class TaskManagementComponent implements OnInit {
       // console.log('End Room:', end);
       const rooms: string[] = [];
       for (let i = start; i <= end; i++) {
-        rooms.push(i.toString());
+        let roomNum = i.toString();
+        if (labelOption === 'different') {
+          const customVal = customLabels[roomNum];
+          roomNum = (customVal && customVal.trim()) ? customVal.trim() : roomNum;
+        }
+        rooms.push(roomNum);
       }
       labelToRoomsMap[range.label] = rooms;
     });

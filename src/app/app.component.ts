@@ -14,6 +14,7 @@ import { TaskManagementService } from './task-management/task-management.service
 import { HotelEnrollmentTabviewService } from './hotel-enrollment-tabview/hotel-enrollment-tabview.service';
 import { ENDPOINTS, DOMAIN_NAME, USER_ID } from './app.config';
 import { PaymentHelperService } from './services/payment-helper.service';
+import { StaffService } from './user-access/staff/staff.service';
 
 @Component({
   selector: 'app-root',
@@ -180,7 +181,8 @@ export class AppComponent implements OnInit, OnDestroy {
     private permissionService: PermissionService,
     private taskManagementService: TaskManagementService,
     private hotelEnrollmentService: HotelEnrollmentTabviewService,
-    private paymentHelperService: PaymentHelperService
+    private paymentHelperService: PaymentHelperService,
+    private staffService: StaffService
   ) {
     // --- Sidebar and menu tracking ---
     this.router.events.subscribe(event => {
@@ -502,6 +504,7 @@ export class AppComponent implements OnInit, OnDestroy {
           const currentToken = await this.pushService.getCurrentToken();
           if (currentToken) {
             sessionStorage.setItem('CurrentTabFcmToken', currentToken);
+            this.registerFcmTokenOnLoad(currentToken);
           }
           this.syncFcmTokensFromDb();
           this.checkHotelStatus();
@@ -559,6 +562,103 @@ export class AppComponent implements OnInit, OnDestroy {
           }
         }
       });
+    }
+  }
+
+  registerFcmTokenOnLoad(token: string): void {
+    const userId = this.localservice.get('UserId');
+    if (!userId) return;
+
+    if (this.customerType === 'Staff') {
+      const staffFetchBody = {
+        domain_name: DOMAIN_NAME,
+        user_id: USER_ID,
+        extras: { find: { id: Number(userId) } }
+      };
+      this.taskManagementService.getAllStaves(staffFetchBody).subscribe(
+        (staffResp: any) => {
+          if (staffResp?.success === 1 && staffResp.result?.data?.length > 0) {
+            const staff = staffResp.result.data[0];
+            let tokens: string[] = staff.fcm_token || [];
+            if (!Array.isArray(tokens)) {
+              tokens = [];
+            }
+            const hasToken = tokens.includes(token);
+            if (!hasToken || staff.is_available !== true) {
+              if (!hasToken) {
+                tokens.push(token);
+              }
+              const updateBody = {
+                domain_name: DOMAIN_NAME,
+                user_id: USER_ID,
+                payload: {
+                  staff_updation: {
+                    fcm_token: tokens,
+                    is_available: true
+                  }
+                },
+                extras: { find: { id: Number(userId) } }
+              };
+              this.staffService.updateStaff(updateBody).subscribe(
+                (updateResp: any) => {
+                  if (updateResp?.success === 1) {
+                    localStorage.setItem('UserFcmTokens', JSON.stringify(tokens));
+                  }
+                },
+                (err: any) => {
+                  console.error('[App] Failed to update staff FCM token on load:', err);
+                }
+              );
+            }
+          }
+        },
+        (err: any) => {
+          console.error('[App] Failed to fetch staff for FCM token registration on load:', err);
+        }
+      );
+    } else if (this.customerType === 'Customer') {
+      const customerFetchBody = {
+        domain_name: DOMAIN_NAME,
+        user_id: USER_ID,
+        extras: { find: { id: Number(userId) } }
+      };
+      this.hotelEnrollmentService.getLoginCustomerById(customerFetchBody).subscribe(
+        (customerResp: any) => {
+          if (customerResp?.success === 1 && customerResp.result?.data?.length > 0) {
+            const customer = customerResp.result.data[0];
+            let tokens: string[] = customer.fcm_token || [];
+            if (!Array.isArray(tokens)) {
+              tokens = [];
+            }
+            if (!tokens.includes(token)) {
+              tokens.push(token);
+              const updateBody = {
+                domain_name: DOMAIN_NAME,
+                user_id: USER_ID,
+                payload: {
+                  customer_update: {
+                    fcm_token: tokens
+                  }
+                },
+                extras: { find: { id: Number(userId) } }
+              };
+              this.hotelEnrollmentService.updateCustomerFcm(updateBody).subscribe(
+                (updateResp: any) => {
+                  if (updateResp?.success === 1) {
+                    localStorage.setItem('UserFcmTokens', JSON.stringify(tokens));
+                  }
+                },
+                (err: any) => {
+                  console.error('[App] Failed to update customer FCM token on load:', err);
+                }
+              );
+            }
+          }
+        },
+        (err: any) => {
+          console.error('[App] Failed to fetch customer for FCM token registration on load:', err);
+        }
+      );
     }
   }
 

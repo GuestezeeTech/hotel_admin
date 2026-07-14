@@ -265,7 +265,7 @@
         <!-- Scrollable Content Area -->
         <div style="padding: 15px 20px; overflow-y: auto; flex: 1; min-height: 0;">
             <!-- Column Header -->
-            <div class="d-flex align-items-center mb-2" style="font-weight: bold; font-size: 14px; color: #333;">
+            <div *ngIf="shifts.length > 0" class="d-flex align-items-center mb-2" style="font-weight: bold; font-size: 14px; color: #333;">
                 <div style="width: 60px; text-align: center;" class="me-2">ID</div>
                 <div style="width: 70px; text-align: center;" class="me-1">Start</div>
                 <div style="width: 70px; text-align: center;" class="me-2"></div>
@@ -370,7 +370,7 @@
 <!-- Room Modal -->
 <div *ngIf="isRoomModalOpen" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center;">
-    <div style="background: white; border-radius: 15px; width: 45%; max-height: 65vh;
+    <div style="background: white; border-radius: 15px; width: 60%; max-height: 66vh;
               box-shadow: 0 0 10px rgba(0,0,0,0.2); text-align: center; display: flex; flex-direction: column;">
         <!-- Header -->
         <div class="d-flex justify-content-between align-items-center"
@@ -381,7 +381,8 @@
         <!-- Scrollable Content Area -->
         <div style="padding: 15px 20px; overflow-y: auto; flex: 1; min-height: 0;">
             <!-- Header Row -->
-            <div class="d-flex align-items-center mb-2" style="font-weight: bold; font-size: 14px; color: #333;">
+            <div *ngIf="rooms.length > 0" class="d-flex align-items-center mb-2"
+                style="font-weight: bold; font-size: 14px; color: #333;">
                 <div style="width: 60px; text-align: center;" class="me-2">ID</div>
                 <div style="width: 100px; text-align: center;" class="me-2">Start</div>
                 <div style="width: 20px; text-align: center;" class="me-2"></div>
@@ -392,34 +393,27 @@
             <div *ngFor="let room of rooms; let i = index" style="margin-bottom: 10px;">
                 <div class="d-flex align-items-center mb-1">
                     <!-- ID -->
-                    <!-- <input type="text" class="form-control me-2" placeholder="ID" [(ngModel)]="room.id"
-                        (input)="onRoomFieldChange()" [disabled]="isRoomViewMode" (keypress)="restrictSpecialChars($event)"
-                        style="max-width: 60px; font-size: 14px; text-align: center;" /> -->
                     <input type="text" class="form-control me-2" placeholder="ID" [(ngModel)]="room.id"
                         (input)="onRoomFieldChange()" [disabled]="isRoomViewMode"
-                        (keypress)="allowOnlyAlphanumeric($event)"
+                        (keypress)="allowOnlyAlphanumeric($event)" [class.input-invalid]="invalidFields[i]?.id"
                         style="max-width: 60px; font-size: 14px; text-align: center;" />
                     <!-- Start Room -->
-                    <!-- <input type="text" class="form-control me-2" placeholder="Start Room (max 5 characters)"
-                        [(ngModel)]="room.startRoom" (input)="onRoomFieldChange()" maxlength="5"
-                        [disabled]="isRoomViewMode" style="max-width: 100px; font-size: 14px; text-align: center;" /> -->
                     <input type="text" class="form-control me-2" placeholder="Start Room" [(ngModel)]="room.startRoom"
                         (input)="onRoomFieldChange()" maxlength="5" (keypress)="allowOnlyNumbers($event)"
                         (paste)="handleNumericPaste($event)" [disabled]="isRoomViewMode"
+                        [class.input-invalid]="invalidFields[i]?.startRoom"
                         style="max-width: 100px; font-size: 14px; text-align: center;" />
                     <span style="margin: 0 5px; font-weight: bold;">-</span>
                     <!-- End Room -->
-                    <!-- <input type="text" class="form-control me-2" placeholder="End Room (max 5 characters)"
-                        [(ngModel)]="room.endRoom" (input)="onRoomFieldChange()" maxlength="5"
-                        [disabled]="isRoomViewMode" style="max-width: 100px; font-size: 14px; text-align: center;" /> -->
                     <input type="text" class="form-control me-2" placeholder="End Room" [(ngModel)]="room.endRoom"
                         (input)="onRoomFieldChange()" maxlength="5" (keypress)="allowOnlyNumbers($event)"
                         (paste)="handleNumericPaste($event)" [disabled]="isRoomViewMode"
+                        [class.input-invalid]="invalidFields[i]?.endRoom"
                         style="max-width: 100px; font-size: 14px; text-align: center;" />
                     <!-- Label -->
                     <input type="text" class="form-control me-2" placeholder="Label (e.g., Floor 1)"
                         [(ngModel)]="room.label" (input)="onRoomFieldChange()" [disabled]="isRoomViewMode"
-                        style="max-width: 150px; font-size: 14px;" />
+                        [class.input-invalid]="invalidFields[i]?.label" style="max-width: 150px; font-size: 14px;" />
                     <!-- Delete Row -->
                     <button class="btn" type="button"
                         style="background-color: #800020; color: white; border: none; font-size: 14px;"
@@ -431,15 +425,13 @@
                 </div>
                 <!-- Row-specific errors -->
                 <div *ngIf="roomRowErrors[i]"
-                    style="color: red; font-size: 12px; text-align: left; margin-left: 0; margin-bottom: 5px;">
-                    • {{ roomRowErrors[i] }}
+                    style="color: #c81e1e; font-size: 11px; font-weight: 500; text-align: left; margin-left: 0; margin-top: 3px; margin-bottom: 5px; display: flex; align-items: center; gap: 4px;">
+                    <i class="fa-solid fa-triangle-exclamation"></i> {{ roomRowErrors[i] }}
                 </div>
             </div>
-            <div style="font-size: 13px; color: #555; text-align: left; margin-bottom: 5px;">
-                * Room numbers should be numeric and cannot exceed 5 characters.
-            </div>
+
             <!-- Add New Room Button -->
-            <div class="d-flex justify-content-start mb-2" *ngIf="!isRoomViewMode">
+            <div class="d-flex justify-content-start mb-2 mt-2" *ngIf="!isRoomViewMode">
                 <button class="btn" type="button" style="background-color: #800020; color: white; border: none"
                     (click)="addRoom()" [disabled]="!canModifySystemSettings"
                     [style.opacity]="canModifySystemSettings ? 1 : 0.5"
@@ -447,18 +439,76 @@
                     <i class="fa-solid fa-plus"></i> Add Room
                 </button>
             </div>
+            <div *ngIf="rooms.length > 0" style="font-size: 13px; color: #555; text-align: left; margin-bottom: 5px;">
+                * Room numbers should be numeric and cannot exceed 5 characters.
+            </div>
+
+            <!-- Options for Labeling -->
+            <div *ngIf="rooms.length > 0" class="mt-4 text-start p-3"
+                style="background-color: #ffffff; border-radius: 12px; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05); margin-bottom: 15px;">
+                <h6 class="fw-bold mb-3" style="color: #800020; font-size: 14px; letter-spacing: 0.3px;">Room Labeling
+                    Option</h6>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" name="labelOption" id="optionSame" value="same"
+                        [(ngModel)]="labelOption" (change)="onLabelOptionChange()" [disabled]="isRoomViewMode"
+                        style="cursor: pointer; width: 1.1em; height: 1.1em; accent-color: #800020;">
+                    <label class="form-check-label fw-bold" for="optionSame"
+                        style="cursor: pointer; font-size: 13.5px; color: #2c3e50 !important; margin-left: 6px; display: inline-block; vertical-align: middle;">
+                        Same as room range <span style="font-weight: normal; color: #7f8c8d; font-size: 12px;">(Label
+                            will be same as room range value)</span>
+                    </label>
+                </div>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="radio" name="labelOption" id="optionDiff" value="different"
+                        [(ngModel)]="labelOption" (change)="onLabelOptionChange()" [disabled]="isRoomViewMode"
+                        style="cursor: pointer; width: 1.1em; height: 1.1em; accent-color: #800020;">
+                    <label class="form-check-label fw-bold" for="optionDiff"
+                        style="cursor: pointer; font-size: 13.5px; color: #2c3e50 !important; margin-left: 6px; display: inline-block; vertical-align: middle;">
+                        Name will differ <span style="font-weight: normal; color: #7f8c8d; font-size: 12px;">(Room label
+                            will differ from room range values)</span>
+                    </label>
+                </div>
+
+                <!-- Custom Labels Grid (when "different" option is selected) -->
+                <div *ngIf="labelOption === 'different' && getIndividualRoomNumbers().length > 0 && calculateTotalRooms() <= allowedRoomCount"
+                    class="mt-4 p-3 bg-light rounded-3 border" style="border-color: #e5e7eb !important;">
+                    <h6 class="fw-bold mb-3 text-uppercase tracking-wider text-muted"
+                        style="font-size: 11px; letter-spacing: 1px;">
+                        Define Custom Labels for Rooms
+                    </h6>
+
+                    <div style="max-height: 250px; overflow-y: auto; padding-right: 8px;">
+                        <div
+                            style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px 15px;">
+                            <div *ngFor="let num of getIndividualRoomNumbers()"
+                                class="d-flex flex-column align-items-stretch">
+                                <span class="fw-bold text-dark mb-1" style="font-size: 12px;">Room {{ num }}: <span
+                                        style="color: red;">*</span></span>
+                                <input type="text" class="form-control form-control-sm" [placeholder]="'Label ' + num"
+                                    [(ngModel)]="customLabels[num]" maxlength="10" (input)="onRoomFieldChange()"
+                                    [disabled]="isRoomViewMode" [class.input-invalid]="invalidCustomLabels[num]"
+                                    style="font-size: 12px; padding: 4px 8px; border-radius: 6px;" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         <!-- Action Buttons (Fixed at Bottom) -->
         <div style="padding: 15px 20px; border-top: 1px solid #e0e0e0; flex-shrink: 0;">
-            <!-- Validation Error -->
+            <!-- Validation Error Alert Banner -->
             <div *ngIf="roomErrorMessage && roomErrorMessage.length > 0"
-                style="color: red; font-size: 14px; text-align: left; margin-bottom: 10px;">
-                <div *ngFor="let error of roomErrorMessage" style="margin-bottom: 5px;">
-                    • {{ error }}
+                class="alert alert-danger d-flex align-items-start gap-2 py-2 px-3 border-0 mb-3"
+                style="background-color: #fdf2f2; color: #9b1c1c; border-radius: 8px; font-size: 13px; text-align: left; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                <i class="fa-solid fa-circle-exclamation mt-1" style="flex-shrink: 0;"></i>
+                <div>
+                    <div *ngFor="let error of roomErrorMessage" style="margin-bottom: 2px; font-weight: 500;">
+                        {{ error }}
+                    </div>
                 </div>
             </div>
             <!-- Disabled Message -->
-            <div *ngIf="!hasAtLeastOneRoomRange"
+            <div *ngIf="rooms.length > 0 && !hasAtLeastOneRoomRange"
                 style="color: #d32f2f; font-size: 13px; text-align: center; margin-bottom: 10px; font-style: italic;">
                 Please fill at least one complete room range (ID, Start Room, End Room, and Label) to enable Save.
             </div>

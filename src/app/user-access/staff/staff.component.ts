@@ -136,7 +136,7 @@ export class StaffComponent implements OnInit {
     }
     // Initialize the form with validation rules
     this.staffForm = new FormGroup({
-      email: this.formBuilder.control('', [Validators.required, Validators.pattern(/^[a-zA-Z0-9%+]+@[a-zA-Z0-9]+\.[a-zA-Z]{2,}$/)]),
+      email: this.formBuilder.control('', [Validators.required, Validators.pattern(/^[a-zA-Z0-9%+_-]+(?:\.[a-zA-Z0-9%+_-]+)*@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*\.[a-zA-Z]{2,}$/)]),
       full_name: this.formBuilder.control('', [Validators.required, Validators.maxLength(30), Validators.minLength(3)]),
       phone_number: this.formBuilder.control('', [Validators.required, Validators.maxLength(10), Validators.pattern(/^[0-9]{10}$/)]),
       // employee_id: this.formBuilder.control('', [Validators.required]),
@@ -229,7 +229,7 @@ export class StaffComponent implements OnInit {
 
   updateHigherLevelOfficerValidator() {
     const officerControl = this.staffForm.get('higher_level_officer');
-    if (!this.isFirstStaff && this.showHigherLevelOfficer && this.showLowestHigherLevelOfficer) {
+    if (this.showHigherLevelOfficer && this.showLowestHigherLevelOfficer) {
       officerControl?.setValidators([Validators.required]);
     } else {
       officerControl?.clearValidators();
@@ -1092,16 +1092,10 @@ export class StaffComponent implements OnInit {
     // console.log('Calling');
     const isChecked = event.target.checked;
     if (isChecked) {
-      //  Add if not already selected
-      if (!this.isHierarchySelected(hierarchy)) {
-        this.selectedHierarchies.push(hierarchy);
-      }
+      this.selectedHierarchies = [hierarchy];
     } else {
-      // Remove if unchecked
-      this.selectedHierarchies = this.selectedHierarchies.filter(
-        (h: any) => h.id !== hierarchy.id
-      );
-    };
+      this.selectedHierarchies = [];
+    }
     // Update form control value
     this.staffForm.patchValue({
       higher_level_hierarchy: this.selectedHierarchies,
@@ -1311,7 +1305,7 @@ export class StaffComponent implements OnInit {
           }
           // Handle missing hierarchy staff error logic
           const lowest = this.defaultHierarchy;
-          const includesLowest = this.selectedHierarchies?.some((h: any) => h.id === lowest?.id);
+          const includesLowest = this.selectedHierarchies?.some((h: any) => !h.parentId && h.parentId !== 0 && !h.parent_id && h.parent_id !== 0);
           control?.setErrors(null);
           if (!includesLowest && missingHierarchies.length > 0) {
             let errorMessage = '';
@@ -1423,7 +1417,7 @@ export class StaffComponent implements OnInit {
           // respData.hierarchy may be array or object: normalize to array of ids
           const respHierarchyArr = Array.isArray(respData?.hierarchy) ? respData?.hierarchy : [respData?.hierarchy];
           // Map each incoming child to matching object in supervisorChildList by id/_id or designation+department
-          this.selectedStaffHierarchies = respHierarchyArr.map((h: any) => {
+          const mappedHierarchies = respHierarchyArr.map((h: any) => {
             const incomingId = (h.id ?? h._id ?? '').toString();
             let matched = this.supervisorChildList.find((c: any) =>
               (c.id ?? c._id ?? '').toString() === incomingId
@@ -1436,6 +1430,7 @@ export class StaffComponent implements OnInit {
             }
             return matched || h;
           });
+          this.selectedStaffHierarchies = mappedHierarchies.slice(0, 1);
           // Patch selected children and form control
           this.staffForm.patchValue({ hierarchy: this.selectedStaffHierarchies.length ? this.selectedStaffHierarchies : null });
           // console.log('Preselected staff child hierarchies:', this.selectedStaffHierarchies);
@@ -1445,9 +1440,8 @@ export class StaffComponent implements OnInit {
           this.staffForm.patchValue({ hierarchy: [] });
         }
         // determine lowest-hierarchy logic (same as before)
-        const lowestHierarchy = await this.getLowestLevelHierarchy();
         const includesLowestHierarchy = this.selectedHierarchies.some(
-          (h: any) => h.id === lowestHierarchy?.id
+          (h: any) => !h.parentId && h.parentId !== 0 && !h.parent_id && h.parent_id !== 0
         );
         if (includesLowestHierarchy) {
           this.showLowestHigherLevelOfficer = false;
@@ -1620,13 +1614,9 @@ export class StaffComponent implements OnInit {
   // Checkbox toggle handler
   onStaffHierarchyToggle(hierarchy: any, event: any) {
     if (event.target.checked) {
-      if (!this.isStaffHierarchySelected(hierarchy)) {
-        this.selectedStaffHierarchies.push(hierarchy);
-      }
+      this.selectedStaffHierarchies = [hierarchy];
     } else {
-      this.selectedStaffHierarchies = this.selectedStaffHierarchies.filter(
-        (h: any) => h.id !== hierarchy.id
-      );
+      this.selectedStaffHierarchies = [];
     }
     // Patch reactive form
     this.staffForm.patchValue({ hierarchy: this.selectedStaffHierarchies });
@@ -1857,7 +1847,7 @@ export class StaffComponent implements OnInit {
         //   payloadData.higher_level_officer = officerDetails;
         // }
         // Include higher_level_officer only if visible and selected
-        if (!this.isFirstStaff && this.showHigherLevelOfficer && this.showLowestHigherLevelOfficer && officerDetails.length) {
+        if (this.showHigherLevelOfficer && this.showLowestHigherLevelOfficer && officerDetails.length) {
           payloadData.higher_level_officer = officerDetails; // array now
         }
         const formatJson = {
@@ -2068,9 +2058,11 @@ export class StaffComponent implements OnInit {
               if (staffResp?.success === 1 && staffResp.status_code === 200) {
                 this.officersData = staffResp.result.data || [];
                 // --- Higher Level Officers (multi-select) ---
-                if (respData?.higher_level_officer && Array.isArray(respData?.higher_level_officer)) {
+                if (respData?.higher_level_officer) {
+                  const rawOfficer = respData.higher_level_officer;
+                  const officerArr = Array.isArray(rawOfficer) ? rawOfficer : [rawOfficer];
                   this.showHigherLevelOfficer = true;
-                  this.selectedOfficers = respData?.higher_level_officer.map((officer: any) => {
+                  this.selectedOfficers = officerArr.map((officer: any) => {
                     const matched = this.officersData.find((o: any) => (o.id ?? o._id) === (officer.id ?? officer._id));
                     return matched || officer;
                   });
@@ -2089,13 +2081,16 @@ export class StaffComponent implements OnInit {
             }
           );
           // --- Higher Level Hierarchy (multi-select) ---
-          if (respData?.higher_level_hierarchy && Array.isArray(respData?.higher_level_hierarchy)) {
+          if (respData?.higher_level_hierarchy) {
+            const rawHierarchy = respData.higher_level_hierarchy;
+            const hierarchyArr = Array.isArray(rawHierarchy) ? rawHierarchy : [rawHierarchy];
             // Map parent/supervisor selection by id/_id (defensive)
-            this.selectedHierarchies = respData?.higher_level_hierarchy.map((h: any) =>
+            const mappedHierarchies = hierarchyArr.map((h: any) =>
               this.supervisorList?.find((s: any) =>
                 (s.id ?? s._id ?? '').toString() === (h.id ?? h._id ?? '').toString()
               ) || h
             );
+            this.selectedHierarchies = mappedHierarchies.slice(0, 1);
             // Patch the control (keep enabled per your requirement if not in view mode)
             this.staffForm.patchValue({ higher_level_hierarchy: this.selectedHierarchies });
             if (!this.isViewMode) {
@@ -2155,7 +2150,7 @@ export class StaffComponent implements OnInit {
           //console.log('Hierarchy parent ids:', this.hierarchyParentIds)
           this.supervisorList = this.customerHierarchydata?.hierarchy.filter(
             (item: any) =>
-              this.hierarchyParentIds.includes(item.id)
+              this.hierarchyParentIds.includes(item.id) || (!item.parentId && item.parentId !== 0 && !item.parent_id && item.parent_id !== 0)
           );
           //console.log('Supervisor List:', this.supervisorList);
           // If first staff, prefill hierarchy
@@ -2174,7 +2169,14 @@ export class StaffComponent implements OnInit {
               higher_level_hierarchy: this.selectedHierarchies
             });
             // Ended
-            this.staffForm.get('higher_level_hierarchy')?.disable();
+            // this.staffForm.get('higher_level_hierarchy')?.disable();
+            
+            // Set initial visibility of higher level officer based on preselected hierarchy
+            const includesLowest = this.selectedHierarchies.some(
+              (h: any) => !h.parentId && h.parentId !== 0 && !h.parent_id && h.parent_id !== 0
+            );
+            this.showLowestHigherLevelOfficer = !includesLowest;
+
             // remove officer validation for first staff
             this.staffForm.get('higher_level_officer')?.clearValidators();
             this.staffForm.get('higher_level_officer')?.updateValueAndValidity();

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, HostListener, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -25,6 +25,7 @@ import { HotelEnrollmentTabviewService } from '../../hotel-enrollment-tabview/ho
 export class CreateTaskComponent implements OnInit {
     customerdata: any = {};
     room_no: string = '';
+    roomToRangeLabelMap: { [room: string]: string } = {};
     loadingGuest: boolean = false;
     selectedGuest: any = null;   // full guest record
     guestList: any[] = [];       // list of all guests for the room
@@ -68,6 +69,12 @@ export class CreateTaskComponent implements OnInit {
     };
     // Newly added for task allocation purpose
     selfStaffId: any;
+    // Newly added for room labelling
+    isRoomDropdownOpen: boolean = false;
+    roomSearchText: string = '';
+    allRooms: string[] = [];
+    filteredRooms: string[] = [];
+    // End of newly added for room labelling
 
     constructor(
         private router: Router,
@@ -78,7 +85,8 @@ export class CreateTaskComponent implements OnInit {
         private serviceDetails: ServiceDetailService,
         private taskManagementService: TaskManagementService,
         private http: HttpClient,
-        private hotelenrollmenttabviewService: HotelEnrollmentTabviewService
+        private hotelenrollmenttabviewService: HotelEnrollmentTabviewService,
+        private elementRef: ElementRef
     ) { }
 
     ngOnInit(): void {
@@ -92,6 +100,13 @@ export class CreateTaskComponent implements OnInit {
         if (this.member_id) {
             this.getDepartmentById(this.member_id);
             this.getAllServices(this.member_id);
+            // Newly added for room labelling
+            this.getCustomerById().then(() => {
+                this.initializeRoomsFromCustomer();
+            }).catch(err => {
+                console.error('Failed to load customer settings', err);
+            });
+            // End of newly added for room labelling
         }
     }
 
@@ -954,6 +969,7 @@ export class CreateTaskComponent implements OnInit {
          // Step 1: Create task first (without staff assignment)
          const createPayload: any = {
              room_no: this.room_no,
+             room_range_label: this.roomToRangeLabelMap[this.room_no] || '',
              member_id: this.member_id,
              status: 'ASAP', // Create with ASAP status first
              staff_desk_id: deskStaffId,
@@ -1213,6 +1229,7 @@ export class CreateTaskComponent implements OnInit {
         const taskCreatedByName = this.getStaffName();
         const createPayload: any = {
             room_no: this.room_no,
+            room_range_label: this.roomToRangeLabelMap[this.room_no] || '',
             member_id: this.member_id,
             // Newly added for tasl allocation purpose
             // status: 'Assigned',
@@ -1360,5 +1377,154 @@ export class CreateTaskComponent implements OnInit {
     cancel() {
         this.router.navigate(['/task-management']);
     }
+
+    // Newly added for room labelling
+    toggleRoomDropdown() {
+        this.isRoomDropdownOpen = !this.isRoomDropdownOpen;
+        if (this.isRoomDropdownOpen) {
+            this.roomSearchText = '';
+            this.filteredRooms = [...this.allRooms];
+            // Auto focus search input
+            setTimeout(() => {
+                const searchBox = this.elementRef.nativeElement.querySelector('.dropdown-search-input');
+                if (searchBox) {
+                    searchBox.focus();
+                }
+            }, 0);
+        }
+    }
+
+    selectRoom(room: string) {
+        this.room_no = room;
+        this.isRoomDropdownOpen = false;
+        this.onRoomNoChange();
+    }
+
+    filterRooms() {
+        const term = this.roomSearchText.trim().toLowerCase();
+        this.filteredRooms = this.allRooms.filter(room =>
+            String(room).toLowerCase().includes(term)
+        );
+    }
+
+    @HostListener('document:click', ['$event'])
+    onClickOutside(event: Event) {
+        if (!this.elementRef.nativeElement.querySelector('.searchable-dropdown-wrapper')?.contains(event.target)) {
+            this.isRoomDropdownOpen = false;
+        }
+    }
+
+    initializeRoomsFromCustomer() {
+        const roomRange = this.customerdata?.settings?.room_range;
+        if (!Array.isArray(roomRange) || roomRange.length === 0) {
+            this.allRooms = [];
+            this.filteredRooms = [];
+            return;
+        }
+        let roomList: string[] = [];
+        this.roomToRangeLabelMap = {};
+
+        const expandAlphaRange = (start: string, end: string): string[] => {
+            const result: string[] = [];
+            const toNumber = (str: string) => {
+                let n = 0;
+                for (let i = 0; i < str.length; i++) {
+                    n = n * 26 + (str.charCodeAt(i) - 65 + 1);
+                }
+                return n;
+            };
+            const toLetters = (num: number) => {
+                let s = '';
+                while (num > 0) {
+                    let rem = (num - 1) % 26;
+                    s = String.fromCharCode(65 + rem) + s;
+                    num = Math.floor((num - 1) / 26);
+                }
+                return s;
+            };
+            const startNum = toNumber(start.toUpperCase());
+            const endNum = toNumber(end.toUpperCase());
+            for (let i = startNum; i <= endNum; i++) {
+                result.push(toLetters(i));
+            }
+            return result;
+        };
+
+        const labelOption = this.customerdata?.settings?.label_option;
+        const customLabels = this.customerdata?.settings?.custom_labels || {};
+
+        roomRange.forEach((r: any) => {
+            const rangeLabel = r.label || '';
+            let rangeString = '';
+            if (r.startRoom && r.endRoom) {
+                if (String(r.startRoom).trim() === String(r.endRoom).trim()) {
+                    rangeString = String(r.startRoom);
+                } else {
+                    rangeString = `${r.startRoom}-${r.endRoom}`;
+                }
+            } else if (r.startRoom) {
+                rangeString = String(r.startRoom);
+            }
+
+            const trimmed = String(rangeString).trim();
+            if (!trimmed) return;
+
+            let currentRangeRooms: string[] = [];
+            const alphaNumericRange = trimmed.match(/^([A-Za-z0-9]+)-([A-Za-z0-9]+)$/);
+            if (alphaNumericRange) {
+                const start = alphaNumericRange[1];
+                const end = alphaNumericRange[2];
+                if (!isNaN(Number(start)) && !isNaN(Number(end))) {
+                    for (let i = Number(start); i <= Number(end); i++) {
+                        currentRangeRooms.push(String(i));
+                    }
+                }
+                else if (/^\d+[A-Z]+$/i.test(start) && /^\d+[A-Z]+$/i.test(end)) {
+                    const prefixMatch = start.match(/^\d+/);
+                    const prefix = prefixMatch ? prefixMatch[0] : '';
+                    const startSuffix = start.slice(prefix.length);
+                    const endSuffix = end.slice(prefix.length);
+                    currentRangeRooms.push(
+                        ...expandAlphaRange(startSuffix.toUpperCase(), endSuffix.toUpperCase()).map(
+                            suffix => `${prefix}${suffix}`
+                        )
+                    );
+                }
+                else if (/^[A-Z]+\d+$/i.test(start) && /^[A-Z]+\d+$/i.test(end)) {
+                    const prefixMatch = start.match(/^[A-Z]+/i);
+                    const prefix = prefixMatch ? prefixMatch[0] : '';
+                    const startNum = parseInt(start.slice(prefix.length), 10);
+                    const endNum = parseInt(end.slice(prefix.length), 10);
+                    for (let i = startNum; i <= endNum; i++) {
+                        currentRangeRooms.push(`${prefix}${i}`);
+                    }
+                }
+                else if (/^[A-Z]+$/i.test(start) && /^[A-Z]+$/i.test(end)) {
+                    currentRangeRooms.push(...expandAlphaRange(start.toUpperCase(), end.toUpperCase()));
+                }
+                else {
+                    currentRangeRooms.push(trimmed);
+                }
+            } else {
+                currentRangeRooms.push(trimmed); // single room
+            }
+
+            currentRangeRooms.forEach((roomNum: string) => {
+                let finalRoom = roomNum;
+                if (labelOption === 'different') {
+                    const customVal = customLabels[roomNum];
+                    if (customVal && customVal.trim()) {
+                        finalRoom = customVal.trim();
+                    }
+                }
+                roomList.push(finalRoom);
+                this.roomToRangeLabelMap[finalRoom] = rangeLabel;
+            });
+        });
+
+        this.allRooms = roomList;
+        this.filteredRooms = [...this.allRooms];
+    }
+    // End of newly added for room labelling
 }
 

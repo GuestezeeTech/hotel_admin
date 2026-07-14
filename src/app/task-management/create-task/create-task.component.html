@@ -9,20 +9,54 @@
         <div class="row mt-3">
           <div class="col-md-4 form-group">
             <label class="fw-semibold" style="font-size: 14px">Room No<span class="text-danger">*</span></label>
-            <input type="text" class="form-control shadow-none" [(ngModel)]="room_no" name="room_no"
-              (ngModelChange)="onRoomNoChange()" [class.is-invalid]="validateForm && !room_no"
-              style="background-color: white !important;">
-            <div class="invalid-feedback" *ngIf="validateForm && !room_no">
-              Please enter room no
+            <div class="position-relative searchable-dropdown-wrapper">
+              <!-- Selected Room Display / Toggle Button styled like native select -->
+              <div class="form-select shadow-none d-flex align-items-center"
+                   (click)="toggleRoomDropdown()"
+                   [class.is-invalid]="validateForm && !room_no"
+                   style="background-color: white !important; cursor: pointer; min-height: 38px;">
+                <span class="text-dark">{{ room_no || 'Select Room No' }}</span>
+              </div>
+              
+              <!-- Dropdown Content panel -->
+              <div class="dropdown-menu-custom w-100 shadow p-2" *ngIf="isRoomDropdownOpen">
+                <input type="text" class="form-control form-control-sm mb-2 dropdown-search-input"
+                       *ngIf="allRooms.length > 0"
+                       placeholder="Search Room..."
+                       [(ngModel)]="roomSearchText"
+                       name="roomSearchText"
+                       (input)="filterRooms()"
+                       #roomSearchBox />
+                
+                <div class="dropdown-options-list" style="max-height: 200px; overflow-y: auto;">
+                  <div class="dropdown-option-item px-2 py-1" 
+                       *ngFor="let room of filteredRooms" 
+                       (click)="selectRoom(room)"
+                       [class.selected]="room === room_no">
+                    {{ room }}
+                  </div>
+                  <div class="p-2 text-muted text-center" *ngIf="filteredRooms.length === 0" style="font-size: 13px;">
+                    No rooms found
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Error message if validation fails -->
+              <div class="invalid-feedback" *ngIf="validateForm && !room_no">
+                Please select room no
+              </div>
             </div>
           </div>
           <div class="col-md-4 form-group">
             <label class="fw-semibold" style="font-size: 14px">Guest Name</label>
             <div class="position-relative">
               <select class="form-control shadow-none" [(ngModel)]="selectedGuest" name="guest_name"
-                style="background-color: white !important;">
+                [style.background-color]="guestList.length === 0 ? '#e9ecef' : 'white'"
+                [disabled]="guestList.length === 0">
                 <option [ngValue]="null">
-                  -- Select Guest (optional) --
+                  <ng-container *ngIf="!room_no">-- Select Room No First --</ng-container>
+                  <ng-container *ngIf="room_no && guestList.length === 0">No guest data found</ng-container>
+                  <ng-container *ngIf="room_no && guestList.length > 0">-- Select Guest (optional) --</ng-container>
                 </option>
                 <option *ngFor="let guest of guestList" [ngValue]="guest">
                   {{ guest.guestDetails.First_Name }} {{ guest.guestDetails.Last_Name || '' }}
@@ -38,7 +72,7 @@
             <select class="form-control shadow-none" [(ngModel)]="category" name="category"
               (change)="onCategoryChange()" [class.is-invalid]="validateForm && !category"
               style="appearance: auto; background-color: white !important; cursor: pointer;">
-              <option [ngValue]="null">Please select</option>
+              <option [ngValue]="null" disabled hidden>Please select</option>
               <option *ngFor="let dept of departments" [ngValue]="dept">
                 {{ dept.name || dept.description }}
               </option>
@@ -55,7 +89,7 @@
               (change)="onServiceChange()" [disabled]="!filteredServices.length"
               [class.is-invalid]="validateForm && !service_name"
               style="appearance: auto; background-color: white !important; cursor: pointer;">
-              <option [ngValue]="null">Please select</option>
+              <option [ngValue]="null" disabled hidden>Please select</option>
               <option *ngFor="let service of filteredServices" [ngValue]="service">
                 {{ service.name }}
               </option>

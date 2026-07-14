@@ -132,3 +132,30 @@ select[disabled],
     pointer-events: auto !important;
     cursor: not-allowed !important;
 }
+
+// Custom Placeholder styling - make the shade lighter
+::placeholder {
+    color: #b0b5b9 !important;
+    opacity: 0.85 !important;
+}
+
+:-ms-input-placeholder {
+    color: #b0b5b9 !important;
+}
+
+::-ms-input-placeholder {
+    color: #b0b5b9 !important;
+}
+
+// Input field validation error state styling
+.input-invalid {
+    border-color: #dc3545 !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.input-invalid:focus {
+    border-color: #dc3545 !important;
+    outline: none !important;
+    box-shadow: none !important;
+}

@@ -980,6 +980,7 @@ export class LoginComponent implements OnInit {
     this.showDeactivatedModal = false;
     this.showPaymentOptions = false;
     localStorage.clear();
+    this.login1();
   }
 
   async initiatePaymentFlow(): Promise<void> {
@@ -1488,9 +1489,34 @@ export class LoginComponent implements OnInit {
         this.loaderService.emitComplete();
         if (resp.success === 1 && resp.status_code === 200) {
           if (resp.result.data.length > 0) {
-            this.customerList = resp.result.data[0];
+            const userData = resp.result.data[0];
+
+            const isStaffUser = userData.staff_employee_number != undefined;
+            const isHotelDisabled = userData.hotel_enabled === false || userData.hotel_enabled === 'false';
+            const isStatusApproved = (userData.status || '').toLowerCase() === 'approved';
+
+            if (isHotelDisabled && (isStaffUser || isStatusApproved)) {
+              this.isHotelOwnerLogin = !!userData.customer_member_id && userData.staff_employee_number == undefined;
+              this.deactivatedUserData = userData;
+              this.showDeactivatedModal = true;
+              return;
+            }
+
+            if (userData.is_active === false || userData.is_active === 'false') {
+              let accountType = 'user account';
+              if (userData.staff_employee_number) {
+                accountType = 'staff profile';
+              } else if (userData.customer_member_id) {
+                accountType = 'hotel account';
+              }
+              this.inactiveUserModalMessage = `Your ${accountType} is currently inactive. Please contact the administrator for assistance.`;
+              this.showInactiveUserModal = true;
+              return;
+            }
+
+            this.customerList = userData;
             //console.log(this.customerList);
-            this.forgot_phone_number = resp.result.data[0].phone_number;
+            this.forgot_phone_number = userData.phone_number;
             this.mail = resp.result.data[0].email;
             if (this.localService.get('CusromerType') === 'Staff') {
               this.hotelId = resp.result.data[0].staff_id;
@@ -2904,6 +2930,8 @@ export class LoginComponent implements OnInit {
     this.signup = false;
     this.login = true;
     this.otp = false;
+    this.password = false;
+    this.forgotPassword = false;
     this.signupForm.reset();
     this.otpForm.reset();
     if (this.passwordForm) {
@@ -3124,79 +3152,114 @@ export class LoginComponent implements OnInit {
   // }
 
   async resetNewPassword(): Promise<void> {
-    this.localService.set('UserId', this.hotelId);
-    const resetRequest = {
+    const enteredValue = this.navigatingValue || '';
+    const isEmailLogin = enteredValue.includes('@');
+    const fetchBody = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
       extras: {
-        find: {
-          username: String(this.mail)
-        }
-      },
-      payload: {
-        update: {
-          password: this.passwordForm.value.new_password,
-          password_to_customer: this.passwordForm.value.new_password
-        }
+        find: isEmailLogin ? { email: enteredValue } : { staff_employee_number: enteredValue }
       }
     };
-    try {
-      const resetResp: any = await this.loginService.checkoutAPICall(ENDPOINTS.RESET_PASSWORD, resetRequest);
-      if (!(resetResp && resetResp.success === 1 && resetResp.status_code === 200)) {
-        this.alertService.error(resetResp?.message || "Failed to reset password.", this.options);
-        this.alertClear();
-        return;
-      }
-      this.alertService.success("Password reset successfully!", this.options);
-      this.alertClear();
-      this.localService.set('Password', this.passwordForm.value.new_password);
-      // Identify login type
-      const enteredValue = this.navigatingValue || '';
-      const isEmailLogin = enteredValue.includes('@');
-      const empIdPattern = /^[a-zA-Z]{2}[a-zA-Z0-9]*\d{8}$/;
-      const isStaff = empIdPattern.test(enteredValue);
-      const password = this.passwordForm.value.new_password;
-      // Build username according to login type (do not always append -DOMAIN_NAME for staff)
-      const loginUsername = isEmailLogin ? `${enteredValue}-${DOMAIN_NAME}` : enteredValue;
-      const loginPayload = {
-        domain_name: DOMAIN_NAME,
-        username: loginUsername,
-        password: password
-      };
-      const loginObservable = isEmailLogin ? this.appService.login(loginPayload) : this.appService.staffLogin(loginPayload);
-      // Attempt automatic login and require tokens before calling protected APIs
-      loginObservable.subscribe(
-        (loginResp: any) => {
-          if (!(loginResp && loginResp.success === 1 && loginResp.access_token)) {
-            // Inform user and stop — password changed but automatic login failed
-            this.alertService.success("Password reset succeeded. Please sign in with your new password.", this.options);
+
+    this.hotellistService.getSignupAllCustomers(fetchBody).subscribe(
+      async (resp: any) => {
+        if (resp.success === 1 && resp.status_code === 200 && resp.result.data.length > 0) {
+          const userData = resp.result.data[0];
+
+          // 1. Check if hotel_enabled is false
+          const isStaffUser = userData.staff_employee_number != undefined;
+          const isHotelDisabled = userData.hotel_enabled === false || userData.hotel_enabled === 'false';
+          const isStatusApproved = (userData.status || '').toLowerCase() === 'approved';
+
+          if (isHotelDisabled && (isStaffUser || isStatusApproved)) {
+            this.loaderService.emitComplete();
+            this.isHotelOwnerLogin = !!userData.customer_member_id && userData.staff_employee_number == undefined;
+            this.deactivatedUserData = userData;
+            this.showDeactivatedModal = true;
+            this.alertService.error("Cannot reset password: account is deactivated.", this.options);
             this.alertClear();
             return;
           }
-          // Set tokens and expiry
-          this.authService.setExpiryTime(new Date().getTime() + (loginResp.access_token_expires_in * 1000));
-          this.authService.setRTokenExpireTime(new Date().getTime() + (loginResp.refresh_token_expires_in * 1000));
-          this.authService.setAccessToken(loginResp.access_token);
-          this.authService.setRefreshToken(loginResp.refresh_token);
-          // Clear global loggedOut flag so app.component guard won't auto-redirect to /login
-          try {
-            this.localStorageService.remove('loggedOut');
-          } catch (e) {
-            // fallback if different service instance used
-            try { this.localService.remove('loggedOut'); } catch (err) { /* ignore */ }
+
+          // 2. Check if is_active is false
+          if (userData.is_active === false || userData.is_active === 'false') {
+            this.loaderService.emitComplete();
+            let accountType = 'user account';
+            if (userData.staff_employee_number) {
+              accountType = 'staff profile';
+            } else if (userData.customer_member_id) {
+              accountType = 'hotel account';
+            }
+            this.inactiveUserModalMessage = `Your ${accountType} is currently inactive. Please contact the administrator for assistance.`;
+            this.showInactiveUserModal = true;
+            this.alertService.error("Cannot reset password: account is inactive.", this.options);
+            this.alertClear();
+            return;
           }
-          // Now re-fetch user data and continue with existing protected calls
-          const fetchBody = {
+
+          // Proceed with password update
+          this.localService.set('UserId', this.hotelId);
+          const resetRequest = {
             domain_name: DOMAIN_NAME,
             user_id: USER_ID,
             extras: {
-              find: isEmailLogin ? { email: enteredValue } : { staff_employee_number: enteredValue }
+              find: {
+                username: String(this.mail)
+              }
+            },
+            payload: {
+              update: {
+                password: this.passwordForm.value.new_password,
+                password_to_customer: this.passwordForm.value.new_password
+              }
             }
           };
-          this.hotellistService.getSignupAllCustomers(fetchBody).subscribe(
-            async (resp: any) => {
-              if (resp.success === 1 && resp.status_code === 200 && resp.result.data.length > 0) {
-                const userData = resp.result.data[0];
+          try {
+            const resetResp: any = await this.loginService.checkoutAPICall(ENDPOINTS.RESET_PASSWORD, resetRequest);
+            if (!(resetResp && resetResp.success === 1 && resetResp.status_code === 200)) {
+              this.alertService.error(resetResp?.message || "Failed to reset password.", this.options);
+              this.alertClear();
+              return;
+            }
+            this.alertService.success("Password reset successfully!", this.options);
+            this.alertClear();
+            this.localService.set('Password', this.passwordForm.value.new_password);
+
+            // Identify login type
+            const empIdPattern = /^[a-zA-Z]{2}[a-zA-Z0-9]*\d{8}$/;
+            const isStaff = empIdPattern.test(enteredValue);
+            const password = this.passwordForm.value.new_password;
+            // Build username according to login type (do not always append -DOMAIN_NAME for staff)
+            const loginUsername = isEmailLogin ? `${enteredValue}-${DOMAIN_NAME}` : enteredValue;
+            const loginPayload = {
+              domain_name: DOMAIN_NAME,
+              username: loginUsername,
+              password: password
+            };
+            const loginObservable = isEmailLogin ? this.appService.login(loginPayload) : this.appService.staffLogin(loginPayload);
+            // Attempt automatic login and require tokens before calling protected APIs
+            loginObservable.subscribe(
+              async (loginResp: any) => {
+                if (!(loginResp && loginResp.success === 1 && loginResp.access_token)) {
+                  // Inform user and stop — password changed but automatic login failed
+                  this.alertService.success("Password reset succeeded. Please sign in with your new password.", this.options);
+                  this.alertClear();
+                  return;
+                }
+                // Set tokens and expiry
+                this.authService.setExpiryTime(new Date().getTime() + (loginResp.access_token_expires_in * 1000));
+                this.authService.setRTokenExpireTime(new Date().getTime() + (loginResp.refresh_token_expires_in * 1000));
+                this.authService.setAccessToken(loginResp.access_token);
+                this.authService.setRefreshToken(loginResp.refresh_token);
+                // Clear global loggedOut flag so app.component guard won't auto-redirect to /login
+                try {
+                  this.localStorageService.remove('loggedOut');
+                } catch (e) {
+                  // fallback if different service instance used
+                  try { this.localService.remove('loggedOut'); } catch (err) { /* ignore */ }
+                }
+
                 if (isStaff) {
                   // Staff post-reset logic (unchanged)
                   this.notificationService.clearAll();
@@ -3294,24 +3357,26 @@ export class LoginComponent implements OnInit {
                     this.router.navigate(['/profile'], { skipLocationChange: false });
                   }
                 }
-              } else {
-                console.error('User not found after reset when re-fetching:', resp);
+              },
+              (err: any) => {
+                this.alertService.error('Automatic login failed after password reset. Please login manually.', this.options);
+                this.alertClear();
               }
-            },
-            (err: any) => {
-              console.error('Error re-fetching user after password reset:', err);
-            }
-          );
-        },
-        (err: any) => {
-          this.alertService.error('Automatic login failed after password reset. Please login manually.', this.options);
+            );
+          } catch (err) {
+            this.alertService.error("Something went wrong during password reset.", this.options);
+            this.alertClear();
+          }
+        } else {
+          this.alertService.error("User not found.", this.options);
           this.alertClear();
         }
-      );
-    } catch (err) {
-      this.alertService.error("Something went wrong during password reset.", this.options);
-      this.alertClear();
-    }
+      },
+      (err: any) => {
+        this.alertService.error("Failed to verify user status.", this.options);
+        this.alertClear();
+      }
+    );
   }
 
   // Newly added for is_active check purpose
@@ -3319,6 +3384,7 @@ export class LoginComponent implements OnInit {
     this.showInactiveUserModal = false;
     this.inactiveUserModalMessage = '';
     localStorage.clear();
+    this.login1();
   }
   // End of newly added for is_active check purpose
 

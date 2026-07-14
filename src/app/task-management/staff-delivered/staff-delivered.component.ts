@@ -36,6 +36,7 @@ export class StaffDeliveredComponent {
   at_desk: any;
   // Newly added for getting room number based on label
   labelRoomArray: string[] = [];
+  customerSettings: any;
   // Newly added for find
   member_id: any;
   customerType: any;
@@ -254,6 +255,7 @@ export class StaffDeliveredComponent {
         const customer = res.result.data[0];
         // console.log('Customer Data:', customer);
         if (customer && customer.settings?.room_range) {
+          this.customerSettings = customer.settings;
           this.mapStaffRooms(customer.settings.room_range);
           // Now rooms ready → call Delivered API
           this.prepareAndCallDeliveredTaskApi();
@@ -554,6 +556,14 @@ export class StaffDeliveredComponent {
           roomList.push(value);
         }
       });
+      const labelOption = this.customerSettings?.label_option;
+      const customLabels = this.customerSettings?.custom_labels || {};
+      if (labelOption === 'different') {
+        roomList = roomList.map(roomNum => {
+          const customVal = customLabels[roomNum];
+          return (customVal && customVal.trim()) ? customVal.trim() : roomNum;
+        });
+      }
       this.labelRoomArray = roomList;
       // console.log('Room Number:', this.labelRoomArray);
       if (this.at_desk) {

@@ -79,7 +79,7 @@ export class UserComponent implements OnInit {
     this.editScreen = this.enableEdit;
     this.usersForm = new FormGroup({
       // email: this.formBuilder.control('', [Validators.required, Validators.email]),
-      email: this.formBuilder.control('', [Validators.required, Validators.pattern(/^[a-z0-9_%+-]+@[a-z0-9-]+\.[a-z]{2,}$/)]),
+      email: this.formBuilder.control('', [Validators.required, Validators.pattern(/^[a-zA-Z0-9%+_-]+(?:\.[a-zA-Z0-9%+_-]+)*@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*\.[a-zA-Z]{2,}$/)]),
       role_name: this.formBuilder.control('', [Validators.required]),
       phone_number: this.formBuilder.control('', [Validators.required, Validators.required, Validators.maxLength(10), Validators.pattern(/^[1-9][0-9]{9}$/)]),
       created_by_name: this.formBuilder.control(this.localService.get('Name')),

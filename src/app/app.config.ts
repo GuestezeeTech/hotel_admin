@@ -551,7 +551,6 @@ export const ENDPOINTS = {
   UPDATE_USER: API_URL3 + ":5403/user/update",
   ADD_USERS: API_URL3 + ':5403/user/create',
   DELETE_USER: API_URL3 + ":5403/user/delete",
-  DELETE_CUSTOMER_SIGNUP: API_URL3 + ':5430/customer/delete',
   OUTLET_GETALL: API_URL3 + ":9454/outlet/getall",
   // OUTLET_GETBYID: API_URL3 + ":9454/outlet/getbyid",
   OUTLET_GETBYID: API_URL1 + ":9514/outlet/getbyid",//newly added for IP issue
@@ -634,5 +633,7 @@ export const ENDPOINTS = {
   VERIFY_GENERATED_OTP: API_URL + ':8016/otp/verify',
   SEND_WELCOME_EMAIL_ON_SIGNUP: API_URL + ':8008/email/welcome',
 
+  // DELETE_CUSTOMER_SIGNUP: API_URL3 + ':5430/customer/delete',
+  DELETE_CUSTOMER_SIGNUP: API_URL + ':8006/customer/delete',
 }
 
