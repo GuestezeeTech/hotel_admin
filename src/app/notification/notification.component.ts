@@ -220,6 +220,10 @@ export class NotificationComponent {
     else if (title === 'Processing') {
       targetTab = 'Processing';
     }
+    // Added for delivered status
+    else if (title === 'Delivered') {
+      targetTab = 'Delivered';
+    }
     // console.log('Highlighting tab:', targetTab);
     this.taskManagementService.setSelectedTab(targetTab);
     this.router.navigate(['/task-management']);
@@ -257,6 +261,10 @@ export class NotificationComponent {
     // Newly added for task allocation purpose
     else if (notify.title === 'Processing') {
       targetTab = 'Processing';
+    }
+    // Newly added for delivered
+    else if (notify.title === 'Delivered') {
+      targetTab = 'Delivered';
     }
     this.taskManagementService.setSelectedTab(targetTab);
     this.router.navigate(['/task-management']);

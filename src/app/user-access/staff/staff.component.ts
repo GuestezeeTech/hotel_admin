@@ -955,7 +955,7 @@ export class StaffComponent implements OnInit {
     if (event.target.checked) {
       this.selectedRooms.push(room);
     } else {
-      this.selectedRooms = this.selectedRooms.filter(r => r.id !== room.id);
+      this.selectedRooms = this.selectedRooms.filter(r => r.label !== room.label);
     }
     // console.log('Selected Rooms:', this.selectedRooms);
     this.staffForm.get('room_no')?.setValue(this.selectedRooms.length > 0 ? this.selectedRooms : null);

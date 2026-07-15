@@ -53,6 +53,7 @@ export class StaffDeliveredComponent {
   searchRoomNo: string = '';
   // Newly added for loader
   isLoading: boolean = false;
+  selfStaffId: any;
 
   constructor(
     private localService: LocalStorageService,
@@ -62,6 +63,7 @@ export class StaffDeliveredComponent {
     private hotelListService: HotelListService) { }
 
   async ngOnInit() {
+    this.selfStaffId = Number(this.localService.get('UserId'));
     // this.member_id = this.localService.get('MemberId');
     // Newly added
     // To load inital all tasks
@@ -596,11 +598,18 @@ export class StaffDeliveredComponent {
         ? { ...object, 'service.category': department }
         : { ...object };
       this.callDeliveredTaskApi(findObject);
-      // Previously we also fetched by assigned_department. For your requirement
-      // we no longer list tasks based on assigned_department, so this is commented.
-      //
-      // const assignedObj = { ...object, 'assigned_department': department };
-      // this.callDeliveredTaskApi(assignedObj);
+
+      if (this.selfStaffId) {
+        const selfObj = {
+          status: "Completed",
+          member_id: this.member_id,
+          assigned_staff_id: this.selfStaffId
+        };
+        const selfFindObject = shouldFilterByCategory(department)
+          ? { ...selfObj, 'service.category': department }
+          : { ...selfObj };
+        this.callDeliveredTaskApi(selfFindObject);
+      }
     });
   }
 

@@ -594,9 +594,18 @@ export class AsapCartComponent implements OnInit, OnDestroy {
       ? { ...object, "service.category": department }
       : { ...object };
     this.callTaskApi(findObject);
-    // Previously we fetched by assigned_department
-    // const assignedObj = { ...object, "assigned_department": department };
-    // this.callTaskApi(assignedObj, 'assigned_department');
+
+    if (this.selfStaffId) {
+      const selfObj = {
+        status: ["ASAP", "Assigned"],
+        member_id: this.member_id,
+        assigned_staff_id: this.selfStaffId
+      };
+      const selfFindObject = shouldFilterByCategory(department)
+        ? { ...selfObj, "service.category": department }
+        : { ...selfObj };
+      this.callTaskApi(selfFindObject);
+    }
   }
 
   // Final call for api

@@ -782,7 +782,20 @@ export class ProcessingComponent {
         };
       }
       // console.log("FINAL PROCESSING OBJECT:", object);
+      this.processedTasks = [];
+      this.allProcessedTasks = [];
+      this.totalTasks = 0;
+      this.totalPages = 0;
       this.callProcessedTaskApi(object);
+
+      if (this.selfStaffId) {
+        const selfObj = {
+          status: "Processing",
+          member_id: this.member_id,
+          assigned_staff_id: this.selfStaffId
+        };
+        this.callProcessedTaskApi(selfObj);
+      }
     });
   }
 
@@ -879,7 +892,11 @@ export class ProcessingComponent {
     this.taskManagementService.getAllTask(requestBody).subscribe({
       next: (response) => {
         if (response?.success) {
-          this.processedTasks = response.result.data || [];
+          const newTasks = response.result.data || [];
+          const taskMap = new Map<number, any>();
+          this.processedTasks.forEach((task: any) => taskMap.set(task.id, task));
+          newTasks.forEach((task: any) => taskMap.set(task.id, task));
+          this.processedTasks = Array.from(taskMap.values());
           // Ensure newest processing tasks appear first
           this.sortProcessedTasksByMostRecent();
           this.allProcessedTasks = [...this.processedTasks]; // For pagination
