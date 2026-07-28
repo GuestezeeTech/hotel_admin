@@ -244,6 +244,11 @@
         </div>
         <h3>Account Deactivated</h3>
         <p>Your hotel account is deactivated. Please contact the administrator for assistance.</p>
+        <p *ngIf="isHotelOwner && deactivatedUserData?.inactive_type !== 'Subscription Expiry' && deactivatedUserData?.inactive_remark"
+          style="margin-top: 0.5rem; font-weight: bold;">
+          <span style="color: brown;">Reason: </span>
+          <span style="color: #000000;">{{ deactivatedUserData?.inactive_remark }}</span>
+        </p>
 
         <div *ngIf="isHotelOwnerLogin; else standardBtn" style="display: flex; gap: 10px; width: 100%;">
           <button class="btn-modal-ok" style="background: white; color: #800020; border: 2px solid #800020;"

@@ -716,6 +716,19 @@ export class CancelledComponent {
         : { ...selfObj };
       this.callCancelledTaskApi(selfFindObject);
     }
+    // Newly added for base staff
+    if (baseStaffIds.length > 0) {
+      const belowStaffObj = {
+        status: "Cancelled",
+        member_id: this.member_id,
+        assigned_staff_id: baseStaffIds
+      };
+      const belowStaffFindObject = shouldFilterByCategory(department)
+        ? { ...belowStaffObj, 'service.category': department }
+        : { ...belowStaffObj };
+      this.callCancelledTaskApi(belowStaffFindObject);
+    }
+    // End of base staff
   }
 
   getFoDeskStaff(department: string[]): Observable<number[]> {

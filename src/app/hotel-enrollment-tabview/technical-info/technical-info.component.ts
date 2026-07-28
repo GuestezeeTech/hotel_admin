@@ -93,6 +93,12 @@ export class TechnicalInfoComponent implements OnInit {
   @Input() parentLoaderDone: boolean = true;
   modifiedTechnicalInfos: any[] = [];
   originalEnabledState: { [key: number]: boolean } = {};
+  // Newly added for editable 
+  // PMS Confirm Modal
+  @ViewChild('pmsConfirmModal') pmsConfirmModal!: ElementRef;
+  pmsConfirmModalInstance: any;
+  isFromConfirmPmsFlow: boolean = false;
+  // End of newly added for editable 
 
   constructor(
     private localService: LocalStorageService,
@@ -949,9 +955,12 @@ export class TechnicalInfoComponent implements OnInit {
     this.activeTab = 2;
   }
 
+  // Commented out for 2-tab Technical Info flow (Lock & PMS only)
+  /*
   thirdTabCount() {
     this.activeTab = 3;
   }
+  */
 
   // Newly added for back
   back() {
@@ -966,10 +975,13 @@ export class TechnicalInfoComponent implements OnInit {
       this.selectTab('lock');
       this.firstTabCount();
     }
+    // Commented out for 2-tab Technical Info flow (Lock & PMS only)
+    /*
     if (this.activeTab == 3) {
       this.selectTab('pos');
       this.secondTabCount();
     }
+    */
   }
 
   getLastOrderForCustomer(): Promise<any> {
@@ -2124,6 +2136,14 @@ export class TechnicalInfoComponent implements OnInit {
     if (this.paymentModal) {
       this.modalInstance = new bootstrap.Modal(this.paymentModal.nativeElement);
     }
+    // Newly added for editable 
+    if (this.pmsConfirmModal) {
+      this.pmsConfirmModalInstance = new bootstrap.Modal(this.pmsConfirmModal.nativeElement, {
+        backdrop: 'static',
+        keyboard: false
+      });
+    }
+    // End of newly added for editable 
     /* //  Ecom Integration Settings - prevent close on outside click
     this.ecomIntegrationModalInstance = new bootstrap.Modal(this.ecomIntegrationModal.nativeElement, {
       backdrop: 'static',  // do not close on backdrop click
@@ -2135,6 +2155,8 @@ export class TechnicalInfoComponent implements OnInit {
     this.isPaymentModalOpen = false;
     this.modalInstance.hide();
   }
+
+
 
   @HostListener('window:popstate', ['$event'])
   onBrowserBack(event: any) {
@@ -2241,6 +2263,12 @@ export class TechnicalInfoComponent implements OnInit {
     this.ecomIntegrationForm.reset();
     const techInfoArray = this.ecomTechnicalInfoForm.get('technicalInfo') as FormArray;
     techInfoArray.clear();
+    // Newly added for editable 
+    if (this.isFromConfirmPmsFlow) {
+      this.isFromConfirmPmsFlow = false;
+      this.openPmsConfirmModal();
+    }
+    // End of newly added for editable 
   }
 
   // Get technical info form array
@@ -2293,7 +2321,6 @@ export class TechnicalInfoComponent implements OnInit {
       key: [{ value: key, disabled: isHotelCodeOnPms }],
       value: [{ value: value, disabled: isValueDisabled }]
     });
-    // End of newly added for hotel code value disabled
     /*
     // OLD: disabled Hotel_Code key on ALL tabs (not just PMS)
     const isHotelCode = key.trim().toLowerCase() === 'hotel_code'.toLowerCase();
@@ -2386,7 +2413,18 @@ export class TechnicalInfoComponent implements OnInit {
     // Persist only for this customer using dedicated Ecom update function.
     // Customer (Hotel_Code) will be updated inside this method *after* technical info update succeeds.
     await this.updateCustomerEcomIntegrationSettings(this.selectedEcomIntegrationData, technicalInfoValue);
+    //  Newly added for editable 
+    const wasFromConfirmPmsFlow = this.isFromConfirmPmsFlow;
+    if (wasFromConfirmPmsFlow) {
+      this.isFromConfirmPmsFlow = false;
+    }
+    // End of newly added for editable 
     this.closeEcomIntegrationModal();
+    // Newly added for editable 
+    if (wasFromConfirmPmsFlow) {
+      this.openModal();
+    }
+    // End of newly added for editable 
   }
 
   // Update customer.Hotel_Code based on Ecom attributes (Hotel_Code key)
@@ -3060,16 +3098,20 @@ export class TechnicalInfoComponent implements OnInit {
       );
   }
 
+  // Modified for 2-tab Technical Info flow (Lock & PMS only)
   navigateNextTab() {
     switch (this.activeTab) {
       case 1:
         this.selectTab('pos');
         this.secondTabCount();
         break;
+      // Commented out for 2-tab Technical Info flow (Lock & PMS only)
+      /*
       case 2:
         this.selectTab('other');
         this.thirdTabCount();
         break;
+      */
     }
   }
 
@@ -3162,6 +3204,64 @@ export class TechnicalInfoComponent implements OnInit {
 
     });
   }
+
+  //  Newly added for editable 
+  checkActivePmsHasHotelCode(): boolean {
+    const activePms = this.generalTechInfoData?.find(
+      (item: any) => item.type === 'pos' && (item.is_enabled === true || item.is_enabled === 'true')
+    );
+    if (!activePms) return true; // No active PMS or not applicable, default to true so it proceeds
+    // We only care about PMS integrations that require a Hotel Code (WIN HMS, Oracle, and POS types)
+    const name = (activePms.name || '').toString().trim().toLowerCase();
+    const type = (activePms.type || '').toString().trim().toLowerCase();
+    if (type !== 'pos' && name !== 'win hms' && name !== 'oracle') {
+      return true; // Not a Hotel Code integration, proceed directly
+    }
+    if (activePms.attributes && Array.isArray(activePms.attributes)) {
+      const hotelCodeAttr = activePms.attributes.find((attr: any) =>
+        attr && typeof attr.key === 'string' && attr.key.trim().toLowerCase() === 'hotel_code'
+      );
+      if (hotelCodeAttr && hotelCodeAttr.value && hotelCodeAttr.value.trim() !== '') {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  openPmsConfirmModal() {
+    if (!this.pmsConfirmModalInstance && this.pmsConfirmModal) {
+      this.pmsConfirmModalInstance = new bootstrap.Modal(this.pmsConfirmModal.nativeElement, {
+        backdrop: 'static',
+        keyboard: false
+      });
+    }
+    if (this.pmsConfirmModalInstance) {
+      this.pmsConfirmModalInstance.show();
+    }
+  }
+
+  closePmsConfirmModal() {
+    if (this.pmsConfirmModalInstance) {
+      this.pmsConfirmModalInstance.hide();
+    }
+  }
+
+  onPmsConfirmPay() {
+    this.closePmsConfirmModal();
+    this.openModal();
+  }
+
+  onPmsConfirmConfigure() {
+    this.closePmsConfirmModal();
+    const activePms = this.generalTechInfoData?.find(
+      (item: any) => item.type === 'pos' && item.is_enabled === true
+    );
+    if (activePms) {
+      this.isFromConfirmPmsFlow = true;
+      this.openEcomIntegrationModal(activePms);
+    }
+  }
+  // End of newly added for editable 
 
   async save() {
     this.isLoading = true;
@@ -3268,7 +3368,14 @@ export class TechnicalInfoComponent implements OnInit {
         this.continue.emit();
       }
       else {
-        this.openModal();
+        // this.openModal();
+        //  Newly added for editable 
+        if (this.checkActivePmsHasHotelCode()) {
+          this.openModal();
+        } else {
+          this.openPmsConfirmModal();
+        }
+        // End of newly added for editable 
       }
       // End of not opening payment modal once done
       return;
@@ -3295,7 +3402,14 @@ export class TechnicalInfoComponent implements OnInit {
           if (this.paymentDone) {
             this.continue.emit();
           } else {
-            this.openModal();
+            // this.openModal();
+            // Newly added for editable 
+            if (this.checkActivePmsHasHotelCode()) {
+              this.openModal();
+            } else {
+              this.openPmsConfirmModal();
+            }
+            // End of newly added for editable 
           }
           // End of not opening payment modal once done
         }

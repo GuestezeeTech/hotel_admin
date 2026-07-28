@@ -499,7 +499,10 @@ export class FeaturesListComponent implements OnInit, OnDestroy {
 
   selectOutlet(outlet: any) {
     // Case 1: Same outlet clicked → UNSELECT
-    if (this.getOutletIdentifier(this.selectedOutlet) === this.getOutletIdentifier(outlet)) {
+    // Fixed for multiple highlight
+    // if (this.getOutletIdentifier(this.selectedOutlet) === this.getOutletIdentifier(outlet)) {
+    if (this.selectedOutlet?.id === outlet.id) {
+      // End of fixed for multiple highlight
       this.selectedOutlet = null;
       return;
     }
@@ -603,9 +606,12 @@ export class FeaturesListComponent implements OnInit, OnDestroy {
   }
 
   openOfferModal(outlet: any) {
-    if (this.getOutletIdentifier(this.selectedOutlet) !== this.getOutletIdentifier(outlet)) {
+    // Fixed for multiple highlight
+    //  if (this.getOutletIdentifier(this.selectedOutlet) !== this.getOutletIdentifier(outlet)) {
+    if (this.selectedOutlet?.id !== outlet.id) {
       this.applyOutletChange(outlet);
     }
+    // End of fixed for multiple highlight
     this.selectedOfferOutlet = outlet;
     this.resetOfferForm();
     this.isOfferModalOpen = true;

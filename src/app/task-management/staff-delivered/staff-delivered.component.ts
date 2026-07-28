@@ -610,6 +610,19 @@ export class StaffDeliveredComponent {
           : { ...selfObj };
         this.callDeliveredTaskApi(selfFindObject);
       }
+      // Newly added for base staff
+      if (baseStaffIds.length > 0) {
+        const belowStaffObj = {
+          status: "Completed",
+          member_id: this.member_id,
+          assigned_staff_id: baseStaffIds
+        };
+        const belowStaffFindObject = shouldFilterByCategory(department)
+          ? { ...belowStaffObj, 'service.category': department }
+          : { ...belowStaffObj };
+        this.callDeliveredTaskApi(belowStaffFindObject);
+      }
+      // End of base staff
     });
   }
 

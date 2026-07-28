@@ -23,11 +23,13 @@
     <!-- <li class="nav-item" role="presentation">
                 <a class="nav-link Custom-tab-spacing" id="logistics-tab" data-toggle="tab" href="#logistics" role="tab" aria-controls="logistics" aria-selected="false"  (click)="selectTab('Logistics')">Logistics</a>
               </li> -->
+    <!-- Commented out for 2-tab Technical Info flow (Lock & PMS only)
     <li class="nav-item" role="presentation">
       <a class="nav-link Custom-tab-spacing" id="other-tab" data-toggle="tab" href="#other" role="tab"
         [class.active]="selectedTab === 'other'" aria-controls="other" aria-selected="false"
         (click)="selectTab('other');thirdTabCount()">Other Integration</a>
     </li>
+    -->
   </ul>
   <!-- Loader: show until tab data is loaded (same pattern as service tab / department) -->
   <div *ngIf="isLoading" class="technical-info-loader d-flex justify-content-center align-items-center"
@@ -63,8 +65,18 @@
             </ng-container>
             <br>
             <span>
+              <!-- Commented out for 2-tab Technical Info flow (Lock & PMS only)
               {{ selectedTab === 'lock' ? '3)' : selectedTab === 'pos' ? '4)' : '' }}
-              Click <strong>Next</strong> button to save changes. Direct tab selection won't save.</span>
+              Click <strong>Next</strong> button to save changes. Direct tab selection won't save.
+              -->
+              <!-- Added for 2-tab Technical Info flow (Lock & PMS only) -->
+              <ng-container *ngIf="selectedTab === 'lock'">
+                3) Click <strong>Next</strong> button to save changes. Direct tab selection won't save.
+              </ng-container>
+              <ng-container *ngIf="selectedTab === 'pos'">
+                4) Click <strong>Save & Continue</strong> button to save changes. Direct tab selection won't save.
+              </ng-container>
+            </span>
           </div>
         </div>
 
@@ -208,6 +220,29 @@
       </div>
     </div>
   </div>
+  <!-- Newly added for editable -->
+  <!-- PMS Configuration Prompt Modal -->
+  <div class="modal fade" #pmsConfirmModal tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content" style="background-color:white;">
+        <div class="modal-header">
+          <h4 class="modal-title" style="color:#800020;">Configure PMS Integration</h4>
+          <button type="button" class="btn-close" (click)="closePmsConfirmModal()"></button>
+        </div>
+        <div class="modal-body" style="padding: 20px; font-size: 15px; color: #333;">
+          <p>PMS integration enabled successfully. Would you like to configure your Hotel Code now, or proceed directly
+            to payment?</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-danger" style="color:#800020;background:white;border:2px solid #8b1633;"
+            (click)="onPmsConfirmPay()">Proceed to Pay</button>
+          <button type="button" class="btn btn-danger" style="color:white;background:#800020;"
+            (click)="onPmsConfirmConfigure()">Configure Now</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- End of newly added for editable -->
   <!-- <div class="modal" id="paymentType">
     <div class="modal-dialog">
       <div class="modal-content" style="background-color: white; z-index: 1050;">
@@ -231,18 +266,28 @@
     </div>
   </div> -->
 </div>
-<!-- Newly added -->
 <div class="d-flex justify-content-end mt-3">
   <button type="submit" class="cancel_bt" (click)="back()">Back</button>&nbsp;&nbsp;
   <!-- <button type="submit" class="next_bt" *ngIf="((this.activeTab == 1 || this.activeTab == 2)  && !paymentDone)"
     (click)="nextTabInfo()">Next Info</button> -->
+  <!-- Commented out for 2-tab Technical Info flow (Lock & PMS only)
   <button type="submit" class="next_bt"
     *ngIf="((this.activeTab == 1 || this.activeTab == 2)  && this.customerStatus !== 'approved')"
+    (click)="nextTabInfo()">Next</button>
+  -->
+  <!-- Added for 2-tab Technical Info flow (Lock & PMS only) -->
+  <button type="submit" class="next_bt" *ngIf="(this.activeTab == 1 && this.customerStatus !== 'approved')"
     (click)="nextTabInfo()">Next</button>
   <!-- <button type="submit" class="save_bt" data-toggle="modal" data-target="#paymentType" *ngIf="this.activeTab == 3 "
     (click)="save()">Save &
     Continue</button> -->
+  <!-- Commented out for 2-tab Technical Info flow (Lock & PMS only)
   <button type="submit" class="save_bt" *ngIf="this.activeTab == 3 && this.customerStatus !== 'approved'"
+    (click)="save()">Save &
+    Continue</button>
+  -->
+  <!-- Added for 2-tab Technical Info flow (Lock & PMS only) -->
+  <button type="submit" class="save_bt" *ngIf="this.activeTab == 2 && this.customerStatus !== 'approved'"
     (click)="save()">Save &
     Continue</button>
   <!-- <button *ngIf="isMemberid" type="submit" class="save_bt" (click)="save()" data-toggle="modal"
@@ -351,13 +396,13 @@
           </div>
         </div>
         <div class="ecom-modal-footer">
-          <!-- <button type="button" class="ecom-cancel-btn" (click)="closeEcomIntegrationModal()">Cancel</button>
-          <button type="button" class="ecom-save-btn" (click)="saveEcomIntegration()">Save</button> -->
-          <button type="button" class="ecom-cancel-btn" (click)="closeEcomIntegrationModal()">{{(selectedTab === 'pos'
-            && this.customerStatus !== 'approved') ?
-            'Cancel' : 'Close'}}</button>
+          <button type="button" class="ecom-cancel-btn" (click)="closeEcomIntegrationModal()">
+            {{this.customerStatus === 'approved' ? 'Close' : 'Cancel'}}
+          </button>
           <button type="button" class="ecom-save-btn" (click)="saveEcomIntegration()"
-            *ngIf="selectedTab === 'pos' && this.customerStatus !== 'approved'">Save</button>
+            *ngIf="selectedTab === 'pos' && this.customerStatus !== 'approved'">
+            Save
+          </button>
         </div>
       </div>
     </div>

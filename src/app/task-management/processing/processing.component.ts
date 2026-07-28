@@ -796,6 +796,16 @@ export class ProcessingComponent {
         };
         this.callProcessedTaskApi(selfObj);
       }
+      // Newly added for base staff
+      if (baseStaffIds.length > 0) {
+        const belowStaffObj = {
+          status: "Processing",
+          member_id: this.member_id,
+          assigned_staff_id: baseStaffIds
+        };
+        this.callProcessedTaskApi(belowStaffObj);
+      }
+      // End of base staff
     });
   }
 

@@ -90,6 +90,7 @@ export class LoginComponent implements OnInit {
   loginErrorMessage: any;
   showDeactivatedModal: boolean = false;
   isHotelOwnerLogin: boolean = false;
+  isHotelOwner: boolean = false;
   showPaymentOptions: boolean = false;
   paymentOptions = ['Quarterly Payment', 'Half-Yearly Payment', 'Full Payment'];
   selectedIndex = 2;
@@ -584,7 +585,8 @@ export class LoginComponent implements OnInit {
                     this.dbSchema = userData.db_schema;
                     this.localService.set('domainName', DOMAIN_NAME);
 
-                    this.isHotelOwnerLogin = !!userData.customer_member_id && userData.staff_employee_number == undefined;
+                    this.isHotelOwner = !!userData.customer_member_id && userData.staff_employee_number == undefined;
+                    this.isHotelOwnerLogin = this.isHotelOwner && userData.inactive_type === 'Subscription Expiry';
                     this.deactivatedUserData = userData;
                     this.localStorageService.remove('loggedOut');
                     this.showDeactivatedModal = true;
@@ -1496,7 +1498,8 @@ export class LoginComponent implements OnInit {
             const isStatusApproved = (userData.status || '').toLowerCase() === 'approved';
 
             if (isHotelDisabled && (isStaffUser || isStatusApproved)) {
-              this.isHotelOwnerLogin = !!userData.customer_member_id && userData.staff_employee_number == undefined;
+              this.isHotelOwner = !!userData.customer_member_id && userData.staff_employee_number == undefined;
+              this.isHotelOwnerLogin = this.isHotelOwner && userData.inactive_type === 'Subscription Expiry';
               this.deactivatedUserData = userData;
               this.showDeactivatedModal = true;
               return;
@@ -1698,7 +1701,7 @@ export class LoginComponent implements OnInit {
           let res: any = respData;
           if (res.success === 1) {
             this.reference_id = res.reference_id;
-            this.alertService.success('OTP sent successfully to your mobile number.', this.options);
+            this.alertService.success('OTP sent successfully to your email and mobile number.', this.options);
             resolve(true);
           }
           else {
@@ -3174,7 +3177,8 @@ export class LoginComponent implements OnInit {
 
           if (isHotelDisabled && (isStaffUser || isStatusApproved)) {
             this.loaderService.emitComplete();
-            this.isHotelOwnerLogin = !!userData.customer_member_id && userData.staff_employee_number == undefined;
+            this.isHotelOwner = !!userData.customer_member_id && userData.staff_employee_number == undefined;
+            this.isHotelOwnerLogin = this.isHotelOwner && userData.inactive_type === 'Subscription Expiry';
             this.deactivatedUserData = userData;
             this.showDeactivatedModal = true;
             this.alertService.error("Cannot reset password: account is deactivated.", this.options);

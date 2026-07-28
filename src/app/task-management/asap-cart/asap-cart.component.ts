@@ -445,167 +445,147 @@ export class AsapCartComponent implements OnInit, OnDestroy {
     this.at_desk = staffDataParse.at_desk;
     this.member_id = staffDataParse.member_id;
     let object: any = { status: ["ASAP", "Assigned"] };
-    // Convert labelRoomArray into a final room list
-    // Newly added 
-    // this.labelRoomArray = ['1-100'];
-    let roomList: string[] = [];
-    const expandAlphaRange = (start: string, end: string): string[] => {
-      const result: string[] = [];
-      const toNumber = (str: string) => {
-        let n = 0;
-        for (let i = 0; i < str.length; i++) {
-          n = n * 26 + (str.charCodeAt(i) - 65 + 1);
-        }
-        return n;
-      };
-      const toLetters = (num: number) => {
-        let s = '';
-        while (num > 0) {
-          let rem = (num - 1) % 26;
-          s = String.fromCharCode(65 + rem) + s;
-          num = Math.floor((num - 1) / 26);
-        }
-        return s;
-      };
-      const startNum = toNumber(start.toUpperCase());
-      const endNum = toNumber(end.toUpperCase());
-      for (let i = startNum; i <= endNum; i++) {
-        result.push(toLetters(i));
+
+    let baseStaffIds: number[] = [];
+    const storedIds = this.localService.get('baseStaffIds');
+    if (storedIds) {
+      try {
+        baseStaffIds = JSON.parse(storedIds);
+      } catch {
+        baseStaffIds = storedIds.split(',').map((id: string) => Number(id.trim()));
       }
-      return result;
-    };
-    this.labelRoomArray.forEach((room: any) => {
-      const value = String(room).trim();
-      const alphaNumericRange = value.match(/^([A-Za-z0-9]+)-([A-Za-z0-9]+)$/);
-      if (alphaNumericRange) {
-        const start = alphaNumericRange[1];
-        const end = alphaNumericRange[2];
-        // Numeric range: "1-100"
-        if (!isNaN(Number(start)) && !isNaN(Number(end))) {
-          for (let i = Number(start); i <= Number(end); i++) {
-            roomList.push(String(i));
+    }
+
+    this.getAtDeskStaffIds().then((atDeskStaffIds: number[]) => {
+      baseStaffIds.push(...atDeskStaffIds);
+      baseStaffIds = baseStaffIds.filter(id => !!id);
+      baseStaffIds = [...new Set(baseStaffIds)];
+
+      // Convert labelRoomArray into a final room list
+      // Newly added 
+      // this.labelRoomArray = ['1-100'];
+      let roomList: string[] = [];
+      const expandAlphaRange = (start: string, end: string): string[] => {
+        const result: string[] = [];
+        const toNumber = (str: string) => {
+          let n = 0;
+          for (let i = 0; i < str.length; i++) {
+            n = n * 26 + (str.charCodeAt(i) - 65 + 1);
           }
-        }
-        // Numeric prefix + single-letter suffix: "1A-1Z"
-        else if (/^\d+[A-Z]+$/i.test(start) && /^\d+[A-Z]+$/i.test(end)) {
-          const prefix = start.match(/^\d+/)![0];
-          const startSuffix = start.slice(prefix.length);
-          const endSuffix = end.slice(prefix.length);
-          roomList.push(
-            ...expandAlphaRange(startSuffix.toUpperCase(), endSuffix.toUpperCase()).map(
-              suffix => `${prefix}${suffix}`
-            )
-          );
-        }
-        // Letter prefix + numeric suffix: "A1-A5"
-        else if (/^[A-Z]+\d+$/i.test(start) && /^[A-Z]+\d+$/i.test(end)) {
-          const prefix = start.match(/^[A-Z]+/i)![0];
-          const startNum = parseInt(start.slice(prefix.length));
-          const endNum = parseInt(end.slice(prefix.length));
-          for (let i = startNum; i <= endNum; i++) {
-            roomList.push(`${prefix}${i}`);
+          return n;
+        };
+        const toLetters = (num: number) => {
+          let s = '';
+          while (num > 0) {
+            let rem = (num - 1) % 26;
+            s = String.fromCharCode(65 + rem) + s;
+            num = Math.floor((num - 1) / 26);
           }
+          return s;
+        };
+        const startNum = toNumber(start.toUpperCase());
+        const endNum = toNumber(end.toUpperCase());
+        for (let i = startNum; i <= endNum; i++) {
+          result.push(toLetters(i));
         }
-        // Pure alphabetic range: "AA-AZ"
-        else if (/^[A-Z]+$/i.test(start) && /^[A-Z]+$/i.test(end)) {
-          roomList.push(...expandAlphaRange(start.toUpperCase(), end.toUpperCase()));
+        return result;
+      };
+      this.labelRoomArray.forEach((room: any) => {
+        const value = String(room).trim();
+        const alphaNumericRange = value.match(/^([A-Za-z0-9]+)-([A-Za-z0-9]+)$/);
+        if (alphaNumericRange) {
+          const start = alphaNumericRange[1];
+          const end = alphaNumericRange[2];
+          // Numeric range: "1-100"
+          if (!isNaN(Number(start)) && !isNaN(Number(end))) {
+            for (let i = Number(start); i <= Number(end); i++) {
+              roomList.push(String(i));
+            }
+          }
+          // Numeric prefix + single-letter suffix: "1A-1Z"
+          else if (/^\d+[A-Z]+$/i.test(start) && /^\d+[A-Z]+$/i.test(end)) {
+            const prefix = start.match(/^\d+/)![0];
+            const startSuffix = start.slice(prefix.length);
+            const endSuffix = end.slice(prefix.length);
+            roomList.push(
+              ...expandAlphaRange(startSuffix.toUpperCase(), endSuffix.toUpperCase()).map(
+                suffix => `${prefix}${suffix}`
+              )
+            );
+          }
+          // Letter prefix + numeric suffix: "A1-A5"
+          else if (/^[A-Z]+\d+$/i.test(start) && /^[A-Z]+\d+$/i.test(end)) {
+            const prefix = start.match(/^[A-Z]+/i)![0];
+            const startNum = parseInt(start.slice(prefix.length));
+            const endNum = parseInt(end.slice(prefix.length));
+            for (let i = startNum; i <= endNum; i++) {
+              roomList.push(`${prefix}${i}`);
+            }
+          }
+          // Pure alphabetic range: "AA-AZ"
+          else if (/^[A-Z]+$/i.test(start) && /^[A-Z]+$/i.test(end)) {
+            roomList.push(...expandAlphaRange(start.toUpperCase(), end.toUpperCase()));
+          }
+          // Fallback: treat as single string
+          else {
+            roomList.push(value);
+          }
+        } else {
+          roomList.push(value); // single room
         }
-        // Fallback: treat as single string
-        else {
-          roomList.push(value);
-        }
-      } else {
-        roomList.push(value); // single room
+      });
+      const labelOption = this.customerSettings?.label_option;
+      const customLabels = this.customerSettings?.custom_labels || {};
+      if (labelOption === 'different') {
+        roomList = roomList.map(roomNum => {
+          const customVal = customLabels[roomNum];
+          return (customVal && customVal.trim()) ? customVal.trim() : roomNum;
+        });
+      }
+      this.labelRoomArray = roomList;
+      // console.log('Room Number:', this.labelRoomArray);
+      // Ended
+      if (this.at_desk) {
+        object = {
+          status: ["ASAP", "Assigned"],
+          // "service.category": department,
+          room_no: this.labelRoomArray,
+          member_id: this.member_id
+        };
+      }
+
+      this.tasks = [];
+      this.filteredTasks = [];
+      // API call → category (category-based listing ONLY, when not Default)
+      const findObject = shouldFilterByCategory(department)
+        ? { ...object, "service.category": department }
+        : { ...object };
+      this.callTaskApi(findObject);
+
+      if (this.selfStaffId) {
+        const selfObj = {
+          status: ["ASAP", "Assigned"],
+          member_id: this.member_id,
+          assigned_staff_id: this.selfStaffId
+        };
+        const selfFindObject = shouldFilterByCategory(department)
+          ? { ...selfObj, "service.category": department }
+          : { ...selfObj };
+        this.callTaskApi(selfFindObject);
+      }
+
+      if (baseStaffIds.length > 0) {
+        const belowStaffObj = {
+          status: ["ASAP", "Assigned"],
+          member_id: this.member_id,
+          assigned_staff_id: baseStaffIds
+        };
+        const belowStaffFindObject = shouldFilterByCategory(department)
+          ? { ...belowStaffObj, "service.category": department }
+          : { ...belowStaffObj };
+        this.callTaskApi(belowStaffFindObject);
       }
     });
-    const labelOption = this.customerSettings?.label_option;
-    const customLabels = this.customerSettings?.custom_labels || {};
-    if (labelOption === 'different') {
-      roomList = roomList.map(roomNum => {
-        const customVal = customLabels[roomNum];
-        return (customVal && customVal.trim()) ? customVal.trim() : roomNum;
-      });
-    }
-    this.labelRoomArray = roomList;
-    // console.log('Room Number:', this.labelRoomArray);
-    // Ended
-    if (this.at_desk) {
-      object = {
-        status: ["ASAP", "Assigned"],
-        // "service.category": department,
-        room_no: this.labelRoomArray,
-        member_id: this.member_id
-      };
-    }
-
-    // if (department && department === 'Select') {
-    //   object["service.category"] = 'Select';
-    // }
-    // else {
-    //   if (this.labelRoomArray.length > 0 ) {
-    //     object = {
-    //       status: "ASAP",
-    //       "service.category": department,
-    //       room_no: this.labelRoomArray,
-    //       staff_id: Number(this.localService.get('UserId')),
-    //       member_id: this.member_id
-    //     };
-    //   } else {
-    //     object = {
-    //       status: "ASAP",
-    //       "service.category": department,
-    //       staff_id: Number(this.localService.get('UserId')),
-    //       member_id: this.member_id
-    //     };
-    //   }
-    // }
-    // console.log('Object:', object);
-    // Newly commented because no need of fo desk 
-    // const isFoStaffString = this.localService.get('frontOfficeDeskStaff'); // likely "true" or "false"
-    // console.log('Is front office staff string:', isFoStaffString);
-    // const isFoStaff = (isFoStaffString === 'true');
-    // End of newly commented code
-    // console.log('Is front office staff:', isFoStaff);
-    /*  if (isFoStaff) {
-       if (isFoStaff) {
-         // 1st Call → based on department
-         let catObj = { ...object, ["service.category"]: department };
-         // 2nd Call → based on belongs_to
-         let belongsObj = {
-           ...object,
-           ["service.belongs_to"]: ["Checkout", "Late checkout", "Help Service"]
-         };
-         // Make 2 API calls
-         this.callTaskApi(catObj);
-         // this.callTaskApi(belongsObj);
-         return; // stop here
-       }
-     }
-     // Newly commented while checkout / late checkout
-     // if (department && (department !== 'Select' || department !== '')) {
-     object["service.category"] = department;
-     // }
-     // Ended
-     this.callTaskApi(object); */
-    this.tasks = [];
-    this.filteredTasks = [];
-    // API call → category (category-based listing ONLY, when not Default)
-    const findObject = shouldFilterByCategory(department)
-      ? { ...object, "service.category": department }
-      : { ...object };
-    this.callTaskApi(findObject);
-
-    if (this.selfStaffId) {
-      const selfObj = {
-        status: ["ASAP", "Assigned"],
-        member_id: this.member_id,
-        assigned_staff_id: this.selfStaffId
-      };
-      const selfFindObject = shouldFilterByCategory(department)
-        ? { ...selfObj, "service.category": department }
-        : { ...selfObj };
-      this.callTaskApi(selfFindObject);
-    }
   }
 
   // Final call for api
@@ -1876,6 +1856,83 @@ export class AsapCartComponent implements OnInit, OnDestroy {
           this.alertService.error(errorMsg, this.options);
           if (err?.error?.statusCode === 403) this.router.navigate(['/login']);
           reject(err);
+        }
+      );
+    });
+  }
+
+  // Get all at_desk staff IDs based on hierarchy (similar to baseStaffIds)
+  getAtDeskStaffIds(): Promise<number[]> {
+    return new Promise((resolve) => {
+      if (this.customerType !== 'Staff') {
+        resolve([]);
+        return;
+      }
+      const hierarchy: any = this.localService.get('hierarchy');
+      const hierarchyParse = JSON.parse(hierarchy || '[]');
+      const department = hierarchyParse?.map((item: any) => item.department);
+      const staffData: any = this.localService.get('StaffData');
+      const staffDataParse = JSON.parse(staffData || '{}');
+      const staffId = Number(staffDataParse?.staff_id);
+      const memberId = this.member_id;
+
+      if (!staffId || !memberId) {
+        resolve([]);
+        return;
+      }
+
+      const find: any = (Array.isArray(department) ? !department.includes('Default') : department !== 'Default' && !!department)
+        ? { member_id: memberId, 'hierarchy.department': department }
+        : { member_id: memberId };
+
+      const requestBody = {
+        domain_name: DOMAIN_NAME,
+        user_id: USER_ID,
+        extras: {
+          find: find
+        }
+      };
+
+      this.taskManagementService.getAllStaves(requestBody).subscribe(
+        (resp: any) => {
+          if (resp?.success === 1 && resp.status_code === 200) {
+            const allStaff = resp.result.data;
+            const atDeskStaffIds: number[] = [];
+
+            // First, check if the logged-in staff themselves are at_desk
+            const loggedInStaff = allStaff.find((s: any) => s.id === staffId);
+            if (loggedInStaff && loggedInStaff.at_desk === true) {
+              atDeskStaffIds.push(loggedInStaff.id);
+            }
+
+            // Recursive helper to traverse hierarchy
+            const traverse = (currentId: number) => {
+              const children = allStaff.filter((s: any) =>
+                Array.isArray(s.higher_level_officer) &&
+                s.higher_level_officer.some((officer: any) => officer?.id === currentId)
+              );
+
+              // Check each child for at_desk
+              children.forEach((child: any) => {
+                // Check if child itself is at_desk
+                if (child.at_desk === true && !atDeskStaffIds.includes(child.id)) {
+                  atDeskStaffIds.push(child.id);
+                }
+                // Continue traversing to find all descendants
+                traverse(child.id);
+              });
+            };
+
+            // Start from logged-in staffId to traverse all children
+            traverse(staffId);
+            resolve(atDeskStaffIds);
+          } else {
+            resolve([]);
+          }
+        },
+        (err: any) => {
+          console.error('Error fetching at_desk staff IDs:', err);
+          resolve([]);
         }
       );
     });

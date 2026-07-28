@@ -1011,7 +1011,7 @@ export class SettingsComponent implements OnInit {
     const list: string[] = [];
     for (const room of this.rooms) {
       if (room.startRoom !== undefined && room.startRoom !== null && String(room.startRoom).trim() !== '' &&
-          room.endRoom !== undefined && room.endRoom !== null && String(room.endRoom).trim() !== '') {
+        room.endRoom !== undefined && room.endRoom !== null && String(room.endRoom).trim() !== '') {
         const start = Number(room.startRoom);
         const end = Number(room.endRoom);
         if (!isNaN(start) && !isNaN(end) && start <= end) {
@@ -1105,7 +1105,7 @@ export class SettingsComponent implements OnInit {
           const activeRooms: string[] = [];
           for (const room of updatedRooms) {
             if (room.startRoom !== undefined && room.startRoom !== null && String(room.startRoom).trim() !== '' &&
-                room.endRoom !== undefined && room.endRoom !== null && String(room.endRoom).trim() !== '') {
+              room.endRoom !== undefined && room.endRoom !== null && String(room.endRoom).trim() !== '') {
               const start = Number(room.startRoom);
               const end = Number(room.endRoom);
               if (!isNaN(start) && !isNaN(end) && start <= end) {
@@ -1853,7 +1853,7 @@ export class SettingsComponent implements OnInit {
     let total = 0;
     for (const room of this.rooms) {
       if (room.startRoom !== undefined && room.startRoom !== null && String(room.startRoom).trim() !== '' &&
-          room.endRoom !== undefined && room.endRoom !== null && String(room.endRoom).trim() !== '') {
+        room.endRoom !== undefined && room.endRoom !== null && String(room.endRoom).trim() !== '') {
         const start = Number(room.startRoom);
         const end = Number(room.endRoom);
         if (!isNaN(start) && !isNaN(end) && start <= end) {
@@ -1923,12 +1923,12 @@ export class SettingsComponent implements OnInit {
       const room = this.rooms[i];
       const missingFields: string[] = [];
       const validationErrors: string[] = [];
-      
+
       const isIdInvalid = !room.id?.trim();
       const isStartMissing = room.startRoom === undefined || room.startRoom === null || String(room.startRoom).trim() === '';
       const isEndMissing = room.endRoom === undefined || room.endRoom === null || String(room.endRoom).trim() === '';
       const isLabelInvalid = !room.label?.trim();
-      
+
       let isStartInvalid = isStartMissing;
       let isEndInvalid = isEndMissing;
 
@@ -1997,7 +1997,7 @@ export class SettingsComponent implements OnInit {
             `Room range overlaps with ${s2}-${e2}.`;
           this.roomRowErrors[j] =
             `Room range overlaps with ${s1}-${e1}.`;
-          
+
           if (!this.invalidFields[i]) this.invalidFields[i] = {};
           this.invalidFields[i].startRoom = true;
           this.invalidFields[i].endRoom = true;
@@ -2014,6 +2014,8 @@ export class SettingsComponent implements OnInit {
       const individualRooms = this.getIndividualRoomNumbers();
       let hasMissing = false;
       let hasTooLong = false;
+      let hasInvalidChars = false;
+      const allowedRegex = /^[a-zA-Z0-9\-\/_]*$/;
       for (const num of individualRooms) {
         const val = this.customLabels[num];
         if (!val || !val.trim()) {
@@ -2022,6 +2024,9 @@ export class SettingsComponent implements OnInit {
         } else if (val.trim().length > 10) {
           hasTooLong = true;
           this.invalidCustomLabels[num] = true;
+        } else if (!allowedRegex.test(val)) {
+          hasInvalidChars = true;
+          this.invalidCustomLabels[num] = true;
         }
       }
       if (hasMissing) {
@@ -2029,6 +2034,9 @@ export class SettingsComponent implements OnInit {
       }
       if (hasTooLong) {
         errors.push('Custom room labels cannot exceed 10 characters.');
+      }
+      if (hasInvalidChars) {
+        errors.push("Custom room labels can only contain alphanumeric characters and the special characters '-', '_', and '/'. Spaces are not allowed.");
       }
       // Check duplicate custom labels
       const customLabelsMap = new Map<string, string[]>();
@@ -2271,6 +2279,23 @@ export class SettingsComponent implements OnInit {
   allowOnlyAlphanumeric(event: KeyboardEvent) {
     const allowed = /^[a-zA-Z0-9]*$/;
     if (!allowed.test(event.key)) {
+      event.preventDefault();
+    }
+  }
+
+  // Restrict custom label typing to alphanumeric and -, _, /
+  restrictCustomLabelInput(event: KeyboardEvent) {
+    const allowed = /^[a-zA-Z0-9\-\/_]*$/;
+    if (!allowed.test(event.key)) {
+      event.preventDefault();
+    }
+  }
+
+  // Handle custom label pasting to allow only alphanumeric and -, _, /
+  handleCustomLabelPaste(event: ClipboardEvent) {
+    const pasted = event.clipboardData?.getData('text') ?? '';
+    const allowed = /^[a-zA-Z0-9\-\/_]*$/;
+    if (!allowed.test(pasted)) {
       event.preventDefault();
     }
   }

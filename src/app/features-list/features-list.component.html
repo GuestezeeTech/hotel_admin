@@ -26,8 +26,7 @@
             <!-- Outlets available -->
             <div class="outlet-grid" *ngIf="menuOutlets.length > 0; else noOutletTpl">
               <div class="outlet-card position-relative" *ngFor="let outlet of menuOutlets"
-                (click)="selectOutlet(outlet)"
-                [class.selected]="selectedOutlet?.winhms_outlet_id === outlet.winhms_outlet_id">
+                (click)="selectOutlet(outlet)" [class.selected]="selectedOutlet?.id === outlet.id">
 
                 <div class="card-image-wrapper">
                   <img [src]="outlet.takephoto || upsell.image ||fallbackOutletImage[upsell.name]" alt="Outlet" />

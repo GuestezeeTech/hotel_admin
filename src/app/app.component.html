@@ -41,46 +41,60 @@
 @if (isUserInactive) {
 <div class="deactivated-modal-backdrop">
   @if (showPaymentOptions) {
-    <!-- Payment Options Modal -->
-    <div class="deactivated-modal-card">
-      <div class="modal-icon-container" style="color: #800020;">
-        <i class="bi bi-credit-card-2-front-fill"></i>
-      </div>
-      <h3>Select Payment Plan</h3>
-      <p>Choose a billing cycle to reactivate your hotel account.</p>
-      
-      <div class="payment-options-list" style="margin-bottom: 2rem; text-align: left; padding: 0 1rem;">
-        @for (item of paymentOptions; track item; let i = $index) {
-          <div class="payment-option-item" style="padding: 8px 0; display: flex; align-items: center; gap: 10px; cursor: pointer;" (click)="selectedIndex = i">
-            <input type="radio" name="paymentOption" [value]="i" [checked]="selectedIndex === i" style="accent-color: #800020; cursor: pointer;">
-            <label style="margin: 0; cursor: pointer; font-weight: 500; color: #333;">{{ item }}</label>
-          </div>
-        }
-      </div>
-
-      <div style="display: flex; gap: 10px;">
-        <button class="btn-modal-ok" style="background: white; color: #800020; border: 2px solid #800020;" (click)="showPaymentOptions = false">Cancel</button>
-        <button class="btn-modal-ok" (click)="executePaymentPlan()">Pay</button>
-      </div>
+  <!-- Payment Options Modal -->
+  <div class="deactivated-modal-card">
+    <div class="modal-icon-container" style="color: #800020;">
+      <i class="bi bi-credit-card-2-front-fill"></i>
     </div>
-  } @else {
-    <!-- Account Deactivated Modal -->
-    <div class="deactivated-modal-card">
-      <div class="modal-icon-container">
-        <i class="bi bi-exclamation-triangle-fill"></i>
+    <h3>Select Payment Plan</h3>
+    <p>Choose a billing cycle to reactivate your hotel account.</p>
+
+    <div class="payment-options-list" style="margin-bottom: 2rem; text-align: left; padding: 0 1rem;">
+      @for (item of paymentOptions; track item; let i = $index) {
+      <div class="payment-option-item"
+        style="padding: 8px 0; display: flex; align-items: center; gap: 10px; cursor: pointer;"
+        (click)="selectedIndex = i">
+        <input type="radio" name="paymentOption" [value]="i" [checked]="selectedIndex === i"
+          style="accent-color: #800020; cursor: pointer;">
+        <label style="margin: 0; cursor: pointer; font-weight: 500; color: #333;">{{ item }}</label>
       </div>
-      <h3>Account Deactivated</h3>
-      <p>Your account has been deactivated by the administrator. Please contact support for assistance.</p>
-      
-      @if (localservice.get('CustomerType') === 'Customer' && inactiveCustomerData?.customer_member_id) {
-        <div style="display: flex; gap: 10px; width: 100%;">
-          <button class="btn-modal-ok" style="background: white; color: #800020; border: 2px solid #800020;" (click)="handleInactiveLogout()">Cancel</button>
-          <button class="btn-modal-ok" (click)="initiatePaymentFlow()">Click to Pay</button>
-        </div>
-      } @else {
-        <button class="btn-modal-ok" (click)="handleInactiveLogout()">OK</button>
       }
     </div>
+
+    <div style="display: flex; gap: 10px;">
+      <button class="btn-modal-ok" style="background: white; color: #800020; border: 2px solid #800020;"
+        (click)="showPaymentOptions = false">Cancel</button>
+      <button class="btn-modal-ok" (click)="executePaymentPlan()">Pay</button>
+    </div>
+  </div>
+  } @else {
+  <!-- Account Deactivated Modal -->
+  <div class="deactivated-modal-card">
+    <div class="modal-icon-container">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+    </div>
+    <h3>Account Deactivated</h3>
+    <p>Your account has been deactivated by the administrator. Please contact support for assistance.</p>
+
+    @if (localservice.get('CustomerType') === 'Customer' && inactiveCustomerData?.customer_member_id &&
+    inactiveCustomerData?.inactive_type !== 'Subscription Expiry' && inactiveCustomerData?.inactive_remark) {
+    <p style="margin-top: 0.5rem; font-weight: bold;">
+      <span style="color: brown;">Reason: </span>
+      <span style="color: #000000;">{{ inactiveCustomerData?.inactive_remark }}</span>
+    </p>
+    }
+
+    @if (localservice.get('CustomerType') === 'Customer' && inactiveCustomerData?.customer_member_id &&
+    inactiveCustomerData?.inactive_type === 'Subscription Expiry') {
+    <div style="display: flex; gap: 10px; width: 100%;">
+      <button class="btn-modal-ok" style="background: white; color: #800020; border: 2px solid #800020;"
+        (click)="handleInactiveLogout()">Cancel</button>
+      <button class="btn-modal-ok" (click)="initiatePaymentFlow()">Click to Pay</button>
+    </div>
+    } @else {
+    <button class="btn-modal-ok" (click)="handleInactiveLogout()">OK</button>
+    }
+  </div>
   }
 </div>
 }
