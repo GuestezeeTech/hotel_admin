@@ -594,10 +594,14 @@ export class LoginComponent implements OnInit {
                   }
                   // Newly added for is_active check purpose
                   // Check if the specific user/staff/hotel is active
-                  if (userData.is_active === false || userData.is_active === 'false') {
+                  const isInactive = isStaff
+                    ? (userData.is_staff_active === false || userData.is_staff_active === 'false')
+                    : (userData.is_active === false || userData.is_active === 'false');
+
+                  if (isInactive) {
                     this.loaderService.emitComplete();
                     let accountType = 'user account';
-                    if (userData.staff_employee_number) {
+                    if (isStaff) {
                       accountType = 'staff profile';
                     } else if (userData.customer_member_id) {
                       accountType = 'hotel account';
