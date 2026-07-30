@@ -1509,7 +1509,11 @@ export class LoginComponent implements OnInit {
               return;
             }
 
-            if (userData.is_active === false || userData.is_active === 'false') {
+            const isInactive = isStaffUser
+              ? (userData.is_staff_active === false || userData.is_staff_active === 'false')
+              : (userData.is_active === false || userData.is_active === 'false');
+
+            if (isInactive) {
               let accountType = 'user account';
               if (userData.staff_employee_number) {
                 accountType = 'staff profile';
@@ -3190,8 +3194,12 @@ export class LoginComponent implements OnInit {
             return;
           }
 
-          // 2. Check if is_active is false
-          if (userData.is_active === false || userData.is_active === 'false') {
+          // 2. Check if user/staff is active
+          const isInactive = isStaffUser
+            ? (userData.is_staff_active === false || userData.is_staff_active === 'false')
+            : (userData.is_active === false || userData.is_active === 'false');
+
+          if (isInactive) {
             this.loaderService.emitComplete();
             let accountType = 'user account';
             if (userData.staff_employee_number) {
@@ -3312,7 +3320,8 @@ export class LoginComponent implements OnInit {
                     console.error('Failed to get FCM token for staff:', err);
                   }
                   this.router.navigate(['/task-management'], { skipLocationChange: false });
-                } else {
+                }
+                else {
                   // Customer post-reset logic (unchanged)
                   this.localService.set('CustomerType', 'Customer');
                   this.localService.set('UserId', Number(userData.id));
