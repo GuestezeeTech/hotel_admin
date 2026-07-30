@@ -216,6 +216,9 @@ export class NotificationComponent {
     else if (title === 'Assigned' && body === 'Please accept the task') {
       targetTab = 'ASAP';
     }
+    else if (title === 'Assigned' && body === 'Task assigned to staff') {
+      targetTab = 'ASAP';
+    }
     // Newly added for task allocation purpose
     else if (title === 'Processing') {
       targetTab = 'Processing';
@@ -256,6 +259,9 @@ export class NotificationComponent {
       targetTab = 'Cancelled';
     }
     else if (notify.title === 'Assigned' && notify.body === 'Please accept the task') {
+      targetTab = 'ASAP';
+    }
+    else if (notify.title === 'Assigned' && notify.body === 'Task assigned to staff') {
       targetTab = 'ASAP';
     }
     // Newly added for task allocation purpose

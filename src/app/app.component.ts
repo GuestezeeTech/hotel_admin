@@ -163,6 +163,8 @@ export class AppComponent implements OnInit, OnDestroy {
   showPaymentOptions = false;
   paymentOptions = ['Quarterly Payment', 'Half-Yearly Payment', 'Full Payment'];
   selectedIndex = 2;
+  showInactiveUserModal = false;
+  inactiveUserModalMessage = '';
 
   private isInitialNavigation = true;
   private tokenSyncInterval: any;
@@ -668,18 +670,21 @@ export class AppComponent implements OnInit, OnDestroy {
       this.isUserInactive = false;
       return;
     }
-    const memberId = this.localservice.get('MemberId');
+    const customerType = this.localservice.get('CustomerType');
+    const targetCustomerId = customerType === 'Staff'
+      ? this.localservice.get('CustomerId')
+      : this.localservice.get('UserId');
+
     const isLoggedOut = this.localservice.get('loggedOut') === 'true';
-    const userId = this.localservice.get('UserId');
-    if (isLoggedOut || !userId) {
+    if (isLoggedOut || !targetCustomerId) {
       this.isUserInactive = false;
       return;
     }
-    const findQuery = memberId ? { customer_member_id: memberId } : { id: Number(userId) };
+
     const fetchBody = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
-      extras: { find: findQuery }
+      extras: { find: { id: Number(targetCustomerId) } }
     };
     this.hotelEnrollmentService.getLoginCustomerById(fetchBody).subscribe({
       next: (resp: any) => {
@@ -695,12 +700,14 @@ export class AppComponent implements OnInit, OnDestroy {
           const customer = resp.result.data[0];
           this.inactiveCustomerData = customer;
           const isStaff = customer.staff_employee_number != undefined;
-          const isHotelDisabled = customer.hotel_enabled === false;
+          const isHotelDisabled = customer.hotel_enabled === false || customer.hotel_enabled === 'false';
           const isStatusApproved = (customer.status || '').toLowerCase() === 'approved';
 
           if (isHotelDisabled && (isStaff || isStatusApproved)) {
             this.isUserInactive = true;
+            this.showInactiveUserModal = false;
             // Restore MemberId if it was missing
+            const memberId = this.localservice.get('MemberId');
             if (!memberId) {
               const restoredMemberId = customer.customer_member_id || customer.member_id;
               if (restoredMemberId) {
@@ -708,12 +715,25 @@ export class AppComponent implements OnInit, OnDestroy {
               }
             }
           } else {
-            this.isUserInactive = false;
+            // Check if individual user / staff profile is inactive
+            const isInactive = isStaff
+              ? (customer.is_staff_active === false || customer.is_staff_active === 'false')
+              : (customer.is_active === false || customer.is_active === 'false');
+
+            if (isInactive) {
+              const accountType = isStaff ? 'staff profile' : 'user account';
+              this.inactiveUserModalMessage = `Your ${accountType} is currently inactive. Please contact the administrator for assistance.`;
+              this.showInactiveUserModal = true;
+              this.isUserInactive = false;
+            } else {
+              this.showInactiveUserModal = false;
+              this.isUserInactive = false;
+            }
           }
         }
       },
       error: (err: any) => {
-        console.error('Error checking hotel status:', err);
+        console.error('Error checking hotel/user status:', err);
       }
     });
   }
@@ -735,7 +755,7 @@ export class AppComponent implements OnInit, OnDestroy {
       if (orderdata && orderdata.payment_split) {
         payment_split = orderdata.payment_split;
       }
-      
+
       const hasUnpaid = payment_split.some((cycle: any) =>
         cycle.installments.some((inst: any) => inst.status === "Not Paid")
       );
@@ -828,6 +848,11 @@ export class AppComponent implements OnInit, OnDestroy {
     this.router.navigate([''], { skipLocationChange: false, replaceUrl: true });
   }
   // End of newly added for inactive log out
+
+  closeInactiveUserModal(): void {
+    this.showInactiveUserModal = false;
+    this.handleInactiveLogout();
+  }
 
   @HostListener('window:beforeunload', ['$event'])
   beforeUnloadHandler(event: any): void {

@@ -98,3 +98,16 @@
   }
 </div>
 }
+
+@if (showInactiveUserModal) {
+<div class="deactivated-modal-backdrop">
+  <div class="deactivated-modal-card">
+    <div class="modal-icon-container" style="color: #800020;">
+      <i class="bi bi-lock-fill fa fa-lock"></i>
+    </div>
+    <h3>Access Restricted</h3>
+    <p style="margin-bottom: 2rem;">{{ inactiveUserModalMessage }}</p>
+    <button class="btn-modal-ok" (click)="closeInactiveUserModal()">OK</button>
+  </div>
+</div>
+}
