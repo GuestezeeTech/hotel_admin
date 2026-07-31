@@ -553,7 +553,9 @@ export class FeatureCreationComponent implements OnInit {
         (resp: any) => {
           if (resp.success === 1) {
             this.alertService.success(`${this.upsellName} created successfully!`, this.options);
-            this.navigateToList();
+            setTimeout(() => {
+              this.navigateToList();
+            }, 1000);
           } else {
             this.alertService.error(resp.message || 'Create failed', this.options);
           }
@@ -569,7 +571,9 @@ export class FeatureCreationComponent implements OnInit {
         (resp: any) => {
           if (resp.success === 1) {
             this.alertService.success(`${this.upsellName} updated successfully!`, this.options);
-            this.navigateToList();
+            setTimeout(() => {
+              this.navigateToList();
+            }, 1000);
           } else {
             this.alertService.error(resp.message || 'Update failed', this.options);
           }
