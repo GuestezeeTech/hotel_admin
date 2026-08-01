@@ -780,7 +780,59 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
                         console.error("Error enabling hotel after payment:", err);
                       }
                     });
-
+                    // Newly added for updating is_active value once the payment is done successfully
+                    // Get specific customer document and check if is_active is false, then update it
+                    const targetMemberId = this.orderdata.customer_member_id || this.customerdata?.customer_member_id || this.localService.get('MemberId');
+                    if (targetMemberId) {
+                      const customerReq = {
+                        domain_name: DOMAIN_NAME,
+                        user_id: USER_ID,
+                        extras: {
+                          find: {
+                            customer_member_id: targetMemberId
+                          }
+                        }
+                      };
+                      this.hotelenrollmentservice.getLoginCustomerById(customerReq).subscribe({
+                        next: (custGetRes: any) => {
+                          const custDoc = custGetRes?.result?.data?.[0];
+                          if (custDoc && custDoc.is_active === false) {
+                            const customerDeactivateUpdate = {
+                              domain_name: DOMAIN_NAME,
+                              user_id: 1,
+                              payload: {
+                                customer_update: {
+                                  is_active: true,
+                                  inactive_remark: "",
+                                  inactive_type: ""
+                                }
+                              },
+                              extras: {
+                                find: {
+                                  id: custDoc.id
+                                }
+                              }
+                            };
+                            this.hotelenrollmentservice.updateCustomercFcmToken(customerDeactivateUpdate).subscribe({
+                              next: (updateRes: any) => {
+                                if (updateRes.success === 1) {
+                                  console.log("Customer is_active status updated to true successfully.");
+                                } else {
+                                  console.error("Failed to update customer is_active status:", updateRes.message);
+                                }
+                              },
+                              error: (err: any) => {
+                                console.error("Error updating customer is_active status:", err);
+                              }
+                            });
+                          }
+                        },
+                        error: (err: any) => {
+                          console.error("Error fetching customer by customer_member_id:", err);
+                        }
+                      });
+                    }
+                    // End of newly added code for updating is_active value once the payment is done successfully
                     this.updateHeaderPayNowButton();
                   }
                 } else {
@@ -1099,7 +1151,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
         const year = Number(parts[2]);
         const expiryDate = new Date(year, month - 1, day);
         const today = new Date();
-        
+
         // Reset times to compare only dates
         expiryDate.setHours(0, 0, 0, 0);
         today.setHours(0, 0, 0, 0);
