@@ -465,6 +465,7 @@ export class HeaderComponent implements OnInit {
     this.localService.remove('lastValidUrl');
     this.localService.remove('UserFcmTokens');
     this.localService.remove('isFcmUnavailable');
+    this.localService.remove('isUserInactive');
     sessionStorage.removeItem('CurrentTabFcmToken');
     this.localService.set('loggedOut', 'true');
     this.router.navigate([''], { skipLocationChange: false, replaceUrl: true });

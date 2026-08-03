@@ -584,6 +584,7 @@ export class LoginComponent implements OnInit {
                     this.localService.set('Status', userData.status);
                     this.dbSchema = userData.db_schema;
                     this.localService.set('domainName', DOMAIN_NAME);
+                    this.localService.set('isUserInactive', 'true');
 
                     this.isHotelOwner = !!userData.customer_member_id && userData.staff_employee_number == undefined;
                     this.isHotelOwnerLogin = this.isHotelOwner && userData.inactive_type === 'Subscription Expiry';
@@ -613,6 +614,7 @@ export class LoginComponent implements OnInit {
                   // End of newly added for is_active check purpose
                   // Newly added for browser back button
                   this.localStorageService.remove('loggedOut');
+                  this.localService.remove('isUserInactive');
                   // Staff type
                   if (userData.staff_employee_number != undefined) {
                     this.notificationService.clearAll();

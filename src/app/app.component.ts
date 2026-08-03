@@ -186,6 +186,7 @@ export class AppComponent implements OnInit, OnDestroy {
     private paymentHelperService: PaymentHelperService,
     private staffService: StaffService
   ) {
+    this.isUserInactive = this.localservice.get('isUserInactive') === 'true';
     // --- Sidebar and menu tracking ---
     this.router.events.subscribe(event => {
       if (
@@ -273,6 +274,7 @@ export class AppComponent implements OnInit, OnDestroy {
           this.localservice.remove('paymentDone');
           this.localservice.remove('payNowButtonState');
           this.localservice.remove('lastValidUrl');
+          this.localservice.remove('isUserInactive');
           this.localservice.set('loggedOut', 'true');
           // console.log('[App] Auto-logout: localStorage cleared immediately.');
           // ── Step 2: Remove FCM token from DB (async, fire-and-forget) ──
@@ -668,6 +670,7 @@ export class AppComponent implements OnInit, OnDestroy {
   checkHotelStatus(): void {
     if (window.location.href.includes('confirmation')) {
       this.isUserInactive = false;
+      this.localservice.remove('isUserInactive');
       return;
     }
     const customerType = this.localservice.get('CustomerType');
@@ -678,6 +681,7 @@ export class AppComponent implements OnInit, OnDestroy {
     const isLoggedOut = this.localservice.get('loggedOut') === 'true';
     if (isLoggedOut || !targetCustomerId) {
       this.isUserInactive = false;
+      this.localservice.remove('isUserInactive');
       return;
     }
 
@@ -693,6 +697,7 @@ export class AppComponent implements OnInit, OnDestroy {
         const currentLoggedOut = this.localservice.get('loggedOut') === 'true';
         if (!currentUserId || currentLoggedOut) {
           this.isUserInactive = false;
+          this.localservice.remove('isUserInactive');
           return;
         }
 
@@ -705,6 +710,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
           if (isHotelDisabled && (isStaff || isStatusApproved)) {
             this.isUserInactive = true;
+            this.localservice.set('isUserInactive', 'true');
             this.showInactiveUserModal = false;
             // Restore MemberId if it was missing
             const memberId = this.localservice.get('MemberId');
@@ -725,9 +731,11 @@ export class AppComponent implements OnInit, OnDestroy {
               this.inactiveUserModalMessage = `Your ${accountType} is currently inactive. Please contact the administrator for assistance.`;
               this.showInactiveUserModal = true;
               this.isUserInactive = false;
+              this.localservice.remove('isUserInactive');
             } else {
               this.showInactiveUserModal = false;
               this.isUserInactive = false;
+              this.localservice.remove('isUserInactive');
             }
           }
         }
@@ -842,6 +850,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.localservice.remove('lastValidUrl');
     this.localservice.remove('UserFcmTokens');
     this.localservice.remove('isFcmUnavailable');
+    this.localservice.remove('isUserInactive');
     sessionStorage.removeItem('CurrentTabFcmToken');
     this.localservice.set('loggedOut', 'true');
     // ── Step 3: Navigate to login ──
