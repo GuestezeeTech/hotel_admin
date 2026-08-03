@@ -158,6 +158,7 @@ export class AppComponent implements OnInit, OnDestroy {
   isPendingApproval = false;
   // Newly addedfor inactive log out
   isUserInactive = false;
+  isStatusChecking = false;
   // End of newly added for inactive log out
   inactiveCustomerData: any = null;
   showPaymentOptions = false;
@@ -204,6 +205,10 @@ export class AppComponent implements OnInit, OnDestroy {
 
         if (!this.isInitialNavigation && !isBypassLoader) {
           this.isRouteLoading = true;
+        }
+
+        if (!isBypassLoader) {
+          this.checkHotelStatus();
         }
       } else if (
         event instanceof NavigationEnd ||
@@ -503,6 +508,8 @@ export class AppComponent implements OnInit, OnDestroy {
         this.checkHotelStatus();
       }, 60000);
 
+      this.checkHotelStatus();
+
       (async () => {
         try {
           const currentToken = await this.pushService.getCurrentToken();
@@ -511,7 +518,6 @@ export class AppComponent implements OnInit, OnDestroy {
             this.registerFcmTokenOnLoad(currentToken);
           }
           this.syncFcmTokensFromDb();
-          this.checkHotelStatus();
         } catch (err) {
           console.error('[App] Failed to hydrate FCM tokens:', err);
         }
@@ -671,6 +677,7 @@ export class AppComponent implements OnInit, OnDestroy {
     if (window.location.href.includes('confirmation')) {
       this.isUserInactive = false;
       this.localservice.remove('isUserInactive');
+      this.isStatusChecking = false;
       return;
     }
     const customerType = this.localservice.get('CustomerType');
@@ -682,7 +689,17 @@ export class AppComponent implements OnInit, OnDestroy {
     if (isLoggedOut || !targetCustomerId) {
       this.isUserInactive = false;
       this.localservice.remove('isUserInactive');
+      this.isStatusChecking = false;
       return;
+    }
+
+    const currentUrl = (this.router?.url || window.location.pathname || '').toLowerCase();
+    const isBypass = currentUrl.includes('/login') || currentUrl === '/' || currentUrl.includes('/confirmation') || currentUrl.includes('/cancellation');
+    if (!isBypass) {
+      if (this.isStatusChecking) {
+        return;
+      }
+      this.isStatusChecking = true;
     }
 
     const fetchBody = {
@@ -692,6 +709,7 @@ export class AppComponent implements OnInit, OnDestroy {
     };
     this.hotelEnrollmentService.getLoginCustomerById(fetchBody).subscribe({
       next: (resp: any) => {
+        this.isStatusChecking = false;
         // Double check login status before modifying state (handles in-flight request race conditions)
         const currentUserId = this.localservice.get('UserId');
         const currentLoggedOut = this.localservice.get('loggedOut') === 'true';
@@ -741,6 +759,7 @@ export class AppComponent implements OnInit, OnDestroy {
         }
       },
       error: (err: any) => {
+        this.isStatusChecking = false;
         console.error('Error checking hotel/user status:', err);
       }
     });
