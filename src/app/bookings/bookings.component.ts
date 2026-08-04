@@ -493,4 +493,102 @@ export class BookingsComponent {
     this.applyFilters();
   }
 
+  isMewsReserving: boolean = false;
+  mewsReservationStatus: string = '';
+
+  onMewsReservationClick() {
+    this.mewsReservationStatus = "Mews reservation clicked. Fetching profile settings...";
+    const customerType = this.localStorageService.get('CustomerType');
+    const hotelId = Number(this.localStorageService.get('UserId'));
+
+    if (!hotelId) {
+      this.mewsReservationStatus = "Error: User ID not found in session.";
+      this.alertService.error('User ID not found in session.', this.options);
+      return;
+    }
+
+    this.isMewsReserving = true;
+
+    const customerPayload = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: {
+        find: customerType === 'Staff' ? { staff_id: hotelId } : { id: hotelId }
+      }
+    };
+
+    this.mewsReservationStatus = "Requesting profile details from 9526/customer/getbyid...";
+
+    this.bookingService.getCustomerById(customerPayload).subscribe({
+      next: (resp: any) => {
+        this.mewsReservationStatus = "Customer response received. Processing details...";
+        if (resp && resp.success === 1 && resp.status_code === 200 && resp.result?.data?.length > 0) {
+          const userData = resp.result.data[0];
+          const mobile = userData.phone_number || '';
+          const customerMemberId = userData.customer_member_id || '';
+
+          this.mewsReservationStatus = "Customer profile found (Mobile: " + mobile + ", ID: " + customerMemberId + "). Calculating reservation dates...";
+
+          // Generate date strings
+          const now = new Date();
+          const year = now.getFullYear();
+          const month = String(now.getMonth() + 1).padStart(2, '0');
+          const day = String(now.getDate()).padStart(2, '0');
+          const arrivalDate = `${year}-${month}-${day}T00:00:00Z`;
+
+          const tomorrow = new Date(now);
+          tomorrow.setDate(now.getDate() + 1);
+          const tYear = tomorrow.getFullYear();
+          const tMonth = String(tomorrow.getMonth() + 1).padStart(2, '0');
+          const tDay = String(tomorrow.getDate()).padStart(2, '0');
+          const departureDate = `${tYear}-${tMonth}-${tDay}T23:59:59Z`;
+
+          // Construct reservation payload
+          const reservationPayload = {
+            domain_name: DOMAIN_NAME,
+            user_id: userData.id || hotelId,
+            payload: {
+              guest_detail: {
+                Mobile: mobile,
+                customer_member_id: customerMemberId,
+                arrivalDate: arrivalDate,
+                departureDate: departureDate
+              }
+            }
+          };
+          this.mewsReservationStatus = "Creating reservation on Mews API...";
+
+          this.bookingService.createMewsReservation(reservationPayload).subscribe({
+            next: (reserveResp: any) => {
+              if (reserveResp && (reserveResp.success === 1 || reserveResp.status_code === 200)) {
+                this.mewsReservationStatus = "Success! Mews Reservation created successfully.";
+                this.alertService.success(reserveResp.message || 'Mews Reservation created successfully.', this.options);
+                this.getAllBookings(customerMemberId);
+              } else {
+                this.mewsReservationStatus = "Failed: " + (reserveResp.message || 'API responded with failure status.');
+                this.alertService.error(reserveResp.message || 'Failed to create Mews Reservation.', this.options);
+              }
+              this.isMewsReserving = false;
+            },
+            error: (err: any) => {
+              this.mewsReservationStatus = "Reservation API Error: " + (err.error?.message || err.message || 'Unknown network error.');
+              this.alertService.error(err.error?.message || 'Error occurred while creating reservation.', this.options);
+              this.isMewsReserving = false;
+            }
+          });
+        } else {
+          const detail = resp ? `success=${resp.success}, status_code=${resp.status_code}` : 'response is empty';
+          this.mewsReservationStatus = "Check failed: " + detail;
+          this.alertService.error('Customer details could not be retrieved.', this.options);
+          this.isMewsReserving = false;
+        }
+      },
+      error: (err: any) => {
+        this.mewsReservationStatus = "Get Customer API Error: " + (err.error?.message || err.message || 'Unknown network error.');
+        this.alertService.error('Failed to retrieve customer details.', this.options);
+        this.isMewsReserving = false;
+      }
+    });
+  }
+
 }

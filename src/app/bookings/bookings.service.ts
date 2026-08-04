@@ -60,5 +60,21 @@ export class BookingsService {
       return this.http.post(ENDPOINTS.GET_ALL_BOOKING_STATUS, jsonObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
     }
   }
+
+  getCustomerById(jsonObj: any): Observable<any> {
+    if (this.authTokenService.isTokenExpired()) {
+      this.router.navigate([`/login`], { skipLocationChange: false });
+      return new Observable();
+    }
+    else {
+      return this.http.post(ENDPOINTS.GET_LOGIN_CUSTOMER, jsonObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
+    }
+  }
+
+  createMewsReservation(payload: any): Observable<any> {
+    return this.http.post('https://www.guestezee.com:8021/reservation/create', payload, {
+      headers: new HttpHeaders().set('Content-Type', 'application/json')
+    });
+  }
 }
 
