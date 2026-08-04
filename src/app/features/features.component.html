@@ -119,6 +119,7 @@
         <div class="mb-3">
             <label class="form-label fw-semibold" style="font-size: 13px;">Name</label>
             <select class="form-select shadow-none" [(ngModel)]="restaurantData.name" (change)="nameError = ''"
+                [attr.data-invalid]="submitted && nameError ? 'true' : null"
                 [disabled]="isModalViewOnly"
                 style="border-radius: 8px; color: #1a1a1a; background-color: #fff; border: 1px solid #ced4da;">
                 <option value="" disabled selected>Select a feature</option>

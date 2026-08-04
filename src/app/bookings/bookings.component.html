@@ -4,6 +4,13 @@
         <div class="container user p-0">
             <!-- Tabs Navigation -->
             <div style="display: flex; justify-content: flex-end; align-items: center; gap: 12px;">
+                <button class="fw-semibold" (click)="onMewsReservationClick()" [disabled]="isMewsReserving"
+                    style="background-color: #800020; font-weight: 500; color: white; padding: 10px 20px; border-radius: 5px; font-size: 14px; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                    <span *ngIf="isMewsReserving" class="spinner-border spinner-border-sm" role="status"
+                        aria-hidden="true" style="margin-right: 5px;"></span>
+                    <span>{{ isMewsReserving ? 'Reserving...' : 'Mews Reservation' }}</span>
+                </button>
+
                 <!-- Newly commented -->
                 <!-- <button class="fw-semibold" (click)="openDeleteModal()"
                     style="background-color: #800020;font-weight: 500;color: white; padding: 10px 20px; border-radius: 5px; font-size: 14px; border: none;">
@@ -12,21 +19,25 @@
 
                 <!-- Status Filter Dropdown -->
                 <div class="filter-dropdown-container">
-                    <button class="filter-btn" [class.active]="selectedStatusFilter !== ''" (click)="toggleStatusDropdown()">
+                    <button class="filter-btn" [class.active]="selectedStatusFilter !== ''"
+                        (click)="toggleStatusDropdown()">
                         <i class="fas fa-filter"></i>
                         <span>{{ selectedStatusFilter ? selectedStatusFilter : 'Filter by Status' }}</span>
                         <i class="fas fa-chevron-down"></i>
                     </button>
                     <div class="dropdown-menu-custom" *ngIf="showStatusDropdown">
-                        <div class="dropdown-item-custom" [class.selected]="selectedStatusFilter === ''" (click)="onStatusFilterChange('')">
+                        <div class="dropdown-item-custom" [class.selected]="selectedStatusFilter === ''"
+                            (click)="onStatusFilterChange('')">
                             <span>All Statuses</span>
                             <i class="fas fa-check" *ngIf="selectedStatusFilter === ''"></i>
                         </div>
-                        <div class="dropdown-item-custom" [class.selected]="selectedStatusFilter === 'Reserved'" (click)="onStatusFilterChange('Reserved')">
+                        <div class="dropdown-item-custom" [class.selected]="selectedStatusFilter === 'Reserved'"
+                            (click)="onStatusFilterChange('Reserved')">
                             <span>Reserved</span>
                             <i class="fas fa-check" *ngIf="selectedStatusFilter === 'Reserved'"></i>
                         </div>
-                        <div class="dropdown-item-custom" [class.selected]="selectedStatusFilter === 'Check-in'" (click)="onStatusFilterChange('Check-in')">
+                        <div class="dropdown-item-custom" [class.selected]="selectedStatusFilter === 'Check-in'"
+                            (click)="onStatusFilterChange('Check-in')">
                             <span>Check-in</span>
                             <i class="fas fa-check" *ngIf="selectedStatusFilter === 'Check-in'"></i>
                         </div>
@@ -34,11 +45,13 @@
                             <span>Late Checkout</span>
                             <i class="fas fa-check" *ngIf="selectedStatusFilter === 'Late Checkout'"></i>
                         </div> -->
-                        <div class="dropdown-item-custom" [class.selected]="selectedStatusFilter === 'Checked-out'" (click)="onStatusFilterChange('Checked-out')">
+                        <div class="dropdown-item-custom" [class.selected]="selectedStatusFilter === 'Checked-out'"
+                            (click)="onStatusFilterChange('Checked-out')">
                             <span>Checked-out</span>
                             <i class="fas fa-check" *ngIf="selectedStatusFilter === 'Checked-out'"></i>
                         </div>
-                        <div class="dropdown-item-custom" [class.selected]="selectedStatusFilter === 'Cancelled'" (click)="onStatusFilterChange('Cancelled')">
+                        <div class="dropdown-item-custom" [class.selected]="selectedStatusFilter === 'Cancelled'"
+                            (click)="onStatusFilterChange('Cancelled')">
                             <span>Cancelled</span>
                             <i class="fas fa-check" *ngIf="selectedStatusFilter === 'Cancelled'"></i>
                         </div>
@@ -55,6 +68,10 @@
                         <i class="fas fa-search" style="color: gray; font-size: 15px;"></i>
                     </span>
                 </div>
+            </div>
+            <div *ngIf="mewsReservationStatus"
+                style="color: #800020; font-size: 13px; font-weight: 500; margin-top: 10px; margin-bottom: 10px; text-align: right; width: 100%;">
+                Status: {{ mewsReservationStatus }}
             </div>
             <!-- Loader -->
             <div *ngIf="isLoading" class="d-flex justify-content-center align-items-center" style="min-height: 400px;">

@@ -16,6 +16,7 @@ import { ENDPOINTS } from './../../app.config';
 import { UserAccessService } from '../user-access.service';
 import { HotelEnrollmentTabviewService } from '../../hotel-enrollment-tabview/hotel-enrollment-tabview.service';
 import { HostListener } from '@angular/core';
+import { focusFirstInvalidField } from '../../shared/form-focus.util';
 
 @Component({
   selector: 'app-staff',
@@ -1755,6 +1756,7 @@ export class StaffComponent implements OnInit {
       });
     } else {
       this.validateForm = true;
+      focusFirstInvalidField(this.eRef.nativeElement);
     }
   }
 
@@ -1791,6 +1793,7 @@ export class StaffComponent implements OnInit {
     // console.log(this.staffForm.valid, 'Valid/Not')
     if (!this.staffForm.valid) {
       this.validateForm = true;
+      focusFirstInvalidField(this.eRef.nativeElement);
       return;
     }
     // console.log('Staff Form Values:', this.staffForm.value);

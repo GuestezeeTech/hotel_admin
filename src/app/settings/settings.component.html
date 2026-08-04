@@ -277,7 +277,7 @@
             </div>
             <!-- Shift Rows -->
             <div *ngFor="let shift of shifts; let i = index" style="margin-bottom: 10px;">
-                <div class="d-flex align-items-center mb-1">
+                <div class="d-flex align-items-center mb-1" [attr.data-invalid]="shiftRowErrors[i] ? 'true' : null">
                     <!-- ID Field -->
                     <!-- <input type="text" class="form-control me-2" placeholder="ID" [(ngModel)]="shift.id"
                         (input)="validateId(i)" [disabled]="isShiftViewMode" (keypress)="restrictSpecialChars($event)" 

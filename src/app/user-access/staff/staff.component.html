@@ -79,6 +79,8 @@
                         <div style="position: relative;">
                             <!-- Dropdown Trigger -->
                             <div (click)="!isViewMode && !staffForm.get('higher_level_hierarchy')?.disabled && toggleDropdown($event,'hierarchy'); clearError('higher_level_hierarchy')"
+                                tabindex="-1"
+                                [attr.data-invalid]="validateForm && f['higher_level_hierarchy'].errors && selectedHierarchies.length == 0 ? 'true' : null"
                                 style="border: 1px solid #ccc; padding: 6px; border-radius: 5px; background: white;"
                                 [ngClass]="{'disabled-dropdown': staffForm.get('higher_level_hierarchy')?.disabled}"
                                 [ngStyle]="{
@@ -131,6 +133,8 @@
                         <div style="position: relative;">
                             <!-- Dropdown Trigger -->
                             <div (click)="!staffForm.get('hierarchy')?.disabled && toggleDropdown($event,'staffHierarchy'); clearError('staffHierarchy')"
+                                tabindex="-1"
+                                [attr.data-invalid]="validateForm && f['hierarchy'].errors && selectedStaffHierarchies.length == 0 ? 'true' : null"
                                 style="border: 1px solid #ccc; padding: 6px; border-radius: 5px; background: white;"
                                 [ngClass]="{'disabled-dropdown': staffForm.get('hierarchy')?.disabled}" [ngStyle]="{
                                     cursor: isViewMode ? 'not-allowed' : 'pointer',
@@ -202,6 +206,8 @@
                         <div style="position: relative;">
                             <!-- Trigger -->
                             <div (click)="!staffForm.get('higher_level_officer')?.disabled && toggleDropdown($event,'officer'); clearError('officer')"
+                                tabindex="-1"
+                                [attr.data-invalid]="f['higher_level_officer'].errors?.['noStaff'] ? 'true' : null"
                                 style="border: 1px solid #ccc; padding: 6px; border-radius: 5px; background: white;"
                                 [ngClass]="{'disabled-dropdown': staffForm.get('higher_level_officer')?.disabled}"
                                 [ngStyle]="{
@@ -249,6 +255,8 @@
                         <div style="position: relative;">
                             <!-- Dropdown Trigger -->
                             <div (click)="!staffForm.get('room_no')?.disabled && toggleDropdown($event,'room'); clearError('room')"
+                                tabindex="-1"
+                                [attr.data-invalid]="validateForm && f['room_no'].errors && selectedRooms.length == 0 ? 'true' : null"
                                 style="border: 1px solid #ccc; padding: 6px; border-radius: 5px; background: white;"
                                 [ngClass]="{'disabled-dropdown': staffForm.get('room_no')?.disabled}" [ngStyle]="{
                                     cursor: isViewMode ? 'not-allowed' : 'pointer',
@@ -295,6 +303,8 @@
 
                         <div style="position: relative;">
                             <div (click)="!isViewMode && !staffForm.get('shift_time')?.disabled && toggleDropdown($event,'shift'); clearError('shift')"
+                                tabindex="-1"
+                                [attr.data-invalid]="validateForm && f['shift_time'].errors && selectedShiftTimes.length == 0 ? 'true' : null"
                                 style="border: 1px solid #ccc; padding: 6px; border-radius: 5px; background: white;"
                                 [ngClass]="{'disabled-dropdown': staffForm.get('shift_time')?.disabled}" [ngStyle]="{
                                     cursor: isViewMode ? 'not-allowed' : 'pointer',

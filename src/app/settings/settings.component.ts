@@ -1,6 +1,6 @@
 import { HotelEnrollmentTabviewService } from './../hotel-enrollment-tabview/hotel-enrollment-tabview.service';
 import { DOMAIN_NAME, USER_ID } from './../app.config';
-import { Component, OnInit } from '@angular/core';
+import { Component, ElementRef, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { UntypedFormGroup, FormBuilder, Validators, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { AlertsService } from '../shared/alerts/alerts.service';
@@ -10,6 +10,7 @@ import { AlertsComponent } from '../shared/alerts/alerts.component';
 import { Router } from '@angular/router';
 import { PermissionService } from '../services/permission.service';
 import { LoaderService } from '../shared/loader/loader.service';
+import { focusFirstInvalidField } from '../shared/form-focus.util';
 
 @Component({
   selector: 'app-settings',
@@ -95,7 +96,8 @@ export class SettingsComponent implements OnInit {
     private routerUrl: Router,
     private hotelEnrollmentTabviewService: HotelEnrollmentTabviewService,
     private permissionService: PermissionService,
-    private loaderService: LoaderService
+    private loaderService: LoaderService,
+    private eRef: ElementRef
   ) { }
 
   async ngOnInit(): Promise<void> {
@@ -251,6 +253,7 @@ export class SettingsComponent implements OnInit {
     if (!this.passwordUpdateForm.valid) {
       this.passwordUpdateForm.markAllAsTouched();
       this.validateForm2 = true;
+      focusFirstInvalidField(this.eRef.nativeElement);
       return;
     }
 
@@ -650,6 +653,7 @@ export class SettingsComponent implements OnInit {
     // If there are row errors or general errors, display them
     if (Object.keys(this.shiftRowErrors).length > 0 || errors.length > 0) {
       this.errorMessage = errors;
+      focusFirstInvalidField(this.eRef.nativeElement);
       return;
     }
 
@@ -1903,6 +1907,7 @@ export class SettingsComponent implements OnInit {
     this.validateAllRoomsLive();
     if (Object.keys(this.roomRowErrors).length > 0 ||
       this.roomErrorMessage.length > 0) {
+      focusFirstInvalidField(this.eRef.nativeElement);
       return;
     }
     const cleanRooms = this.rooms.map(r => {
