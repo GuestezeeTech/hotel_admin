@@ -513,7 +513,8 @@ export class BookingsComponent {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
       extras: {
-        find: customerType === 'Staff' ? { staff_id: hotelId } : { id: hotelId }
+        // find: customerType === 'Staff' ? { staff_id: hotelId } : { id: hotelId }
+        find: { "customer_member_id": this.memberId }
       }
     };
 
