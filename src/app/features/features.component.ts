@@ -15,6 +15,7 @@ import { DOMAIN_NAME, USER_ID } from '../app.config';
 import { AlertsComponent } from '../shared/alerts/alerts.component';
 import { PermissionService } from '../services/permission.service';
 import { LoaderService } from '../shared/loader/loader.service';
+import { focusFirstInvalidField } from '../shared/form-focus.util';
 
 
 @Component({
@@ -88,7 +89,8 @@ export class FeaturesComponent implements OnInit {
     private alertService: AlertsService,
     private serviceSettingsService: ServiceSettingsService,
     private permissionService: PermissionService,
-    private loaderService: LoaderService
+    private loaderService: LoaderService,
+    private eRef: ElementRef
   ) { }
 
   get canReadFeatures(): boolean {
@@ -245,6 +247,7 @@ export class FeaturesComponent implements OnInit {
 
     if (!this.restaurantData.name) {
       this.nameError = 'Please select a name.';
+      focusFirstInvalidField(this.eRef.nativeElement);
       return;
     }
 

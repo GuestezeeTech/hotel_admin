@@ -333,7 +333,7 @@ export class OutletCreationComponent {
 
 }
  */
-import { Component, OnInit } from '@angular/core';
+import { Component, ElementRef, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
@@ -351,6 +351,7 @@ import { HotelEnrollmentTabviewService } from '../../hotel-enrollment-tabview/ho
 import { TechnicalInfoService } from '../../hotel-enrollment-tabview/technical-info/technical-info.service';
 import { UpsellService } from '../../features/upsell.service';
 import { AuthTokenService } from '../../auth-services/auth-token.service';
+import { focusFirstInvalidField } from '../../shared/form-focus.util';
 
 @Component({
   selector: 'app-outlet-creation',
@@ -431,7 +432,8 @@ export class OutletCreationComponent implements OnInit {
     private hotelEnrollmentService: HotelEnrollmentTabviewService,
     private technicalInfoService: TechnicalInfoService,
     private upsellService: UpsellService,
-    private authTokenService: AuthTokenService
+    private authTokenService: AuthTokenService,
+    private eRef: ElementRef
   ) { }
 
   ngOnInit(): void {
@@ -858,6 +860,7 @@ export class OutletCreationComponent implements OnInit {
     Object.values(this.outletForm.controls).forEach(c => c.markAsTouched());
     if (this.outletForm.invalid) {
       this.alertService.error('Please fill all required fields correctly!', this.options);
+      focusFirstInvalidField(this.eRef.nativeElement);
       return;
     }
     const fv = this.outletForm.value;

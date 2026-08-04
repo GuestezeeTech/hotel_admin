@@ -1,6 +1,6 @@
 import { HotelListService } from './../../hotel-list/hotel-list.service';
 import { USER_ID } from './../../app.config';
-import { Component, OnInit } from '@angular/core';
+import { Component, ElementRef, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
@@ -15,6 +15,7 @@ import { DOMAIN_NAME } from '../../app.config';
 import { ENDPOINTS } from '../../app.config';
 import { HotelEnrollmentTabviewComponent } from '../../hotel-enrollment-tabview/hotel-enrollment-tabview.component';
 import { HotelEnrollmentTabviewService } from '../../hotel-enrollment-tabview/hotel-enrollment-tabview.service';
+import { focusFirstInvalidField } from '../../shared/form-focus.util';
 
 @Component({
   selector: 'app-user',
@@ -57,7 +58,8 @@ export class UserComponent implements OnInit {
     private authTokenService: AuthTokenService,
     private localService: LocalStorageService,
     private hotelenrollmenttabviewService: HotelEnrollmentTabviewService,
-    private hotelListService: HotelListService
+    private hotelListService: HotelListService,
+    private eRef: ElementRef
   ) { }
 
   ngOnInit(): void {
@@ -859,6 +861,7 @@ export class UserComponent implements OnInit {
     this.usersForm.markAllAsTouched();
     if (this.usersForm.invalid) {
       this.alertService.error("Please fill all mandatory fields correctly", this.options);
+      focusFirstInvalidField(this.eRef.nativeElement);
       return;
     }
     const inputMemberId = this.localService.get('MemberId');
