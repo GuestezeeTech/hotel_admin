@@ -7,8 +7,8 @@ import {
   ɵgetDefaultInstanceOf,
   ɵzoneWrap
 } from "./chunk-Y3KVDDMU.js";
-import "./chunk-TJ7FUAR5.js";
 import "./chunk-7V5PYSAS.js";
+import "./chunk-TJ7FUAR5.js";
 import {
   Component,
   Deferred,

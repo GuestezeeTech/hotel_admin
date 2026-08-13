@@ -475,4 +475,25 @@ export class EscalatedComponent {
     });
   }
 
+  getStatusStyles(status: string): { [key: string]: string } {
+    switch (status) {
+      case 'ASAP':
+        return { color: '#0056b3', 'background-color': '#e1f0ff' };
+      case 'Assigned':
+        return { color: '#856404', 'background-color': '#fff3cd' };
+      case 'Processing':
+        return { color: '#30A75F', 'background-color': '#c2f2cd' };
+      case 'Delivered':
+        return { color: '#155724', 'background-color': '#d4edda' };
+      case 'Cancelled':
+      case 'Rejected':
+        return { color: '#721c24', 'background-color': '#f8d7da' };
+      case 'Escalated':
+        return { color: '#E70909', 'background-color': '#f2d9d9' };
+      default:
+        return { color: '#545460', 'background-color': '#eaeaea' };
+    }
+  }
+
 }
+

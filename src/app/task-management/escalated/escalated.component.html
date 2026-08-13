@@ -12,10 +12,11 @@
             <th>Name</th>
             <th>Room No</th>
             <th>Service</th>
-            <th>Qty</th>
+            <!-- <th>Qty</th> -->
             <th>Service Date</th>
             <th>Service Time</th>
             <th>Status</th>
+            <th>Current Status</th>
             <th>Escalated To</th>
             <th></th>
             <!-- <th>Assignee</th> -->
@@ -24,7 +25,7 @@
     </thead>
     <tbody>
         <tr *ngIf="!allEscalatedTasks || allEscalatedTasks.length === 0">
-            <td colspan="9" class="text-center text-muted">No guest tasks found</td>
+            <td colspan="10" class="text-center text-muted">No guest tasks found</td>
         </tr>
         <tr *ngFor="let task of allEscalatedTasks">
             <td (click)="navigateToTimeline(task.id)" style="cursor: pointer">{{ task.guest_name || task.task_created_by
@@ -36,13 +37,19 @@
                     task?.checkout_status}})</span></td> -->
             <td>{{ task.service.service_name }}<span *ngIf="task.service.belongs_to === 'Late checkout'">({{
                     task?.checkout_status}})</span></td>
-            <td>{{ task.service?.quantity || '-' }}</td>
+            <!-- <td>{{ task.service?.quantity || '-' }}</td> -->
             <td>{{ task.order_date | date:'dd-MM-yyyy'}}</td>
             <td>{{ task.order_time }}</td>
             <td>
                 <div
                     style="color: #E70909; background-color: #f2d9d9; border-radius: 50px; padding: 4px 12px; font-weight: 500; font-size: 12px; text-align: center; display: inline-block;">
                     Escalated
+                </div>
+            </td>
+            <td>
+                <div [ngStyle]="getStatusStyles(task.status)"
+                    style="border-radius: 50px; padding: 4px 12px; font-weight: 500; font-size: 12px; text-align: center; display: inline-block;">
+                    {{ task.status || '-' }}
                 </div>
             </td>
             <td>{{ task.escalated_to_name }}</td>
