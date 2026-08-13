@@ -11,6 +11,7 @@ import { Router } from '@angular/router';
 import { PermissionService } from '../services/permission.service';
 import { LoaderService } from '../shared/loader/loader.service';
 import { focusFirstInvalidField } from '../shared/form-focus.util';
+import { CustomValidators } from '../hotel-enrollment-tabview/validators';
 
 @Component({
   selector: 'app-settings',
@@ -72,6 +73,11 @@ export class SettingsComponent implements OnInit {
   customerStatus: any;
   memberId: any;
   allowedRoomCount: any;
+  // SOS Number variables
+  isSosModalOpen: boolean = false;
+  isSosViewMode: boolean = false;
+  sosForm!: UntypedFormGroup;
+  validateSosForm: boolean = false;
 
   /**
    * Enable/disable background page scrolling when any modal is open.
@@ -80,7 +86,8 @@ export class SettingsComponent implements OnInit {
     const anyModalOpen =
       this.isPasswordModalOpen ||
       this.isDurationModalOpen ||
-      this.isRoomModalOpen;
+      this.isRoomModalOpen ||
+      this.isSosModalOpen;
     if (anyModalOpen) {
       document.body.style.overflow = 'hidden';
     } else {
@@ -112,6 +119,11 @@ export class SettingsComponent implements OnInit {
       }
       // End of newly added for matching new password and confirm password
     );
+
+    this.sosForm = this.fb.group({
+      sos_number: ['', [Validators.required, Validators.pattern(/^[0-9]+$/), Validators.minLength(10), Validators.maxLength(10)]]
+    });
+
     // Customer id
     this.customerType = this.localService.get('CustomerType');
     // Newly added for getting customer id for customer type
@@ -124,6 +136,7 @@ export class SettingsComponent implements OnInit {
     // Load late checkout setting
     this.getLateCheckoutSettings();
     this.getRoomCount();
+    this.getSosNumberSettings();
   }
 
   getCustomerStatus(userId: any): Promise<any> {
@@ -2346,5 +2359,179 @@ export class SettingsComponent implements OnInit {
     };
   }
   // End of newly added for matching new password and confirm password
+
+  // SOS Number functionality
+  getSosNumberSettings() {
+    const requestBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: {
+        find: {
+          customer_member_id: this.memberId
+        }
+      }
+    };
+    this.hotelEnrollmentTabviewService.getCustomerById(requestBody).subscribe(
+      (resp: any) => {
+        if (resp.success === 1 && resp.status_code === 200 && resp.result.data.length > 0) {
+          const existingData = resp.result.data[0];
+          if (existingData.settings && existingData.settings.sos_number !== undefined) {
+            const sosNum = existingData.settings.sos_number;
+            if (this.sosForm) {
+              this.sosForm.controls['sos_number'].setValue(sosNum);
+            }
+          }
+        }
+      },
+      (err: any) => {
+        console.error('Error loading SOS number setting:', err);
+      }
+    );
+  }
+
+  onSosPhoneInput(event: any) {
+    let input = event.target;
+    let value = input.value.toString();
+    // Remove any non-numeric characters
+    value = value.replace(/[^0-9]/g, '');
+    input.value = value;
+    if (this.sosForm && this.sosForm.controls['sos_number']) {
+      this.sosForm.controls['sos_number'].setValue(value);
+    }
+  }
+
+  openSosModal() {
+    if (!this.canModifySystemSettings && !this.canReadSystemSettings) return;
+    this.isSosViewMode = false;
+    this.validateSosForm = false;
+    this.loadSosData();
+  }
+
+  viewSosNumber() {
+    if (!this.canReadSystemSettings) return;
+    this.isSosViewMode = true;
+    this.validateSosForm = false;
+    this.loadSosData();
+  }
+
+  loadSosData() {
+    const requestBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: {
+        find: {
+          customer_member_id: this.memberId
+        }
+      }
+    };
+    this.hotelEnrollmentTabviewService.getCustomerById(requestBody).subscribe(
+      (resp: any) => {
+        if (resp.success === 1 && resp.status_code === 200 && resp.result.data.length > 0) {
+          const existingData = resp.result.data[0];
+          const sosNum = existingData.settings?.sos_number || '';
+          this.sosForm.controls['sos_number'].setValue(sosNum);
+        } else {
+          this.sosForm.controls['sos_number'].setValue('');
+        }
+
+        if (this.isSosViewMode) {
+          this.sosForm.controls['sos_number'].disable();
+        } else {
+          this.sosForm.controls['sos_number'].enable();
+        }
+
+        this.isSosModalOpen = true;
+        this.updateBodyScrollLock();
+      },
+      (err: any) => {
+        this.sosForm.controls['sos_number'].setValue('');
+
+        if (this.isSosViewMode) {
+          this.sosForm.controls['sos_number'].disable();
+        } else {
+          this.sosForm.controls['sos_number'].enable();
+        }
+
+        this.isSosModalOpen = true;
+        this.updateBodyScrollLock();
+      }
+    );
+  }
+
+  closeSosModal() {
+    this.isSosModalOpen = false;
+    this.isSosViewMode = false;
+    this.validateSosForm = false;
+    if (this.sosForm) {
+      this.sosForm.controls['sos_number'].enable();
+    }
+    this.updateBodyScrollLock();
+  }
+
+  saveSosNumber() {
+    if (this.isSosViewMode || !this.canModifySystemSettings) return;
+    this.validateSosForm = true;
+
+    if (this.sosForm.invalid) {
+      this.sosForm.markAllAsTouched();
+      return;
+    }
+
+    const sosNumberValue = this.sosForm.controls['sos_number'].value;
+
+    const requestBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: {
+        find: {
+          customer_member_id: this.memberId
+        }
+      }
+    };
+
+    this.hotelEnrollmentTabviewService.getCustomerById(requestBody).subscribe(
+      (resp: any) => {
+        if (resp.success === 1 && resp.status_code === 200 && resp.result.data.length > 0) {
+          const existingData = resp.result.data[0];
+          if (!existingData.settings) {
+            existingData.settings = {};
+          }
+          const mergedSettings = {
+            ...existingData.settings,
+            sos_number: sosNumberValue
+          };
+          const updateRequestBody = {
+            domain_name: DOMAIN_NAME,
+            user_id: USER_ID,
+            payload: {
+              customer_update: {
+                settings: mergedSettings
+              }
+            },
+            extras: {
+              find: {
+                customer_member_id: this.memberId
+              }
+            }
+          };
+          this.hotelEnrollmentTabviewService.updateCustomer(updateRequestBody).subscribe(
+            (updateResp: any) => {
+              if (updateResp.success === 1 && updateResp.status_code === 200) {
+                this.alertService.success('SOS number saved successfully!', this.options);
+                this.closeSosModal();
+              } else {
+                const message = updateResp?.message || 'Something went wrong while saving SOS number.';
+                this.alertService.error(message, this.options);
+              }
+            },
+            () => this.alertService.error('Error while saving SOS number!', this.options)
+          );
+        } else {
+          this.alertService.error('No existing settings found!', this.options);
+        }
+      },
+      () => this.alertService.error('Something went wrong while fetching existing settings!', this.options)
+    );
+  }
 
 }

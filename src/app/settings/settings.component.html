@@ -97,6 +97,29 @@
                     </div>
                 </div>
             </div>
+            <div class="card p-3 mb-1 settings-item"
+                *ngIf="this.customerType == 'Customer' && (this.customerStatus == 'approved' || this.customerStatus == 'Approved')">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center">
+                        <i class="fa-solid fa-phone me-3" style="font-size: 16px; color:#800020"></i>
+                        <div>
+                            <h6 class="mb-1 fw-bold">SOS Number</h6>
+                            <p class="mb-0 fw-medium small">Manage SOS contact number</p>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa fa-eye view-icon" (click)="canReadSystemSettings ? viewSosNumber() : null"
+                            [style.opacity]="canReadSystemSettings ? 1 : 0.4"
+                            [style.cursor]="canReadSystemSettings ? 'pointer' : 'not-allowed'"
+                            [style.pointer-events]="canReadSystemSettings ? 'auto' : 'auto'" title="View"
+                            style="font-size: 16px; color: #800020; margin-right: 8px;"></i>
+                        <i class="bi bi-chevron-right" (click)="canModifySystemSettings ? openSosModal() : null"
+                            [style.opacity]="canModifySystemSettings ? 1 : 0.4"
+                            [style.cursor]="canModifySystemSettings ? 'pointer' : 'not-allowed'"
+                            [style.pointer-events]="canModifySystemSettings ? 'auto' : 'auto'"></i>
+                    </div>
+                </div>
+            </div>
             <!-- <div class="card p-3 mb-1 settings-item">
                 <div class="d-flex align-items-center justify-content-between">
                     <div class="d-flex align-items-center">
@@ -532,6 +555,65 @@
                     style="padding: 5px; color: white;
                        border: none; width: 20%;
                        font-size: 16px; border-radius: 8px;" (click)="saveRooms()">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SOS Number Modal -->
+<div *ngIf="isSosModalOpen"
+    style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center; z-index: 1050;">
+    <div style="background: white; border-radius: 15px; width: 35%; text-align: center;
+              box-shadow: 0 0 10px rgba(0,0,0,0.2); display: flex; flex-direction: column;">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center"
+            style="padding: 15px 20px; background-color: #FFF6F8; border-radius: 15px 15px 0 0;">
+            <h2 style="font-size: 19px; font-weight: bold; margin-bottom: 0;">{{ isSosViewMode ? 'View SOS Number' :
+                'SOS Number' }}</h2>
+            <i class="fa-solid fa-phone" style="font-size: 16px; color: #800020;"></i>
+        </div>
+        <!-- Content Area -->
+        <div style="padding: 30px; text-align: start;">
+            <!-- Form Group -->
+            <form [formGroup]="sosForm" novalidate>
+                <div style="position: relative; margin-bottom: 10px;">
+                    <label for="sos_number" style="font-weight: 600; margin-bottom: 8px; font-size: 14px;">SOS Phone
+                        Number</label>
+                    <input type="text" class="form-control" id="sos_number" placeholder="Enter SOS Number"
+                        formControlName="sos_number" (input)="onSosPhoneInput($event)" maxlength="10"
+                        style="padding: 12px; border: 1px solid #E1E2EB; border-radius: 8px; width: 100%; font-size: 14px; outline: none; box-shadow: none;" />
+                </div>
+                <!-- Validation Errors -->
+                <div *ngIf="sosForm.controls['sos_number'].invalid && (sosForm.controls['sos_number'].touched || validateSosForm)"
+                    style="color: red; font-size: 13px; margin-top: 5px;">
+                    <div *ngIf="sosForm.controls['sos_number'].hasError('required')">
+                        SOS number is required.
+                    </div>
+                    <div *ngIf="sosForm.controls['sos_number'].hasError('pattern')">
+                        Only numbers are allowed.
+                    </div>
+                    <div
+                        *ngIf="sosForm.controls['sos_number'].hasError('minlength') || sosForm.controls['sos_number'].hasError('maxlength')">
+                        SOS number must be exactly 10 digits.
+                    </div>
+                </div>
+            </form>
+        </div>
+        <!-- Action Buttons -->
+        <div style="padding: 15px 20px; border-top: 1px solid #e0e0e0; border-radius: 0 0 15px 15px;">
+            <div class="d-flex justify-content-end">
+                <button type="button" style="padding: 8px 16px; background: #959FA34D; color: #000000B2;
+                       border: none; cursor: pointer; width: 25%;
+                       font-size: 16px; border-radius: 8px; margin-right: 10px;" (click)="closeSosModal()">
+                    {{ isSosViewMode ? 'Close' : 'Cancel' }}
+                </button>
+                <button type="button" *ngIf="!isSosViewMode" [disabled]="!canModifySystemSettings"
+                    [style.background]="canModifySystemSettings ? '#800020' : '#cccccc'"
+                    [style.cursor]="canModifySystemSettings ? 'pointer' : 'not-allowed'" style="padding: 8px 16px; color: white; border: none; width: 25%;
+                       font-size: 16px; border-radius: 8px;" (click)="saveSosNumber()">
+                    Save
+                </button>
             </div>
         </div>
     </div>

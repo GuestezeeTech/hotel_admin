@@ -23,7 +23,7 @@ h3 {
   &.empty-state {
     padding-top: 10px;
     background-color: #ffffff !important;
-    
+
     .section {
       background: #ffffff !important;
       padding-top: 10px;
@@ -119,7 +119,8 @@ h3 {
 }
 
 .sale-price {
-  color: #ffeb3b; /* Highlighted yellow */
+  color: #ffeb3b;
+  /* Highlighted yellow */
   font-size: 14px;
 }
 
@@ -529,12 +530,12 @@ textarea {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-input:checked + .slider {
+input:checked+.slider {
   background-color: #219653;
   /* Greenish */
 }
 
-input:checked + .slider:before {
+input:checked+.slider:before {
   transform: translateX(22px);
 }
 
@@ -548,7 +549,8 @@ input:checked + .slider:before {
   display: flex;
   justify-content: end;
 
-  .add-btn, .back-btn {
+  .add-btn,
+  .back-btn {
     border-radius: 5px;
     background: #883a01;
     color: white;
@@ -556,7 +558,7 @@ input:checked + .slider:before {
     padding: 10px 20px;
     cursor: pointer;
     border: none;
-    font-size:14px;
+    font-size: 14px;
   }
 }
 
@@ -572,7 +574,8 @@ input:checked + .slider:before {
 .category-dropdown {
   background-color: white !important;
   cursor: pointer;
-  appearance: auto !important;  /* restores default dropdown arrow */
+  appearance: auto !important;
+  /* restores default dropdown arrow */
 }
 
 .upload-btn.disabled {
@@ -586,54 +589,54 @@ i.disabled {
 }
 
 .pagination-container {
-    display: flex;
-    justify-content: end;
-    align-items: center;
-    gap: 8px;
-    float: right;
-    margin-top: 2%;
+  display: flex;
+  justify-content: end;
+  align-items: center;
+  gap: 8px;
+  float: right;
+  margin-top: 2%;
 }
 
 .pagination-input {
-    width: 30px;
-    height: 30px;
-    text-align: center;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    font-size: 14px !important;
-    outline: none;
-    background-color: transparent !important;
-    flex: none !important;
+  width: 30px;
+  height: 30px;
+  text-align: center;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 14px !important;
+  outline: none;
+  background-color: transparent !important;
+  flex: none !important;
 }
 
 .pagination-btn {
-    background-color: #f8f9fa;
-    border: 1px solid #ddd;
-    color: #6c757d;
-    padding: 5px 12px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 14px;
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  color: #6c757d;
+  padding: 5px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
 }
 
 .pagination-btn:disabled {
-    background-color: #eee;
-    cursor: not-allowed;
-    color: #a0a0a0;
+  background-color: #eee;
+  cursor: not-allowed;
+  color: #a0a0a0;
 }
 
 /* Disabled styles for buttons and icons */
 .view-icon,
 .edit-icon,
 .delete-icon {
-    cursor: pointer;
-    transition: opacity 0.2s;
+  cursor: pointer;
+  transition: opacity 0.2s;
 }
 
 .view-icon[style*="cursor: not-allowed"],
 .edit-icon[style*="cursor: not-allowed"],
 .delete-icon[style*="cursor: not-allowed"] {
-    cursor: not-allowed;
+  cursor: not-allowed;
 }
 
 /* Disabled form controls */
@@ -643,24 +646,24 @@ select[disabled],
 textarea[disabled],
 .custom-input:disabled,
 .custom-input1:disabled {
-    background-color: #f5f5f5 !important;
-    cursor: not-allowed;
-    opacity: 0.8;
+  background-color: #f5f5f5 !important;
+  cursor: not-allowed;
+  opacity: 0.8;
 }
 
 input[type="file"]:disabled {
-    cursor: not-allowed;
-    opacity: 0.6;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
-input[type="checkbox"]:disabled + .slider {
-    opacity: 0.6;
-    cursor: not-allowed;
+input[type="checkbox"]:disabled+.slider {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .disabled-slider {
-    opacity: 0.6;
-    cursor: not-allowed;
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 // .submit:disabled,
@@ -670,8 +673,8 @@ input[type="checkbox"]:disabled + .slider {
 // }
 
 .upload-btn:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
 /* Custom Dropdown Styles to match Native Select */
@@ -683,9 +686,9 @@ input[type="checkbox"]:disabled + .slider {
     min-width: 100%;
     background-color: #ffffff !important;
     border: 1px solid #ccc;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   }
-  
+
   .custom-option {
     padding: 6px 12px;
     cursor: pointer;
@@ -695,16 +698,139 @@ input[type="checkbox"]:disabled + .slider {
     border-bottom: none;
     background-color: transparent;
   }
-  
+
   .custom-option:hover,
   .custom-option:focus {
-    background-color: #1a73e8 !important; /* native select hover blue */
+    background-color: #1a73e8 !important;
+    /* native select hover blue */
     color: white !important;
   }
-  
+
   /* Make icons white when option is hovered for visibility */
   .custom-option:hover .edit-cat-icon,
   .custom-option:hover .delete-cat-icon {
     color: white !important;
+  }
+}
+
+// Newly added for food type
+/* Veg / Non-Veg styles */
+.veg-dot-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid #219653;
+  border-radius: 2px;
+  background-color: white;
+  margin-right: 6px;
+  vertical-align: middle;
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    background-color: #219653;
+    border-radius: 50%;
+    display: block;
+  }
+}
+
+.nonveg-dot-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid #c93b2b;
+  border-radius: 2px;
+  background-color: white;
+  margin-right: 6px;
+  vertical-align: middle;
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    background-color: #c93b2b;
+    border-radius: 50%;
+    display: block;
+  }
+}
+
+.food-type-selection {
+  display: flex;
+  align-items: center;
+  margin-top: 5px;
+  padding: 8px 12px;
+  background-color: #f9f9f9;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  width: fit-content;
+
+  .radio-label {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-bottom: 0;
+
+    input[type="radio"] {
+      display: none;
+    }
+
+    .custom-radio {
+      width: 18px;
+      height: 18px;
+      border: 2px solid #ccc;
+      border-radius: 4px;
+      margin-right: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      background-color: #fff;
+      transition: all 0.2s ease;
+
+      &::after {
+        content: '';
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: block;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+      }
+    }
+
+    /* Veg specific styling */
+    .veg-radio {
+      border-color: #219653;
+
+      &::after {
+        background-color: #219653;
+      }
+    }
+
+    /* Non-Veg specific styling */
+    .nonveg-radio {
+      border-color: #c93b2b;
+
+      &::after {
+        background-color: #c93b2b;
+      }
+    }
+
+    input[type="radio"]:checked+.custom-radio {
+      &::after {
+        opacity: 1;
+      }
+    }
+  }
+
+  .radio-label[style*="cursor: not-allowed"],
+  input[disabled]+.custom-radio {
+    cursor: not-allowed;
+    opacity: 0.6;
   }
 }

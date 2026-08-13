@@ -1,6 +1,7 @@
 <div class="main">
   <app-alerts></app-alerts>
-  <div [formGroup]="companyForm" class="company-details-form" [class.empty-state]="newProduct && !allProductsData?.length">
+  <div [formGroup]="companyForm" class="company-details-form"
+    [class.empty-state]="newProduct && !allProductsData?.length">
     <!-- List of products section -->
     <div class="section" *ngIf="this.newProduct">
       <div class="add-btn-section">
@@ -44,7 +45,15 @@
               </div>
               <!-- Product Name -->
               <div class="card-body text-center">
-                <h5 class="card-title product-name">{{ product.name }}</h5>
+                <h5 class="card-title product-name d-flex align-items-center justify-content-center">
+                  <span *ngIf="getVegStatus(product) === 'Veg'" class="veg-dot-icon" title="Vegetarian">
+                    <span class="dot"></span>
+                  </span>
+                  <span *ngIf="getVegStatus(product) === 'Non-Veg'" class="nonveg-dot-icon" title="Non-Vegetarian">
+                    <span class="dot"></span>
+                  </span>
+                  {{ product.name }}
+                </h5>
               </div>
             </div>
           </div>
@@ -91,9 +100,11 @@
                   <i class="fa fa-spinner fa-spin"></i> Uploading...
                 </ng-container>
               </button>
-              <input type="file" #fileInput (change)="onFileUpload($event)" accept="image/png, image/jpeg, image/jpg, image/pdf" hidden [disabled]="isViewMode">
+              <input type="file" #fileInput (change)="onFileUpload($event)"
+                accept="image/png, image/jpeg, image/jpg, image/pdf" hidden [disabled]="isViewMode">
             </div>
-            <p style=" font-size: 11px; color: #777777;">Maximum file size 2MB, Dimensions: 500 x 500px | (jpg, jpeg, png, pdf)</p>
+            <p style=" font-size: 11px; color: #777777;">Maximum file size 2MB, Dimensions: 500 x 500px | (jpg, jpeg,
+              png, pdf)</p>
           </div>
         </div>
         <div class="file-list">
@@ -117,7 +128,8 @@
                 [style.cursor]="isViewMode ? 'not-allowed' : 'pointer'">
               </i>
               <!-- File Input (Hidden) -->
-              <input type="file" #fileInput (change)="onIndividualFileUpload($event, i)" accept="image/png, image/jpeg, image/jpg, image/pdf" hidden [disabled]="isViewMode">
+              <input type="file" #fileInput (change)="onIndividualFileUpload($event, i)"
+                accept="image/png, image/jpeg, image/jpg, image/pdf" hidden [disabled]="isViewMode">
               <i class="fa fa-trash" [class.disabled]="!file.fileUrl || isViewMode"
                 style="-webkit-text-fill-color: white; -webkit-text-stroke: 1px #888888; font-size: 12px;"
                 (click)="!isViewMode && removeFile(i)" [style.opacity]="isViewMode ? 0.4 : 1"
@@ -145,23 +157,27 @@
       <div class="form-row">
         <div class="form-group" [formGroup]="categoryForm">
           <label style="font-size: 15px;">Category <span class="required">*</span></label>
-          <div class="dropdown custom-dropdown w-100" [class.disabled]="isViewMode || (!isEditMode && !canAddOutlets) || (isEditMode && !canEditOutlets)">
-            <button class="form-control text-start d-flex justify-content-between align-items-center" 
-              type="button" 
-              data-bs-toggle="dropdown" 
-              aria-expanded="false"
+          <div class="dropdown custom-dropdown w-100"
+            [class.disabled]="isViewMode || (!isEditMode && !canAddOutlets) || (isEditMode && !canEditOutlets)">
+            <button class="form-control text-start d-flex justify-content-between align-items-center" type="button"
+              data-bs-toggle="dropdown" aria-expanded="false"
               style="background-color: white; font-size: 14px; color: #333; box-shadow: none;"
               [disabled]="isViewMode || (!isEditMode && !canAddOutlets) || (isEditMode && !canEditOutlets)">
-              <span class="text-truncate">{{ categoryForm.get('selectedCategory')?.value?.name || 'Select Category' }}</span>
+              <span class="text-truncate">{{ categoryForm.get('selectedCategory')?.value?.name || 'Select Category'
+                }}</span>
               <i class="fa fa-angle-down ms-2" style="font-size: 14px;"></i>
             </button>
-            <ul class="dropdown-menu w-100 p-0 shadow-sm" style="max-height: 250px; overflow-y: auto; background-color: #ffffff; border: 1px solid #ccc; border-radius: 4px;">
+            <ul class="dropdown-menu w-100 p-0 shadow-sm"
+              style="max-height: 250px; overflow-y: auto; background-color: #ffffff; border: 1px solid #ccc; border-radius: 4px;">
               <li *ngFor="let category of categories">
-                <div class="dropdown-item d-flex justify-content-between align-items-center custom-option" (click)="selectCategory(category)">
+                <div class="dropdown-item d-flex justify-content-between align-items-center custom-option"
+                  (click)="selectCategory(category)">
                   <span class="text-truncate" style="flex: 1;" [title]="category.name">{{ category.name }}</span>
                   <div class="action-icons ms-2" *ngIf="!isViewMode">
-                    <i class="fa fa-edit me-3 edit-cat-icon" style="color: #883a01;" (click)="editCategory(category, $event)" title="Edit"></i>
-                    <i class="fa fa-trash delete-cat-icon" style="color: #883a01;" (click)="deleteCategory(category, $event)" title="Delete"></i>
+                    <i class="fa fa-edit me-3 edit-cat-icon" style="color: #883a01;"
+                      (click)="editCategory(category, $event)" title="Edit"></i>
+                    <i class="fa fa-trash delete-cat-icon" style="color: #883a01;"
+                      (click)="deleteCategory(category, $event)" title="Delete"></i>
                   </div>
                 </div>
               </li>
@@ -232,12 +248,31 @@
           </div>
         </div>
       </div>
-      <!-- [(ngModel)]="isAvailable" -->
-      <div class="form-group">
-        <label style="font-size: 15px;">Description
-        </label>
-        <textarea rows="5" formControlName="description" placeholder="Enter description" class="custom-input"
-          [disabled]="isViewMode || (!isEditMode && !canAddOutlets) || (isEditMode && !canEditOutlets)"></textarea>
+      <div class="form-row">
+        <div class="form-group">
+          <label style="font-size: 15px;">Description</label>
+          <textarea rows="3" formControlName="description" placeholder="Enter description" class="custom-input"
+            [disabled]="isViewMode || (!isEditMode && !canAddOutlets) || (isEditMode && !canEditOutlets)"></textarea>
+          <div class="required">&nbsp;</div>
+        </div>
+        <div class="form-group">
+          <label style="font-size: 15px;">Food Type <span class="required">*</span></label>
+          <div class="food-type-selection">
+            <label class="radio-label">
+              <input type="radio" formControlName="food_type" value="Veg"
+                [disabled]="isViewMode || (!isEditMode && !canAddOutlets) || (isEditMode && !canEditOutlets)">
+              <span class="custom-radio veg-radio"></span>
+              Veg
+            </label>
+            <label class="radio-label ms-4">
+              <input type="radio" formControlName="food_type" value="Non-Veg"
+                [disabled]="isViewMode || (!isEditMode && !canAddOutlets) || (isEditMode && !canEditOutlets)">
+              <span class="custom-radio nonveg-radio"></span>
+              Non-Veg
+            </label>
+          </div>
+          <div class="required">&nbsp;</div>
+        </div>
       </div>
     </section>
     <!-- Product Availability -->
@@ -307,7 +342,8 @@
 </div>
 
 <!-- Category Delete Confirmation Modal -->
-<div *ngIf="isDeleteCategoryModalOpen" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+<div *ngIf="isDeleteCategoryModalOpen"
+  style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
            background: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center; z-index: 10000;">
   <div style="background: white; padding: 30px; border-radius: 15px; width: 450px; text-align: center;
               box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);">

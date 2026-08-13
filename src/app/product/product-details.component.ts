@@ -105,7 +105,8 @@ export class ProductDetailsComponent {
       offer_price: ['', [this.noWhitespaceValidator.bind(this)]],
       price: ['', [this.noWhitespaceValidator.bind(this)]],
       description: [''],
-      uploadedDocuments: [[]] // Placeholder for uploaded documents
+      uploadedDocuments: [[]], // Placeholder for uploaded documents
+      food_type: ['Veg', Validators.required]
     });
     this.categoryForm = this.fb.group({
       selectedCategory: ['', Validators.required],
@@ -183,6 +184,9 @@ export class ProductDetailsComponent {
   cancelProduct() {
     this.categoryForm.reset();
     this.companyForm.reset();
+    this.companyForm.patchValue({
+      food_type: 'Veg'
+    });
     // this.uploadedFiles = [];
     this.uploadedFiles = [
       { name: "Image 1", fileName: "", fileUrl: "", fileSelected: null },
@@ -245,7 +249,8 @@ export class ProductDetailsComponent {
         // sku: product.sku || '',
         price: product?.pricing?.raw?.price || '',
         offer_price: product?.pricing?.raw?.sale_price || '',
-        description: product?.description?.title || ''
+        description: product?.description?.title || '',
+        food_type: product.food_type
       });
       // Toggle button
       this.setAvailabilityToggle(product);
@@ -1009,9 +1014,9 @@ export class ProductDetailsComponent {
         license_no: null,
         shelf_life: null,
         shelf_life_description: null,
-        manufacture: null
+        manufacture: null,
       },
-
+      food_type: this.companyForm.get('food_type')?.value
     };
     this.loaderService.emitLoading();
     if (!this.isEditMode) {
@@ -1030,6 +1035,9 @@ export class ProductDetailsComponent {
             setTimeout(() => {
               this.categoryForm.reset();
               this.companyForm.reset();
+              this.companyForm.patchValue({
+                food_type: 'Veg'
+              });
               this.uploadedFiles = [
                 { name: "Image 1", fileName: "", fileUrl: "", fileSelected: null },
                 { name: "Image 2", fileName: "", fileUrl: "", fileSelected: null },
@@ -1072,6 +1080,9 @@ export class ProductDetailsComponent {
             setTimeout(() => {
               this.categoryForm.reset();
               this.companyForm.reset();
+              this.companyForm.patchValue({
+                food_type: 'Veg'
+              });
               this.uploadedFiles = [
                 { name: "Image 1", fileName: "", fileUrl: "", fileSelected: null },
                 { name: "Image 2", fileName: "", fileUrl: "", fileSelected: null },
@@ -1376,6 +1387,10 @@ export class ProductDetailsComponent {
 
   navigateToProduct() {
     this.router.navigate(['/product-list', Number(this.localService.get('outlet_id'))])
+  }
+
+  getVegStatus(product: any): string {
+    return product.food_type;
   }
 
 }

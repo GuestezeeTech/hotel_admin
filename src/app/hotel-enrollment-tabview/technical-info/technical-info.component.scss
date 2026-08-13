@@ -603,16 +603,38 @@ input[type="checkbox"]:disabled+.slider {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    padding: 12px;
+    border-radius: 10px;
+    background-color: #f9f9f9;
+  }
+
+  .ecom-technical-info-header {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    padding: 0 0 5px 0;
+    margin-bottom: 2px;
+  }
+
+  .ecom-header-label {
+    font-family: urbanist;
+    font-weight: 600;
+    font-size: 14px;
+    color: #4e4e4e;
+  }
+
+  .ecom-form-array-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
   }
 
   .ecom-technical-info-item {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 16px;
-    padding: 10px 12px;
-    margin: 2px 0;
-    border-radius: 10px;
-    background-color: #f9f9f9;
+    padding: 0;
+    margin: 0;
   }
 
   .ecom-form-group {
@@ -623,6 +645,12 @@ input[type="checkbox"]:disabled+.slider {
     display: flex;
     flex-direction: column;
     padding-right: 32px; // space for remove icon on the right
+  }
+
+  .ecom-key-group-no-label {
+    display: flex;
+    flex-direction: column;
+    position: relative;
   }
 
   .ecom-key-group .ecom-input-box {
@@ -754,10 +782,12 @@ input[type="checkbox"]:disabled+.slider {
     transform: scale(1);
     opacity: 0.5;
   }
+
   50% {
     transform: scale(1.05);
     opacity: 0.8;
   }
+
   100% {
     transform: scale(1);
     opacity: 0.5;

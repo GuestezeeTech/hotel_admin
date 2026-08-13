@@ -368,20 +368,22 @@
               </div>
             </form>
           </div> -->
-          <!-- NEW ecom-section: only shown on POS tab, and only the Hotel_Code row is rendered -->
-          <div class="ecom-section" *ngIf="selectedTab === 'pos'">
+          <!-- ecom-section: shown on POS (PMS) and Lock tabs, displaying all integration attributes with key labels disabled -->
+          <div class="ecom-section" *ngIf="selectedTab === 'pos' || selectedTab === 'lock'">
             <form [formGroup]="ecomTechnicalInfoForm" class="ecom-form">
-              <div formArrayName="technicalInfo" class="ecom-technical-info-container">
-                <ng-container *ngFor="let field of getEcomTechnicalInfoControls().controls; let i = index">
+              <div class="ecom-technical-info-container" *ngIf="getEcomTechnicalInfoControls().controls.length > 0">
+                <!-- Single header row shown once at the top of the attributes list -->
+                <div class="ecom-technical-info-header">
+                  <div class="ecom-header-label">Key Label</div>
+                  <div class="ecom-header-label">Key Value</div>
+                </div>
+                <div formArrayName="technicalInfo" class="ecom-form-array-wrapper">
                   <div [formGroupName]="i" class="ecom-technical-info-item"
-                    *ngIf="field.get('key')?.value?.trim()?.toLowerCase() === 'hotel_code'">
+                    *ngFor="let field of getEcomTechnicalInfoControls().controls; let i = index">
                     <div class="ecom-form-group">
-                      <!-- <label class="ecom-label">Key Label</label> -->
-                      <label class="ecom-label">Hotel Code</label>
                       <input class="ecom-input-box" type="text" formControlName="key" placeholder="label name" />
                     </div>
-                    <div class="ecom-form-group ecom-key-group">
-                      <label class="ecom-label">Key Value</label>
+                    <div class="ecom-form-group ecom-key-group-no-label">
                       <input class="ecom-input-box" type="text" formControlName="value"
                         placeholder="enter the key value" />
                       <span class="ecom-error"
@@ -390,7 +392,7 @@
                       </span>
                     </div>
                   </div>
-                </ng-container>
+                </div>
               </div>
             </form>
           </div>
@@ -400,7 +402,7 @@
             {{this.customerStatus === 'approved' ? 'Close' : 'Cancel'}}
           </button>
           <button type="button" class="ecom-save-btn" (click)="saveEcomIntegration()"
-            *ngIf="selectedTab === 'pos' && this.customerStatus !== 'approved'">
+            *ngIf="((selectedTab === 'pos') || (selectedTab === 'lock' && getEcomTechnicalInfoControls().controls.length > 0)) && this.customerStatus !== 'approved'">
             Save
           </button>
         </div>
