@@ -1045,13 +1045,13 @@ export class HeaderComponent implements OnInit {
   //     this.paymentEventService.updatePayNowButton(false, false);
   //     return;
   //   }
-  //   // Enable button only 1 week before prev installment expiry
+  //   // Enable button only 20 days before prev installment expiry
   //   const prevInstallment = nextCycle.installments[nextUnpaidIndex - 1];
   //   const [day, month, year] = prevInstallment.subscription_end_date.split('-').map(Number);
   //   const subEndDate = new Date(year, month - 1, day);
   //   const today = new Date();
   //   // const enableDate = new Date(subEndDate);
-  //   // enableDate.setDate(enableDate.getDate() - 7); // 7 days before due date
+  //   // enableDate.setDate(enableDate.getDate() - 20); // 20 days before due date
   //   const enableDate = new Date(2025, 9, 3);
   //   console.log('enableDate', enableDate);
   //   const showButton = true;
@@ -1105,13 +1105,13 @@ export class HeaderComponent implements OnInit {
   //     this.paymentEventService.updatePayNowButton(false, false);
   //     return;
   //   }
-  //   // Enable button 1 week before previous installment end date
+  //   // Enable button 20 days before previous installment end date
   //   const prevInstallment = nextCycle.installments[nextUnpaidIndex - 1];
   //   const [day, month, year] = prevInstallment.subscription_end_date.split('-').map(Number);
   //   const subEndDate = new Date(year, month - 1, day);
   //   const today = new Date();
   //   const enableDate = new Date(subEndDate);
-  //   enableDate.setDate(enableDate.getDate() - 7); // 7 days before due date
+  //   enableDate.setDate(enableDate.getDate() - 20); // 20 days before due date
   //   // const enableDate = new Date(2025, 9, 3);
   //   console.log('enableDate', enableDate);
   //   const showButton = true;
@@ -1164,14 +1164,14 @@ export class HeaderComponent implements OnInit {
       return;
     }
     // console.log('lastRelevantInstallment', lastRelevantInstallment);
-    // Enable button 7 days before subscription_end_date of lastRelevantInstallment
+    // Enable button 20 days before subscription_end_date of lastRelevantInstallment
     const [day, month, year] = lastRelevantInstallment.subscription_end_date.split('-').map(Number);
     // console.log('day, month, year', day, month, year);
     const subEndDate = new Date(year, month - 1, day);
     // console.log('Sub end Date', subEndDate);
     const enableDate = new Date(subEndDate);
     // console.log('enableDate before format', enableDate);
-    enableDate.setDate(enableDate.getDate() - 7);
+    enableDate.setDate(enableDate.getDate() - 20);
     const today = new Date();
     // console.log('enableDate due date', enableDate);
     const enabled = today >= enableDate;
