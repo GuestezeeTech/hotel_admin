@@ -1,0 +1,14 @@
+  25062025ltestode
+  collapse-department
+* latest-updated-code
+  master
+  new-updated-code
+  service_hierarchy
+  uat
+  updated-code
+  remotes/origin/HEAD -> origin/master
+  remotes/origin/collapse-department
+  remotes/origin/latest-updated-code
+  remotes/origin/master
+  remotes/origin/uat
+  remotes/origin/updated-code

@@ -4,10 +4,12 @@
     <div class="centered-container">
         <div class="container">
             <h5 class="fw-bolder" style="margin-bottom: 0">
-                {{ isViewMode ? 'View Role Permission For Module' : (enableEdit ? 'Edit Role Permission For Module' : 'Add Role Permission For Module') }}
+                {{ isViewMode ? 'View Role Permission For Module' : (enableEdit ? 'Edit Role Permission For Module' :
+                'Add Role Permission For Module') }}
             </h5>
             <p style="color: #9E9E9E; font-size: 14px; margin-bottom: 1%">
-                {{ isViewMode ? 'View Role Permission For Module' : (enableEdit ? 'Update Role Permission For Module' : 'Create Role Permission For Module') }}
+                {{ isViewMode ? 'View Role Permission For Module' : (enableEdit ? 'Update Role Permission For Module' :
+                'Create Role Permission For Module') }}
             </p>
             <!-- Role Name and Toggle Switches -->
             <form [formGroup]="roleForm">
@@ -103,13 +105,17 @@
                             <tr>
                                 <td style="border-left: 1px solid #6E6E6E !important;" class="fw-semibold">Hotel
                                 </td>
-                                <td><input type="checkbox" formControlName="create" (change)="allOptionsToggle('specHotel')">
+                                <td><input type="checkbox" formControlName="create"
+                                        (change)="allOptionsToggle('specHotel')">
                                 </td>
-                                <td><input type="checkbox" formControlName="edit" (change)="allOptionsToggle('specHotel')">
+                                <td><input type="checkbox" formControlName="edit"
+                                        (change)="allOptionsToggle('specHotel')">
                                 </td>
-                                <td><input type="checkbox" formControlName="read" (change)="allOptionsToggle('specHotel')">
+                                <td><input type="checkbox" formControlName="read"
+                                        (change)="allOptionsToggle('specHotel')">
                                 </td>
-                                <td><input type="checkbox" formControlName="delete" (change)="allOptionsToggle('specHotel')">
+                                <td><input type="checkbox" formControlName="delete"
+                                        (change)="allOptionsToggle('specHotel')">
                                 </td>
                                 <td style="border-right: 1px solid #6E6E6E !important;"><input type="checkbox"
                                         formControlName="all" (change)="allOptionsToggle('hotel')"></td>
@@ -145,9 +151,11 @@
                                 <td style="border-left: 1px solid #6E6E6E !important;" class="fw-semibold">Payment</td>
                                 <td><input type="checkbox" formControlName="create"
                                         (change)="allOptionsToggle('specPayment')"></td>
-                                <td><input type="checkbox" formControlName="edit" (change)="allOptionsToggle('specPayment')">
+                                <td><input type="checkbox" formControlName="edit"
+                                        (change)="allOptionsToggle('specPayment')">
                                 </td>
-                                <td><input type="checkbox" formControlName="read" (change)="allOptionsToggle('specPayment')">
+                                <td><input type="checkbox" formControlName="read"
+                                        (change)="allOptionsToggle('specPayment')">
                                 </td>
                                 <td><input type="checkbox" formControlName="delete"
                                         (change)="allOptionsToggle('specPayment')"></td>
@@ -205,9 +213,11 @@
                                 </td>
                                 <td><input type="checkbox" formControlName="create"
                                         (change)="allOptionsToggle('specBookings')"></td>
-                                <td><input type="checkbox" formControlName="edit" (change)="allOptionsToggle('specBookings')">
+                                <td><input type="checkbox" formControlName="edit"
+                                        (change)="allOptionsToggle('specBookings')">
                                 </td>
-                                <td><input type="checkbox" formControlName="read" (change)="allOptionsToggle('specBookings')">
+                                <td><input type="checkbox" formControlName="read"
+                                        (change)="allOptionsToggle('specBookings')">
                                 </td>
                                 <td><input type="checkbox" formControlName="delete"
                                         (change)="allOptionsToggle('specBookings')"></td>
@@ -217,19 +227,44 @@
                         </tbody>
                     </table>
                 </form>
+                <form [formGroup]="guestsForm">
+                    <table>
+                        <tbody>
+                            <tr>
+                                <td style="border-left: 1px solid #6E6E6E !important;" class="fw-semibold">Guests
+                                </td>
+                                <td><input type="checkbox" formControlName="create"
+                                        (change)="allOptionsToggle('specGuests')"></td>
+                                <td><input type="checkbox" formControlName="edit"
+                                        (change)="allOptionsToggle('specGuests')">
+                                </td>
+                                <td><input type="checkbox" formControlName="read"
+                                        (change)="allOptionsToggle('specGuests')">
+                                </td>
+                                <td><input type="checkbox" formControlName="delete"
+                                        (change)="allOptionsToggle('specGuests')"></td>
+                                <td style="border-right: 1px solid #6E6E6E !important;"><input type="checkbox"
+                                        formControlName="all" (change)="allOptionsToggle('guests')"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </form>
                 <form [formGroup]="featuresForm">
                     <table>
                         <tbody>
-                            <tr
-                                style=" border-top: 1px solid #6E6E6E !important;">
+                            <tr style=" border-top: 1px solid #6E6E6E !important;">
                                 <td style="border-left: 1px solid #6E6E6E !important;" class="fw-semibold">Features</td>
-                                <td><input type="checkbox" formControlName="create" (change)="allOptionsToggle('specFeatures')">
+                                <td><input type="checkbox" formControlName="create"
+                                        (change)="allOptionsToggle('specFeatures')">
                                 </td>
-                                <td><input type="checkbox" formControlName="edit" (change)="allOptionsToggle('specFeatures')">
+                                <td><input type="checkbox" formControlName="edit"
+                                        (change)="allOptionsToggle('specFeatures')">
                                 </td>
-                                <td><input type="checkbox" formControlName="read" (change)="allOptionsToggle('specFeatures')">
+                                <td><input type="checkbox" formControlName="read"
+                                        (change)="allOptionsToggle('specFeatures')">
                                 </td>
-                                <td><input type="checkbox" formControlName="delete" (change)="allOptionsToggle('specFeatures')">
+                                <td><input type="checkbox" formControlName="delete"
+                                        (change)="allOptionsToggle('specFeatures')">
                                 </td>
                                 <td style="border-right: 1px solid #6E6E6E !important;"><input type="checkbox"
                                         formControlName="all" (change)="allOptionsToggle('features')"></td>
@@ -257,35 +292,42 @@
                         </tbody>
                     </table>
                 </form> -->
-                 <form [formGroup] = "outletsForm">
+                <form [formGroup]="outletsForm">
                     <table>
                         <tbody>
                             <tr style="border-top: 1px solid #6E6E6E !important;">
                                 <td style="border-left: 1px solid #6E6E6E !important;" class="fw-semibold">Outlets</td>
-                                <td><input type="checkbox" formControlName="create" (change)="allOptionsToggle('specOutlets')">
+                                <td><input type="checkbox" formControlName="create"
+                                        (change)="allOptionsToggle('specOutlets')">
                                 </td>
-                                <td><input type="checkbox" formControlName="edit" (change)="allOptionsToggle('specOutlets')">
+                                <td><input type="checkbox" formControlName="edit"
+                                        (change)="allOptionsToggle('specOutlets')">
                                 </td>
-                                <td><input type="checkbox" formControlName="read" (change)="allOptionsToggle('specOutlets')">
+                                <td><input type="checkbox" formControlName="read"
+                                        (change)="allOptionsToggle('specOutlets')">
                                 </td>
-                                <td><input type="checkbox" formControlName="delete" (change)="allOptionsToggle('specOutlets')">
+                                <td><input type="checkbox" formControlName="delete"
+                                        (change)="allOptionsToggle('specOutlets')">
                                 </td>
-                                <td style="border-right: 1px solid #6E6E6E !important;"><input type="checkbox" formControlName="all"
-                                        (change)="allOptionsToggle('outlets')"></td>
+                                <td style="border-right: 1px solid #6E6E6E !important;"><input type="checkbox"
+                                        formControlName="all" (change)="allOptionsToggle('outlets')"></td>
                             </tr>
                         </tbody>
                     </table>
                 </form>
-                <form [formGroup] = "duePaymentsForm">
+                <form [formGroup]="duePaymentsForm">
                     <table>
                         <tbody>
-                            <tr style="border-bottom: 1px solid #6E6E6E !important; border-top: 1px solid #6E6E6E !important;">
-                                <td style="border-left: 1px solid #6E6E6E !important;" class="fw-semibold">Due Payments</td>
+                            <tr
+                                style="border-bottom: 1px solid #6E6E6E !important; border-top: 1px solid #6E6E6E !important;">
+                                <td style="border-left: 1px solid #6E6E6E !important;" class="fw-semibold">Due Payments
+                                </td>
                                 <td><input type="checkbox" formControlName="create"></td>
                                 <td><input type="checkbox" formControlName="edit"></td>
                                 <td><input type="checkbox" formControlName="read"></td>
                                 <td><input type="checkbox" formControlName="delete"></td>
-                                <td style="border-right: 1px solid #6E6E6E !important;"><input type="checkbox" formControlName="all"></td>
+                                <td style="border-right: 1px solid #6E6E6E !important;"><input type="checkbox"
+                                        formControlName="all"></td>
                             </tr>
                         </tbody>
                     </table>
@@ -301,21 +343,15 @@
                         (click)="openExitModal()">Cancel</button>
                 </div>
                 <div class="col-md-2" *ngIf="!enableEdit">
-                    <button class="btn w-100 ms-2 fw-semibold"
-                        style="color: white; background-color: #800020;"
-                        (click)="saveForm()"
-                        [disabled]="isViewMode"
-                        [ngStyle]="{
+                    <button class="btn w-100 ms-2 fw-semibold" style="color: white; background-color: #800020;"
+                        (click)="saveForm()" [disabled]="isViewMode" [ngStyle]="{
                             cursor: isViewMode ? 'not-allowed' : 'pointer',
                             opacity: isViewMode ? 0.8 : 1
                         }">Save</button>
                 </div>
                 <div class="col-md-2" *ngIf="enableEdit" style="padding-right: 0;">
-                    <button class="btn w-100 ms-2 fw-semibold"
-                        style="color: white; background-color: #800020;"
-                        (click)="saveFormChanges()"
-                        [disabled]="isViewMode"
-                        [ngStyle]="{
+                    <button class="btn w-100 ms-2 fw-semibold" style="color: white; background-color: #800020;"
+                        (click)="saveFormChanges()" [disabled]="isViewMode" [ngStyle]="{
                             cursor: isViewMode ? 'not-allowed' : 'pointer',
                             opacity: isViewMode ? 0.6 : 1
                         }">Save Changes</button>

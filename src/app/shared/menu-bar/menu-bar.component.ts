@@ -198,6 +198,8 @@ export class MenuBarComponent implements OnInit {
     } else if (url.includes('/bookings')) {
       this.activeMenu = 'bookings';
 
+    } else if (url.includes('/guests-list')) {
+      this.activeMenu = 'guests';
     } else if (url.includes('/payment-details')) {
       this.activeMenu = 'payment';
 

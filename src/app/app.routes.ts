@@ -142,6 +142,10 @@ export const routes: Routes = [
     loadChildren: () => import('./features-list/features-list.module').then(m => m.FeaturesListModule)
   },
   {
+    path: '',
+    loadChildren: () => import('./guests/guests-list.module').then(m => m.GuestsListModule)
+  },
+  {
     path: '**',
     component: NotFoundComponent
   }

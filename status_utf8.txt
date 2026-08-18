@@ -1,0 +1,14 @@
+ M .angular/cache/18.2.14/GUESTEZEE_ADMIN/.tsbuildinfo
+ M src/app/app.component.ts
+ M src/app/app.config.ts
+ M src/app/app.routes.ts
+ M src/app/login/login.component.ts
+ M src/app/shared/menu-bar/menu-bar.component.html
+ M src/app/shared/menu-bar/menu-bar.component.ts
+ M src/app/user-access/role/role.component.html
+ M src/app/user-access/role/role.component.ts
+?? diff.txt
+?? diff2.txt
+?? diff_output.txt
+?? src/app/guests/
+?? status_utf8.txt

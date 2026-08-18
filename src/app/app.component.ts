@@ -515,11 +515,21 @@ export class AppComponent implements OnInit, OnDestroy {
           const currentToken = await this.pushService.getCurrentToken();
           if (currentToken) {
             sessionStorage.setItem('CurrentTabFcmToken', currentToken);
+            // Newly added for after login notification enable & block
+            this.localservice.set('isFcmUnavailable', 'false');
+            // End of newly added for after login notification enable & block
             this.registerFcmTokenOnLoad(currentToken);
           }
+          // Newly added for after login notification enable & block
+          else {
+            this.localservice.set('isFcmUnavailable', 'true');
+          }
+          // End of newly added for after login notification enable & block
           this.syncFcmTokensFromDb();
         } catch (err) {
           console.error('[App] Failed to hydrate FCM tokens:', err);
+          // Newly added for after login notification enable & block
+          this.localservice.set('isFcmUnavailable', 'true');
         }
       })();
     }
@@ -1161,6 +1171,9 @@ export class AppComponent implements OnInit, OnDestroy {
     if (path.includes('/bookings') ||
       path.includes('/bookings-management') ||
       path.includes('/late-checkout')) return 'BOOKINGS';
+
+    if (path.includes('/guests') ||
+      path.includes('/guests-management')) return 'GUESTS';
 
     if (path.includes('/role') ||
       path.includes('/user-list') ||

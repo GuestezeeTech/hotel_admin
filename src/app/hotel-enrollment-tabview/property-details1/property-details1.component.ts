@@ -2202,20 +2202,22 @@ export class PropertyDetails1Component {
         return;
       }
 
-      // Validate dimensions
+      // Validate dimensions (not restricting from upload)
       const img = new Image();
       img.src = window.URL.createObjectURL(file);
       img.onload = () => {
-        const width = img.naturalWidth;
-        const height = img.naturalHeight;
+        // Newly commented for 200*200 check
+        //   const width = img.naturalWidth;
+        // const height = img.naturalHeight;
+        // End of newly commented for 200*200 check
         window.URL.revokeObjectURL(img.src);
-
-        if (width !== 200 || height !== 200) {
-          this.alertService.error(`Image dimensions must be exactly 200 × 200 pixels. (Uploaded image: ${width} × ${height} pixels)`, this.options);
-          input.value = '';
-          return;
-        }
-
+        // Newly commented for 200*200 check
+        //  if (width !== 200 || height !== 200) {
+        //   this.alertService.error(`Image dimensions must be exactly 200 × 200 pixels. (Uploaded image: ${width} × ${height} pixels)`, this.options);
+        //   input.value = '';
+        //   return;
+        // }
+        // End of newly commented for 200*200 check
         // Upload and Preview
         this.uploadAndPreviewLogo(file);
       };

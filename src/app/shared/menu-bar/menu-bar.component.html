@@ -79,6 +79,16 @@
       <span>Bookings</span>
 
     </li>
+    <li class="list_container" [class.active]="isActive('guests')" [routerLink]="['/guests-list']"
+      (click)="setActiveMenu('guests'); sendValue('Guests')"
+      *ngIf="customerType === 'Customer' && customerdata?.status == 'approved' && hasAnyPermission('GUESTS')">
+      <div class="list-content">
+        <div class="left-content">
+          <i class="fas fa-users" style="color: white; font-size: 16px; margin-right: 2px;"></i>
+          <span>Guests</span>
+        </div>
+      </div>
+    </li>
     <!-- User Access -->
     <li class="list_container" [class.active]="isActive('user-access')" (click)="toggleSubmenu('User Access')"
       *ngIf="(customerType === 'Customer' &&customerdata?.status=='approved' && hasAnyPermission('USER ACCESS'))">

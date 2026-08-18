@@ -2553,6 +2553,7 @@ export class LoginComponent implements OnInit {
       'HOTELS',
       'TASK MANAGEMENT',
       'BOOKINGS',
+      'GUESTS',
       'OUTLETS',
       // 'RESTAURANTS',
       'FEATURES',
@@ -3240,148 +3241,152 @@ export class LoginComponent implements OnInit {
               this.alertClear();
               return;
             }
-            this.alertService.success("Password reset successfully!", this.options);
+            // Newly added and commented for login page navigation after password reset
+            // this.alertService.success("Password reset successfully!", this.options);
+            this.login1();
+            this.alertService.success("Password reset successfully! Please sign in with your new password.", this.options);
             this.alertClear();
-            this.localService.set('Password', this.passwordForm.value.new_password);
+            // this.localService.set('Password', this.passwordForm.value.new_password);
 
-            // Identify login type
-            const empIdPattern = /^[a-zA-Z]{2}[a-zA-Z0-9]*\d{8}$/;
-            const isStaff = empIdPattern.test(enteredValue);
-            const password = this.passwordForm.value.new_password;
-            // Build username according to login type (do not always append -DOMAIN_NAME for staff)
-            const loginUsername = isEmailLogin ? `${enteredValue}-${DOMAIN_NAME}` : enteredValue;
-            const loginPayload = {
-              domain_name: DOMAIN_NAME,
-              username: loginUsername,
-              password: password
-            };
-            const loginObservable = isEmailLogin ? this.appService.login(loginPayload) : this.appService.staffLogin(loginPayload);
-            // Attempt automatic login and require tokens before calling protected APIs
-            loginObservable.subscribe(
-              async (loginResp: any) => {
-                if (!(loginResp && loginResp.success === 1 && loginResp.access_token)) {
-                  // Inform user and stop — password changed but automatic login failed
-                  this.alertService.success("Password reset succeeded. Please sign in with your new password.", this.options);
-                  this.alertClear();
-                  return;
-                }
-                // Set tokens and expiry
-                this.authService.setExpiryTime(new Date().getTime() + (loginResp.access_token_expires_in * 1000));
-                this.authService.setRTokenExpireTime(new Date().getTime() + (loginResp.refresh_token_expires_in * 1000));
-                this.authService.setAccessToken(loginResp.access_token);
-                this.authService.setRefreshToken(loginResp.refresh_token);
-                // Clear global loggedOut flag so app.component guard won't auto-redirect to /login
-                try {
-                  this.localStorageService.remove('loggedOut');
-                } catch (e) {
-                  // fallback if different service instance used
-                  try { this.localService.remove('loggedOut'); } catch (err) { /* ignore */ }
-                }
+            // // Identify login type
+            // const empIdPattern = /^[a-zA-Z]{2}[a-zA-Z0-9]*\d{8}$/;
+            // const isStaff = empIdPattern.test(enteredValue);
+            // const password = this.passwordForm.value.new_password;
+            // // Build username according to login type (do not always append -DOMAIN_NAME for staff)
+            // const loginUsername = isEmailLogin ? `${enteredValue}-${DOMAIN_NAME}` : enteredValue;
+            // const loginPayload = {
+            //   domain_name: DOMAIN_NAME,
+            //   username: loginUsername,
+            //   password: password
+            // };
+            // const loginObservable = isEmailLogin ? this.appService.login(loginPayload) : this.appService.staffLogin(loginPayload);
+            // // Attempt automatic login and require tokens before calling protected APIs
+            // loginObservable.subscribe(
+            //   async (loginResp: any) => {
+            //     if (!(loginResp && loginResp.success === 1 && loginResp.access_token)) {
+            //       // Inform user and stop — password changed but automatic login failed
+            //       this.alertService.success("Password reset succeeded. Please sign in with your new password.", this.options);
+            //       this.alertClear();
+            //       return;
+            //     }
+            //     // Set tokens and expiry
+            //     this.authService.setExpiryTime(new Date().getTime() + (loginResp.access_token_expires_in * 1000));
+            //     this.authService.setRTokenExpireTime(new Date().getTime() + (loginResp.refresh_token_expires_in * 1000));
+            //     this.authService.setAccessToken(loginResp.access_token);
+            //     this.authService.setRefreshToken(loginResp.refresh_token);
+            //     // Clear global loggedOut flag so app.component guard won't auto-redirect to /login
+            //     try {
+            //       this.localStorageService.remove('loggedOut');
+            //     } catch (e) {
+            //       // fallback if different service instance used
+            //       try { this.localService.remove('loggedOut'); } catch (err) { /* ignore */ }
+            //     }
 
-                if (isStaff) {
-                  // Staff post-reset logic (unchanged)
-                  this.notificationService.clearAll();
-                  this.localService.set('CustomerType', 'Staff');
-                  this.localService.set('StaffData', JSON.stringify(userData));
-                  this.localService.set('hierarchy', JSON.stringify(userData.hierarchy));
-                  this.localService.set('UserId', Number(userData.staff_id));
-                  this.localService.set('CustomerId', Number(userData.id));
-                  this.localService.set('MemberId', userData.member_id);
-                  this.localService.set('domainName', DOMAIN_NAME);
-                  this.localService.set('Name', userData.first_name);
-                  const member = userData.member_id;
-                  const department = userData?.hierarchy?.map((item: any) => item.department);
-                  this.getAllStaffIds(userData.staff_id, department, member);
-                  // Update staff FCM token (existing)
-                  try {
-                    const userId: any = this.localService.get('UserId');
-                    const token = await this.pushService.requestPermissionAndGetToken(userId);
-                    const staffFetchBody = {
-                      domain_name: DOMAIN_NAME,
-                      user_id: USER_ID,
-                      extras: { find: { id: userData.staff_id } }
-                    };
-                    this.taskManagementService.getAllStaves(staffFetchBody).subscribe(
-                      (staffResp: any) => {
-                        if (staffResp.success === 1 && staffResp.status_code === 200 && staffResp.result.data.length > 0) {
-                          const staff = staffResp.result.data[0];
-                          if (!Array.isArray(staff.fcm_token)) { staff.fcm_token = []; }
-                          staff.fcm_token.push(token);
-                          const updateBody = {
-                            domain_name: DOMAIN_NAME,
-                            user_id: USER_ID,
-                            payload: { staff_updation: { fcm_token: staff.fcm_token } },
-                            extras: { find: { id: userData.staff_id } }
-                          };
-                          this.staffService.updateStaff(updateBody).subscribe(() => { }, (err: any) => { console.error('Error updating staff FCM token:', err); });
-                        }
-                      },
-                      (err: any) => { console.error('Error fetching staff for FCM update:', err); }
-                    );
-                  } catch (err) {
-                    console.error('Failed to get FCM token for staff:', err);
-                  }
-                  this.router.navigate(['/task-management'], { skipLocationChange: false });
-                }
-                else {
-                  // Customer post-reset logic (unchanged)
-                  this.localService.set('CustomerType', 'Customer');
-                  this.localService.set('UserId', Number(userData.id));
-                  const memberId = userData.customer_member_id ? userData.customer_member_id : userData.member_id;
-                  this.localService.set('MemberId', memberId);
-                  this.localService.set('domainName', DOMAIN_NAME);
-                  this.localService.set('Name', userData.first_name);
-                  this.localService.set('UserEmail', userData.email);
-                  this.localService.set('db_schema', userData.db_schema);
-                  this.dbSchema = userData.db_schema;
-                  const role_id = userData.role_id;
-                  const role_name = userData.role_name;
-                  this.localService.set('roleId', role_id);
-                  this.localService.set('roleName', role_name);
-                  if (role_id) { await this.getRoleById(role_id); }
-                  // Update customer FCM (existing)
-                  try {
-                    const userId: any = this.localService.get('UserId');
-                    const token = await this.pushService.requestPermissionAndGetToken(userId);
-                    const customerFetchBody = {
-                      domain_name: DOMAIN_NAME,
-                      user_id: USER_ID,
-                      extras: { find: isEmailLogin ? { email: enteredValue } : { staff_employee_number: enteredValue } }
-                    };
-                    this.hotellistService.getSignupAllCustomers(customerFetchBody).subscribe(
-                      (fcmResp: any) => {
-                        if (fcmResp.success === 1 && fcmResp.status_code === 200 && fcmResp.result.data.length > 0) {
-                          const customer = fcmResp.result.data[0];
-                          if (!Array.isArray(customer.fcm_token)) { customer.fcm_token = []; }
-                          customer.fcm_token.push(token);
-                          const updateBody = {
-                            domain_name: DOMAIN_NAME,
-                            user_id: USER_ID,
-                            payload: { customer_update: { fcm_token: customer.fcm_token } },
-                            extras: { find: isEmailLogin ? { email: enteredValue } : { staff_employee_number: enteredValue } }
-                          };
-                          this.hotelenrollmenttabviewService.updateCustomerFcm(updateBody).subscribe(() => { }, (err: any) => { console.error('Error updating customer FCM token:', err); });
-                        }
-                      },
-                      (err: any) => { console.error('Error fetching customer for FCM update:', err); }
-                    );
-                  } catch (err) {
-                    console.error('Failed to get FCM token for customer:', err);
-                  }
+            //     if (isStaff) {
+            //       // Staff post-reset logic (unchanged)
+            //       this.notificationService.clearAll();
+            //       this.localService.set('CustomerType', 'Staff');
+            //       this.localService.set('StaffData', JSON.stringify(userData));
+            //       this.localService.set('hierarchy', JSON.stringify(userData.hierarchy));
+            //       this.localService.set('UserId', Number(userData.staff_id));
+            //       this.localService.set('CustomerId', Number(userData.id));
+            //       this.localService.set('MemberId', userData.member_id);
+            //       this.localService.set('domainName', DOMAIN_NAME);
+            //       this.localService.set('Name', userData.first_name);
+            //       const member = userData.member_id;
+            //       const department = userData?.hierarchy?.map((item: any) => item.department);
+            //       this.getAllStaffIds(userData.staff_id, department, member);
+            //       // Update staff FCM token (existing)
+            //       try {
+            //         const userId: any = this.localService.get('UserId');
+            //         const token = await this.pushService.requestPermissionAndGetToken(userId);
+            //         const staffFetchBody = {
+            //           domain_name: DOMAIN_NAME,
+            //           user_id: USER_ID,
+            //           extras: { find: { id: userData.staff_id } }
+            //         };
+            //         this.taskManagementService.getAllStaves(staffFetchBody).subscribe(
+            //           (staffResp: any) => {
+            //             if (staffResp.success === 1 && staffResp.status_code === 200 && staffResp.result.data.length > 0) {
+            //               const staff = staffResp.result.data[0];
+            //               if (!Array.isArray(staff.fcm_token)) { staff.fcm_token = []; }
+            //               staff.fcm_token.push(token);
+            //               const updateBody = {
+            //                 domain_name: DOMAIN_NAME,
+            //                 user_id: USER_ID,
+            //                 payload: { staff_updation: { fcm_token: staff.fcm_token } },
+            //                 extras: { find: { id: userData.staff_id } }
+            //               };
+            //               this.staffService.updateStaff(updateBody).subscribe(() => { }, (err: any) => { console.error('Error updating staff FCM token:', err); });
+            //             }
+            //           },
+            //           (err: any) => { console.error('Error fetching staff for FCM update:', err); }
+            //         );
+            //       } catch (err) {
+            //         console.error('Failed to get FCM token for staff:', err);
+            //       }
+            //       this.router.navigate(['/task-management'], { skipLocationChange: false });
+            //     }
+            //     else {
+            //       // Customer post-reset logic (unchanged)
+            //       this.localService.set('CustomerType', 'Customer');
+            //       this.localService.set('UserId', Number(userData.id));
+            //       const memberId = userData.customer_member_id ? userData.customer_member_id : userData.member_id;
+            //       this.localService.set('MemberId', memberId);
+            //       this.localService.set('domainName', DOMAIN_NAME);
+            //       this.localService.set('Name', userData.first_name);
+            //       this.localService.set('UserEmail', userData.email);
+            //       this.localService.set('db_schema', userData.db_schema);
+            //       this.dbSchema = userData.db_schema;
+            //       const role_id = userData.role_id;
+            //       const role_name = userData.role_name;
+            //       this.localService.set('roleId', role_id);
+            //       this.localService.set('roleName', role_name);
+            //       if (role_id) { await this.getRoleById(role_id); }
+            //       // Update customer FCM (existing)
+            //       try {
+            //         const userId: any = this.localService.get('UserId');
+            //         const token = await this.pushService.requestPermissionAndGetToken(userId);
+            //         const customerFetchBody = {
+            //           domain_name: DOMAIN_NAME,
+            //           user_id: USER_ID,
+            //           extras: { find: isEmailLogin ? { email: enteredValue } : { staff_employee_number: enteredValue } }
+            //         };
+            //         this.hotellistService.getSignupAllCustomers(customerFetchBody).subscribe(
+            //           (fcmResp: any) => {
+            //             if (fcmResp.success === 1 && fcmResp.status_code === 200 && fcmResp.result.data.length > 0) {
+            //               const customer = fcmResp.result.data[0];
+            //               if (!Array.isArray(customer.fcm_token)) { customer.fcm_token = []; }
+            //               customer.fcm_token.push(token);
+            //               const updateBody = {
+            //                 domain_name: DOMAIN_NAME,
+            //                 user_id: USER_ID,
+            //                 payload: { customer_update: { fcm_token: customer.fcm_token } },
+            //                 extras: { find: isEmailLogin ? { email: enteredValue } : { staff_employee_number: enteredValue } }
+            //               };
+            //               this.hotelenrollmenttabviewService.updateCustomerFcm(updateBody).subscribe(() => { }, (err: any) => { console.error('Error updating customer FCM token:', err); });
+            //             }
+            //           },
+            //           (err: any) => { console.error('Error fetching customer for FCM update:', err); }
+            //         );
+            //       } catch (err) {
+            //         console.error('Failed to get FCM token for customer:', err);
+            //       }
 
-                  // Navigate based on member id
-                  if (userData.customer_member_id) {
-                    this.router.navigate([`/edit-new-hotel/${userData.id}`], { skipLocationChange: false });
-                  } else {
-                    this.router.navigate(['/profile'], { skipLocationChange: false });
-                  }
-                }
-              },
-              (err: any) => {
-                this.alertService.error('Automatic login failed after password reset. Please login manually.', this.options);
-                this.alertClear();
-              }
-            );
+            //       // Navigate based on member id
+            //       if (userData.customer_member_id) {
+            //         this.router.navigate([`/edit-new-hotel/${userData.id}`], { skipLocationChange: false });
+            //       } else {
+            //         this.router.navigate(['/profile'], { skipLocationChange: false });
+            //       }
+            //     }
+            //   },
+            //   (err: any) => {
+            //     this.alertService.error('Automatic login failed after password reset. Please login manually.', this.options);
+            //     this.alertClear();
+            //   }
+            // );
+            // End of newly added and commented for login page navigation after password reset
           } catch (err) {
             this.alertService.error("Something went wrong during password reset.", this.options);
             this.alertClear();

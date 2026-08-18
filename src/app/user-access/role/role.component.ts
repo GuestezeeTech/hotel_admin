@@ -35,6 +35,7 @@ export class RoleComponent implements OnInit {
   hotelsForm !: FormGroup;
   taskManagementForm !: FormGroup;
   bookingsForm !: FormGroup;
+  guestsForm !: FormGroup;
   // restaurantsForm !: FormGroup;
   outletsForm !: FormGroup;
   userAccessForm !: FormGroup;
@@ -152,6 +153,13 @@ export class RoleComponent implements OnInit {
       delete: this.formBuilder.control(false),
       all: this.formBuilder.control(false)
     })
+    this.guestsForm = new FormGroup({
+      create: this.formBuilder.control(false),
+      edit: this.formBuilder.control(false),
+      read: this.formBuilder.control(false),
+      delete: this.formBuilder.control(false),
+      all: this.formBuilder.control(false)
+    })
     // this.restaurantsForm = new FormGroup({
     //   create: this.formBuilder.control(false),
     //   edit: this.formBuilder.control(false),
@@ -197,6 +205,7 @@ export class RoleComponent implements OnInit {
       this.hotelsForm.disable({ emitEvent: false });
       this.taskManagementForm.disable({ emitEvent: false });
       this.bookingsForm.disable({ emitEvent: false });
+      this.guestsForm.disable({ emitEvent: false });
       // this.restaurantsForm.disable({ emitEvent: false });
       this.outletsForm.disable({ emitEvent: false });
       this.featuresForm.disable({ emitEvent: false });
@@ -346,6 +355,15 @@ export class RoleComponent implements OnInit {
     else if (option === "bookings") {
       this.bookingsForm.controls['all'].setValue(false);
     }
+    else if (option === "guests") {
+      this.guestsForm.controls['create'].setValue(true);
+      this.guestsForm.controls['edit'].setValue(true);
+      this.guestsForm.controls['read'].setValue(true);
+      this.guestsForm.controls['delete'].setValue(true);
+    }
+    else if (option === "specGuests") {
+      this.guestsForm.controls['all'].setValue(false);
+    }
     // else if (option === "restaurant") {
     //   this.restaurantsForm.controls['create'].setValue(true);
     //   this.restaurantsForm.controls['edit'].setValue(true);
@@ -460,6 +478,18 @@ export class RoleComponent implements OnInit {
       const { create, edit, read, delete: del } = this.bookingsForm.value;
       const allSelected = create && edit && read && del;
       this.bookingsForm.controls['all'].setValue(allSelected);
+    }
+    else if (option === 'guests') {
+      const isAllChecked = this.guestsForm.controls['all'].value;
+      this.guestsForm.controls['create'].setValue(isAllChecked);
+      this.guestsForm.controls['edit'].setValue(isAllChecked);
+      this.guestsForm.controls['read'].setValue(isAllChecked);
+      this.guestsForm.controls['delete'].setValue(isAllChecked);
+    }
+    else if (option === 'specGuests') {
+      const { create, edit, read, delete: del } = this.guestsForm.value;
+      const allSelected = create && edit && read && del;
+      this.guestsForm.controls['all'].setValue(allSelected);
     }
     // else if (option === 'restaurant') {
     //   const isAllChecked = this.restaurantsForm.controls['all'].value;
@@ -581,6 +611,13 @@ export class RoleComponent implements OnInit {
             this.bookingsForm.controls["delete"].setValue(element.permission.has_delete_permission)
             this.allOptionsToggle('specBookings');
           }
+          else if (element.module_name === "GUESTS") {
+            this.guestsForm.controls["create"].setValue(element.permission.has_add_permission)
+            this.guestsForm.controls["edit"].setValue(element.permission.has_edit_permission)
+            this.guestsForm.controls["read"].setValue(element.permission.has_read_permission)
+            this.guestsForm.controls["delete"].setValue(element.permission.has_delete_permission)
+            this.allOptionsToggle('specGuests');
+          }
           // else if (element.module_name === "RESTAURANTS") {
           //   this.restaurantsForm.controls["create"].setValue(element.permission.has_add_permission)
           //   this.restaurantsForm.controls["edit"].setValue(element.permission.has_edit_permission)
@@ -667,6 +704,11 @@ export class RoleComponent implements OnInit {
     this.bookingsForm.controls["read"].setValue(false);
     this.bookingsForm.controls["delete"].setValue(false);
     this.bookingsForm.controls["all"].setValue(false);
+    this.guestsForm.controls["create"].setValue(false);
+    this.guestsForm.controls["edit"].setValue(false);
+    this.guestsForm.controls["read"].setValue(false);
+    this.guestsForm.controls["delete"].setValue(false);
+    this.guestsForm.controls["all"].setValue(false);
     // this.restaurantsForm.controls["create"].setValue(false);
     // this.restaurantsForm.controls["edit"].setValue(false);
     // this.restaurantsForm.controls["read"].setValue(false);
@@ -701,6 +743,7 @@ export class RoleComponent implements OnInit {
         !this.userAccessForm.value.create && !this.userAccessForm.value.edit && !this.userAccessForm.value.read && !this.userAccessForm.value.delete &&
         !this.systemSettingsForm.value.create && !this.systemSettingsForm.value.edit && !this.systemSettingsForm.value.read && !this.systemSettingsForm.value.delete &&
         !this.bookingsForm.value.create && !this.bookingsForm.value.edit && !this.bookingsForm.value.read && !this.bookingsForm.value.delete &&
+        !this.guestsForm.value.create && !this.guestsForm.value.edit && !this.guestsForm.value.read && !this.guestsForm.value.delete &&
         !this.outletsForm.value.create && !this.outletsForm.value.edit && !this.outletsForm.value.read && !this.outletsForm.value.delete &&
         !this.featuresForm.value.create && !this.featuresForm.value.edit && !this.featuresForm.value.read && !this.featuresForm.value.delete &&
         !this.duePaymentsForm.controls['read'].value
@@ -790,6 +833,15 @@ export class RoleComponent implements OnInit {
               "has_edit_permission": this.bookingsForm.value.edit,
               "has_read_permission": this.bookingsForm.value.read,
               "has_delete_permission": this.bookingsForm.value.delete
+            }
+          },
+          {
+            "module_name": "GUESTS",
+            "permission": {
+              "has_add_permission": this.guestsForm.value.create,
+              "has_edit_permission": this.guestsForm.value.edit,
+              "has_read_permission": this.guestsForm.value.read,
+              "has_delete_permission": this.guestsForm.value.delete
             }
           },
           // {
@@ -908,6 +960,7 @@ export class RoleComponent implements OnInit {
         !this.userAccessForm.value.create && !this.userAccessForm.value.edit && !this.userAccessForm.value.read && !this.userAccessForm.value.delete &&
         !this.systemSettingsForm.value.create && !this.systemSettingsForm.value.edit && !this.systemSettingsForm.value.read && !this.systemSettingsForm.value.delete &&
         !this.bookingsForm.value.create && !this.bookingsForm.value.edit && !this.bookingsForm.value.read && !this.bookingsForm.value.delete &&
+        !this.guestsForm.value.create && !this.guestsForm.value.edit && !this.guestsForm.value.read && !this.guestsForm.value.delete &&
         !this.outletsForm.value.create && !this.outletsForm.value.edit && !this.outletsForm.value.read && !this.outletsForm.value.delete &&
         !this.featuresForm.value.create && !this.featuresForm.value.edit && !this.featuresForm.value.read && !this.featuresForm.value.delete &&
         !this.duePaymentsForm.controls['read'].value
@@ -997,6 +1050,15 @@ export class RoleComponent implements OnInit {
               "has_edit_permission": this.bookingsForm.value.edit,
               "has_read_permission": this.bookingsForm.value.read,
               "has_delete_permission": this.bookingsForm.value.delete
+            }
+          },
+          {
+            "module_name": "GUESTS",
+            "permission": {
+              "has_add_permission": this.guestsForm.value.create,
+              "has_edit_permission": this.guestsForm.value.edit,
+              "has_read_permission": this.guestsForm.value.read,
+              "has_delete_permission": this.guestsForm.value.delete
             }
           },
 

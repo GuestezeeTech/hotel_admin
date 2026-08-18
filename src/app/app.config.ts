@@ -635,5 +635,6 @@ export const ENDPOINTS = {
 
   // DELETE_CUSTOMER_SIGNUP: API_URL3 + ':5430/customer/delete',
   DELETE_CUSTOMER_SIGNUP: API_URL + ':8006/customer/delete',
+  GET_ALL_GUESTS: API_URL + ':9898/guestdata/getall'
 }
 

@@ -1,0 +1,10 @@
+commit bebd1b4144ac6a850cf0037d24ea3994d994bf8d
+Author: Elakkiya Asokan <elakkiyaasokan@ecbee.net>
+Date:   Fri Aug 14 17:44:24 2026 +0530
+
+    Latest updated code
+
+ .angular/cache/18.2.14/GUESTEZEE_ADMIN/.tsbuildinfo      |  2 +-
+ .../hotel-enrollment-tabview.component.ts                | 16 ++++++++--------
+ src/app/shared/header/header.component.ts                | 12 ++++++------
+ 3 files changed, 15 insertions(+), 15 deletions(-)
