@@ -720,6 +720,18 @@ export class AppComponent implements OnInit, OnDestroy {
       this.showNotificationBlockedAlert = true;
       this.notificationPermissionState = Notification.permission as 'default' | 'denied';
       this.localservice.set('isFcmUnavailable', 'true');
+
+      const currentToken = sessionStorage.getItem('CurrentTabFcmToken');
+      const userId = this.localservice.get('UserId');
+      const customerType = this.localservice.get('CustomerType');
+      if (currentToken && userId) {
+        console.log('[App Notifications] Revoking active token from DB: user blocked notifications');
+        this.logoutService.removeFcmToken(Number(userId), customerType).then(() => {
+          sessionStorage.removeItem('CurrentTabFcmToken');
+        }).catch(err => {
+          console.error('[App Notifications] Error removing token on permission change:', err);
+        });
+      }
     } else {
       this.showNotificationBlockedAlert = false;
       this.localservice.set('isFcmUnavailable', 'false');

@@ -867,73 +867,75 @@ export class LoginComponent implements OnInit {
                     // this.router.navigate([`/add-new-hotel`]);
                     this.router.navigate(['/profile']);
                   }
-                  // Requesting FCM token right after login
-                  try {
-                    const userId: any = this.localService.get('UserId');
-                    const token = await this.pushService.requestPermissionAndGetToken(userId);
-                    const isFcmUnavailable = !token || token.trim() === '';
-                    this.localService.set('isFcmUnavailable', isFcmUnavailable ? 'true' : 'false');
-                    // this.token = await this.pushService.requestPermission();
-                    // console.log('User FCM Token:', token);
-                    // Step 1: Fetch customer by id
-                    const fetchBody = {
-                      domain_name: DOMAIN_NAME,
-                      user_id: USER_ID,
-                      extras: {
-                        find: { id: userData.id }
-                      }
-                    };
-                    this.hotelenrollmenttabviewService.getLoginCustomerById(fetchBody).subscribe(
-                      (resp: any) => {
-                        if (resp.success === 1 && resp.status_code === 200 && resp.result.data.length > 0) {
-                          const customer = resp.result.data[0];
-                          // Step 2: Ensure fcm_token array exists
-                          if (!Array.isArray(customer.fcm_token)) {
-                            customer.fcm_token = [];
-                          }
-                          if (token !== null && token !== undefined && token.trim() !== '') {
-                            if (!customer.fcm_token.includes(token)) {
-                              customer.fcm_token.push(token);
-                            }
-                            sessionStorage.setItem('CurrentTabFcmToken', token);
-                          }
-                          localStorage.setItem('UserFcmTokens', JSON.stringify(customer.fcm_token));
-                          // Step 4: Update customer with the new array
-                          const updateBody = {
-                            domain_name: DOMAIN_NAME,
-                            user_id: USER_ID,
-                            payload: {
-                              customer_update: {
-                                fcm_token: customer.fcm_token
-                              }
-                            },
-                            extras: {
-                              find: { id: userData.id }
-                            }
-                          };
-                          this.hotelenrollmenttabviewService.updateCustomerFcm(updateBody).subscribe(
-                            (updateResp: any) => {
-                              if (updateResp.success === 1 && updateResp.status_code === 200) {
-                                // console.log('FCM token updated successfully:', token);
-                              } else {
-                                console.error('Failed to update FCM token:', updateResp?.message);
-                              }
-                            },
-                            (err: any) => {
-                              console.error('Error updating customer FCM token:', err);
-                            }
-                          );
-                        } else {
-                          console.error('Customer not found for email:', this.loginForm.value.email);
+                  // Requesting FCM token right after login (only for Customers since Staff is handled above)
+                  if (userData.staff_employee_number === undefined) {
+                    try {
+                      const userId: any = this.localService.get('UserId');
+                      const token = await this.pushService.requestPermissionAndGetToken(userId);
+                      const isFcmUnavailable = !token || token.trim() === '';
+                      this.localService.set('isFcmUnavailable', isFcmUnavailable ? 'true' : 'false');
+                      // this.token = await this.pushService.requestPermission();
+                      // console.log('User FCM Token:', token);
+                      // Step 1: Fetch customer by id
+                      const fetchBody = {
+                        domain_name: DOMAIN_NAME,
+                        user_id: USER_ID,
+                        extras: {
+                          find: { id: userData.id }
                         }
-                      },
-                      (err: any) => {
-                        console.error('Error fetching customer:', err);
-                      }
-                    );
-                  } catch (err) {
-                    console.error('Failed to get FCM token:', err);
-                    this.localService.set('isFcmUnavailable', 'true');
+                      };
+                      this.hotelenrollmenttabviewService.getLoginCustomerById(fetchBody).subscribe(
+                        (resp: any) => {
+                          if (resp.success === 1 && resp.status_code === 200 && resp.result.data.length > 0) {
+                            const customer = resp.result.data[0];
+                            // Step 2: Ensure fcm_token array exists
+                            if (!Array.isArray(customer.fcm_token)) {
+                              customer.fcm_token = [];
+                            }
+                            if (token !== null && token !== undefined && token.trim() !== '') {
+                              if (!customer.fcm_token.includes(token)) {
+                                customer.fcm_token.push(token);
+                              }
+                              sessionStorage.setItem('CurrentTabFcmToken', token);
+                            }
+                            localStorage.setItem('UserFcmTokens', JSON.stringify(customer.fcm_token));
+                            // Step 4: Update customer with the new array
+                            const updateBody = {
+                              domain_name: DOMAIN_NAME,
+                              user_id: USER_ID,
+                              payload: {
+                                customer_update: {
+                                  fcm_token: customer.fcm_token
+                                }
+                              },
+                              extras: {
+                                find: { id: userData.id }
+                              }
+                            };
+                            this.hotelenrollmenttabviewService.updateCustomerFcm(updateBody).subscribe(
+                              (updateResp: any) => {
+                                if (updateResp.success === 1 && updateResp.status_code === 200) {
+                                  // console.log('FCM token updated successfully:', token);
+                                } else {
+                                  console.error('Failed to update FCM token:', updateResp?.message);
+                                }
+                              },
+                              (err: any) => {
+                                console.error('Error updating customer FCM token:', err);
+                              }
+                            );
+                          } else {
+                            console.error('Customer not found for email:', this.loginForm.value.email);
+                          }
+                        },
+                        (err: any) => {
+                          console.error('Error fetching customer:', err);
+                        }
+                      );
+                    } catch (err) {
+                      console.error('Failed to get FCM token:', err);
+                      this.localService.set('isFcmUnavailable', 'true');
+                    }
                   }
                   // // let service_details = await this.getServiceById();
                   // //console.log('Service details:', service_details);

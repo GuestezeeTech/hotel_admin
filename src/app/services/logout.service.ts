@@ -47,7 +47,10 @@ export class LogoutService {
         return; // already logged out, nothing to clean
       }
 
-      const currentToken = await this.pushService.getCurrentToken();
+      let currentToken = sessionStorage.getItem('CurrentTabFcmToken');
+      if (!currentToken) {
+        currentToken = await this.pushService.getCurrentToken();
+      }
       console.log('[LogoutService] currentToken:', currentToken);
 
       // ── Customer / Staff table ──

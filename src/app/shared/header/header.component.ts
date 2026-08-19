@@ -317,7 +317,10 @@ export class HeaderComponent implements OnInit {
         // Run FCM removal with a strict timeout (e.g. 1000ms) so it never blocks the logout
         await Promise.race([
           (async () => {
-            const currentToken = await this.pushService.getCurrentToken();
+            let currentToken = sessionStorage.getItem('CurrentTabFcmToken');
+            if (!currentToken) {
+              currentToken = await this.pushService.getCurrentToken();
+            }
             const customerFindKey = customerType === 'Staff' ? 'staff_id' : 'id';
             const customerFetchBody = {
               domain_name: DOMAIN_NAME,

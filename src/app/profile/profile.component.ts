@@ -246,7 +246,7 @@ export class ProfileComponent implements OnInit {
 
       // Valid size - proceed with preview and upload original file to maintain quality
       this.imgFile = originalFile;
-      
+
       const reader = new FileReader();
       reader.onload = (evt: any) => {
         this.previewImgUrl = evt.target.result;
@@ -664,7 +664,10 @@ export class ProfileComponent implements OnInit {
         // Run FCM removal with a strict timeout (e.g. 1000ms) so it never blocks the logout
         await Promise.race([
           (async () => {
-            const currentToken = await this.pushService.getCurrentToken();
+            let currentToken = sessionStorage.getItem('CurrentTabFcmToken');
+            if (!currentToken) {
+              currentToken = await this.pushService.getCurrentToken();
+            }
             const customerFindKey = customerType === 'Staff' ? 'staff_id' : 'id';
             const customerFetchBody = {
               domain_name: DOMAIN_NAME,
