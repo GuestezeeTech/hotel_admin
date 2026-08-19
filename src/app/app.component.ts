@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, ChangeDetectorRef } from '@angular/core';
 import { Router, NavigationStart, NavigationEnd, NavigationCancel, NavigationError, RouteConfigLoadStart, RouteConfigLoadEnd, RouterOutlet } from '@angular/router';
 import { LoginComponent } from './login/login.component';
 import { MenuBarComponent } from './shared/menu-bar/menu-bar.component';
@@ -172,6 +172,8 @@ export class AppComponent implements OnInit, OnDestroy {
   private hotelStatusInterval: any;
   private isFcmInitialized = false;
   notifications: any[] = [];
+  showNotificationBlockedAlert = false;
+  notificationPermissionState: 'default' | 'denied' = 'default';
 
   private routesWithoutSidebar = ['/login', '/', '/view'];
 
@@ -185,7 +187,8 @@ export class AppComponent implements OnInit, OnDestroy {
     private taskManagementService: TaskManagementService,
     private hotelEnrollmentService: HotelEnrollmentTabviewService,
     private paymentHelperService: PaymentHelperService,
-    private staffService: StaffService
+    private staffService: StaffService,
+    private cdr: ChangeDetectorRef
   ) {
     this.isUserInactive = this.localservice.get('isUserInactive') === 'true';
     // --- Sidebar and menu tracking ---
@@ -376,6 +379,7 @@ export class AppComponent implements OnInit, OnDestroy {
           this.localservice.set('lastValidUrl', url);
         }
         this.initFcmHandling();
+        this.checkNotificationPermission();
       }
     });
   }
@@ -457,6 +461,19 @@ export class AppComponent implements OnInit, OnDestroy {
       // }
     });
     this.initFcmHandling();
+    this.checkNotificationPermission();
+    if ('permissions' in navigator) {
+      navigator.permissions.query({ name: 'notifications' }).then((permissionStatus) => {
+        permissionStatus.onchange = () => {
+          this.checkNotificationPermission();
+        };
+      }).catch(e => console.warn('Permissions API query failed:', e));
+    }
+
+    // Periodic check to prevent check timing/routing race conditions when logging in
+    setInterval(() => {
+      this.checkNotificationPermission();
+    }, 2000);
   }
 
   initFcmHandling(): void {
@@ -682,6 +699,92 @@ export class AppComponent implements OnInit, OnDestroy {
     }
   }
 
+  checkNotificationPermission() {
+    if (!('Notification' in window)) {
+      return;
+    }
+    const customerType = this.localservice.get('CustomerType');
+    if (customerType !== 'Staff') {
+      this.showNotificationBlockedAlert = false;
+      this.cdr.detectChanges();
+      return;
+    }
+    const isDismissed = sessionStorage.getItem('dismissedNotificationAlert') === 'true';
+    if (isDismissed) {
+      this.showNotificationBlockedAlert = false;
+      this.cdr.detectChanges();
+      return;
+    }
+
+    if (Notification.permission !== 'granted') {
+      this.showNotificationBlockedAlert = true;
+      this.notificationPermissionState = Notification.permission as 'default' | 'denied';
+      this.localservice.set('isFcmUnavailable', 'true');
+    } else {
+      this.showNotificationBlockedAlert = false;
+      this.localservice.set('isFcmUnavailable', 'false');
+      // Auto-register FCM token since permission is enabled
+      const userId = this.localservice.get('UserId');
+      const isLoggedOut = this.localservice.get('loggedOut') === 'true';
+      if (userId && !isLoggedOut && !sessionStorage.getItem('CurrentTabFcmToken')) {
+        this.pushService.requestPermissionAndGetToken(userId.toString()).then(token => {
+          if (token) {
+            sessionStorage.setItem('CurrentTabFcmToken', token);
+            this.registerFcmTokenOnLoad(token);
+          }
+        }).catch(err => console.error('Failed auto-registering FCM token:', err));
+      }
+    }
+    this.cdr.detectChanges();
+  }
+
+  handleInstructionsOk() {
+    console.log('[App Notifications] handleInstructionsOk clicked. Current permission:', Notification.permission);
+    const userId = this.localservice.get('UserId');
+    if ('Notification' in window && userId) {
+      console.log('[App Notifications] Invoking requestPermission directly on click...');
+      // Invoke Notification.requestPermission synchronously inside the click handler to guarantee active user gesture
+      Notification.requestPermission().then(status => {
+        console.log('[App Notifications] Native permission resolved to:', status);
+        if (status === 'granted') {
+          this.localservice.set('isFcmUnavailable', 'false');
+          this.pushService.getCurrentToken().then(token => {
+            if (token) {
+              sessionStorage.setItem('CurrentTabFcmToken', token);
+              this.registerFcmTokenOnLoad(token);
+            } else {
+              this.pushService.requestPermissionAndGetToken(userId.toString()).then(t => {
+                if (t) {
+                  sessionStorage.setItem('CurrentTabFcmToken', t);
+                  this.registerFcmTokenOnLoad(t);
+                }
+              });
+            }
+          }).catch(err => console.error('[App Notifications] Error getting current FCM token:', err));
+        } else {
+          this.localservice.set('isFcmUnavailable', 'true');
+        }
+      }).catch(err => {
+        console.error('[App Notifications] Error requesting permission:', err);
+        this.localservice.set('isFcmUnavailable', 'true');
+      });
+    } else {
+      this.localservice.set('isFcmUnavailable', 'true');
+    }
+
+    // Delay dismissal slightly to keep the clicked DOM element alive
+    // so the browser does not invalidate the user gesture context.
+    setTimeout(() => {
+      this.dismissNotificationAlert();
+    }, 250);
+  }
+
+  dismissNotificationAlert() {
+    this.showNotificationBlockedAlert = false;
+    sessionStorage.setItem('dismissedNotificationAlert', 'true');
+    this.cdr.detectChanges();
+  }
+
   // Newly added for inactive log out
   checkHotelStatus(): void {
     if (window.location.href.includes('confirmation')) {
@@ -881,6 +984,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.localservice.remove('isFcmUnavailable');
     this.localservice.remove('isUserInactive');
     sessionStorage.removeItem('CurrentTabFcmToken');
+    sessionStorage.removeItem('dismissedNotificationAlert');
     this.localservice.set('loggedOut', 'true');
     // ── Step 3: Navigate to login ──
     this.router.navigate([''], { skipLocationChange: false, replaceUrl: true });

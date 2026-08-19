@@ -2,7 +2,7 @@ import { PushService } from './../../services/push.service';
 import { TaskManagementService } from './../../task-management/task-management.service';
 import { NotificationService } from './../../notification/notification.service';
 import { TechnicalInfoService } from './../../hotel-enrollment-tabview/technical-info/technical-info.service';
-import { DOMAIN_NAME, USER_ID } from './../../app.config';
+import { DOMAIN_NAME, USER_ID, ENDPOINTS } from './../../app.config';
 import { CheckoutApiService } from '../../hotel-enrollment-tabview/checkout.service';
 import { LoaderService } from './../loader/loader.service';
 import { Component, Input, OnInit } from '@angular/core';
@@ -467,6 +467,7 @@ export class HeaderComponent implements OnInit {
     this.localService.remove('isFcmUnavailable');
     this.localService.remove('isUserInactive');
     sessionStorage.removeItem('CurrentTabFcmToken');
+    sessionStorage.removeItem('dismissedNotificationAlert');
     this.localService.set('loggedOut', 'true');
     this.router.navigate([''], { skipLocationChange: false, replaceUrl: true });
     this.userAccessService.removeUserAccess();
@@ -1164,14 +1165,46 @@ export class HeaderComponent implements OnInit {
       return;
     }
     // console.log('lastRelevantInstallment', lastRelevantInstallment);
-    // Enable button 20 days before subscription_end_date of lastRelevantInstallment
+
+    // Newly added & commented for dynamic days from super admin
+    let payNowDays = 0;
+    try {
+      const userRequest = {
+        domain_name: DOMAIN_NAME,
+        user_id: USER_ID,
+        extras: {
+          find: {
+            id: 1
+          }
+        }
+      };
+      const userResp: any = await firstValueFrom(
+        this.hotelenrollmenttabviewService.postApiCall(userRequest, ENDPOINTS.GET_USERS_BY_ID)
+      );
+      if (userResp?.success === 1 && userResp?.result?.data?.[0]) {
+        const userData = userResp.result.data[0];
+        if (userData.pay_now_days !== undefined && userData.pay_now_days !== null) {
+          payNowDays = Number(userData.pay_now_days);
+        }
+      }
+      else {
+        console.log('Error fetching pay_now_days', userResp);
+      }
+    } catch (err) {
+      console.error('Error fetching pay_now_days, falling back to 20:', err);
+    }
+    // End of newly added & commented for dynamic days from super admin
+    // Enable button payNowDays before subscription_end_date of lastRelevantInstallment
     const [day, month, year] = lastRelevantInstallment.subscription_end_date.split('-').map(Number);
     // console.log('day, month, year', day, month, year);
     const subEndDate = new Date(year, month - 1, day);
     // console.log('Sub end Date', subEndDate);
     const enableDate = new Date(subEndDate);
     // console.log('enableDate before format', enableDate);
-    enableDate.setDate(enableDate.getDate() - 20);
+    // Newly added & commented for dynamic days from super admin
+    // enableDate.setDate(enableDate.getDate() - 20);
+    enableDate.setDate(enableDate.getDate() - payNowDays);
+    // End of newly added & commented for dynamic days from super admin
     const today = new Date();
     // console.log('enableDate due date', enableDate);
     const enabled = today >= enableDate;

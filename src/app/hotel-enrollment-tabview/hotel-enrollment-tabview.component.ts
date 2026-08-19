@@ -16,8 +16,8 @@ import { LoaderService } from '../shared/loader/loader.service';
 import { AlertsService } from '../shared/alerts/alerts.service';
 import { CommonModule } from '@angular/common';
 import { filter } from 'rxjs/operators';
-import { BehaviorSubject } from 'rxjs';
-import { DOMAIN_NAME } from '../app.config';
+import { BehaviorSubject, firstValueFrom } from 'rxjs';
+import { DOMAIN_NAME, ENDPOINTS } from '../app.config';
 import { HierarchyDetailService } from './hierarchy-details/hierarchy-details.service';
 import { TechnicalInfoService } from './technical-info/technical-info.service';
 import { ServiceDetailService } from './service-details/service-details.service';
@@ -631,7 +631,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
       }
     }
     this.hotelenrollmentservice.orderDetailsGetById(formatJson).subscribe(
-      resp => {
+      async resp => {
         this.loaderService.emitComplete();
         if (resp && resp.result.data.length > 0) {
           // this.orderdata = resp.result.data[0];
@@ -738,7 +738,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
             };
 
             this.hotelenrollmentservice.orderUpsert(orderUpdateData).subscribe(
-              (orderResp: any) => {
+              async (orderResp: any) => {
                 if (orderResp.success === 1) {
                   // console.log('Order consolidated update successful');
                   if (isPaymentProcessed && paymentProcessedInstallment) {
@@ -833,7 +833,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
                       });
                     }
                     // End of newly added code for updating is_active value once the payment is done successfully
-                    this.updateHeaderPayNowButton();
+                    await this.updateHeaderPayNowButton();
                   }
                 } else {
                   console.error('Failed to update order in consolidated call', orderResp.message);
@@ -1026,7 +1026,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
   //   console.log('Pay Now Button:', buttonState);
   // }
 
-  updateHeaderPayNowButton() {
+  async updateHeaderPayNowButton() {
     if (!this.orderdata || !this.orderdata.payment_split) {
       this.technicalInfoService.updatePayNowButton(false, false);
       return;
@@ -1057,14 +1057,45 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
       this.technicalInfoService.updatePayNowButton(false, false);
       return;
     }
-    // Enable button 20 days before subscription_end_date of lastRelevantInstallment
+    // Newly added & commented for dynamic days from super admin
+    let payNowDays = 0;
+    try {
+      const userRequest = {
+        domain_name: DOMAIN_NAME,
+        user_id: USER_ID,
+        extras: {
+          find: {
+            id: 1
+          }
+        }
+      };
+      const userResp: any = await firstValueFrom(
+        this.hotelenrollmentservice.postApiCall(userRequest, ENDPOINTS.GET_USERS_BY_ID)
+      );
+      if (userResp?.success === 1 && userResp?.result?.data?.[0]) {
+        const userData = userResp.result.data[0];
+        if (userData.pay_now_days !== undefined && userData.pay_now_days !== null) {
+          payNowDays = Number(userData.pay_now_days);
+        }
+      }
+      else {
+        console.log('Error fetching pay_now_days', userResp);
+      }
+    } catch (err) {
+      console.error('Error fetching pay_now_days, falling back to 20:', err);
+    }
+    // End of newly added & commented for dynamic days from super admin
+    // Enable button payNowDays days before subscription_end_date of lastRelevantInstallment
     const [day, month, year] = lastRelevantInstallment.subscription_end_date.split('-').map(Number);
     // console.log('day, month, year', day, month, year);
     const subEndDate = new Date(year, month - 1, day);
     // console.log('Sub end Date', subEndDate);
     const enableDate = new Date(subEndDate);
     // console.log('enableDate before format', enableDate);
-    enableDate.setDate(enableDate.getDate() - 20);
+    // Newly added & commented for dynamic days from super admin
+    // enableDate.setDate(enableDate.getDate() - 20);
+    enableDate.setDate(enableDate.getDate() - payNowDays);
+    // End of newly added & commented for dynamic days from super admin
     const today = new Date();
     // console.log('enableDate due date', enableDate);
     const enabled = today >= enableDate;

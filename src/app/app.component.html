@@ -111,3 +111,54 @@
   </div>
 </div>
 }
+
+<!-- Notification Permission Custom Centered Modals -->
+@if (showNotificationBlockedAlert) {
+<div class="notification-modal-backdrop">
+  <div class="notification-alert-modal" [class.prompt-modal]="notificationPermissionState === 'default'"
+    [class.blocked-modal]="notificationPermissionState === 'denied'">
+
+    <div class="modal-icon-box" [class.text-primary]="notificationPermissionState === 'default'"
+      [class.text-warning]="notificationPermissionState === 'denied'">
+      <!--@if (notificationPermissionState === 'default') {
+      <i class="bi bi-bell-fill"></i>
+      } @else {
+      <i class="bi bi-exclamation-circle-fill"></i>
+      } -->
+      <i class="bi bi-bell-fill"></i>
+    </div>
+
+    <div class="modal-content-box">
+      <h5 class="modal-heading">
+        Stay Connected & Available
+        <!-- @if (notificationPermissionState === 'default') {
+        Stay Connected & Available
+        } @else {
+        Updates Blocked
+        } -->
+      </h5>
+      <p class="modal-description">
+        @if (notificationPermissionState === 'default') {
+        Enable real-time notifications to receive immediate task updates and stay active. Click OK and choose "Allow"
+        when prompted.
+        } @else {
+        For your status to remain active and to receive real-time task alerts, notification permissions are required.
+        Please enable notifications in your browser settings (usually by clicking the lock, info circle <i
+          class="bi bi-info-circle"></i>, or exclamation icon next to the URL).
+        }
+      </p>
+      <div class="modal-button-row">
+        <button class="btn-modal-secondary" (click)="dismissNotificationAlert()">Later</button>
+        <button class="btn-modal-primary" (click)="handleInstructionsOk()">
+          @if (notificationPermissionState === 'default') {
+          OK
+          } @else {
+          Got It
+          }
+        </button>
+      </div>
+    </div>
+    <button class="modal-close" (click)="dismissNotificationAlert()">&times;</button>
+  </div>
+</div>
+}
