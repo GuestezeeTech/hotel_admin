@@ -1,4 +1,5 @@
 import { PushService } from './../../services/push.service';
+import { LogoutService } from './../../services/logout.service';
 import { TaskManagementService } from './../../task-management/task-management.service';
 import { NotificationService } from './../../notification/notification.service';
 import { TechnicalInfoService } from './../../hotel-enrollment-tabview/technical-info/technical-info.service';
@@ -86,6 +87,7 @@ export class HeaderComponent implements OnInit {
     private hotellistService: HotelListService,
     private taskManagementService: TaskManagementService,
     private pushService: PushService,
+    private logoutService: LogoutService,
     private staffService: StaffService,
     private hotelenrollmenttabviewService: HotelEnrollmentTabviewService,
     private cd: ChangeDetectorRef,
@@ -151,6 +153,8 @@ export class HeaderComponent implements OnInit {
     this.cd.detectChanges();// newly added
     // Newly added for payment
     // For tracking pay now button state & values
+    // Newly commeneted & added of button show & enable in header
+    /*
     const savedState = this.localService.get('payNowButtonState');
     // console.log('Saved state:', savedState);
     if (savedState != null || savedState != undefined) {
@@ -162,6 +166,21 @@ export class HeaderComponent implements OnInit {
       // console.log('Fallback');
       await this.updateHeaderPayNowButton();
     }
+    */
+    // Fix stale cache on payment cancellation/confirmation callback routes
+    const isPaymentCallback = this.router.url.includes('cancellation') || this.router.url.includes('confirmation');
+    const savedState = this.localService.get('payNowButtonState');
+    if (savedState && !isPaymentCallback) {
+      const state = JSON.parse(savedState);
+      this.paymentEventService.updatePayNowButton(state.show, state.enabled, state.installmentText);
+    }
+    else {
+      if (isPaymentCallback) {
+        this.localService.remove('payNowButtonState');
+      }
+      await this.updateHeaderPayNowButton();
+    }
+    // End of newly commeneted & added of button show & enable in header
     this.paymentEventService.payNowButton$.subscribe(state => {
       this.payNowButtonState = state;
     });
@@ -314,111 +333,13 @@ export class HeaderComponent implements OnInit {
       const userId = Number(this.localService.get('UserId'));
       const customerType = this.localService.get('CustomerType');
       if (userId) {
-        // Run FCM removal with a strict timeout (e.g. 1000ms) so it never blocks the logout
+        // Run FCM removal with a strict timeout (e.g. 1000ms) so it never blocks the logout.
+        // Delegates to LogoutService.removeFcmToken (same fetch/filter/update logic this
+        // used to duplicate inline) so this logout path shares LogoutService's cleanup
+        // queue with auto-logout, inactive-logout, and permission-toggle cleanup instead
+        // of racing them uncoordinated.
         await Promise.race([
-          (async () => {
-            let currentToken = sessionStorage.getItem('CurrentTabFcmToken');
-            if (!currentToken) {
-              currentToken = await this.pushService.getCurrentToken();
-            }
-            const customerFindKey = customerType === 'Staff' ? 'staff_id' : 'id';
-            const customerFetchBody = {
-              domain_name: DOMAIN_NAME,
-              user_id: USER_ID,
-              extras: { find: { [customerFindKey]: userId } }
-            };
-            const customerResp: any = await this.hotellistService.getSignupAllCustomers(customerFetchBody).toPromise();
-            if (customerResp.success === 1 && customerResp.result.data.length > 0) {
-              const customer = customerResp.result.data[0];
-              let hasTokenChanged = false;
-              let updatedTokens = customer.fcm_token || [];
-              if (currentToken && Array.isArray(customer.fcm_token)) {
-                const initialLength = customer.fcm_token.length;
-                updatedTokens = customer.fcm_token.filter((t: string) => t !== currentToken);
-                if (updatedTokens.length !== initialLength) {
-                  hasTokenChanged = true;
-                }
-              }
-              const remainingCount = updatedTokens.length;
-              const isAvailableValue = remainingCount >= 1;
-              const isFcmUnavailable = this.localService.get('isFcmUnavailable') === 'true';
-              const customerUpdatePayload: any = {
-                fcm_token: updatedTokens
-              };
-              if (customerType === 'Staff' && !isFcmUnavailable) {
-                customerUpdatePayload.is_available = isAvailableValue;
-              }
-
-              if (hasTokenChanged) {
-                const updateBody = {
-                  domain_name: DOMAIN_NAME,
-                  user_id: USER_ID,
-                  payload: { customer_update: customerUpdatePayload },
-                  extras: { find: { [customerFindKey]: userId } }
-                };
-                await this.hotelenrollmenttabviewService.updateCustomerFcm(updateBody).toPromise();
-              } else if (customerType === 'Staff' && !isFcmUnavailable) {
-                // Token list did not change, but still sync is_available in case it drifted
-                const availBody = {
-                  domain_name: DOMAIN_NAME,
-                  user_id: USER_ID,
-                  payload: { customer_update: { is_available: isAvailableValue } },
-                  extras: { find: { [customerFindKey]: userId } }
-                };
-                await this.hotelenrollmenttabviewService.updateCustomerFcm(availBody).toPromise();
-              }
-            }
-            if (customerType === 'Staff') {
-              const staffFetchBody = {
-                domain_name: DOMAIN_NAME,
-                user_id: USER_ID,
-                extras: { find: { id: userId } }
-              };
-              const staffResp: any = await this.taskManagementService.getAllStaves(staffFetchBody).toPromise();
-              if (staffResp.success === 1 && staffResp.result.data.length > 0) {
-                const staff = staffResp.result.data[0];
-                let hasTokenChanged = false;
-                let updatedTokens = staff.fcm_token || [];
-                if (currentToken && Array.isArray(staff.fcm_token)) {
-                  const initialLength = staff.fcm_token.length;
-                  updatedTokens = staff.fcm_token.filter((t: string) => t !== currentToken);
-                  if (updatedTokens.length !== initialLength) {
-                    hasTokenChanged = true;
-                  }
-                }
-                // Combine fcm_token removal and is_available into ONE call to avoid out-of-order writes
-                const isFcmUnavailable = this.localService.get('isFcmUnavailable') === 'true';
-                const remainingCount = updatedTokens.length;
-                const isAvailableValue = remainingCount >= 1;
-                const staffUpdationPayload: any = {
-                  fcm_token: updatedTokens
-                };
-                if (!isFcmUnavailable) {
-                  staffUpdationPayload.is_available = isAvailableValue;
-                }
-                if (hasTokenChanged) {
-                  const updateBody = {
-                    domain_name: DOMAIN_NAME,
-                    user_id: USER_ID,
-                    payload: {
-                      staff_updation: staffUpdationPayload
-                    },
-                    extras: { find: { id: userId } }
-                  };
-                  await this.staffService.updateStaff(updateBody).toPromise();
-                } else if (!isFcmUnavailable) {
-                  // Token list did not change, but still sync is_available in case it drifted
-                  const availableUpdateBody = {
-                    domain_name: DOMAIN_NAME,
-                    user_id: USER_ID,
-                    payload: { staff_updation: { is_available: isAvailableValue } },
-                    extras: { find: { id: userId } }
-                  };
-                  await this.staffService.updateStaff(availableUpdateBody).toPromise();
-                }
-              }
-            }
-          })(),
+          this.logoutService.removeFcmToken(userId, customerType),
           new Promise<void>((resolve) => setTimeout(resolve, 1000))
         ]);
       }
@@ -546,7 +467,15 @@ export class HeaderComponent implements OnInit {
     const hotelId = Number(this.localService.get('UserId'));
     this.hotelId = hotelId;
     if (hotelId) {
+      // Newly commeneted & added of button show & enable in header
+      /*
       this.getCustomerById().then(() => {
+      */
+      // Clear cache and recalculate pay now button state on callback routes
+      this.getCustomerById().then(async () => {
+        this.localService.remove('payNowButtonState');
+        await this.updateHeaderPayNowButton();
+        // End of newly commeneted & added of button show & enable in header
         if (this.customerdata) {
           this.customerType = this.customerdata.staff_employee_number == undefined ? 'Customer' : 'Staff';
           this.localService.set('CustomerType', this.customerType);

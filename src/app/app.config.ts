@@ -547,7 +547,7 @@ export const ENDPOINTS = {
     DELETE_ROLE: API_URL3 + ':5404/roles/delete',
     GET_ALL_ROLES: API_URL3 + ":9401/roles/getall", */
   GET_ALL_USERS: API_URL3 + ":9400/user/getall",
-  GET_USERS_BY_ID: API_URL3 + ":9400/user/getbyid",
+  // GET_USERS_BY_ID: API_URL3 + ":9400/user/getbyid",
   UPDATE_USER: API_URL3 + ":5403/user/update",
   ADD_USERS: API_URL3 + ':5403/user/create',
   DELETE_USER: API_URL3 + ":5403/user/delete",
@@ -635,6 +635,7 @@ export const ENDPOINTS = {
 
   // DELETE_CUSTOMER_SIGNUP: API_URL3 + ':5430/customer/delete',
   DELETE_CUSTOMER_SIGNUP: API_URL + ':8006/customer/delete',
-  GET_ALL_GUESTS: API_URL + ':9898/guestdata/getall'
+  GET_ALL_GUESTS: API_URL + ':9898/guestdata/getall',
+  GET_USERS_BY_ID: API_URL1 + ":1172/user/getbyid"
 }
 

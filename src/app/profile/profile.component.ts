@@ -19,6 +19,7 @@ import { PushService } from '../services/push.service';
 import { StaffService } from '../user-access/staff/staff.service';
 import { UserAccessService } from '../user-access/user-access.service';
 import { HotelEnrollmentTabviewService } from '../hotel-enrollment-tabview/hotel-enrollment-tabview.service';
+import { LogoutService } from '../services/logout.service';
 
 
 @Component({
@@ -86,7 +87,8 @@ export class ProfileComponent implements OnInit {
     private pushService: PushService,
     private staffService: StaffService,
     private userAccessService: UserAccessService,
-    private hotelenrollmenttabviewService: HotelEnrollmentTabviewService
+    private hotelenrollmenttabviewService: HotelEnrollmentTabviewService,
+    private logoutService: LogoutService
   ) { }
 
   ngOnInit(): void {
@@ -661,111 +663,13 @@ export class ProfileComponent implements OnInit {
       const userId = Number(this.localService.get('UserId'));
       const customerType = this.localService.get('CustomerType');
       if (userId) {
-        // Run FCM removal with a strict timeout (e.g. 1000ms) so it never blocks the logout
+        // Run FCM removal with a strict timeout (e.g. 1000ms) so it never blocks the logout.
+        // Delegates to LogoutService.removeFcmToken (same fetch/filter/update logic this
+        // used to duplicate inline) so this logout path shares LogoutService's cleanup
+        // queue with header logout, auto-logout, inactive-logout, and permission-toggle
+        // cleanup instead of racing them uncoordinated.
         await Promise.race([
-          (async () => {
-            let currentToken = sessionStorage.getItem('CurrentTabFcmToken');
-            if (!currentToken) {
-              currentToken = await this.pushService.getCurrentToken();
-            }
-            const customerFindKey = customerType === 'Staff' ? 'staff_id' : 'id';
-            const customerFetchBody = {
-              domain_name: DOMAIN_NAME,
-              user_id: USER_ID,
-              extras: { find: { [customerFindKey]: userId } }
-            };
-            const customerResp: any = await this.hotellistService.getSignupAllCustomers(customerFetchBody).toPromise();
-            if (customerResp.success === 1 && customerResp.result.data.length > 0) {
-              const customer = customerResp.result.data[0];
-              let hasTokenChanged = false;
-              let updatedTokens = customer.fcm_token || [];
-              if (currentToken && Array.isArray(customer.fcm_token)) {
-                const initialLength = customer.fcm_token.length;
-                updatedTokens = customer.fcm_token.filter((t: string) => t !== currentToken);
-                if (updatedTokens.length !== initialLength) {
-                  hasTokenChanged = true;
-                }
-              }
-              const remainingCount = updatedTokens.length;
-              const isAvailableValue = remainingCount >= 1;
-              const isFcmUnavailable = this.localService.get('isFcmUnavailable') === 'true';
-              const customerUpdatePayload: any = {
-                fcm_token: updatedTokens
-              };
-              if (customerType === 'Staff' && !isFcmUnavailable) {
-                customerUpdatePayload.is_available = isAvailableValue;
-              }
-
-              if (hasTokenChanged) {
-                const updateBody = {
-                  domain_name: DOMAIN_NAME,
-                  user_id: USER_ID,
-                  payload: { customer_update: customerUpdatePayload },
-                  extras: { find: { [customerFindKey]: userId } }
-                };
-                await this.hotelenrollmenttabviewService.updateCustomerFcm(updateBody).toPromise();
-              } else if (customerType === 'Staff' && !isFcmUnavailable) {
-                // Token list did not change, but still sync is_available in case it drifted
-                const availBody = {
-                  domain_name: DOMAIN_NAME,
-                  user_id: USER_ID,
-                  payload: { customer_update: { is_available: isAvailableValue } },
-                  extras: { find: { [customerFindKey]: userId } }
-                };
-                await this.hotelenrollmenttabviewService.updateCustomerFcm(availBody).toPromise();
-              }
-            }
-            if (customerType === 'Staff') {
-              const staffFetchBody = {
-                domain_name: DOMAIN_NAME,
-                user_id: USER_ID,
-                extras: { find: { id: userId } }
-              };
-              const staffResp: any = await this.taskManagementService.getAllStaves(staffFetchBody).toPromise();
-              if (staffResp.success === 1 && staffResp.result.data.length > 0) {
-                const staff = staffResp.result.data[0];
-                let hasTokenChanged = false;
-                let updatedTokens = staff.fcm_token || [];
-                if (currentToken && Array.isArray(staff.fcm_token)) {
-                  const initialLength = staff.fcm_token.length;
-                  updatedTokens = staff.fcm_token.filter((t: string) => t !== currentToken);
-                  if (updatedTokens.length !== initialLength) {
-                    hasTokenChanged = true;
-                  }
-                }
-                // Combine fcm_token removal and is_available into ONE call to avoid out-of-order writes
-                const isFcmUnavailable = this.localService.get('isFcmUnavailable') === 'true';
-                const remainingCount = updatedTokens.length;
-                const isAvailableValue = remainingCount >= 1;
-                const staffUpdationPayload: any = {
-                  fcm_token: updatedTokens
-                };
-                if (!isFcmUnavailable) {
-                  staffUpdationPayload.is_available = isAvailableValue;
-                }
-                if (hasTokenChanged) {
-                  const updateBody = {
-                    domain_name: DOMAIN_NAME,
-                    user_id: USER_ID,
-                    payload: {
-                      staff_updation: staffUpdationPayload
-                    },
-                    extras: { find: { id: userId } }
-                  };
-                  await this.staffService.updateStaff(updateBody).toPromise();
-                } else if (!isFcmUnavailable) {
-                  // Token list did not change, but still sync is_available in case it drifted
-                  const availableUpdateBody = {
-                    domain_name: DOMAIN_NAME,
-                    user_id: USER_ID,
-                    payload: { staff_updation: { is_available: isAvailableValue } },
-                    extras: { find: { id: userId } }
-                  };
-                  await this.staffService.updateStaff(availableUpdateBody).toPromise();
-                }
-              }
-            }
-          })(),
+          this.logoutService.removeFcmToken(userId, customerType),
           new Promise<void>((resolve) => setTimeout(resolve, 1000))
         ]);
       }

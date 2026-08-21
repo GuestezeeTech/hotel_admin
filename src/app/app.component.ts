@@ -171,6 +171,32 @@ export class AppComponent implements OnInit, OnDestroy {
   private tokenSyncInterval: any;
   private hotelStatusInterval: any;
   private isFcmInitialized = false;
+  // Tracks the in-flight FCM-token removal fired when the user blocks permission,
+  // so the enable branch can await it and avoid the disable→enable race that
+  // otherwise leaves DB stuck at fcm_token=[] / is_available=false.
+  private removeFcmTokenInFlight: Promise<void> | null = null;
+  // Timeout beyond which a sessionStorage 'pending' sentinel is treated as stale
+  // (previous FCM registration attempt hung, tab reloaded mid-flight, etc.).
+  // Without this, 'pending' persists forever and blocks all future registration
+  // (both initFcmHandling IIFE and checkNotificationPermission enable branch
+  // short-circuit on any truthy sessionStorage.CurrentTabFcmToken).
+  private readonly PENDING_TOKEN_TIMEOUT_MS = 10000;
+  // Last token that registerFcmTokenOnLoad successfully claimed for a write pass.
+  // Any subsequent registerFcmTokenOnLoad(sameToken) call in this component
+  // instance is skipped — defends against a duplicate write when the 'pending'
+  // sentinel leaks and two paths both call in with the same token. Cleared
+  // on cleanup so a re-enable after a block can re-register the same token.
+  private lastRegisteredToken: string | null = null;
+  // Timestamp until which registerFcmTokenOnLoad rate-limit-locks itself. Defends
+  // against a DIFFERENT-token race: if the 'pending' sentinel leaks and two paths
+  // both get through with different tokens (Firebase getToken can briefly return
+  // different token strings right after a fresh SW subscription), the second call
+  // within this window is skipped. The reconcile loop at 20s will heal any state
+  // that legitimately needed the skipped call. 12s covers a slow DB round-trip
+  // plus the 10s pending-stale window, so a re-claim triggered by pending-stale
+  // detection can't race the previous call's still-in-flight write.
+  private registrationLockUntil = 0;
+  private readonly REGISTRATION_LOCK_MS = 12000;
   notifications: any[] = [];
   showNotificationBlockedAlert = false;
   notificationPermissionState: 'default' | 'denied' = 'default';
@@ -388,6 +414,19 @@ export class AppComponent implements OnInit, OnDestroy {
     document.addEventListener('keydown', this.handleGlobalKeydown, true);
     document.addEventListener('input', this.handleGlobalInput, true);
 
+    // Drop a stale FCM 'pending' sentinel that survived a tab reload. The 'pending'
+    // string is set while pushService.getCurrentToken() / requestPermissionAndGetToken()
+    // is in flight; if that call hung or the tab reloaded before it resolved, the
+    // string persists (sessionStorage survives reload) and permanently blocks every
+    // future registration path. Age check protects an attempt that is legitimately
+    // still in flight in this tab session.
+    const stalePending = sessionStorage.getItem('CurrentTabFcmToken') === 'pending';
+    const stamp = Number(sessionStorage.getItem('__CurrentTabFcmTokenPendingAt') || '0');
+    if (stalePending && (stamp === 0 || Date.now() - stamp > this.PENDING_TOKEN_TIMEOUT_MS)) {
+      sessionStorage.removeItem('CurrentTabFcmToken');
+      sessionStorage.removeItem('__CurrentTabFcmTokenPendingAt');
+    }
+
     // --- Restore user info ---
     this.customerType = this.localservice.get('CustomerType');
     // console.log('[App] Customer Type:', this.customerType);
@@ -476,7 +515,35 @@ export class AppComponent implements OnInit, OnDestroy {
     }, 2000);
   }
 
+  // Returns true when the current route is one of the app's unauthenticated
+  // landing pages, where no FCM token or is_available write should ever run —
+  // even if localStorage still carries a stale CustomerType/UserId from a
+  // previous session (browser closed without logging out, multi-tab, etc.).
+  // Covers exactly the URL families the app already treats as unauthenticated
+  // elsewhere (see the NavigationEnd auto-logout bypass at line ~250 and
+  // doesPathRequireApproval), plus the bare /hotel-registration entry point.
+  // Deliberately does NOT catch authenticated /hotel-registration sub-paths
+  // (add-new-hotel, edit-new-hotel, confirmation, cancellation) where a
+  // Customer legitimately needs FCM sync during their enrollment flow.
+  private isOnUnauthenticatedRoute(): boolean {
+    const raw = (this.router?.url || window.location.pathname || '').toLowerCase();
+    const path = (raw.split('?')[0].split('#')[0].replace(/\/+$/, '') || '/');
+    return (
+      path === '/' ||
+      path === '/login' ||
+      path.startsWith('/login/') ||
+      path === '/hotel-registration' ||
+      path === '/hotel-registration/login' ||
+      path.startsWith('/hotel-registration/login/')
+    );
+  }
+
   initFcmHandling(): void {
+    // Skip on unauthenticated routes so a stale CustomerType/UserId in localStorage
+    // can't cause FCM registration on /login, /, /hotel-registration, or the
+    // registration flow's login page.
+    if (this.isOnUnauthenticatedRoute()) return;
+
     const currentCustomerType = this.localservice.get('CustomerType');
     if (!currentCustomerType) {
       if (this.isFcmInitialized) {
@@ -529,22 +596,39 @@ export class AppComponent implements OnInit, OnDestroy {
 
       (async () => {
         try {
-          const currentToken = await this.pushService.getCurrentToken();
-          if (currentToken) {
-            sessionStorage.setItem('CurrentTabFcmToken', currentToken);
-            // Newly added for after login notification enable & block
+          const activeToken = sessionStorage.getItem('CurrentTabFcmToken');
+          // Treat 'pending' as stale when its stamp is missing (never set) or older
+          // than the timeout — covers the reload-mid-flight case and any hung call.
+          const pendingStamp = Number(sessionStorage.getItem('__CurrentTabFcmTokenPendingAt') || '0');
+          const isStalePending = activeToken === 'pending' &&
+            (pendingStamp === 0 || Date.now() - pendingStamp > this.PENDING_TOKEN_TIMEOUT_MS);
+          if (!activeToken || isStalePending) {
+            sessionStorage.setItem('CurrentTabFcmToken', 'pending');
+            sessionStorage.setItem('__CurrentTabFcmTokenPendingAt', String(Date.now()));
+            const currentToken = await this.pushService.getCurrentToken();
+            if (currentToken) {
+              sessionStorage.setItem('CurrentTabFcmToken', currentToken);
+              sessionStorage.removeItem('__CurrentTabFcmTokenPendingAt');
+              // Newly added for after login notification enable & block
+              this.localservice.set('isFcmUnavailable', 'false');
+              // End of newly added for after login notification enable & block
+              this.registerFcmTokenOnLoad(currentToken);
+            } else {
+              sessionStorage.removeItem('CurrentTabFcmToken');
+              sessionStorage.removeItem('__CurrentTabFcmTokenPendingAt');
+              // Newly added for after login notification enable & block
+              this.localservice.set('isFcmUnavailable', 'true');
+              // End of newly added for after login notification enable & block
+            }
+          } else if (activeToken !== 'pending') {
             this.localservice.set('isFcmUnavailable', 'false');
-            // End of newly added for after login notification enable & block
-            this.registerFcmTokenOnLoad(currentToken);
+            this.registerFcmTokenOnLoad(activeToken);
           }
-          // Newly added for after login notification enable & block
-          else {
-            this.localservice.set('isFcmUnavailable', 'true');
-          }
-          // End of newly added for after login notification enable & block
           this.syncFcmTokensFromDb();
         } catch (err) {
           console.error('[App] Failed to hydrate FCM tokens:', err);
+          sessionStorage.removeItem('CurrentTabFcmToken');
+          sessionStorage.removeItem('__CurrentTabFcmTokenPendingAt');
           // Newly added for after login notification enable & block
           this.localservice.set('isFcmUnavailable', 'true');
         }
@@ -565,11 +649,19 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   private handleWindowFocus = () => {
-    this.syncFcmTokensFromDb();
+    // syncFcmTokensFromDb has its own unauthenticated-route guard, but call it
+    // here too so we don't even schedule the fetch when focus lands on /login etc.
+    if (!this.isOnUnauthenticatedRoute()) {
+      this.syncFcmTokensFromDb();
+    }
     this.checkHotelStatus();
   };
 
   syncFcmTokensFromDb(): void {
+    // Skip on unauthenticated routes even if the 20s tokenSyncInterval keeps
+    // firing after the tab landed on /login with a stale localStorage session.
+    if (this.isOnUnauthenticatedRoute()) return;
+
     const customerType = this.localservice.get('CustomerType');
     const userId = this.localservice.get('UserId');
     // Skip polling if the user is in the process of logging out or already logged out
@@ -588,6 +680,34 @@ export class AppComponent implements OnInit, OnDestroy {
           if (Array.isArray(staff.fcm_token)) {
             localStorage.setItem('UserFcmTokens', JSON.stringify(staff.fcm_token));
           }
+          this.reconcileFcmWithDb(Array.isArray(staff.fcm_token) ? staff.fcm_token : [], staff.is_available);
+        }
+      });
+
+      // ALSO fetch the linked Customer document for a Staff user so localStorage
+      // .CustomerFcmTokens stays fresh. beforeUnloadHandler reads this cache on
+      // tab close to send the Customer-document mirror update — if the cache is
+      // null (never populated) or stale (out of sync with DB after block/unblock
+      // cycles), that update silently skips or sends the wrong array. Populated
+      // here on every 20s tick + window focus so it's never more than 20s stale.
+      const customerId = this.localservice.get('CustomerId');
+      const customerFetchBody = {
+        domain_name: DOMAIN_NAME,
+        user_id: USER_ID,
+        extras: {
+          find: customerId ? { id: Number(customerId) } : { staff_id: Number(userId) }
+        }
+      };
+      this.hotelEnrollmentService.getLoginCustomerById(customerFetchBody).subscribe((custResp: any) => {
+        if (custResp?.success === 1 && custResp.result?.data?.length > 0) {
+          const customer = custResp.result.data[0];
+          // Back-fill CustomerId if it wasn't cached (some login paths don't set it).
+          if (!customerId && customer.id) {
+            this.localservice.set('CustomerId', String(customer.id));
+          }
+          if (Array.isArray(customer.fcm_token)) {
+            localStorage.setItem('CustomerFcmTokens', JSON.stringify(customer.fcm_token));
+          }
         }
       });
     } else if (customerType === 'Customer') {
@@ -597,14 +717,103 @@ export class AppComponent implements OnInit, OnDestroy {
           if (Array.isArray(customer.fcm_token)) {
             localStorage.setItem('UserFcmTokens', JSON.stringify(customer.fcm_token));
           }
+          this.reconcileFcmWithDb(Array.isArray(customer.fcm_token) ? customer.fcm_token : []);
         }
       });
     }
   }
 
-  registerFcmTokenOnLoad(token: string): void {
+  // Self-heal: if permission is granted but the DB is missing this tab's token
+  // (or Staff.is_available drifted to false), fire registerFcmTokenOnLoad so the
+  // DB catches up. If permission is blocked but the DB still contains this tab's
+  // token, fire the cleanup. Runs every 20s via syncFcmTokensFromDb's interval
+  // and on window focus. Idempotent — registerFcmTokenOnLoad and removeFcmToken
+  // both no-op when the DB is already in the right state.
+  private reconcileFcmWithDb(dbTokens: string[], staffIsAvailable?: any): void {
+    if (!('Notification' in window)) return;
+    // Defense-in-depth: even though syncFcmTokensFromDb already guards, block any
+    // DB write (registerFcmTokenOnLoad or removeFcmToken) if we ended up here on
+    // an unauthenticated route through any other code path.
+    if (this.isOnUnauthenticatedRoute()) return;
+    const cachedToken = sessionStorage.getItem('CurrentTabFcmToken');
+    // Skip while a registration is in progress; nothing to reconcile against yet.
+    if (!cachedToken || cachedToken === 'pending') return;
+    const isStaff = this.customerType === 'Staff';
     const userId = this.localservice.get('UserId');
     if (!userId) return;
+
+    if (Notification.permission === 'granted') {
+      const tokenMissing = !dbTokens.includes(cachedToken);
+      const availabilityDrifted = isStaff && staffIsAvailable !== true;
+      if (tokenMissing || availabilityDrifted) {
+        // Drift detected — reset the dedupe marker and rate-limit lock so
+        // registerFcmTokenOnLoad actually re-runs. Without this, the dedupe
+        // (same-token check) or the rate-limit lock would block reconcile's
+        // healing call and drift would persist indefinitely.
+        this.lastRegisteredToken = null;
+        this.registrationLockUntil = 0;
+        this.registerFcmTokenOnLoad(cachedToken);
+      }
+    } else {
+      // Permission is blocked but a token is still cached for this tab — cleanup
+      // was probably lost or never fired. Remove it and forget.
+      if (dbTokens.includes(cachedToken)) {
+        const customerType = this.localservice.get('CustomerType');
+        sessionStorage.removeItem('CurrentTabFcmToken');
+        sessionStorage.removeItem('__CurrentTabFcmTokenPendingAt');
+        // Clear the dedupe marker AND the rate-limit lock so a re-enable of the
+        // same token can register again immediately after this cleanup.
+        this.lastRegisteredToken = null;
+        this.registrationLockUntil = 0;
+        // Track on removeFcmTokenInFlight too, so a quick re-enable right after this
+        // reconcile-triggered cleanup awaits it instead of racing it (same protection
+        // the checkNotificationPermission disable branch gets).
+        const cleanup = this.logoutService.removeFcmToken(Number(userId), customerType, cachedToken).catch(err => {
+          console.error('[App] Reconcile cleanup failed:', err);
+        }).then(() => {
+          if (this.removeFcmTokenInFlight === cleanup) {
+            this.removeFcmTokenInFlight = null;
+          }
+        });
+        this.removeFcmTokenInFlight = cleanup;
+      } else {
+        // Token isn't in DB but is cached — drop the local sentinel.
+        sessionStorage.removeItem('CurrentTabFcmToken');
+        sessionStorage.removeItem('__CurrentTabFcmTokenPendingAt');
+      }
+    }
+  }
+
+  registerFcmTokenOnLoad(token: string): void {
+    // Defense-in-depth: block DB writes on unauthenticated routes regardless of
+    // caller (initFcmHandling, checkNotificationPermission, reconcileFcmWithDb,
+    // handleInstructionsOk all lead here). All those callers guard too, but
+    // this final gate makes it impossible to write fcm_token / is_available
+    // from any URL the app treats as unauthenticated.
+    if (this.isOnUnauthenticatedRoute()) return;
+
+    const userId = this.localservice.get('UserId');
+    if (!userId) return;
+
+    // Dedupe: skip if this exact token already got a write pass from this
+    // component instance. Defends against SAME-token concurrent calls.
+    if (token && token === this.lastRegisteredToken) {
+      return;
+    }
+    // Rate-limit lock: skip if any registerFcmTokenOnLoad ran in the last 3s.
+    // Defends against DIFFERENT-token races that the dedupe above misses (Firebase
+    // getToken briefly returning different token strings on quick successive calls
+    // right after a fresh SW subscription). Reconcile fires at 20s and will heal
+    // any state that legitimately needed the dropped call. Cleared in cleanup paths
+    // (permission-block, reconcile-cleanup) so re-enable registers immediately.
+    const now = Date.now();
+    if (now < this.registrationLockUntil) {
+      return;
+    }
+    this.registrationLockUntil = now + this.REGISTRATION_LOCK_MS;
+    if (token) {
+      this.lastRegisteredToken = token;
+    }
 
     if (this.customerType === 'Staff') {
       const staffFetchBody = {
@@ -647,6 +856,65 @@ export class AppComponent implements OnInit, OnDestroy {
                 }
               );
             }
+
+            // ALWAYS fetch the Customer document for a Staff user (moved outside
+            // the Staff-update guard). Two reasons:
+            //   1. Populate localStorage.CustomerFcmTokens on every registration
+            //      pass — beforeUnloadHandler needs it to correctly filter this
+            //      tab's token out on tab/window close. Previously nested inside
+            //      the Staff guard, so it never ran when login already wrote the
+            //      correct state to the Staff document (the normal login case).
+            //   2. Reconcile the Customer document's own fcm_token / is_available
+            //      independently of the Staff document — they can drift separately.
+            const customerId = this.localservice.get('CustomerId');
+            const customerFetchBody = {
+              domain_name: DOMAIN_NAME,
+              user_id: USER_ID,
+              extras: {
+                find: customerId ? { id: Number(customerId) } : { staff_id: Number(userId) }
+              }
+            };
+            this.hotelEnrollmentService.getLoginCustomerById(customerFetchBody).subscribe(
+              (customerResp: any) => {
+                if (customerResp?.success === 1 && customerResp.result?.data?.length > 0) {
+                  const customer = customerResp.result.data[0];
+                  if (!customerId && customer.id) {
+                    this.localservice.set('CustomerId', String(customer.id));
+                  }
+                  const resolvedCustomerId = customerId ? Number(customerId) : Number(customer.id);
+                  let customerTokens: string[] = customer.fcm_token || [];
+                  if (!Array.isArray(customerTokens)) {
+                    customerTokens = [];
+                  }
+                  const hasCustToken = customerTokens.includes(token);
+                  // Cache the current customer-document tokens unconditionally.
+                  localStorage.setItem('CustomerFcmTokens', JSON.stringify(
+                    hasCustToken ? customerTokens : [...customerTokens, token]
+                  ));
+                  if (!hasCustToken || customer.is_available !== true) {
+                    if (!hasCustToken) {
+                      customerTokens.push(token);
+                    }
+                    const customerUpdateBody = {
+                      domain_name: DOMAIN_NAME,
+                      user_id: USER_ID,
+                      payload: {
+                        customer_update: {
+                          fcm_token: customerTokens,
+                          is_available: true
+                        }
+                      },
+                      extras: { find: { id: resolvedCustomerId } }
+                    };
+                    this.hotelEnrollmentService.updateCustomerFcm(customerUpdateBody).subscribe(
+                      () => { /* customer mirror updated for staff */ },
+                      err => console.error('[App] Failed to mirror FCM token to customer for staff:', err)
+                    );
+                  }
+                }
+              },
+              err => console.error('[App] Failed to fetch customer record for staff FCM mirror:', err)
+            );
           }
         },
         (err: any) => {
@@ -703,48 +971,121 @@ export class AppComponent implements OnInit, OnDestroy {
     if (!('Notification' in window)) {
       return;
     }
+    // Never show the modal or run FCM sync on unauthenticated routes, even if
+    // localStorage still holds a previous session's values. Uses the shared
+    // helper so /hotel-registration and /hotel-registration/login are covered
+    // too (the older inline check only caught / and /login).
+    if (this.isOnUnauthenticatedRoute()) {
+      this.showNotificationBlockedAlert = false;
+      this.cdr.detectChanges();
+      return;
+    }
     const customerType = this.localservice.get('CustomerType');
-    if (customerType !== 'Staff') {
+    const userId = this.localservice.get('UserId');
+    const isLoggedOut = this.localservice.get('loggedOut') === 'true';
+
+    // Not logged in / unknown role → nothing to sync.
+    if (!userId || isLoggedOut || (customerType !== 'Staff' && customerType !== 'Customer')) {
       this.showNotificationBlockedAlert = false;
       this.cdr.detectChanges();
       return;
     }
-    const isDismissed = sessionStorage.getItem('dismissedNotificationAlert') === 'true';
-    if (isDismissed) {
-      this.showNotificationBlockedAlert = false;
-      this.cdr.detectChanges();
-      return;
-    }
+
+    // Blocked-notification modal is Staff-only, but DB sync (fcm_token cleanup /
+    // re-registration) must run for BOTH Staff and Customer — Customer was
+    // previously bypassed here, which meant permission toggles never updated
+    // the Customer's fcm_token array.
+    const showModalAlert = (customerType === 'Staff');
 
     if (Notification.permission !== 'granted') {
-      this.showNotificationBlockedAlert = true;
-      this.notificationPermissionState = Notification.permission as 'default' | 'denied';
+      if (showModalAlert) {
+        const isDismissed = sessionStorage.getItem('dismissedNotificationAlert') === 'true';
+        this.showNotificationBlockedAlert = !isDismissed;
+        this.notificationPermissionState = Notification.permission as 'default' | 'denied';
+      } else {
+        this.showNotificationBlockedAlert = false;
+      }
       this.localservice.set('isFcmUnavailable', 'true');
 
-      const currentToken = sessionStorage.getItem('CurrentTabFcmToken');
-      const userId = this.localservice.get('UserId');
-      const customerType = this.localservice.get('CustomerType');
-      if (currentToken && userId) {
-        console.log('[App Notifications] Revoking active token from DB: user blocked notifications');
-        this.logoutService.removeFcmToken(Number(userId), customerType).then(() => {
-          sessionStorage.removeItem('CurrentTabFcmToken');
+      // Clean up token from service when user blocks permission.
+      // Clear sessionStorage BEFORE the async network call so the 2s setInterval
+      // tick that lands mid-flight doesn't fire a duplicate removeFcmToken (the
+      // logout service's _isCleaningUp mutex would silently drop the duplicate).
+      const cachedToken = sessionStorage.getItem('CurrentTabFcmToken');
+      if (cachedToken && cachedToken !== 'pending') {
+        console.log('[App] Notifications blocked by user. Cleaning up token:', cachedToken);
+        sessionStorage.removeItem('CurrentTabFcmToken');
+        sessionStorage.removeItem('__CurrentTabFcmTokenPendingAt');
+        // Clear the dedupe marker AND the rate-limit lock so a re-enable of the
+        // same token can register again immediately after this cleanup.
+        this.lastRegisteredToken = null;
+        this.registrationLockUntil = 0;
+        // Track the promise so the enable branch (quick block→allow) can await
+        // it before reading DB — otherwise registerFcmTokenOnLoad sees the
+        // pre-cleanup state, skips the write, and DB stays stuck stale.
+        const cleanup = this.logoutService.removeFcmToken(Number(userId), customerType, cachedToken).then(() => {
+          console.log('[App] Successfully removed FCM token from DB after user blocked permission.');
         }).catch(err => {
-          console.error('[App Notifications] Error removing token on permission change:', err);
+          console.error('[App] Failed to remove FCM token after user blocked permission:', err);
+        }).then(() => {
+          if (this.removeFcmTokenInFlight === cleanup) {
+            this.removeFcmTokenInFlight = null;
+          }
         });
+        this.removeFcmTokenInFlight = cleanup;
       }
     } else {
       this.showNotificationBlockedAlert = false;
       this.localservice.set('isFcmUnavailable', 'false');
-      // Auto-register FCM token since permission is enabled
-      const userId = this.localservice.get('UserId');
-      const isLoggedOut = this.localservice.get('loggedOut') === 'true';
-      if (userId && !isLoggedOut && !sessionStorage.getItem('CurrentTabFcmToken')) {
-        this.pushService.requestPermissionAndGetToken(userId.toString()).then(token => {
-          if (token) {
-            sessionStorage.setItem('CurrentTabFcmToken', token);
-            this.registerFcmTokenOnLoad(token);
+      // If permission is back to granted, reset block alert dismissal state so it can raise warning again if blocked later
+      sessionStorage.removeItem('dismissedNotificationAlert');
+
+      // Auto-register FCM token since permission is enabled.
+      // Also treat 'pending' as stale when its stamp is missing or older than the
+      // timeout — the 'pending' sentinel is set while requestPermissionAndGetToken
+      // is in flight and can otherwise persist across a tab reload or a hung call,
+      // permanently blocking re-registration.
+      const activeToken = sessionStorage.getItem('CurrentTabFcmToken');
+      const pendingStamp = Number(sessionStorage.getItem('__CurrentTabFcmTokenPendingAt') || '0');
+      const isStalePending = activeToken === 'pending' &&
+        (pendingStamp === 0 || Date.now() - pendingStamp > this.PENDING_TOKEN_TIMEOUT_MS);
+      if (!activeToken || isStalePending) {
+        sessionStorage.setItem('CurrentTabFcmToken', 'pending');
+        sessionStorage.setItem('__CurrentTabFcmTokenPendingAt', String(Date.now()));
+        // Await any in-flight disable-cleanup so registerFcmTokenOnLoad reads the
+        // post-cleanup DB state, not the pre-cleanup one.
+        const inFlightCleanup = this.removeFcmTokenInFlight;
+        (async () => {
+          if (inFlightCleanup) {
+            try { await inFlightCleanup; } catch { /* already logged */ }
           }
-        }).catch(err => console.error('Failed auto-registering FCM token:', err));
+          // Permission may have flipped back to blocked while we waited — abort if so.
+          if (!('Notification' in window) || Notification.permission !== 'granted') {
+            sessionStorage.removeItem('CurrentTabFcmToken');
+            sessionStorage.removeItem('__CurrentTabFcmTokenPendingAt');
+            return;
+          }
+          try {
+            const token = await this.pushService.requestPermissionAndGetToken(userId.toString());
+            if (!('Notification' in window) || Notification.permission !== 'granted') {
+              sessionStorage.removeItem('CurrentTabFcmToken');
+              sessionStorage.removeItem('__CurrentTabFcmTokenPendingAt');
+              return;
+            }
+            if (token) {
+              sessionStorage.setItem('CurrentTabFcmToken', token);
+              sessionStorage.removeItem('__CurrentTabFcmTokenPendingAt');
+              this.registerFcmTokenOnLoad(token);
+            } else {
+              sessionStorage.removeItem('CurrentTabFcmToken');
+              sessionStorage.removeItem('__CurrentTabFcmTokenPendingAt');
+            }
+          } catch (err) {
+            console.error('Failed auto-registering FCM token:', err);
+            sessionStorage.removeItem('CurrentTabFcmToken');
+            sessionStorage.removeItem('__CurrentTabFcmTokenPendingAt');
+          }
+        })();
       }
     }
     this.cdr.detectChanges();
@@ -752,6 +1093,13 @@ export class AppComponent implements OnInit, OnDestroy {
 
   handleInstructionsOk() {
     console.log('[App Notifications] handleInstructionsOk clicked. Current permission:', Notification.permission);
+    // Defensive: modal shouldn't render on unauthenticated routes (its show flag
+    // is only set by checkNotificationPermission, which itself is guarded), but
+    // don't fire any FCM work from a stray click on those routes either.
+    if (this.isOnUnauthenticatedRoute()) {
+      this.dismissNotificationAlert();
+      return;
+    }
     const userId = this.localservice.get('UserId');
     if ('Notification' in window && userId) {
       console.log('[App Notifications] Invoking requestPermission directly on click...');
@@ -760,19 +1108,52 @@ export class AppComponent implements OnInit, OnDestroy {
         console.log('[App Notifications] Native permission resolved to:', status);
         if (status === 'granted') {
           this.localservice.set('isFcmUnavailable', 'false');
-          this.pushService.getCurrentToken().then(token => {
-            if (token) {
-              sessionStorage.setItem('CurrentTabFcmToken', token);
-              this.registerFcmTokenOnLoad(token);
-            } else {
-              this.pushService.requestPermissionAndGetToken(userId.toString()).then(t => {
-                if (t) {
-                  sessionStorage.setItem('CurrentTabFcmToken', t);
-                  this.registerFcmTokenOnLoad(t);
-                }
-              });
-            }
-          }).catch(err => console.error('[App Notifications] Error getting current FCM token:', err));
+          // Claim the same 'pending' sentinel checkNotificationPermission uses before
+          // doing any token work. Granting permission here also flips the underlying
+          // PermissionStatus, which independently fires the permissions.onchange
+          // listener (and the next 2s setInterval tick) — both call
+          // checkNotificationPermission(), which does its own token fetch + DB write.
+          // Without this claim, both this handler and that one can race, each getting
+          // a token from Firebase (which can briefly return two different token
+          // strings right after a fresh SW subscription) and each pushing its own
+          // value into the DB's fcm_token array — producing 2 entries for one tab.
+          // The check-then-claim below is synchronous (no await in between), so
+          // whichever of the two callbacks runs first wins the claim and the other
+          // sees 'pending' and backs off — checkNotificationPermission mirrors this
+          // same synchronous pattern on its side.
+          const activeToken = sessionStorage.getItem('CurrentTabFcmToken');
+          const pendingStamp = Number(sessionStorage.getItem('__CurrentTabFcmTokenPendingAt') || '0');
+          const isStalePending = activeToken === 'pending' &&
+            (pendingStamp === 0 || Date.now() - pendingStamp > this.PENDING_TOKEN_TIMEOUT_MS);
+          if (!activeToken || isStalePending) {
+            sessionStorage.setItem('CurrentTabFcmToken', 'pending');
+            sessionStorage.setItem('__CurrentTabFcmTokenPendingAt', String(Date.now()));
+            this.pushService.getCurrentToken().then(token => {
+              if (token) {
+                sessionStorage.setItem('CurrentTabFcmToken', token);
+                sessionStorage.removeItem('__CurrentTabFcmTokenPendingAt');
+                this.registerFcmTokenOnLoad(token);
+              } else {
+                this.pushService.requestPermissionAndGetToken(userId.toString()).then(t => {
+                  if (t) {
+                    sessionStorage.setItem('CurrentTabFcmToken', t);
+                    sessionStorage.removeItem('__CurrentTabFcmTokenPendingAt');
+                    this.registerFcmTokenOnLoad(t);
+                  } else {
+                    sessionStorage.removeItem('CurrentTabFcmToken');
+                    sessionStorage.removeItem('__CurrentTabFcmTokenPendingAt');
+                  }
+                });
+              }
+            }).catch(err => {
+              console.error('[App Notifications] Error getting current FCM token:', err);
+              sessionStorage.removeItem('CurrentTabFcmToken');
+              sessionStorage.removeItem('__CurrentTabFcmTokenPendingAt');
+            });
+          }
+          // else: a registration is already in flight or already complete for this
+          // tab (claimed by checkNotificationPermission's onchange/interval-triggered
+          // run) — nothing to do here, that other path already handles it.
         } else {
           this.localservice.set('isFcmUnavailable', 'true');
         }
@@ -1011,9 +1392,12 @@ export class AppComponent implements OnInit, OnDestroy {
   @HostListener('window:beforeunload', ['$event'])
   beforeUnloadHandler(event: any): void {
     const customerType = this.localservice.get('CustomerType');
-    const isFcmUnavailable = this.localservice.get('isFcmUnavailable') === 'true';
 
-    if ((customerType === 'Staff' || customerType === 'Customer') && !isFcmUnavailable) {
+    // NOTE: previously gated on `!isFcmUnavailable` too. Removed — the inner
+    // `currentToken` presence check below already skips correctly when there's
+    // nothing to clean up, and a stale-true isFcmUnavailable flag was silently
+    // skipping cleanup for tabs that still had a real cached token.
+    if (customerType === 'Staff' || customerType === 'Customer') {
       const userId = this.localservice.get('UserId');
       const currentToken = sessionStorage.getItem('CurrentTabFcmToken');
       const rawTokens = localStorage.getItem('UserFcmTokens');
@@ -1066,6 +1450,41 @@ export class AppComponent implements OnInit, OnDestroy {
             body: JSON.stringify(updateBody),
             keepalive: true
           });
+
+          // Staff also mirrors to the Customer document, same as every other
+          // cleanup path (manual/auto/inactive logout, permission-block). Uses a
+          // cached token list (populated by registerFcmTokenOnLoad) since this
+          // handler must fire synchronously and cannot await a fresh DB fetch.
+          if (customerType === 'Staff') {
+            const customerId = this.localservice.get('CustomerId');
+            const rawCustomerTokens = localStorage.getItem('CustomerFcmTokens');
+            if (customerId && rawCustomerTokens) {
+              try {
+                const customerTokens: string[] = JSON.parse(rawCustomerTokens);
+                const filteredCustomerTokens = customerTokens.filter(t => t !== currentToken);
+                const customerUpdateBody = {
+                  domain_name: DOMAIN_NAME,
+                  user_id: USER_ID,
+                  payload: {
+                    customer_update: {
+                      fcm_token: filteredCustomerTokens,
+                      is_available: filteredCustomerTokens.length >= 1
+                    }
+                  },
+                  extras: { find: { id: Number(customerId) } }
+                };
+                fetch(ENDPOINTS.UPDATE_LOGIN_CUSTOMER_FCM, {
+                  method: 'POST',
+                  headers: tokenHeaders,
+                  body: JSON.stringify(customerUpdateBody),
+                  keepalive: true
+                });
+                localStorage.setItem('CustomerFcmTokens', JSON.stringify(filteredCustomerTokens));
+              } catch (e) {
+                console.error('[App] Error mirroring FCM cleanup to customer on unload:', e);
+              }
+            }
+          }
 
           // Busy-wait for 150ms to allow the browser's network thread to dispatch the request/preflight
           const start = Date.now();

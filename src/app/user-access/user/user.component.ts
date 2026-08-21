@@ -855,7 +855,28 @@ export class UserComponent implements OnInit {
      });
    } */
 
+  syncFormValuesFromDOM() {
+    const inputs = this.eRef.nativeElement.querySelectorAll('input[formControlName]');
+    inputs.forEach((input: HTMLInputElement) => {
+      const controlName = input.getAttribute('formControlName');
+      if (controlName) {
+        const control = this.usersForm.get(controlName);
+        if (control) {
+          let domValue = input.value;
+          if (controlName !== 'password' && typeof domValue === 'string') {
+            domValue = domValue.trim();
+          }
+          if (control.value !== domValue) {
+            control.setValue(domValue);
+            control.updateValueAndValidity();
+          }
+        }
+      }
+    });
+  }
+
   sendData() {
+    this.syncFormValuesFromDOM();
     this.showalertmsg = true;
     this.validateForm = true;
     this.usersForm.markAllAsTouched();

@@ -1624,7 +1624,28 @@ export class StaffComponent implements OnInit {
     // console.log('Selected Staff Hierarchies:', this.selectedStaffHierarchies);
   }
 
+  syncFormValuesFromDOM() {
+    const inputs = this.eRef.nativeElement.querySelectorAll('input[formControlName]');
+    inputs.forEach((input: HTMLInputElement) => {
+      const controlName = input.getAttribute('formControlName');
+      if (controlName) {
+        const control = this.staffForm.get(controlName);
+        if (control) {
+          let domValue = input.value;
+          if (controlName !== 'password' && typeof domValue === 'string') {
+            domValue = domValue.trim();
+          }
+          if (control.value !== domValue) {
+            control.setValue(domValue);
+            control.updateValueAndValidity();
+          }
+        }
+      }
+    });
+  }
+
   saveForm() {
+    this.syncFormValuesFromDOM();
     this.alertService.clear();
     // if (this.officersData.length == 0) {
     //   this.alertService.error('No officer available for this hierarchy. Cannot create staff.', this.alertOptions);
@@ -1761,6 +1782,7 @@ export class StaffComponent implements OnInit {
   }
 
   saveFormChanges() {
+    this.syncFormValuesFromDOM();
     this.editScreen = this.enableEdit;
     // if (this.officersData.length == 0) {
     //   this.alertService.error('No officer available for this hierarchy. Cannot create staff.', this.alertOptions);
@@ -2173,7 +2195,7 @@ export class StaffComponent implements OnInit {
             });
             // Ended
             // this.staffForm.get('higher_level_hierarchy')?.disable();
-            
+
             // Set initial visibility of higher level officer based on preselected hierarchy
             const includesLowest = this.selectedHierarchies.some(
               (h: any) => !h.parentId && h.parentId !== 0 && !h.parent_id && h.parent_id !== 0

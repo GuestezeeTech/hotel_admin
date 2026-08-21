@@ -1,7 +1,0 @@
-﻿master:src/app/hotel-enrollment-tabview/hotel-enrollment-tabview.component.ts:838:  //   // enableDate.setDate(enableDate.getDate() - 7);
-master:src/app/hotel-enrollment-tabview/hotel-enrollment-tabview.component.ts:885:  //   // enableDate.setDate(enableDate.getDate() - 7);
-master:src/app/hotel-enrollment-tabview/hotel-enrollment-tabview.component.ts:944:  //   enableDate.setDate(enableDate.getDate() - 7); // 7 days before due date
-master:src/app/hotel-enrollment-tabview/hotel-enrollment-tabview.component.ts:997:    enableDate.setDate(enableDate.getDate() - 7);
-master:src/app/shared/header/header.component.ts:483:  //   // enableDate.setDate(enableDate.getDate() - 7); // 7 days before due date
-master:src/app/shared/header/header.component.ts:543:  //   enableDate.setDate(enableDate.getDate() - 7); // 7 days before due date
-master:src/app/shared/header/header.component.ts:598:    enableDate.setDate(enableDate.getDate() - 7);

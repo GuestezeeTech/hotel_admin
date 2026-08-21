@@ -13,7 +13,11 @@ import { StaffService } from '../user-access/staff/staff.service';
 })
 export class LogoutService {
 
-  private _isCleaningUp = false; // prevent duplicate concurrent cleanups
+  // Chain of pending cleanups. New calls await the previous one and then run
+  // sequentially, instead of being silently dropped when one is already in flight.
+  // Silent drops caused permission-toggle cleanups to be lost when they collided
+  // with a manual/auto/inactive logout attempt or with a rapid re-toggle.
+  private _cleanupChain: Promise<void> = Promise.resolve();
 
   constructor(
     private localService: LocalStorageService,
@@ -30,40 +34,48 @@ export class LogoutService {
    * Safe to call on both intentional logout and auto-logout (session expiry / 403).
    * Skips if no userId is in localStorage (already logged out).
    */
-  async removeFcmToken(passedUserId?: number, passedCustomerType?: string | null): Promise<void> {
+  async removeFcmToken(passedUserId?: number, passedCustomerType?: string | null, passedToken?: string | null): Promise<void> {
     console.log('[LogoutService] removeFcmToken() called');
-    if (this._isCleaningUp) {
-      console.log('[LogoutService] Already cleaning up, skipping.');
-      return;
-    }
-    this._isCleaningUp = true;
-
-    try {
+    // Queue: each call awaits the previous one to complete, then runs. Callers
+    // get a promise that resolves when THEIR cleanup is done. No cleanups are
+    // silently dropped (as they were with the old `_isCleaningUp` boolean mutex).
+    const run = async () => {
       const userId = passedUserId || Number(this.localService.get('UserId'));
       const customerType = passedCustomerType || this.localService.get('CustomerType');
       console.log('[LogoutService] userId:', userId, '| customerType:', customerType);
       if (!userId) {
-        this._isCleaningUp = false; // Reset so next login/logout cycles can clean up
         return; // already logged out, nothing to clean
       }
 
-      let currentToken = sessionStorage.getItem('CurrentTabFcmToken');
-      if (!currentToken) {
-        currentToken = await this.pushService.getCurrentToken();
-      }
+      const currentToken = passedToken || sessionStorage.getItem('CurrentTabFcmToken') || await this.pushService.getCurrentToken();
       console.log('[LogoutService] currentToken:', currentToken);
 
       // ── Customer / Staff table ──
-      const customerFindKey = customerType === 'Staff' ? 'staff_id' : 'id';
+      // For Staff, prefer the Customer document's own primary key (localStorage
+      // CustomerId, set at login and backfilled by registerFcmTokenOnLoad) instead
+      // of a staff_id filter — id is an unambiguous direct lookup, whereas staff_id
+      // as a filter field had no other proven-working precedent anywhere in the
+      // codebase and was silently matching zero rows (Staff table cleared fine,
+      // Customer-document mirror never did). Falls back to staff_id only if
+      // CustomerId genuinely isn't cached for this session.
+      const cachedCustomerId = customerType === 'Staff' ? this.localService.get('CustomerId') : null;
+      const customerFindKey = customerType === 'Staff'
+        ? (cachedCustomerId ? 'id' : 'staff_id')
+        : 'id';
+      const customerFindValue = customerType === 'Staff' && cachedCustomerId
+        ? Number(cachedCustomerId)
+        : userId;
       const customerFetchBody = {
         domain_name: DOMAIN_NAME,
         user_id: USER_ID,
-        extras: { find: { [customerFindKey]: userId } }
+        extras: { find: { [customerFindKey]: customerFindValue } }
       };
+      console.log('[LogoutService] customer lookup:', customerFetchBody.extras.find);
 
-      const customerResp: any = await this.hotellistService
-        .getSignupAllCustomers(customerFetchBody)
+      const customerResp: any = await this.hotelenrollmenttabviewService
+        .getLoginCustomerById(customerFetchBody)
         .toPromise();
+      console.log('[LogoutService] customer lookup result:', customerResp?.success, customerResp?.result?.data?.length);
 
       if (customerResp?.success === 1 && customerResp.result?.data?.length > 0) {
         const customer = customerResp.result.data[0];
@@ -78,11 +90,10 @@ export class LogoutService {
         }
         const remainingCount = updatedTokens.length;
         const isAvailableValue = remainingCount >= 1;
-        const isFcmUnavailable = this.localService.get('isFcmUnavailable') === 'true';
         const customerUpdatePayload: any = {
           fcm_token: updatedTokens
         };
-        if (customerType === 'Staff' && !isFcmUnavailable) {
+        if (customerType === 'Staff') {
           customerUpdatePayload.is_available = isAvailableValue;
         }
 
@@ -91,18 +102,18 @@ export class LogoutService {
             domain_name: DOMAIN_NAME,
             user_id: USER_ID,
             payload: { customer_update: customerUpdatePayload },
-            extras: { find: { [customerFindKey]: userId } }
+            extras: { find: { [customerFindKey]: customerFindValue } }
           };
           await this.hotelenrollmenttabviewService
             .updateCustomerFcm(updateBody)
             .toPromise();
-        } else if (customerType === 'Staff' && !isFcmUnavailable) {
+        } else if (customerType === 'Staff') {
           // Token list did not change, but still sync is_available in case it drifted
           const availBody = {
             domain_name: DOMAIN_NAME,
             user_id: USER_ID,
             payload: { customer_update: { is_available: isAvailableValue } },
-            extras: { find: { [customerFindKey]: userId } }
+            extras: { find: { [customerFindKey]: customerFindValue } }
           };
           await this.hotelenrollmenttabviewService
             .updateCustomerFcm(availBody)
@@ -133,16 +144,12 @@ export class LogoutService {
               hasTokenChanged = true;
             }
           }
-          // Combine fcm_token removal and is_available into ONE call to avoid out-of-order writes
-          const isFcmUnavailable = this.localService.get('isFcmUnavailable') === 'true';
           const remainingCount = updatedTokens.length;
           const isAvailableValue = remainingCount >= 1;
           const staffUpdationPayload: any = {
-            fcm_token: updatedTokens
+            fcm_token: updatedTokens,
+            is_available: isAvailableValue
           };
-          if (!isFcmUnavailable) {
-            staffUpdationPayload.is_available = isAvailableValue;
-          }
           if (hasTokenChanged) {
             const updateBody = {
               domain_name: DOMAIN_NAME,
@@ -153,7 +160,7 @@ export class LogoutService {
               extras: { find: { id: userId } }
             };
             await this.staffService.updateStaff(updateBody).toPromise();
-          } else if (!isFcmUnavailable) {
+          } else {
             // Token list did not change, but still sync is_available in case it drifted
             const availBody = {
               domain_name: DOMAIN_NAME,
@@ -166,10 +173,11 @@ export class LogoutService {
         }
       }
 
-    } catch (err) {
+    };
+    const next = this._cleanupChain.then(run, run).catch(err => {
       console.error('[LogoutService] Error removing FCM token:', err);
-    } finally {
-      this._isCleaningUp = false;
-    }
+    });
+    this._cleanupChain = next;
+    return next;
   }
 }

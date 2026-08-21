@@ -598,7 +598,8 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
   }
 
 
-  getOrderById() {
+  // Newly commented for payment status check (original logic)
+  getOrderById_original() {
     this.memberId = this.localService.get('MemberId');
     // let findObj = (this.iscancelVisible || this.isVisible)
     let findObj = (this.isPaymentRoute() || (this.hotelId && !isNaN(Number(this.hotelId))))
@@ -681,40 +682,82 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
             orderIdFromUrl &&
             customerIdFromUrl
           ) {
-            const allCycles: any[] = this.orderdata.payment_split || [];
-            let nextUnpaidCycleIndex = allCycles.findIndex(cycle =>
-              cycle.installments.some((inst: any) => inst.status === "Not Paid")
-            );
+            let isAlreadyProcessed = false;
+            const sessionStorageKey = `processed_confirmation_${orderIdFromUrl}`;
+            try {
+              isAlreadyProcessed = sessionStorage.getItem(sessionStorageKey) === 'true';
+            } catch (e) {
+              console.error('sessionStorage access failed', e);
+            }
 
-            if (nextUnpaidCycleIndex !== -1) {
-              const nextCycle = allCycles[nextUnpaidCycleIndex];
-              const nextUnpaidIndex = nextCycle.installments.findIndex((inst: any) => inst.status === "Not Paid");
-              const nextInstallment = nextCycle.installments[nextUnpaidIndex];
+            // Strip the query parameters from the URL immediately using HTML5 history API
+            // to prevent Angular route loops and avoid re-processing upon refresh/back/pasting.
+            try {
+              if (window.history && window.history.replaceState) {
+                window.history.replaceState({}, '', window.location.pathname);
+              }
+            } catch (e) {
+              console.error('Failed to strip query parameters from URL', e);
+            }
 
-              // Mark installment as paid
-              nextInstallment.status = "Paid";
-              nextInstallment.paid_date_time = new Date().toISOString();
-              // Update subscription_end_date
-              this.orderdata.subscription_end_date = nextInstallment.subscription_end_date;
-
-              // Update order_review to the next unpaid installment, or current if none left
-              let nextUnpaidInstallment = nextCycle.installments.find((inst: any) => inst.status === "Not Paid");
-              if (!nextUnpaidInstallment) {
-                const futureCycle = allCycles.slice(nextUnpaidCycleIndex + 1).find(c =>
-                  c.installments.some((inst: any) => inst.status === "Not Paid")
-                );
-                nextUnpaidInstallment = futureCycle?.installments.find((inst: any) => inst.status === "Not Paid") || nextInstallment;
+            if (isAlreadyProcessed) {
+              console.log(`[Payment] Order ID ${orderIdFromUrl} has already been updated in this session. Skipping.`);
+            } else {
+              try {
+                sessionStorage.setItem(sessionStorageKey, 'true');
+              } catch (e) {
+                console.error('sessionStorage write failed', e);
               }
 
-              this.orderdata.order_review.order_summary = {
-                sub_total: Number(nextUnpaidInstallment.sub_total.toFixed(2)),
-                tax: Number(nextUnpaidInstallment.tax.toFixed(2)),
-                order_total_amount: Number(nextUnpaidInstallment.order_total_amount.toFixed(2))
-              };
+              const allCycles: any[] = this.orderdata.payment_split || [];
+              let nextUnpaidCycleIndex = allCycles.findIndex(cycle =>
+                cycle.installments.some((inst: any) => inst.status === "Not Paid")
+              );
 
-              shouldUpdateOrder = true;
-              isPaymentProcessed = true;
-              paymentProcessedInstallment = nextInstallment;
+              if (nextUnpaidCycleIndex !== -1) {
+                const nextCycle = allCycles[nextUnpaidCycleIndex];
+                const nextUnpaidIndex = nextCycle.installments.findIndex((inst: any) => inst.status === "Not Paid");
+                const nextInstallment = nextCycle.installments[nextUnpaidIndex];
+
+                // Mark installment as paid
+                nextInstallment.status = "Paid";
+                nextInstallment.paid_date_time = new Date().toISOString();
+                // Update subscription_end_date
+                this.orderdata.subscription_end_date = nextInstallment.subscription_end_date;
+
+                // Update order_review to the next unpaid installment, or current if none left
+                let nextUnpaidInstallment = nextCycle.installments.find((inst: any) => inst.status === "Not Paid");
+                if (!nextUnpaidInstallment) {
+                  const futureCycle = allCycles.slice(nextUnpaidCycleIndex + 1).find(c =>
+                    c.installments.some((inst: any) => inst.status === "Not Paid")
+                  );
+                  nextUnpaidInstallment = futureCycle?.installments.find((inst: any) => inst.status === "Not Paid") || nextInstallment;
+                }
+
+                this.orderdata.order_review.order_summary = {
+                  sub_total: Number(nextUnpaidInstallment.sub_total.toFixed(2)),
+                  tax: Number(nextUnpaidInstallment.tax.toFixed(2)),
+                  order_total_amount: Number(nextUnpaidInstallment.order_total_amount.toFixed(2))
+                };
+
+                shouldUpdateOrder = true;
+                isPaymentProcessed = true;
+                paymentProcessedInstallment = nextInstallment;
+              }
+            }
+          } else {
+            // Clear payment session keys on other registration/billing pages to allow new transactions
+            try {
+              const keysToRemove: string[] = [];
+              for (let i = 0; i < sessionStorage.length; i++) {
+                const sessionKey = sessionStorage.key(i);
+                if (sessionKey && sessionKey.startsWith('processed_confirmation_')) {
+                  keysToRemove.push(sessionKey);
+                }
+              }
+              keysToRemove.forEach(k => sessionStorage.removeItem(k));
+            } catch (e) {
+              console.error('sessionStorage cleanup failed', e);
             }
           }
 
@@ -880,6 +923,378 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
     //   resp => {
     //   }
     // )
+  }
+
+  // Newly added for payment status check
+  getOrderById() {
+    this.memberId = this.localService.get('MemberId');
+    // let findObj = (this.iscancelVisible || this.isVisible)
+    let findObj = (this.isPaymentRoute() || (this.hotelId && !isNaN(Number(this.hotelId))))
+      ? { customer_id: Number(this.hotelId) }
+      : { customer_member_id: this.memberId };
+    // console.log('Member id(getOrderById):', this.memberId);
+    // console.log('🛑 getOrderById called with hotelId:', this.hotelId);
+    let formatJson = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: {
+        find:
+          // {
+          // id: Number(this.parameters['id'])
+          // Newly added for getting customer id for customer type
+          // customer_id: this.hotelId
+          // customer_member_id: this.memberId
+          findObj
+        // }
+      },
+      "pagination": false,
+      /* "paginationDetails": {
+        "limit": 0,
+        "pageSize": 10
+      }, */
+      "sorting": true,
+      "sortingDetails": {
+        "sortfield": "",
+        "sortorder": -1
+      }
+    }
+    this.hotelenrollmentservice.orderDetailsGetById(formatJson).subscribe(
+      async resp => {
+        this.loaderService.emitComplete();
+        if (resp && resp.result.data.length > 0) {
+          // this.orderdata = resp.result.data[0];
+          // Newly added & commented for calling sms only on first confirmed order
+          // const confirmedOrder = resp.result.data.find(
+          //   (order: any) => order.status === 'Order Confirmed' || order.status === 'Confirmed'
+          // );
+          // this.orderdata = confirmedOrder || resp.result.data[0];
+          // console.log('Confirmed Order Data:', this.orderdata);
+          // if (this.orderdata.status == "Order Confirmed" || this.orderdata.status == 'Confirmed') {
+          //   this.isOrderExist = true;
+          // }
+          // Get all confirmed orders
+          const confirmedOrders = resp.result.data.filter(
+            (order: any) => order.status === 'Order Confirmed' || order.status === 'Confirmed'
+          );
+          // Assign first confirmed order or fallback
+          this.orderdata = confirmedOrders[0] || resp.result.data[0];
+          // Check if this is the first payment (registration) or a subsequent one
+          this.isFirstPayment = confirmedOrders.length <= 1;
+
+          // console.log('Confirmed Order Data:', this.orderdata);
+          // Flag for order existence
+          this.isOrderExist = confirmedOrders.length > 0;
+          // Payment done flag
+          this.paymentDone = this.isOrderExist;
+          this.localService.set('paymentDone', this.paymentDone);
+          // console.log('Payment done:', this.paymentDone);
+          // Consolidated Update Logic
+          let shouldUpdateOrder = false;
+          let isPaymentProcessed = false;
+          let paymentProcessedInstallment: any = null;
+          // SMS Block: Update send_sms flag if exactly one confirmed order needs it
+          if (confirmedOrders.length === 1 && confirmedOrders[0].send_sms === true) {
+            this.sendMessage(this.customerdata);
+            this.sendStatusMessage(this.customerdata);
+            this.orderdata.send_sms = false;
+            shouldUpdateOrder = true;
+          }
+
+          // Newly commented for payment status check (original logic)
+          /* 
+          // Confirmation Block: Update payment split status if on confirmation route
+          const queryParams = this.route.snapshot.queryParams;
+          const orderIdFromUrl = queryParams['id'];
+          const customerIdFromUrl = queryParams['customer_id'];
+          if (
+            this.router.url.includes('confirmation') &&
+            orderIdFromUrl &&
+            customerIdFromUrl
+          ) {
+            const allCycles: any[] = this.orderdata.payment_split || [];
+            let nextUnpaidCycleIndex = allCycles.findIndex(cycle =>
+              cycle.installments.some((inst: any) => inst.status === "Not Paid")
+            );
+  
+            if (nextUnpaidCycleIndex !== -1) {
+              const nextCycle = allCycles[nextUnpaidCycleIndex];
+              const nextUnpaidIndex = nextCycle.installments.findIndex((inst: any) => inst.status === "Not Paid");
+              const nextInstallment = nextCycle.installments[nextUnpaidIndex];
+  
+              // Mark installment as paid
+              nextInstallment.status = "Paid";
+              nextInstallment.paid_date_time = new Date().toISOString();
+              // Update subscription_end_date
+              this.orderdata.subscription_end_date = nextInstallment.subscription_end_date;
+  
+              // Update order_review to the next unpaid installment, or current if none left
+              let nextUnpaidInstallment = nextCycle.installments.find((inst: any) => inst.status === "Not Paid");
+              if (!nextUnpaidInstallment) {
+                const futureCycle = allCycles.slice(nextUnpaidCycleIndex + 1).find(c =>
+                  c.installments.some((inst: any) => inst.status === "Not Paid")
+                );
+                nextUnpaidInstallment = futureCycle?.installments.find((inst: any) => inst.status === "Not Paid") || nextInstallment;
+              }
+  
+              this.orderdata.order_review.order_summary = {
+                sub_total: Number(nextUnpaidInstallment.sub_total.toFixed(2)),
+                tax: Number(nextUnpaidInstallment.tax.toFixed(2)),
+                order_total_amount: Number(nextUnpaidInstallment.order_total_amount.toFixed(2))
+              };
+  
+              shouldUpdateOrder = true;
+              isPaymentProcessed = true;
+              paymentProcessedInstallment = nextInstallment;
+            }
+          }
+          */
+          // End of newly commented for payment status check
+
+          // Newly added for payment status check
+          const queryParams = this.route.snapshot.queryParams;
+          const orderIdFromUrl = queryParams['id'];
+          const customerIdFromUrl = queryParams['customer_id'];
+          if (
+            this.router.url.includes('confirmation') &&
+            orderIdFromUrl &&
+            customerIdFromUrl
+          ) {
+            let isAlreadyProcessed = false;
+            const sessionStorageKey = `processed_confirmation_${orderIdFromUrl}`;
+            try {
+              isAlreadyProcessed = sessionStorage.getItem(sessionStorageKey) === 'true';
+            } catch (e) {
+              console.error('sessionStorage access failed', e);
+            }
+
+            // Strip the query parameters from the URL immediately using HTML5 history API
+            // to prevent Angular route loops and avoid re-processing upon refresh/back/pasting.
+            try {
+              if (window.history && window.history.replaceState) {
+                window.history.replaceState({}, '', window.location.pathname);
+              }
+            } catch (e) {
+              console.error('Failed to strip query parameters from URL', e);
+            }
+
+            if (isAlreadyProcessed) {
+              console.log(`[Payment] Order ID ${orderIdFromUrl} has already been updated in this session. Skipping.`);
+            } else {
+              try {
+                sessionStorage.setItem(sessionStorageKey, 'true');
+              } catch (e) {
+                console.error('sessionStorage write failed', e);
+              }
+
+              const allCycles: any[] = this.orderdata.payment_split || [];
+              let nextUnpaidCycleIndex = allCycles.findIndex(cycle =>
+                cycle.installments.some((inst: any) => inst.status === "Not Paid")
+              );
+
+              if (nextUnpaidCycleIndex !== -1) {
+                const nextCycle = allCycles[nextUnpaidCycleIndex];
+                const nextUnpaidIndex = nextCycle.installments.findIndex((inst: any) => inst.status === "Not Paid");
+                const nextInstallment = nextCycle.installments[nextUnpaidIndex];
+
+                // Mark installment as paid
+                nextInstallment.status = "Paid";
+                nextInstallment.paid_date_time = new Date().toISOString();
+                // Update subscription_end_date
+                this.orderdata.subscription_end_date = nextInstallment.subscription_end_date;
+
+                // Update order_review to the next unpaid installment, or current if none left
+                let nextUnpaidInstallment = nextCycle.installments.find((inst: any) => inst.status === "Not Paid");
+                if (!nextUnpaidInstallment) {
+                  const futureCycle = allCycles.slice(nextUnpaidCycleIndex + 1).find(c =>
+                    c.installments.some((inst: any) => inst.status === "Not Paid")
+                  );
+                  nextUnpaidInstallment = futureCycle?.installments.find((inst: any) => inst.status === "Not Paid") || nextInstallment;
+                }
+
+                this.orderdata.order_review.order_summary = {
+                  sub_total: Number(nextUnpaidInstallment.sub_total.toFixed(2)),
+                  tax: Number(nextUnpaidInstallment.tax.toFixed(2)),
+                  order_total_amount: Number(nextUnpaidInstallment.order_total_amount.toFixed(2))
+                };
+
+                shouldUpdateOrder = true;
+                isPaymentProcessed = true;
+                paymentProcessedInstallment = nextInstallment;
+              }
+            }
+          } else {
+            // Clear payment session keys on other registration/billing pages to allow new transactions
+            try {
+              const keysToRemove: string[] = [];
+              for (let i = 0; i < sessionStorage.length; i++) {
+                const sessionKey = sessionStorage.key(i);
+                if (sessionKey && sessionKey.startsWith('processed_confirmation_')) {
+                  keysToRemove.push(sessionKey);
+                }
+              }
+              keysToRemove.forEach(k => sessionStorage.removeItem(k));
+            } catch (e) {
+              console.error('sessionStorage cleanup failed', e);
+            }
+          }
+
+          // Execute a single Upsert if any changes were made
+          if (shouldUpdateOrder) {
+            const orderPayload = { ...this.orderdata };
+            delete orderPayload._id;
+            delete orderPayload.id;
+
+            // Remove _id from nested objects to avoid backend issues
+            orderPayload.payment_split?.forEach((cycle: any) => {
+              delete cycle._id;
+              cycle.installments?.forEach((inst: any) => delete inst._id);
+            });
+
+            const orderUpdateData = {
+              domain_name: DOMAIN_NAME,
+              user_id: USER_ID,
+              payload: { order_creation: orderPayload },
+              extras: { find: { id: this.orderdata.id } }
+            };
+
+            this.hotelenrollmentservice.orderUpsert(orderUpdateData).subscribe(
+              async (orderResp: any) => {
+                if (orderResp.success === 1) {
+                  // console.log('Order consolidated update successful');
+                  if (isPaymentProcessed && paymentProcessedInstallment) {
+                    const customerUpdateData = {
+                      domain_name: DOMAIN_NAME,
+                      user_id: USER_ID,
+                      extras: { find: { id: this.customerdata.id } },
+                      payload: {
+                        customer_update: {
+                          payment_split: this.orderdata.payment_split,
+                          subscription_end_date: paymentProcessedInstallment.subscription_end_date
+                        }
+                      }
+                    };
+                    this.hotelenrollmentservice.updateCustomerFcm(customerUpdateData).subscribe(custRes => {
+                      if (custRes.success === 1) console.log("Customer subscription_end_date updated after payment", custRes);
+                      else console.error("Failed to update customer", custRes.message);
+                    });
+
+                    // Call enableHotel to reactivate the account
+                    const enablePayload = {
+                      domain_name: DOMAIN_NAME,
+                      user_id: USER_ID,
+                      extras: {
+                        find: {
+                          member_id: this.orderdata.customer_member_id || this.customerdata?.customer_member_id || this.localService.get('MemberId')
+                        }
+                      }
+                    };
+                    this.hotelenrollmentservice.enableHotel(enablePayload).subscribe({
+                      next: (enableRes: any) => {
+                        if (enableRes.success === 1 && enableRes.status_code === 200) {
+                          console.log("Hotel enabled successfully after payment:", enableRes);
+                        } else {
+                          console.error("Failed to enable hotel after payment:", enableRes.message);
+                        }
+                      },
+                      error: (err: any) => {
+                        console.error("Error enabling hotel after payment:", err);
+                      }
+                    });
+                    // Newly added for updating is_active value once the payment is done successfully
+                    // Get specific customer document and check if is_active is false, then update it
+                    const targetMemberId = this.orderdata.customer_member_id || this.customerdata?.customer_member_id || this.localService.get('MemberId');
+                    if (targetMemberId) {
+                      const customerReq = {
+                        domain_name: DOMAIN_NAME,
+                        user_id: USER_ID,
+                        extras: {
+                          find: {
+                            customer_member_id: targetMemberId
+                          }
+                        }
+                      };
+                      this.hotelenrollmentservice.getLoginCustomerById(customerReq).subscribe({
+                        next: (custGetRes: any) => {
+                          const custDoc = custGetRes?.result?.data?.[0];
+                          if (custDoc && custDoc.is_active === false) {
+                            const customerDeactivateUpdate = {
+                              domain_name: DOMAIN_NAME,
+                              user_id: 1,
+                              payload: {
+                                customer_update: {
+                                  is_active: true,
+                                  inactive_remark: "",
+                                  inactive_type: ""
+                                }
+                              },
+                              extras: {
+                                find: {
+                                  id: custDoc.id
+                                }
+                              }
+                            };
+                            this.hotelenrollmentservice.updateCustomercFcmToken(customerDeactivateUpdate).subscribe({
+                              next: (updateRes: any) => {
+                                if (updateRes.success === 1) {
+                                  console.log("Customer is_active status updated to true successfully.");
+                                } else {
+                                  console.error("Failed to update customer is_active status:", updateRes.message);
+                                }
+                              },
+                              error: (err: any) => {
+                                console.error("Error updating customer is_active status:", err);
+                              }
+                            });
+                          }
+                        },
+                        error: (err: any) => {
+                          console.error("Error fetching customer by customer_member_id:", err);
+                        }
+                      });
+                    }
+                    // End of newly added code for updating is_active value once the payment is done successfully
+                    await this.updateHeaderPayNowButton();
+                  }
+                } else {
+                  console.error('Failed to update order in consolidated call', orderResp.message);
+                }
+              },
+              err => {
+                console.error('Error in consolidated order update', err);
+              }
+            );
+          }
+
+          // Shared logic after data fetch (always run)
+          const memberId = this.orderdata.customer_member_id;
+          this.localService.set('MemberId', memberId);
+        } else {
+          this.orderdata = null;
+          this.isOrderExist = false;
+          this.paymentDone = false;
+          this.localService.set('paymentDone', false);
+        }
+        this.updatePaymentStatusInfo();
+        this.checkNavigationAndActivateTab();
+      },
+      err => {
+        this.loaderService.emitComplete();
+        this.orderdata = null;
+        this.isOrderExist = false;
+        this.paymentDone = false;
+        this.localService.set('paymentDone', false);
+        if (err.error.statusCode === 403) {
+          // this.alertsService.error('Session Time Ot! Please login Again', this.options);
+          this.router.navigate([`/login`], { skipLocationChange: false });
+        } else if (err.error.message) {
+          // this.alertsService.error(err.error.message, this.options);
+        } else {
+          // this.alertsService.error('Something  happened. Please try again!', this.options);
+        }
+        this.updatePaymentStatusInfo();
+        this.checkNavigationAndActivateTab();
+      }
+    );
   }
 
   // updateHeaderPayNowButton() {
