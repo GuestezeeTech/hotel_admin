@@ -125,4 +125,36 @@ export class StaffService {
         });
     }
 
+    // Newly added for session check
+    checkStaffSession(jsonObj: any): Observable<any> {
+        if (this.authTokenService.isTokenExpired()) {
+            this.router.navigate([`/login`], { skipLocationChange: false });
+            return of({ success: 0, result: { data: [] }, message: "Session Expired" }); // Return empty response
+        }
+        else {
+            return this.http.post(ENDPOINTS.CHECK_STAFF_SESSION, jsonObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
+        }
+    }
+
+    createStaffSession(jsonObj: any): Observable<any> {
+        if (this.authTokenService.isTokenExpired()) {
+            this.router.navigate([`/login`], { skipLocationChange: false });
+            return of({ success: 0, result: {}, message: "Session Expired" });
+        }
+        else {
+            return this.http.post(ENDPOINTS.CREATE_STAFF_SESSION, jsonObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
+        }
+    }
+
+
+    updateStaffSession(jsonObj: any): Observable<any> {
+        if (this.authTokenService.isTokenExpired()) {
+            this.router.navigate([`/login`], { skipLocationChange: false });
+            return of({ success: 0, result: {}, message: "Session Expired" });
+        }
+        else {
+            return this.http.post(ENDPOINTS.UPDATE_STAFF_SESSION, jsonObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
+        }
+    }
+
 }

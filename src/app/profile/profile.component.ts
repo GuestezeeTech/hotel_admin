@@ -670,7 +670,7 @@ export class ProfileComponent implements OnInit {
         // cleanup instead of racing them uncoordinated.
         await Promise.race([
           this.logoutService.removeFcmToken(userId, customerType),
-          new Promise<void>((resolve) => setTimeout(resolve, 1000))
+          new Promise<void>((resolve) => setTimeout(resolve, 4000))
         ]);
       }
     } catch (err) {
@@ -720,6 +720,7 @@ export class ProfileComponent implements OnInit {
     this.localService.remove('UserFcmTokens');
     this.localService.remove('isFcmUnavailable');
     sessionStorage.removeItem('CurrentTabFcmToken');
+    sessionStorage.removeItem('CurrentSessionId');
     this.localService.set('loggedOut', 'true');
     this.router.navigate([''], { skipLocationChange: false, replaceUrl: true });
     this.userAccessService.removeUserAccess();

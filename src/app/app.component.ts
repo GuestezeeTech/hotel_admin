@@ -166,6 +166,11 @@ export class AppComponent implements OnInit, OnDestroy {
   selectedIndex = 2;
   showInactiveUserModal = false;
   inactiveUserModalMessage = '';
+  isSessionInitialized = false;
+  showForceLogoutModal = false;
+  forceLogoutModalTitle = 'Account Updated';
+  forceLogoutModalMessage = 'Your account data has been updated. Please log in again to apply the changes.';
+  private sessionInterval: any;
 
   private isInitialNavigation = true;
   private tokenSyncInterval: any;
@@ -542,8 +547,18 @@ export class AppComponent implements OnInit, OnDestroy {
     // Skip on unauthenticated routes so a stale CustomerType/UserId in localStorage
     // can't cause FCM registration on /login, /, /hotel-registration, or the
     // registration flow's login page.
-    if (this.isOnUnauthenticatedRoute()) return;
-
+    // Newly added for session id updation(log out)
+    // if (this.isOnUnauthenticatedRoute()) return;
+    if (this.isOnUnauthenticatedRoute()) {
+      this.isFcmInitialized = false;
+      this.isSessionInitialized = false;
+      if (this.sessionInterval) {
+        clearInterval(this.sessionInterval);
+        this.sessionInterval = null;
+      }
+      return;
+    }
+    // End of newly added for session id updation(log out)
     const currentCustomerType = this.localservice.get('CustomerType');
     if (!currentCustomerType) {
       if (this.isFcmInitialized) {
@@ -558,6 +573,11 @@ export class AppComponent implements OnInit, OnDestroy {
           this.hotelStatusInterval = null;
         }
       }
+      this.isSessionInitialized = false;
+      if (this.sessionInterval) {
+        clearInterval(this.sessionInterval);
+        this.sessionInterval = null;
+      }
       return;
     }
 
@@ -569,6 +589,9 @@ export class AppComponent implements OnInit, OnDestroy {
 
       if (this.customerType === 'Staff') {
         this.notificationService.showPanel$.subscribe(show => this.showNotification = show);
+        // Newly added for session id updation(log out)
+        this.initStaffSessionHandling();
+        // End of newly added for session id updation(log out)
       }
 
       // --- Sync & Polling for FCM tokens ---
@@ -1271,6 +1294,188 @@ export class AppComponent implements OnInit, OnDestroy {
     });
   }
 
+  initStaffSessionHandling(): void {
+    if (this.isOnUnauthenticatedRoute()) return;
+    const currentCustomerType = this.localservice.get('CustomerType');
+    const userId = this.localservice.get('UserId');
+    if (!currentCustomerType || !userId || currentCustomerType !== 'Staff') {
+      if (this.sessionInterval) {
+        clearInterval(this.sessionInterval);
+        this.sessionInterval = null;
+      }
+      return;
+    }
+    if (this.isSessionInitialized) return;
+    this.isSessionInitialized = true;
+    this.executeStaffSessionHandling(userId);
+  }
+
+  executeStaffSessionHandling(userId: string): void {
+    // Retrieve or generate CurrentSessionId
+    let currentSessionId = sessionStorage.getItem('CurrentSessionId');
+    if (!currentSessionId) {
+      currentSessionId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      sessionStorage.setItem('CurrentSessionId', currentSessionId);
+    }
+
+    const createBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      payload: {
+        staff_id: Number(userId),
+        session_id: currentSessionId,
+        is_logged_out: false
+      }
+    };
+
+    this.staffService.createStaffSession(createBody).subscribe({
+      next: (resp: any) => {
+        // console.log('[App] Session created in staffchecker:', resp);
+      },
+      error: (err: any) => {
+        console.error('[App] Failed to create session in staffchecker:', err);
+      }
+    });
+
+    if (this.sessionInterval) {
+      clearInterval(this.sessionInterval);
+    }
+    this.sessionInterval = setInterval(() => {
+      this.checkStaffSession();
+    }, 15000);
+  }
+
+  checkStaffSession(): void {
+    const currentCustomerType = this.localservice.get('CustomerType');
+    const userId = this.localservice.get('UserId');
+    const isLoggedOut = this.localservice.get('loggedOut') === 'true';
+    if (!currentCustomerType || !userId || currentCustomerType !== 'Staff' || isLoggedOut) {
+      if (this.sessionInterval) {
+        clearInterval(this.sessionInterval);
+        this.sessionInterval = null;
+      }
+      return;
+    }
+    const currentSessionId = sessionStorage.getItem('CurrentSessionId');
+    if (!currentSessionId) return;
+    const checkBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: {
+        find: {
+          staff_id: Number(userId),
+          session_id: currentSessionId
+        }
+      }
+    };
+    this.staffService.checkStaffSession(checkBody).subscribe({
+      next: (resp: any) => {
+        if (resp?.success === 1) {
+          const forceLogoutFromBoolean = resp.result?.force_logout === true;
+          const forceLogoutFromData = resp.result?.data?.length > 0 &&
+            (resp.result.data[0].is_logged_out === true || resp.result.data[0].logout === true);
+
+          if (forceLogoutFromBoolean || forceLogoutFromData) {
+            this.showForceLogout();
+          } else {
+            console.log('No force logout', resp);
+          }
+        }
+        else {
+          console.log('No force logout / no session found', resp);
+        }
+      },
+      error: (err: any) => {
+        console.error('[App] Error during periodic session check:', err);
+      }
+    });
+  }
+
+  showForceLogout(): void {
+    this.showForceLogoutModal = true;
+    if (this.sessionInterval) {
+      clearInterval(this.sessionInterval);
+      this.sessionInterval = null;
+    }
+  }
+
+  async handleForceLogoutOk(): Promise<void> {
+    this.showForceLogoutModal = false;
+    this.isUserInactive = false;
+
+    // Clear intervals
+    if (this.tokenSyncInterval) {
+      clearInterval(this.tokenSyncInterval);
+      this.tokenSyncInterval = null;
+    }
+    if (this.hotelStatusInterval) {
+      clearInterval(this.hotelStatusInterval);
+      this.hotelStatusInterval = null;
+    }
+    this.isFcmInitialized = false;
+    window.removeEventListener('focus', this.handleWindowFocus);
+
+    // Perform logout cleanups
+    const userId = Number(this.localservice.get('UserId'));
+    const customerType = this.localservice.get('CustomerType');
+    if (userId) {
+      try {
+        await this.logoutService.removeFcmToken(userId, customerType);
+      } catch (err) {
+        console.error('[App] Force logout FCM cleanup failed:', err);
+      }
+    }
+
+    // Clear local storage and sessionStorage items
+    this.localservice.remove('accessToken');
+    this.localservice.remove('refreshToken');
+    this.localservice.remove('expireTime');
+    this.localservice.remove('UserName');
+    this.localservice.remove('UserEmail');
+    this.localservice.remove('UserId');
+    this.localservice.remove('domainName');
+    this.localservice.remove('rexpireTime');
+    this.localservice.remove('MemberId');
+    this.localservice.remove('CustomerType');
+    this.localservice.remove('guestData');
+    this.localservice.remove('maxTabReached');
+    this.localservice.remove('currentTab');
+    this.localservice.remove('StaffData');
+    this.localservice.remove('hierarchy');
+    this.localservice.remove('roleName');
+    this.localservice.remove('role_id');
+    this.localservice.remove('Password');
+    this.localservice.remove('db_schema');
+    this.localservice.remove('selectedSlots');
+    this.localservice.remove('baseStaffIds');
+    this.localservice.remove('allLowerStaffIds');
+    this.localservice.remove('roomRange');
+    this.localservice.remove('USERACCESS');
+    this.localservice.remove('payNowButtonState');
+    this.localservice.remove('isFirstStaff');
+    this.localservice.remove('defaultHierarchy');
+    this.localservice.remove('Role');
+    this.localservice.remove('roleId');
+    this.localservice.remove('roleModules');
+    this.localservice.remove('outlet_id');
+    this.localservice.remove('profile_name');
+    this.localservice.remove('profile_image');
+    this.localservice.remove('Name');
+    this.localservice.remove('paymentDone');
+    this.localservice.remove('lastValidUrl');
+    this.localservice.remove('UserFcmTokens');
+    this.localservice.remove('isFcmUnavailable');
+    this.localservice.remove('isUserInactive');
+    sessionStorage.removeItem('CurrentTabFcmToken');
+    sessionStorage.removeItem('dismissedNotificationAlert');
+    sessionStorage.removeItem('CurrentSessionId');
+    this.localservice.set('loggedOut', 'true');
+    this.isSessionInitialized = false;
+
+    // Navigate to login
+    this.router.navigate([''], { skipLocationChange: false, replaceUrl: true });
+  }
+
   async initiatePaymentFlow(): Promise<void> {
     if (!this.inactiveCustomerData) return;
     let memberId = this.localservice.get('MemberId');
@@ -1393,110 +1598,133 @@ export class AppComponent implements OnInit, OnDestroy {
   beforeUnloadHandler(event: any): void {
     const customerType = this.localservice.get('CustomerType');
 
-    // NOTE: previously gated on `!isFcmUnavailable` too. Removed — the inner
-    // `currentToken` presence check below already skips correctly when there's
-    // nothing to clean up, and a stale-true isFcmUnavailable flag was silently
-    // skipping cleanup for tabs that still had a real cached token.
     if (customerType === 'Staff' || customerType === 'Customer') {
       const userId = this.localservice.get('UserId');
+      // Newly added for session id updation(log out)
+      if (!userId) return;
+      const currentSessionId = sessionStorage.getItem('CurrentSessionId');
+      // End of newly added for session id updation(log out)
       const currentToken = sessionStorage.getItem('CurrentTabFcmToken');
       const rawTokens = localStorage.getItem('UserFcmTokens');
 
-      if (userId && currentToken && rawTokens) {
-        try {
-          const tokens: string[] = JSON.parse(rawTokens);
-          const filteredTokens = tokens.filter(t => t !== currentToken);
+      try {
+        const tokenHeaders = new Headers({
+          'Content-Type': 'application/json',
+          'authorization': 'Bearer ' + this.localservice.get('accessToken')
+        });
 
-          let updateBody: any;
-          let endpointUrl: string;
+        let didExecuteFetch = false;
 
-          if (customerType === 'Staff') {
-            const remainingCount = filteredTokens.length;
-            const isAvailableValue = remainingCount >= 1;
-            updateBody = {
-              domain_name: DOMAIN_NAME,
-              user_id: USER_ID,
-              payload: {
-                staff_updation: {
-                  fcm_token: filteredTokens,
-                  is_available: isAvailableValue
-                }
-              },
-              extras: { find: { id: Number(userId) } }
-            };
-            endpointUrl = ENDPOINTS.UPDATE_STAFF;
-          } else {
-            updateBody = {
-              domain_name: DOMAIN_NAME,
-              user_id: USER_ID,
-              payload: {
-                customer_update: {
-                  fcm_token: filteredTokens
-                }
-              },
-              extras: { find: { id: Number(userId) } }
-            };
-            endpointUrl = ENDPOINTS.UPDATE_LOGIN_CUSTOMER_FCM;
+        if (customerType === 'Staff') {
+          // --- FCM tokens ---
+          let filteredTokens: string[] = [];
+          if (currentToken && rawTokens) {
+            try {
+              const tokens: string[] = JSON.parse(rawTokens);
+              filteredTokens = tokens.filter(t => t !== currentToken);
+              localStorage.setItem('UserFcmTokens', JSON.stringify(filteredTokens));
+            } catch (e) { }
+          }
+          const remainingCount = filteredTokens.length;
+          const isAvailableValue = remainingCount >= 1;
+
+          // Build staff update payload
+          const staffUpdatePayload: any = {
+            is_available: isAvailableValue
+          };
+          if (rawTokens && currentToken) {
+            staffUpdatePayload.fcm_token = filteredTokens;
           }
 
-          const tokenHeaders = new Headers({
-            'Content-Type': 'application/json',
-            'authorization': 'Bearer ' + this.localservice.get('accessToken')
-          });
-
-          fetch(endpointUrl, {
-            method: 'POST',
-            headers: tokenHeaders,
-            body: JSON.stringify(updateBody),
-            keepalive: true
-          });
-
-          // Staff also mirrors to the Customer document, same as every other
-          // cleanup path (manual/auto/inactive logout, permission-block). Uses a
-          // cached token list (populated by registerFcmTokenOnLoad) since this
-          // handler must fire synchronously and cannot await a fresh DB fetch.
-          if (customerType === 'Staff') {
-            const customerId = this.localservice.get('CustomerId');
-            const rawCustomerTokens = localStorage.getItem('CustomerFcmTokens');
-            if (customerId && rawCustomerTokens) {
-              try {
-                const customerTokens: string[] = JSON.parse(rawCustomerTokens);
-                const filteredCustomerTokens = customerTokens.filter(t => t !== currentToken);
-                const customerUpdateBody = {
-                  domain_name: DOMAIN_NAME,
-                  user_id: USER_ID,
-                  payload: {
-                    customer_update: {
-                      fcm_token: filteredCustomerTokens,
-                      is_available: filteredCustomerTokens.length >= 1
-                    }
-                  },
-                  extras: { find: { id: Number(customerId) } }
-                };
-                fetch(ENDPOINTS.UPDATE_LOGIN_CUSTOMER_FCM, {
-                  method: 'POST',
-                  headers: tokenHeaders,
-                  body: JSON.stringify(customerUpdateBody),
-                  keepalive: true
-                });
-                localStorage.setItem('CustomerFcmTokens', JSON.stringify(filteredCustomerTokens));
-              } catch (e) {
-                console.error('[App] Error mirroring FCM cleanup to customer on unload:', e);
+          const memberId = this.localservice.get('MemberId');
+          const staffUpdateBody = {
+            domain_name: DOMAIN_NAME,
+            user_id: USER_ID,
+            payload: {
+              staff_updation: staffUpdatePayload
+            },
+            extras: {
+              find: {
+                id: Number(userId),
+                ...(memberId ? { member_id: memberId } : {})
               }
             }
+          };
+
+          fetch(ENDPOINTS.UPDATE_STAFF, {
+            method: 'POST',
+            headers: tokenHeaders,
+            body: JSON.stringify(staffUpdateBody),
+            keepalive: true
+          });
+          didExecuteFetch = true;
+
+          // --- Staff Session update ---
+          if (currentSessionId) {
+            const checkUpdateBody = {
+              domain_name: DOMAIN_NAME,
+              user_id: USER_ID,
+              payload: {
+                staff_session_update: {
+                  is_logged_out: true
+                }
+              },
+              extras: {
+                find: {
+                  staff_id: Number(userId),
+                  session_id: currentSessionId
+                }
+              }
+            };
+            fetch(ENDPOINTS.UPDATE_STAFF_SESSION, {
+              method: 'POST',
+              headers: tokenHeaders,
+              body: JSON.stringify(checkUpdateBody),
+              keepalive: true
+            });
+            didExecuteFetch = true;
+          }
+        } else {
+          // Non-Staff Customer
+          const customerUpdatePayload: any = {};
+          if (rawTokens && currentToken) {
+            try {
+              const tokens: string[] = JSON.parse(rawTokens);
+              const filteredTokens = tokens.filter(t => t !== currentToken);
+              customerUpdatePayload.fcm_token = filteredTokens;
+              localStorage.setItem('UserFcmTokens', JSON.stringify(filteredTokens));
+            } catch (e) { }
           }
 
+          if (Object.keys(customerUpdatePayload).length > 0) {
+            const customerUpdateBody = {
+              domain_name: DOMAIN_NAME,
+              user_id: USER_ID,
+              payload: {
+                customer_update: customerUpdatePayload
+              },
+              extras: { find: { id: Number(userId) } }
+            };
+
+            fetch(ENDPOINTS.UPDATE_LOGIN_CUSTOMER_FCM, {
+              method: 'POST',
+              headers: tokenHeaders,
+              body: JSON.stringify(customerUpdateBody),
+              keepalive: true
+            });
+            didExecuteFetch = true;
+          }
+        }
+
+        if (didExecuteFetch) {
           // Busy-wait for 150ms to allow the browser's network thread to dispatch the request/preflight
           const start = Date.now();
           while (Date.now() - start < 150) {
             // block execution briefly
           }
-
-          // Sync local storage for other tabs
-          localStorage.setItem('UserFcmTokens', JSON.stringify(filteredTokens));
-        } catch (e) {
-          console.error('[App] Error in beforeunload handler:', e);
         }
+      } catch (e) {
+        console.error('[App] Error in beforeunload handler:', e);
       }
     }
   }

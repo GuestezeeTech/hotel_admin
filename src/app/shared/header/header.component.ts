@@ -340,7 +340,7 @@ export class HeaderComponent implements OnInit {
         // of racing them uncoordinated.
         await Promise.race([
           this.logoutService.removeFcmToken(userId, customerType),
-          new Promise<void>((resolve) => setTimeout(resolve, 1000))
+          new Promise<void>((resolve) => setTimeout(resolve, 4000))
         ]);
       }
     } catch (err) {
@@ -392,6 +392,7 @@ export class HeaderComponent implements OnInit {
     this.localService.remove('isUserInactive');
     sessionStorage.removeItem('CurrentTabFcmToken');
     sessionStorage.removeItem('dismissedNotificationAlert');
+    sessionStorage.removeItem('CurrentSessionId');
     this.localService.set('loggedOut', 'true');
     this.router.navigate([''], { skipLocationChange: false, replaceUrl: true });
     this.userAccessService.removeUserAccess();

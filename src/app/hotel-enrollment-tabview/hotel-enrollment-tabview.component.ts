@@ -1,7 +1,7 @@
 import { LoginService } from './../login/login.service';
 import { USER_ID } from './../app.config';
 import { LocalStorageService } from './../auth-services/local-storage.service';
-import { Component, OnInit, ChangeDetectorRef, Input, ViewChild } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, HostListener, Input, ViewChild } from '@angular/core';
 import { HeaderComponent } from '../shared/header/header.component';
 import { MenuBarComponent } from '../shared/menu-bar/menu-bar.component';
 import { OfficeDetailsComponent } from './office-details/office-details.component';
@@ -48,6 +48,8 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
   isServiceExist: boolean = false;
   isTechnicalInfoExist: boolean = false;
   isOrderExist: boolean = false;
+  orderIdFromUrl: string | null = null;
+  customerIdFromUrl: string | null = null;
   static alreadyChecked = false;
   getCustomerData: any;
   callonce = true;
@@ -106,11 +108,27 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
 
   ngOnInit(): void {
     this.memberId = this.localService.get('MemberId');
+
+    // Capture initial query parameters immediately on loading to avoid async race conditions later
+    const initParams = this.route.snapshot.queryParams;
+    if (initParams['id']) {
+      this.orderIdFromUrl = initParams['id'];
+    }
+    if (initParams['customer_id']) {
+      this.customerIdFromUrl = initParams['customer_id'];
+    }
+
     // Newly added for payment route id initialization
     this.route.queryParams.subscribe(params => {
       const customerId = params['customer_id'];
       if (customerId) {
         this.hotelId = Number(customerId);
+      }
+      if (params['id']) {
+        this.orderIdFromUrl = params['id'];
+      }
+      if (params['customer_id']) {
+        this.customerIdFromUrl = params['customer_id'];
       }
     });
     this.route.paramMap.subscribe(params => {
@@ -237,6 +255,13 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
       //   }
       // }
     });
+  }
+
+  @HostListener('window:popstate', ['$event'])
+  onBrowserBack(event: any) {
+    if (this.router.url.includes('confirmation')) {
+      window.history.pushState(null, '', window.location.href);
+    }
   }
 
   constructor(
@@ -1050,10 +1075,9 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
           */
           // End of newly commented for payment status check
 
-          // Newly added for payment status check
-          const queryParams = this.route.snapshot.queryParams;
-          const orderIdFromUrl = queryParams['id'];
-          const customerIdFromUrl = queryParams['customer_id'];
+          // Newly added for payment status check using synchronously cached query parameters
+          const orderIdFromUrl = this.orderIdFromUrl;
+          const customerIdFromUrl = this.customerIdFromUrl;
           if (
             this.router.url.includes('confirmation') &&
             orderIdFromUrl &&
@@ -1067,14 +1091,16 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
               console.error('sessionStorage access failed', e);
             }
 
-            // Strip the query parameters from the URL immediately using HTML5 history API
-            // to prevent Angular route loops and avoid re-processing upon refresh/back/pasting.
+            // Strip only key 'id' (order id) from the URL query params to prevent payment re-triggering,
+            // while retaining 'customer_id' since it is used by other parts of the application.
             try {
               if (window.history && window.history.replaceState) {
-                window.history.replaceState({}, '', window.location.pathname);
+                const url = new URL(window.location.href);
+                url.searchParams.delete('id');
+                window.history.replaceState({}, '', url.pathname + url.search);
               }
             } catch (e) {
-              console.error('Failed to strip query parameters from URL', e);
+              console.error('Failed to strip order ID from URL', e);
             }
 
             if (isAlreadyProcessed) {

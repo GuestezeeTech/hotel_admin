@@ -112,6 +112,21 @@
 </div>
 }
 
+<!-- Newly added for session id updation(log out) -->
+@if (showForceLogoutModal) {
+<div class="deactivated-modal-backdrop">
+  <div class="deactivated-modal-card">
+    <div class="modal-icon-container" style="color: #800020;">
+      <i class="bi bi-box-arrow-right"></i>
+    </div>
+    <h3>{{ forceLogoutModalTitle }}</h3>
+    <p style="margin-bottom: 2rem;">{{ forceLogoutModalMessage }}</p>
+    <button class="btn-modal-ok" (click)="handleForceLogoutOk()">OK</button>
+  </div>
+</div>
+}
+<!-- End of newly added for session id updation(log out) -->
+
 <!-- Notification Permission Custom Centered Modals -->
 @if (showNotificationBlockedAlert) {
 <div class="notification-modal-backdrop">

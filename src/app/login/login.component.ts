@@ -648,6 +648,7 @@ export class LoginComponent implements OnInit {
                     // console.log('Login - department:', department)
                     this.getAllStaffIds(userData.staff_id, department, member)
                     this.loaderService.emitComplete();
+                    sessionStorage.setItem('fcmAndAvailabilityUpdated', 'pending');
                     this.router.navigate(['/task-management']);
                     // handles FCM token for Staff
                     try {
@@ -702,6 +703,7 @@ export class LoginComponent implements OnInit {
                             };
                             this.staffService.updateStaff(updateBody).subscribe(
                               (updateResp: any) => {
+                                sessionStorage.setItem('fcmAndAvailabilityUpdated', 'true');
                                 if (updateResp.success === 1 && updateResp.status_code === 200) {
                                   // console.log('Staff FCM token and is_available updated successfully');
                                 } else {
@@ -709,6 +711,7 @@ export class LoginComponent implements OnInit {
                                 }
                               },
                               (err: any) => {
+                                sessionStorage.setItem('fcmAndAvailabilityUpdated', 'true');
                                 console.error('Error updating staff FCM token and is_available:', err);
                               }
                             );
@@ -770,15 +773,18 @@ export class LoginComponent implements OnInit {
                           }// End of newly added is_available to true on staff login
                           else {
                             console.error('Staff not found for ID:', userData.staff_id);
+                            sessionStorage.setItem('fcmAndAvailabilityUpdated', 'true');
                           }
                         },
                         (err: any) => {
                           console.error('Error fetching staff:', err);
+                          sessionStorage.setItem('fcmAndAvailabilityUpdated', 'true');
                         }
                       );
                     } catch (err) {
                       console.error('Failed to get FCM token for staff:', err);
                       this.localService.set('isFcmUnavailable', 'true');
+                      sessionStorage.setItem('fcmAndAvailabilityUpdated', 'true');
                     }
                     // this.localService.set('higher_level_hierarchy', {
                     //   "id": Number(4),
