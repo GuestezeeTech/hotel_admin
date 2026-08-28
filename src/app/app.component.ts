@@ -1596,6 +1596,22 @@ export class AppComponent implements OnInit, OnDestroy {
 
   @HostListener('window:beforeunload', ['$event'])
   beforeUnloadHandler(event: any): void {
+    this.runUnloadCleanup();
+  }
+
+  // 'pagehide' fires more reliably than 'beforeunload' for the same "tab/window is
+  // going away" intent — notably on mobile Safari backgrounding/app-switching, where
+  // 'beforeunload' is frequently not fired at all, and for bfcache-eligible
+  // navigations. Runs the exact same cleanup as beforeUnloadHandler. Safe if both end
+  // up firing for the same teardown: the cleanup below updates the UserFcmTokens
+  // localStorage cache synchronously before sending the request, so a second run just
+  // re-sends the same already-filtered state (idempotent, only wastes one request).
+  @HostListener('window:pagehide')
+  pageHideHandler(): void {
+    this.runUnloadCleanup();
+  }
+
+  private runUnloadCleanup(): void {
     const customerType = this.localservice.get('CustomerType');
 
     if (customerType === 'Staff' || customerType === 'Customer') {
@@ -1617,21 +1633,39 @@ export class AppComponent implements OnInit, OnDestroy {
 
         if (customerType === 'Staff') {
           // --- FCM tokens ---
+          // Only include is_available in the update when we actually have a
+          // cached token list to compute it from. This used to default to "0
+          // tokens remaining" (and therefore unavailable) whenever the cache
+          // simply hadn't been populated yet — e.g. within ~20s of login, or on
+          // a device that never had notification permission granted — which
+          // wrongly forced staff unavailable with no real basis. hasAvailabilityInfo
+          // tracks whether we actually have real data to compute from; when we
+          // don't, is_available is left out of the payload entirely so the
+          // server's existing value is left alone instead of being overwritten
+          // with a guess.
           let filteredTokens: string[] = [];
-          if (currentToken && rawTokens) {
+          let hasAvailabilityInfo = false;
+          if (rawTokens) {
             try {
               const tokens: string[] = JSON.parse(rawTokens);
-              filteredTokens = tokens.filter(t => t !== currentToken);
-              localStorage.setItem('UserFcmTokens', JSON.stringify(filteredTokens));
+              // If this tab never had a token (no notification permission on
+              // this device), there's nothing of ours to remove — use the list
+              // as-is rather than treating it as empty.
+              filteredTokens = currentToken ? tokens.filter(t => t !== currentToken) : tokens;
+              hasAvailabilityInfo = true;
+              if (currentToken) {
+                localStorage.setItem('UserFcmTokens', JSON.stringify(filteredTokens));
+              }
             } catch (e) { }
           }
           const remainingCount = filteredTokens.length;
           const isAvailableValue = remainingCount >= 1;
 
           // Build staff update payload
-          const staffUpdatePayload: any = {
-            is_available: isAvailableValue
-          };
+          const staffUpdatePayload: any = {};
+          if (hasAvailabilityInfo) {
+            staffUpdatePayload.is_available = isAvailableValue;
+          }
           if (rawTokens && currentToken) {
             staffUpdatePayload.fcm_token = filteredTokens;
           }
@@ -1717,9 +1751,19 @@ export class AppComponent implements OnInit, OnDestroy {
         }
 
         if (didExecuteFetch) {
-          // Busy-wait for 150ms to allow the browser's network thread to dispatch the request/preflight
+          // Busy-wait to allow the browser's network thread to dispatch the request/preflight
+          // before the page finishes tearing down. 150ms was a flat guess that can be too
+          // short on a slow connection (DNS/TCP/TLS setup alone can exceed it, especially on
+          // hotel wifi), letting the request get cut off before it's even sent. Where the
+          // Network Information API is available (Chrome/Edge/Android — not Safari/Firefox),
+          // extend the wait on detected slow connections; everywhere else this is unchanged.
+          const connection = (navigator as any).connection;
+          const effectiveType: string | undefined = connection?.effectiveType;
+          const waitMs = (effectiveType === 'slow-2g' || effectiveType === '2g') ? 600
+            : (effectiveType === '3g') ? 350
+            : 150;
           const start = Date.now();
-          while (Date.now() - start < 150) {
+          while (Date.now() - start < waitMs) {
             // block execution briefly
           }
         }

@@ -653,9 +653,26 @@ export class LoginComponent implements OnInit {
                     // handles FCM token for Staff
                     try {
                       const userId: any = this.localService.get('UserId');
+                      // Claim the same sessionStorage 'pending' sentinel that
+                      // app.component.ts's initFcmHandling()/checkNotificationPermission()
+                      // check before calling Firebase's getToken themselves. The
+                      // router.navigate() above fires NavigationEnd -> initFcmHandling()
+                      // while this call is still in flight; without claiming this sentinel
+                      // first, both paths independently ask Firebase for a token (which can
+                      // briefly return two different token strings for the same device right
+                      // after a fresh registration) and both get pushed into fcm_token[],
+                      // producing two entries for one login.
+                      sessionStorage.setItem('CurrentTabFcmToken', 'pending');
+                      sessionStorage.setItem('__CurrentTabFcmTokenPendingAt', String(Date.now()));
                       const token = await this.pushService.requestPermissionAndGetToken(userId);
                       const isFcmUnavailable = !token || token.trim() === '';
                       this.localService.set('isFcmUnavailable', isFcmUnavailable ? 'true' : 'false');
+                      if (isFcmUnavailable) {
+                        // No token obtained — release the sentinel now instead of leaving it
+                        // stuck at 'pending' until app.component.ts's 10s staleness timeout.
+                        sessionStorage.removeItem('CurrentTabFcmToken');
+                        sessionStorage.removeItem('__CurrentTabFcmTokenPendingAt');
+                      }
                       // console.log('Staff FCM Token:', token);
                       // Step 1: Fetch staff by staff_id
                       const fetchBody = {
@@ -680,6 +697,7 @@ export class LoginComponent implements OnInit {
                                 staff.fcm_token.push(token);
                               }
                               sessionStorage.setItem('CurrentTabFcmToken', token);
+                              sessionStorage.removeItem('__CurrentTabFcmTokenPendingAt');
                             }
                             localStorage.setItem('UserFcmTokens', JSON.stringify(staff.fcm_token));
                             // Step 3: Update staff FCM token and is_available
@@ -774,17 +792,23 @@ export class LoginComponent implements OnInit {
                           else {
                             console.error('Staff not found for ID:', userData.staff_id);
                             sessionStorage.setItem('fcmAndAvailabilityUpdated', 'true');
+                            sessionStorage.removeItem('CurrentTabFcmToken');
+                            sessionStorage.removeItem('__CurrentTabFcmTokenPendingAt');
                           }
                         },
                         (err: any) => {
                           console.error('Error fetching staff:', err);
                           sessionStorage.setItem('fcmAndAvailabilityUpdated', 'true');
+                          sessionStorage.removeItem('CurrentTabFcmToken');
+                          sessionStorage.removeItem('__CurrentTabFcmTokenPendingAt');
                         }
                       );
                     } catch (err) {
                       console.error('Failed to get FCM token for staff:', err);
                       this.localService.set('isFcmUnavailable', 'true');
                       sessionStorage.setItem('fcmAndAvailabilityUpdated', 'true');
+                      sessionStorage.removeItem('CurrentTabFcmToken');
+                      sessionStorage.removeItem('__CurrentTabFcmTokenPendingAt');
                     }
                     // this.localService.set('higher_level_hierarchy', {
                     //   "id": Number(4),
@@ -877,9 +901,19 @@ export class LoginComponent implements OnInit {
                   if (userData.staff_employee_number === undefined) {
                     try {
                       const userId: any = this.localService.get('UserId');
+                      // Claim the same sessionStorage 'pending' sentinel app.component.ts's
+                      // initFcmHandling()/checkNotificationPermission() check before calling
+                      // Firebase's getToken themselves — see the matching comment in the
+                      // Staff branch above for why this prevents duplicate token pushes.
+                      sessionStorage.setItem('CurrentTabFcmToken', 'pending');
+                      sessionStorage.setItem('__CurrentTabFcmTokenPendingAt', String(Date.now()));
                       const token = await this.pushService.requestPermissionAndGetToken(userId);
                       const isFcmUnavailable = !token || token.trim() === '';
                       this.localService.set('isFcmUnavailable', isFcmUnavailable ? 'true' : 'false');
+                      if (isFcmUnavailable) {
+                        sessionStorage.removeItem('CurrentTabFcmToken');
+                        sessionStorage.removeItem('__CurrentTabFcmTokenPendingAt');
+                      }
                       // this.token = await this.pushService.requestPermission();
                       // console.log('User FCM Token:', token);
                       // Step 1: Fetch customer by id
@@ -903,6 +937,7 @@ export class LoginComponent implements OnInit {
                                 customer.fcm_token.push(token);
                               }
                               sessionStorage.setItem('CurrentTabFcmToken', token);
+                              sessionStorage.removeItem('__CurrentTabFcmTokenPendingAt');
                             }
                             localStorage.setItem('UserFcmTokens', JSON.stringify(customer.fcm_token));
                             // Step 4: Update customer with the new array
@@ -932,15 +967,21 @@ export class LoginComponent implements OnInit {
                             );
                           } else {
                             console.error('Customer not found for email:', this.loginForm.value.email);
+                            sessionStorage.removeItem('CurrentTabFcmToken');
+                            sessionStorage.removeItem('__CurrentTabFcmTokenPendingAt');
                           }
                         },
                         (err: any) => {
                           console.error('Error fetching customer:', err);
+                          sessionStorage.removeItem('CurrentTabFcmToken');
+                          sessionStorage.removeItem('__CurrentTabFcmTokenPendingAt');
                         }
                       );
                     } catch (err) {
                       console.error('Failed to get FCM token:', err);
                       this.localService.set('isFcmUnavailable', 'true');
+                      sessionStorage.removeItem('CurrentTabFcmToken');
+                      sessionStorage.removeItem('__CurrentTabFcmTokenPendingAt');
                     }
                   }
                   // // let service_details = await this.getServiceById();
