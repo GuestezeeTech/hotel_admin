@@ -1,7 +1,7 @@
 <div class="sidenav">
 
   <div class="logo-container">
-    <img [src]="hotelLogoUrl || 'https://ecbee-labes-images1.s3.ap-south-1.amazonaws.com/Guestezee/Brand/no+logo.png'"
+    <img [src]="hotelLogoUrl || 'https://guestezee.s3.ap-south-2.amazonaws.com/Guestezee/Brand/no+logo.png'"
       alt="Hotel Logo" class="sidebar-logo" />
   </div>
 
@@ -150,14 +150,14 @@
     <!--    <li class="list_container" [class.active]="isActive('features')"
       (click)="setActiveMenu('features'); sendValue('Features')"
       *ngIf="(customerType === 'Customer' && customerdata?.status=='approved' && hasAnyPermission('FEATURES'))">
-      <img src="https://ecbee-labes-images1.s3.ap-south-1.amazonaws.com/GuestEzee/undefined/feature1.png"
+      <img src="https://guestezee.s3.ap-south-2.amazonaws.com/GuestEzee/undefined/feature1.png"
         alt="Features">
       <a routerLink="/features">Features (Upselling)</a>
     </li> -->
     <li class="list_container" [class.active]="isActive('features')" [routerLink]="['/features']"
       (click)="setActiveMenu('features'); sendValue('Features')"
       *ngIf="customerType === 'Customer' && customerdata?.status == 'approved' && hasAnyPermission('FEATURES')">
-      <img src="https://ecbee-labes-images1.s3.ap-south-1.amazonaws.com/GuestEzee/undefined/feature1.png"
+      <img src="https://guestezee.s3.ap-south-2.amazonaws.com/GuestEzee/undefined/feature1.png"
         alt="Features">
       <span>Features (Upselling)</span>
     </li>

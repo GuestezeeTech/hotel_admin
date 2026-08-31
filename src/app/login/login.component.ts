@@ -1282,7 +1282,7 @@ export class LoginComponent implements OnInit {
           const profile_image = respData.profile_image;
           const profile_name = respData.first_name + ' ' + respData.last_name;
           // Send data to BehaviorSubject for header
-          this.profileService.updateProfileImage(profile_image || 'https://images.ecbee.net/GuestEzee/Brand/ChatGPT_Image_Jun_19__2026__01_25_37_PM.webp');
+          this.profileService.updateProfileImage(profile_image || 'https://guestezee.s3.ap-south-2.amazonaws.com/GuestEzee/Brand/ChatGPT_Image_Jun_19__2026__01_25_37_PM.webp');
           this.profileService.updateProfileName(profile_name);
           //  if(this.dbSchema==='Aiema'||this.dbSchema==='shubcards' ||this.dbSchema==='Deera' ||this.dbSchema==='BBold'||this.dbSchema==='BombayHardware'||this.dbSchema==='dosapark') {
 

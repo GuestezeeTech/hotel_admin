@@ -728,7 +728,7 @@ export class OfficeDetailsComponent implements OnInit, OnChanges {
               if (profileResp.success === 1 && profileResp.status_code === 200) {
                 const data = profileResp.result.data[0];
                 // const profileImage = data?.profile_image?.trim() || 'assets/images/guestezee/profile.png';
-                const profileImage = data?.profile_image?.trim() || 'https://images.ecbee.net/GuestEzee/Brand/ChatGPT_Image_Jun_19__2026__01_25_37_PM.webp';
+                const profileImage = data?.profile_image?.trim() || 'https://guestezee.s3.ap-south-2.amazonaws.com/GuestEzee/Brand/ChatGPT_Image_Jun_19__2026__01_25_37_PM.webp';
                 const profileName = data?.first_name || data?.last_name
                   ? `${data.first_name || ''} ${data.last_name || ''}`.trim()
                   : data.phone_number;

@@ -38,11 +38,11 @@ export class CreateTaskComponent implements OnInit {
     menuOutlets: any[] = [];
     selectedOutlet: any = null;
     loadingOutlets: boolean = false;
-    fallbackOutletImage = 'https://ecbee-labes-images1.s3.ap-south-1.amazonaws.com/Guestezee/Brand/Re.png';
+    fallbackOutletImage = 'https://guestezee.s3.ap-south-2.amazonaws.com/Guestezee/Brand/Re.png';
     // fallbackOutletImage = '';
     products: any[] = [];
     loadingProducts: boolean = false;
-    fallbackProductImage = 'https://ecbee-labes-images1.s3.ap-south-1.amazonaws.com/GuestEzee/Brand/menu+4.png';
+    fallbackProductImage = 'https://guestezee.s3.ap-south-2.amazonaws.com/GuestEzee/Brand/menu+4.png';
     // Flag to show modal
     isClearMenuModalOpen = false;
     pendingOutletChange: any = null;

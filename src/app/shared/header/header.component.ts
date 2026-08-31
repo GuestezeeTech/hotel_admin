@@ -119,7 +119,7 @@ export class HeaderComponent implements OnInit {
       if (resp.success === 1 && resp.status_code === 200) {
         const data = resp.result.data[0];
         // const profileImage = data?.profile_image?.trim() || '../../assets/images/guestezee/profile.png';
-        const profileImage = data?.profile_image?.trim() || 'https://images.ecbee.net/GuestEzee/Brand/ChatGPT_Image_Jun_19__2026__01_25_37_PM.webp';
+        const profileImage = data?.profile_image?.trim() || 'https://guestezee.s3.ap-south-2.amazonaws.com/GuestEzee/Brand/ChatGPT_Image_Jun_19__2026__01_25_37_PM.webp';
         let profileName: string;
         if (this.customerType === 'Staff') {
           profileName = data?.full_name ? data?.full_name.trim() : data?.phone_number;
@@ -137,7 +137,7 @@ export class HeaderComponent implements OnInit {
     });
     this.profileService.profileImage$.subscribe(imageUrl => {
       // this.profile_image = imageUrl || '../../assets/images/guestezee/profile.png';
-      this.profile_image = imageUrl || 'https://images.ecbee.net/GuestEzee/Brand/ChatGPT_Image_Jun_19__2026__01_25_37_PM.webp';
+      this.profile_image = imageUrl || 'https://guestezee.s3.ap-south-2.amazonaws.com/GuestEzee/Brand/ChatGPT_Image_Jun_19__2026__01_25_37_PM.webp';
     });
     this.profileService.profileName$.subscribe(name => {
       this.profile_name = name;
@@ -483,7 +483,7 @@ export class HeaderComponent implements OnInit {
           this.profileService.getAdminProfileDetails(hotelId, this.customerType).subscribe(resp => {
             if (resp.success === 1 && resp.status_code === 200) {
               const data = resp.result.data[0];
-              const profileImage = data?.profile_image?.trim() || 'https://images.ecbee.net/GuestEzee/Brand/ChatGPT_Image_Jun_19__2026__01_25_37_PM.webp';
+              const profileImage = data?.profile_image?.trim() || 'https://guestezee.s3.ap-south-2.amazonaws.com/GuestEzee/Brand/ChatGPT_Image_Jun_19__2026__01_25_37_PM.webp';
               let profileName: string;
               if (this.customerType === 'Staff') {
                 profileName = data?.full_name ? data?.full_name.trim() : data?.phone_number;

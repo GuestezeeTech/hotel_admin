@@ -8,7 +8,7 @@
                 <h5>Profile Photo</h5>
                 <div class="row align-items-center mb-4">
                     <div class="col-auto">
-                        <img [src]="userRegistartionForm.value.profile_image || 'https://images.ecbee.net/GuestEzee/Brand/ChatGPT_Image_Jun_19__2026__01_25_37_PM.webp'"
+                        <img [src]="userRegistartionForm.value.profile_image || 'https://guestezee.s3.ap-south-2.amazonaws.com/GuestEzee/Brand/ChatGPT_Image_Jun_19__2026__01_25_37_PM.webp'"
                             alt="Profile" class="border"
                             style="width: 100px; height: 100px; object-fit: contain; background-color: #ffffff; border-radius: 8px;">
                     </div>
@@ -28,7 +28,7 @@
                                 [disabled]="!enableEdit"
                                 style='background-color: #800020; color: white; padding: 2px 8px'>Remove</button> -->
                             <button
-                                *ngIf="userRegistartionForm.value.profile_image && !userRegistartionForm.value.profile_image.includes('https://images.ecbee.net/GuestEzee/Brand/ChatGPT_Image_Jun_19__2026__01_25_37_PM.webp')"
+                                *ngIf="userRegistartionForm.value.profile_image && !userRegistartionForm.value.profile_image.includes('https://guestezee.s3.ap-south-2.amazonaws.com/GuestEzee/Brand/ChatGPT_Image_Jun_19__2026__01_25_37_PM.webp')"
                                 class="mt-2 ms-2 btn border rounded btn-md shadow-none" (click)="openExitModal()"
                                 [disabled]="!enableEdit"
                                 style='background-color: #800020; color: white; padding: 2px 8px'>Remove</button>

@@ -13,7 +13,7 @@ export const API_URL1 = "https://www.guestezee.com"
 export const API_URL2 = "http://www.guestezee.com"
 // export const API_URL1 = "https://ssltest.ecbee.net"
 // export const API_URL2 = "http://ssltest.ecbee.net"
-export const API_URL3 = "http://164.52.214.114"
+export const API_URL3 = "http://40.192.104.15"
 // export const API_URL3 = "http://40.192.104.15"
 
 export const DOMAIN_NAME = "https://www.guestezee.com"

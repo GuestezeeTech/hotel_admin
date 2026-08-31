@@ -31,7 +31,7 @@ export class RestaurantsListComponent implements OnInit, OnDestroy {
   menuOutlets: any[] = [];
   selectedOutlet: any = null;
   today: string = '';
-  fallbackOutletImage = 'https://ecbee-labes-images1.s3.ap-south-1.amazonaws.com/Guestezee/Brand/Re.png';
+  fallbackOutletImage = 'https://guestezee.s3.ap-south-2.amazonaws.com/Guestezee/Brand/Re.png';
   // fallbackOutletImage = '';
   offers: any[] = [];
   // Flag to show modal

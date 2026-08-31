@@ -34,22 +34,22 @@ export class FeaturesListComponent implements OnInit {
   menuOutlets: any[] = [];
   selectedOutlet: any = null;
   today: string = '';
-  // fallbackOutletImage = 'https://ecbee-labes-images1.s3.ap-south-1.amazonaws.com/Guestezee/Brand/Re.png';
+  // fallbackOutletImage = 'https://guestezee.s3.ap-south-2.amazonaws.com/Guestezee/Brand/Re.png';
   // fallbackOutletImage = '';
   fallbackOutletImage: any = {
-    Restaurant: 'https://ecbee-labes-images1.s3.ap-south-1.amazonaws.com/Guestezee/Brand/Re.png',
-    Spa: 'https://ecbee-labes-images1.s3.ap-south-1.amazonaws.com/GuestEzee/web/image%20%2811%29.png',
-    Gym: 'https://ecbee-labes-images1.s3.ap-south-1.amazonaws.com/GuestEzee/web/image%20%2812%29.png',
-    Bar: 'https://ecbee-labes-images1.s3.ap-south-1.amazonaws.com/GuestEzee/web/image%20%2813%29.png',
-    'Coffee Shop': 'https://ecbee-labes-images1.s3.ap-south-1.amazonaws.com/GuestEzee/web/image%20%2814%29.png',
-    Bakery: 'https://ecbee-labes-images1.s3.ap-south-1.amazonaws.com/GuestEzee/web/image%20%2815%29.png',
-    'Swimming Pool': 'https://ecbee-labes-images1.s3.ap-south-1.amazonaws.com/GuestEzee/web/image%20%2816%29.png',
-    'Conference Hall': 'https://ecbee-labes-images1.s3.ap-south-1.amazonaws.com/GuestEzee/web/image%20%2817%29.png',
-    'Banquet Hall': 'https://ecbee-labes-images1.s3.ap-south-1.amazonaws.com/GuestEzee/web/image%20%2818%29.png',
-    'Game Zone': 'https://ecbee-labes-images1.s3.ap-south-1.amazonaws.com/GuestEzee/web/image%20%2819%29.png',
-    Salon: 'https://ecbee-labes-images1.s3.ap-south-1.amazonaws.com/GuestEzee/web/image%20%2820%29.png',
-    'Kids Play Area': 'https://ecbee-labes-images1.s3.ap-south-1.amazonaws.com/GuestEzee/web/image%20%2821%29.png',
-    'Sports Arena': 'https://ecbee-labes-images1.s3.ap-south-1.amazonaws.com/GuestEzee/web/image%20%2822%29.png'
+    Restaurant: 'https://guestezee.s3.ap-south-2.amazonaws.com/Guestezee/Brand/Re.png',
+    Spa: 'https://guestezee.s3.ap-south-2.amazonaws.com/GuestEzee/web/image%20%2811%29.png',
+    Gym: 'https://guestezee.s3.ap-south-2.amazonaws.com/GuestEzee/web/image%20%2812%29.png',
+    Bar: 'https://guestezee.s3.ap-south-2.amazonaws.com/GuestEzee/web/image%20%2813%29.png',
+    'Coffee Shop': 'https://guestezee.s3.ap-south-2.amazonaws.com/GuestEzee/web/image%20%2814%29.png',
+    Bakery: 'https://guestezee.s3.ap-south-2.amazonaws.com/GuestEzee/web/image%20%2815%29.png',
+    'Swimming Pool': 'https://guestezee.s3.ap-south-2.amazonaws.com/GuestEzee/web/image%20%2816%29.png',
+    'Conference Hall': 'https://guestezee.s3.ap-south-2.amazonaws.com/GuestEzee/web/image%20%2817%29.png',
+    'Banquet Hall': 'https://guestezee.s3.ap-south-2.amazonaws.com/GuestEzee/web/image%20%2818%29.png',
+    'Game Zone': 'https://guestezee.s3.ap-south-2.amazonaws.com/GuestEzee/web/image%20%2819%29.png',
+    Salon: 'https://guestezee.s3.ap-south-2.amazonaws.com/GuestEzee/web/image%20%2820%29.png',
+    'Kids Play Area': 'https://guestezee.s3.ap-south-2.amazonaws.com/GuestEzee/web/image%20%2821%29.png',
+    'Sports Arena': 'https://guestezee.s3.ap-south-2.amazonaws.com/GuestEzee/web/image%20%2822%29.png'
   }
   offers: any[] = [];
   // Flag to show modal

@@ -169,7 +169,7 @@ export class HotelEnrollmentTabviewService {
       return new Observable();
     }
     else {
-      return this.http.post("http://164.52.214.114:5300/es-countries/all", {
+      return this.http.post("http://40.192.104.15:5300/es-countries/all", {
         "domain_name": "https://www.beaubelle.in",
         "user_id": USER_ID,
         "extras": {
@@ -197,7 +197,7 @@ export class HotelEnrollmentTabviewService {
       return new Observable();
     }
     else {
-      return this.http.post("http://164.52.214.114:5300/es-states/all", jsonObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
+      return this.http.post("http://40.192.104.15:5300/es-states/all", jsonObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
     }
   }
 

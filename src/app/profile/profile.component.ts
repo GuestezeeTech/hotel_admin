@@ -67,7 +67,7 @@ export class ProfileComponent implements OnInit {
   enableEdit: boolean = true;
   imgFile: File | null = null;
   // profile_image: string | null = '../../assets/images/guestezee/profile.png';
-  profile_image: string | null = 'https://images.ecbee.net/GuestEzee/Brand/ChatGPT_Image_Jun_19__2026__01_25_37_PM.webp';
+  profile_image: string | null = 'https://guestezee.s3.ap-south-2.amazonaws.com/GuestEzee/Brand/ChatGPT_Image_Jun_19__2026__01_25_37_PM.webp';
 
 
   constructor(
@@ -103,7 +103,7 @@ export class ProfileComponent implements OnInit {
         //console.log("mail", this.mail);
         const profileImage = data?.profile_image?.trim() || null;
         // this.profile_image = profileImage || '../../assets/images/guestezee/profile.png';
-        this.profile_image = profileImage || 'https://images.ecbee.net/GuestEzee/Brand/ChatGPT_Image_Jun_19__2026__01_25_37_PM.webp';
+        this.profile_image = profileImage || 'https://guestezee.s3.ap-south-2.amazonaws.com/GuestEzee/Brand/ChatGPT_Image_Jun_19__2026__01_25_37_PM.webp';
         let profileName: string;
         if (this.customerType === 'Staff') {
           profileName = data?.full_name ? data?.full_name.trim() : data?.phone_number;
@@ -145,7 +145,7 @@ export class ProfileComponent implements OnInit {
       this.userRegistartionForm = this.formBuilder.group({
         full_name: ['', [Validators.maxLength(40), Validators.pattern("^[a-zA-Z][a-z A-Z]*$")]],
         // profile_image: '../../assets/images/guestezee/profile.png',
-        profile_image: 'https://images.ecbee.net/GuestEzee/Brand/ChatGPT_Image_Jun_19__2026__01_25_37_PM.webp',
+        profile_image: 'https://guestezee.s3.ap-south-2.amazonaws.com/GuestEzee/Brand/ChatGPT_Image_Jun_19__2026__01_25_37_PM.webp',
         imageFile: [''],
       });
     }
@@ -154,7 +154,7 @@ export class ProfileComponent implements OnInit {
         first_name: ['', [Validators.maxLength(40), Validators.pattern("^[a-zA-Z][a-z A-Z]*$")]],
         last_name: ['', [Validators.maxLength(40), Validators.pattern("^[a-zA-Z][a-z A-Z]*$")]],
         // profile_image: '../../assets/images/guestezee/profile.png',
-        profile_image: 'https://images.ecbee.net/GuestEzee/Brand/ChatGPT_Image_Jun_19__2026__01_25_37_PM.webp',
+        profile_image: 'https://guestezee.s3.ap-south-2.amazonaws.com/GuestEzee/Brand/ChatGPT_Image_Jun_19__2026__01_25_37_PM.webp',
         imageFile: [''],
       });
     }
@@ -288,7 +288,7 @@ export class ProfileComponent implements OnInit {
 
   deleteImage() {
     // this.profile_image = '../../assets/images/guestezee/profile.png';
-    this.profile_image = 'https://images.ecbee.net/GuestEzee/Brand/ChatGPT_Image_Jun_19__2026__01_25_37_PM.webp';
+    this.profile_image = 'https://guestezee.s3.ap-south-2.amazonaws.com/GuestEzee/Brand/ChatGPT_Image_Jun_19__2026__01_25_37_PM.webp';
     this.profileUpdate(this.profile_image, "Profile image deleted successfully!");
     this.userRegistartionForm.controls['imageFile'].setErrors({ 'type': false });
     this.userRegistartionForm.controls['imageFile'].setErrors({ 'sizehigh': false });
