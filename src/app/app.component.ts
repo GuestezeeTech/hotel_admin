@@ -318,7 +318,7 @@ export class AppComponent implements OnInit, OnDestroy {
           // console.log('[App] Auto-logout: localStorage cleared immediately.');
           // ── Step 2: Remove FCM token from DB (async, fire-and-forget) ──
           this.logoutService.removeFcmToken(userIdVal, customerTypeVal).then(() => {
-            console.log('[App] Auto-logout: FCM token removed from DB.');
+            /* console.log('[App] Auto-logout: FCM token removed from DB.'); */
           }).catch(err => {
             console.error('[App] Auto-logout FCM cleanup failed:', err);
           });
@@ -1030,13 +1030,25 @@ export class AppComponent implements OnInit, OnDestroy {
       }
       this.localservice.set('isFcmUnavailable', 'true');
 
+      // While the permission prompt is still up and undecided, some other path
+      // (login.component.ts, handleInstructionsOk) may be mid-flight inside
+      // requestPermissionAndGetToken(), legitimately waiting on the user's click
+      // for longer than PENDING_TOKEN_TIMEOUT_MS. Refresh the pending timestamp
+      // on every tick while permission is 'default' so that wait time is never
+      // mistaken for a hung call below — once permission is actually decided
+      // (granted or denied), the timestamp is fresh and the 10s staleness check
+      // resumes guarding against genuinely stuck calls only.
+      if (Notification.permission === 'default' && sessionStorage.getItem('CurrentTabFcmToken') === 'pending') {
+        sessionStorage.setItem('__CurrentTabFcmTokenPendingAt', String(Date.now()));
+      }
+
       // Clean up token from service when user blocks permission.
       // Clear sessionStorage BEFORE the async network call so the 2s setInterval
       // tick that lands mid-flight doesn't fire a duplicate removeFcmToken (the
       // logout service's _isCleaningUp mutex would silently drop the duplicate).
       const cachedToken = sessionStorage.getItem('CurrentTabFcmToken');
       if (cachedToken && cachedToken !== 'pending') {
-        console.log('[App] Notifications blocked by user. Cleaning up token:', cachedToken);
+        /* console.log('[App] Notifications blocked by user. Cleaning up token:', cachedToken); */
         sessionStorage.removeItem('CurrentTabFcmToken');
         sessionStorage.removeItem('__CurrentTabFcmTokenPendingAt');
         // Clear the dedupe marker AND the rate-limit lock so a re-enable of the
@@ -1047,7 +1059,7 @@ export class AppComponent implements OnInit, OnDestroy {
         // it before reading DB — otherwise registerFcmTokenOnLoad sees the
         // pre-cleanup state, skips the write, and DB stays stuck stale.
         const cleanup = this.logoutService.removeFcmToken(Number(userId), customerType, cachedToken).then(() => {
-          console.log('[App] Successfully removed FCM token from DB after user blocked permission.');
+          /* console.log('[App] Successfully removed FCM token from DB after user blocked permission.'); */
         }).catch(err => {
           console.error('[App] Failed to remove FCM token after user blocked permission:', err);
         }).then(() => {
@@ -1115,7 +1127,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   handleInstructionsOk() {
-    console.log('[App Notifications] handleInstructionsOk clicked. Current permission:', Notification.permission);
+    /* console.log('[App Notifications] handleInstructionsOk clicked. Current permission:', Notification.permission); */
     // Defensive: modal shouldn't render on unauthenticated routes (its show flag
     // is only set by checkNotificationPermission, which itself is guarded), but
     // don't fire any FCM work from a stray click on those routes either.
@@ -1125,10 +1137,10 @@ export class AppComponent implements OnInit, OnDestroy {
     }
     const userId = this.localservice.get('UserId');
     if ('Notification' in window && userId) {
-      console.log('[App Notifications] Invoking requestPermission directly on click...');
+      /* console.log('[App Notifications] Invoking requestPermission directly on click...'); */
       // Invoke Notification.requestPermission synchronously inside the click handler to guarantee active user gesture
       Notification.requestPermission().then(status => {
-        console.log('[App Notifications] Native permission resolved to:', status);
+        /* console.log('[App Notifications] Native permission resolved to:', status); */
         if (status === 'granted') {
           this.localservice.set('isFcmUnavailable', 'false');
           // Claim the same 'pending' sentinel checkNotificationPermission uses before
@@ -1378,11 +1390,11 @@ export class AppComponent implements OnInit, OnDestroy {
           if (forceLogoutFromBoolean || forceLogoutFromData) {
             this.showForceLogout();
           } else {
-            console.log('No force logout', resp);
+            /* console.log('No force logout', resp); */
           }
         }
         else {
-          console.log('No force logout / no session found', resp);
+          /* console.log('No force logout / no session found', resp); */
         }
       },
       error: (err: any) => {
@@ -1895,7 +1907,7 @@ export class AppComponent implements OnInit, OnDestroy {
         }
       } else {
         this.isRouteAuthorized = true;
-        console.log('[AuthCheck] Customer path does not require approval, bypassing permissions:', cleanUrl);
+        /* console.log('[AuthCheck] Customer path does not require approval, bypassing permissions:', cleanUrl); */
         return;
       }
 

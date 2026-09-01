@@ -322,7 +322,7 @@ export class HierarchyListComponent implements OnInit {
       },
       (err: any) => {
         this.departments = [];
-        console.log(err);
+        /* console.log(err); */
       }
     );
   }

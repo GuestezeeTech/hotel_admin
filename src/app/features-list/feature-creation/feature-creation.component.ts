@@ -128,7 +128,7 @@ export class FeatureCreationComponent implements OnInit {
   ngOnInit(): void {
     this.buildForm();
     this.member_id = this.localService.get('MemberId');
-    console.log(this.member_id);
+    /* console.log(this.member_id); */
 
     // Watch for Third Party Outlet ID existence to update validator dynamically
     this.outletForm.get('is_third_party_outlet_id_exist')?.valueChanges.subscribe(exist => {
@@ -257,7 +257,7 @@ export class FeatureCreationComponent implements OnInit {
     this.hotelEnrollmentService.getLoginCustomerById(requestBody).subscribe((resp: any) => {
       if (resp?.success === 1 && resp?.result?.data?.[0]) {
         this.customerData = resp.result.data[0];
-        console.log('Fetched Customer Data for Feature Creation:', this.customerData);
+        /* console.log('Fetched Customer Data for Feature Creation:', this.customerData); */
       }
     });
 
@@ -266,7 +266,7 @@ export class FeatureCreationComponent implements OnInit {
       if (resp?.success === 1 && resp?.result?.data?.[0]) {
         // Based on technical-info.component.ts logic, it might be in customer_technical_info
         this.technicalInfos = resp.result.data[0].customer_technical_info || [];
-        console.log('Fetched Technical Infos for Feature Creation:', this.technicalInfos);
+        /* console.log('Fetched Technical Infos for Feature Creation:', this.technicalInfos); */
       }
     });
   }

@@ -35,20 +35,20 @@ export class LogoutService {
    * Skips if no userId is in localStorage (already logged out).
    */
   async removeFcmToken(passedUserId?: number, passedCustomerType?: string | null, passedToken?: string | null): Promise<void> {
-    console.log('[LogoutService] removeFcmToken() called');
+    /* console.log('[LogoutService] removeFcmToken() called'); */
     // Queue: each call awaits the previous one to complete, then runs. Callers
     // get a promise that resolves when THEIR cleanup is done. No cleanups are
     // silently dropped (as they were with the old `_isCleaningUp` boolean mutex).
     const run = async () => {
       const userId = passedUserId || Number(this.localService.get('UserId'));
       const customerType = passedCustomerType || this.localService.get('CustomerType');
-      console.log('[LogoutService] userId:', userId, '| customerType:', customerType);
+      /* console.log('[LogoutService] userId:', userId, '| customerType:', customerType); */
       if (!userId) {
         return; // already logged out, nothing to clean
       }
 
       const currentToken = passedToken || sessionStorage.getItem('CurrentTabFcmToken') || await this.pushService.getCurrentToken();
-      console.log('[LogoutService] currentToken:', currentToken);
+      /* console.log('[LogoutService] currentToken:', currentToken); */
 
       // We will perform Customer and Staff updates in parallel to reduce API roundtrip time
       const cleanupPromises: Promise<any>[] = [];
@@ -68,12 +68,12 @@ export class LogoutService {
             user_id: USER_ID,
             extras: { find: { [customerFindKey]: customerFindValue } }
           };
-          console.log('[LogoutService] customer lookup:', customerFetchBody.extras.find);
+          /* console.log('[LogoutService] customer lookup:', customerFetchBody.extras.find); */
 
           const customerResp: any = await this.hotelenrollmenttabviewService
             .getLoginCustomerById(customerFetchBody)
             .toPromise();
-          console.log('[LogoutService] customer lookup result:', customerResp?.success, customerResp?.result?.data?.length);
+          /* console.log('[LogoutService] customer lookup result:', customerResp?.success, customerResp?.result?.data?.length); */
 
           if (customerResp?.success === 1 && customerResp.result?.data?.length > 0) {
             const customer = customerResp.result.data[0];

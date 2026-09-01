@@ -310,10 +310,10 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
               this.hotelenrollmentservice.invoiceGenerator(invoicePayload).subscribe(
                 invoiceResp => {
                   if (invoiceResp && invoiceResp.success === 1 && invoiceResp.status_code === 200) {
-                    console.log('Invoice generated successfully:', invoiceResp);
+                    /* console.log('Invoice generated successfully:', invoiceResp); */
                   }
                   else {
-                    console.log('Invoice not generated successfully:', invoiceResp);
+                    /* console.log('Invoice not generated successfully:', invoiceResp); */
                   }
                 },
                 invoiceErr => {
@@ -726,7 +726,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
             }
 
             if (isAlreadyProcessed) {
-              console.log(`[Payment] Order ID ${orderIdFromUrl} has already been updated in this session. Skipping.`);
+              /* console.log(`[Payment] Order ID ${orderIdFromUrl} has already been updated in this session. Skipping.`); */
             } else {
               try {
                 sessionStorage.setItem(sessionStorageKey, 'true');
@@ -822,7 +822,9 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
                       }
                     };
                     this.hotelenrollmentservice.updateCustomerFcm(customerUpdateData).subscribe(custRes => {
-                      if (custRes.success === 1) console.log("Customer subscription_end_date updated after payment", custRes);
+                      if (custRes.success === 1) {
+                        /* console.log("Customer subscription_end_date updated after payment", custRes); */
+                      }
                       else console.error("Failed to update customer", custRes.message);
                     });
 
@@ -839,7 +841,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
                     this.hotelenrollmentservice.enableHotel(enablePayload).subscribe({
                       next: (enableRes: any) => {
                         if (enableRes.success === 1 && enableRes.status_code === 200) {
-                          console.log("Hotel enabled successfully after payment:", enableRes);
+                          /* console.log("Hotel enabled successfully after payment:", enableRes); */
                         } else {
                           console.error("Failed to enable hotel after payment:", enableRes.message);
                         }
@@ -884,7 +886,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
                             this.hotelenrollmentservice.updateCustomercFcmToken(customerDeactivateUpdate).subscribe({
                               next: (updateRes: any) => {
                                 if (updateRes.success === 1) {
-                                  console.log("Customer is_active status updated to true successfully.");
+                                  /* console.log("Customer is_active status updated to true successfully."); */
                                 } else {
                                   console.error("Failed to update customer is_active status:", updateRes.message);
                                 }
@@ -1104,7 +1106,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
             }
 
             if (isAlreadyProcessed) {
-              console.log(`[Payment] Order ID ${orderIdFromUrl} has already been updated in this session. Skipping.`);
+              /* console.log(`[Payment] Order ID ${orderIdFromUrl} has already been updated in this session. Skipping.`); */
             } else {
               try {
                 sessionStorage.setItem(sessionStorageKey, 'true');
@@ -1200,7 +1202,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
                       }
                     };
                     this.hotelenrollmentservice.updateCustomerFcm(customerUpdateData).subscribe(custRes => {
-                      if (custRes.success === 1) console.log("Customer subscription_end_date updated after payment", custRes);
+                      if (custRes.success === 1) { /* console.log("Customer subscription_end_date updated after payment", custRes); */ }
                       else console.error("Failed to update customer", custRes.message);
                     });
 
@@ -1217,7 +1219,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
                     this.hotelenrollmentservice.enableHotel(enablePayload).subscribe({
                       next: (enableRes: any) => {
                         if (enableRes.success === 1 && enableRes.status_code === 200) {
-                          console.log("Hotel enabled successfully after payment:", enableRes);
+                          /* console.log("Hotel enabled successfully after payment:", enableRes); */
                         } else {
                           console.error("Failed to enable hotel after payment:", enableRes.message);
                         }
@@ -1262,7 +1264,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
                             this.hotelenrollmentservice.updateCustomercFcmToken(customerDeactivateUpdate).subscribe({
                               next: (updateRes: any) => {
                                 if (updateRes.success === 1) {
-                                  console.log("Customer is_active status updated to true successfully.");
+                                  /* console.log("Customer is_active status updated to true successfully."); */
                                 } else {
                                   console.error("Failed to update customer is_active status:", updateRes.message);
                                 }
@@ -1520,7 +1522,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
         }
       }
       else {
-        console.log('Error fetching pay_now_days', userResp);
+        /* console.log('Error fetching pay_now_days', userResp); */
       }
     } catch (err) {
       console.error('Error fetching pay_now_days, falling back to 20:', err);
@@ -2184,11 +2186,11 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
     this.hotelenrollmentservice.sendSMS(payload).subscribe({
       next: (res) => {
         if (res && (res.success === 1)) {
-          console.log('Welcome SMS sent successfully:', res);
+          /* console.log('Welcome SMS sent successfully:', res); */
           this.updateCustomerWelcomeSms(customerData.id);
         }
         else {
-          console.log('Failed to send welcome SMS:', res);
+          /* console.log('Failed to send welcome SMS:', res); */
         }
       },
       error: (err) => {

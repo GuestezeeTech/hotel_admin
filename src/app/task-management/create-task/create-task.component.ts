@@ -94,7 +94,7 @@ export class CreateTaskComponent implements OnInit {
         // console.log('Member Id:', this.member_id);
         // Newly added for task allocation purpose
         this.selfStaffId = Number(this.localService.get('UserId'));
-        console.log('Self Staff Id', this.selfStaffId);
+        /* console.log('Self Staff Id', this.selfStaffId); */
 
         this.getDefaultServices();
         if (this.member_id) {
@@ -504,12 +504,12 @@ export class CreateTaskComponent implements OnInit {
             return;
         }
         const categoryName = this.category.name;
-        console.log('Requested category name: ', categoryName);
+        /* console.log('Requested category name: ', categoryName); */
         const currentDeskStaffId = Number(this.localService.get('UserId'));
-        console.log('Current desk staff ID: ', currentDeskStaffId);
+        /* console.log('Current desk staff ID: ', currentDeskStaffId); */
         let userData: any = this.localService.get('StaffData');
         let userDataParse = userData ? JSON.parse(userData) : null;
-        console.log('Logged in staff data: ', userDataParse);
+        /* console.log('Logged in staff data: ', userDataParse); */
         // Extract user departments
         let userDepartment: string[] = [];
         if (userDataParse?.hierarchy && Array.isArray(userDataParse.hierarchy)) {
@@ -517,9 +517,9 @@ export class CreateTaskComponent implements OnInit {
         } else if (userDataParse?.hierarchy?.department) {
             userDepartment = [userDataParse.hierarchy.department];
         }
-        console.log('Logged in staff departments: ', userDepartment);
+        /* console.log('Logged in staff departments: ', userDepartment); */
         const isSameDepartment = userDepartment.includes(categoryName);
-        console.log('Is same department: ', isSameDepartment);
+        /* console.log('Is same department: ', isSameDepartment); */
         if (isSameDepartment) {
             // Use current logged-in desk staff's ID
             this.fetchStaves(categoryName, currentDeskStaffId, currentDeskStaffId);
@@ -551,9 +551,9 @@ export class CreateTaskComponent implements OnInit {
     }
 
     fetchStaves(categoryName: string, desk_id: number, higher_level_officer_id: number) {
-        console.log('Category name: ', categoryName);
-        console.log('Logged in staff desk ID: ', desk_id);
-        console.log('Higher level officer ID: ', higher_level_officer_id);
+        /* console.log('Category name: ', categoryName); */
+        /* console.log('Logged in staff desk ID: ', desk_id); */
+        /* console.log('Higher level officer ID: ', higher_level_officer_id); */
         const findObject: any = {
             is_available: true,
             at_desk: false,
@@ -1210,8 +1210,8 @@ export class CreateTaskComponent implements OnInit {
     // - For Normal / Help Service: orderResponse will be null
     // - For Menu Ordering: orderResponse contains order data from upsertOrderForMenu
     createAndAssignTaskObservable(orderResponse: any | null, deskStaffId: number): Observable<any> {
-        console.log('this.selectedStaff', this.selectedStaff)
-        console.log('this.selfStaffId', this.selfStaffId)
+        /* console.log('this.selectedStaff', this.selectedStaff) */
+        /* console.log('this.selfStaffId', this.selfStaffId) */
         // console.log('createAndAssignTaskObservable called with orderResponse:', orderResponse);
         const departmentName =
             ['Menu Ordering', 'Help Service'].includes(this.service_name?.belongs_to) ? 'Default' : this.category?.name;

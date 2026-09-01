@@ -106,7 +106,7 @@ export class HierarchyFormComponent implements OnInit {
 
   ngOnInit() {
     const id = this.activatedRoute.snapshot.paramMap.get('id');
-    console.log('Hierarchy ID:', id);
+    /* console.log('Hierarchy ID:', id); */
     if (id != null && id != undefined && id != "") {
       this.hierarchyId = Number(id);
       this.getHierarchyById(this.hierarchyId);
@@ -115,7 +115,7 @@ export class HierarchyFormComponent implements OnInit {
       this.hierarchyForm.get('parentDepartment')?.setValue(this.parentDepartment);
     }
     if (this.isEditMode && this.editId !== undefined) {
-      console.log('Editing Hierarchy Item:', this.editId);
+      /* console.log('Editing Hierarchy Item:', this.editId); */
       // Load the item data and populate the form
       const item = this.hierarchyService.getHierarchyData().find(i => i.id === this.editId);
       if (item) {

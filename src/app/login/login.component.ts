@@ -2353,7 +2353,7 @@ export class LoginComponent implements OnInit {
     };
     this.loginService.sendWelcomeEmail(payload).subscribe({
       next: (res) => {
-        console.log('Email API response:', res);
+        /* console.log('Email API response:', res); */
         // Newly added for email updation 
         if (res && (res.success === 1)) {
           const updateBody = {
@@ -2373,7 +2373,7 @@ export class LoginComponent implements OnInit {
           this.hotelenrollmenttabviewService.updateCustomercFcmToken(updateBody).subscribe({
             next: (updateResp: any) => {
               if (updateResp.success === 1 && updateResp.status_code === 200) {
-                console.log('Successfully updated send_welcome_email to true');
+                /* console.log('Successfully updated send_welcome_email to true'); */
               } else {
                 console.error('Failed to update send_welcome_email:', updateResp?.message);
               }
@@ -2406,7 +2406,7 @@ export class LoginComponent implements OnInit {
     };
     this.loginService.sendWelcomeSMS(payload).subscribe({
       next: (res) => {
-        console.log('SMS API response:', res);
+        /* console.log('SMS API response:', res); */
         // Newly added for sms updation 
         if (res && (res.success === 1)) {
           const updateBody = {
@@ -2426,7 +2426,7 @@ export class LoginComponent implements OnInit {
           this.hotelenrollmenttabviewService.updateCustomercFcmToken(updateBody).subscribe({
             next: (updateResp: any) => {
               if (updateResp.success === 1 && updateResp.status_code === 200) {
-                console.log('Successfully updated send_welcome_sms to true');
+                /* console.log('Successfully updated send_welcome_sms to true'); */
               } else {
                 console.error('Failed to update send_welcome_sms:', updateResp?.message);
               }

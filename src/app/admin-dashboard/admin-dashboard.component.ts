@@ -200,7 +200,7 @@ export class AdminDashboardComponent implements OnInit {
 
     try {
       this.memberId = this.localStorageService.get('MemberId');
-      console.log('Local Storage MemberId:', this.memberId);
+      /* console.log('Local Storage MemberId:', this.memberId); */
 
       let createdDate = new Date(currentYear, 0, 1);
 
@@ -210,7 +210,7 @@ export class AdminDashboardComponent implements OnInit {
         this.memberId !== 'null'
       ) {
         const customer = await this.getCustomerById(this.memberId);
-        console.log('Customer fetched:', customer);
+        /* console.log('Customer fetched:', customer); */
 
         if (customer?.created_on) {
           createdDate = new Date(customer.created_on);
@@ -225,7 +225,7 @@ export class AdminDashboardComponent implements OnInit {
         this.years.push(year);
       }
 
-      console.log('Year Dropdown:', this.years);
+      /* console.log('Year Dropdown:', this.years); */
 
       // Report calendar limits
       this.minDate = createdDate.toISOString().split('T')[0];
@@ -244,8 +244,8 @@ export class AdminDashboardComponent implements OnInit {
       this.startDate = '';
       this.endDate = '';
 
-      console.log('Min Date:', this.minDate);
-      console.log('Max Date:', this.maxDate);
+      /* console.log('Min Date:', this.minDate); */
+      /* console.log('Max Date:', this.maxDate); */
 
       this.pendingRequests = 3;
       this.guestActivity(this.selectedYear, this.selectedReviewYear);

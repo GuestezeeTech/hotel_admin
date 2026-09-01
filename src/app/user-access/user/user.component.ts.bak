@@ -486,7 +486,7 @@ export class UserComponent implements OnInit {
     // console.log('Format json(1):', formatJsonMemberId);
     this.hotelListService.getSignupAllCustomers(formatJsonMemberId).subscribe(resp1 => {
       const list1 = resp1?.result?.data || [];
-      console.log('List(1):', list1);
+      /* console.log('List(1):', list1); */
       // Step 2: Fetch customers by customer_member_id
       const formatJsonCustomerMemberId = {
         domain_name: DOMAIN_NAME,

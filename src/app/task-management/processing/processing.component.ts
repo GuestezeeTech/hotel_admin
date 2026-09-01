@@ -1202,7 +1202,7 @@ export class ProcessingComponent {
     const task = this.selectedTaskForTimeUpdate;
     if (!task) return;
     const newTime = Number(this.additionalTimeInput);
-    console.log('New time value:', newTime);
+    /* console.log('New time value:', newTime); */
     const requestBody = {
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,

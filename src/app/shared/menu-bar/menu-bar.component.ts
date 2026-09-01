@@ -574,7 +574,7 @@ export class MenuBarComponent implements OnInit {
 
   // Newly added for refreshing after payment
   refreshComponentLogic() {
-    console.log('refreshComponentLogic called');
+    /* console.log('refreshComponentLogic called'); */
     this.fetchHotelLogo();
     // console.log('Refreshing component logic...');
     // console.log('Role id:', this.localService.get('roleId'));

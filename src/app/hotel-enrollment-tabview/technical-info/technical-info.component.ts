@@ -2403,12 +2403,12 @@ export class TechnicalInfoComponent implements OnInit {
     const integrationName = (integrationNameInput !== undefined ? integrationNameInput : (this.selectedEcomIntegrationData?.name || '')).toString().toLowerCase();
     const integrationType = (integrationTypeInput !== undefined ? integrationTypeInput : (this.selectedEcomIntegrationData?.type || '')).toString().toLowerCase();
 
-    console.log('[HotelCodeSync] Starting check for integration:', { integrationName, integrationType });
-    console.log('[HotelCodeSync] Input Attributes:', attributes);
+    /* console.log('[HotelCodeSync] Starting check for integration:', { integrationName, integrationType }); */
+    /* console.log('[HotelCodeSync] Input Attributes:', attributes); */
 
     // Hotel_Code is relevant for all PMS/POS (pos) integrations, and WIN HMS / Oracle
     if (integrationType !== 'pos' && integrationName !== 'win hms' && integrationName !== 'oracle') {
-      console.log('[HotelCodeSync] Bypassing: Integration is not a PMS/POS or WIN HMS/Oracle system.');
+      /* console.log('[HotelCodeSync] Bypassing: Integration is not a PMS/POS or WIN HMS/Oracle system.'); */
       return;
     }
 
@@ -2442,11 +2442,11 @@ export class TechnicalInfoComponent implements OnInit {
         ? String(this.customerdata.Hotel_Code)
         : '';
 
-    console.log('[HotelCodeSync] Comparison details:', {
+    /* console.log('[HotelCodeSync] Comparison details:', {
       hasHotelCodeKey,
       newHotelCode,
       existingHotelCode
-    });
+    }); */
 
     // Decide whether and what to update on the customer:
     // 1. If Hotel_Code key exists in technical and its value changed -> update to that value (even empty string).
@@ -2468,7 +2468,7 @@ export class TechnicalInfoComponent implements OnInit {
       }
     }
 
-    console.log('[HotelCodeSync] Update decision:', { shouldUpdateCustomer, valueToSend });
+    /* console.log('[HotelCodeSync] Update decision:', { shouldUpdateCustomer, valueToSend }); */
 
     if (!shouldUpdateCustomer) {
       return;
@@ -2489,11 +2489,11 @@ export class TechnicalInfoComponent implements OnInit {
           }
         }
       };
-      console.log('[HotelCodeSync] Sending request body to updateCustomerSettings:', requestBody);
+      /* console.log('[HotelCodeSync] Sending request body to updateCustomerSettings:', requestBody); */
       await new Promise<void>((resolve) => {
         this.hotelenrollmentservice.updateCustomerSettings(requestBody).subscribe(
           (resp: any) => {
-            console.log('[HotelCodeSync] API response:', resp);
+            /* console.log('[HotelCodeSync] API response:', resp); */
             // Confirm API actually succeeded before treating it as success
             if (!(resp?.success === 1 && resp?.status_code === 200)) {
               this.alertsService.error(

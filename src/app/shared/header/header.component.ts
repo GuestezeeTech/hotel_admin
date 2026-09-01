@@ -1121,7 +1121,7 @@ export class HeaderComponent implements OnInit {
         }
       }
       else {
-        console.log('Error fetching pay_now_days', userResp);
+        /* console.log('Error fetching pay_now_days', userResp); */
       }
     } catch (err) {
       console.error('Error fetching pay_now_days, falling back to 20:', err);

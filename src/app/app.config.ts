@@ -480,7 +480,8 @@ export const ENDPOINTS = {
   GET_ALL_EVENTELIGIBILITY: API_URL + ':6993/eligibility/getall',
   FORMS_GETALL: API_URL + ':6899/forms/getall',
   ORDER_UPDATION: API_URL + ':5456/order/upsert',
-  HDFC_PAYMENT: API_URL + ":5621/api/payment/generateHDFCLink",
+  // HDFC_PAYMENT: API_URL + ":5621/api/payment/generateHDFCLink",
+  HDFC_PAYMENT: API_URL + ":5622/api/payment/generateHDFCLink",
   GETBYID_ORDERS: API_URL + ':9475/order/getbyid',
   DELETE_CUSTOMER: API_URL + ":5430/customer/delete",
 
