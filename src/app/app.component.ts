@@ -15,6 +15,8 @@ import { HotelEnrollmentTabviewService } from './hotel-enrollment-tabview/hotel-
 import { ENDPOINTS, DOMAIN_NAME, USER_ID } from './app.config';
 import { PaymentHelperService } from './services/payment-helper.service';
 import { StaffService } from './user-access/staff/staff.service';
+import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
+import { filter } from 'rxjs/operators';
 
 @Component({
   selector: 'app-root',
@@ -219,8 +221,22 @@ export class AppComponent implements OnInit, OnDestroy {
     private hotelEnrollmentService: HotelEnrollmentTabviewService,
     private paymentHelperService: PaymentHelperService,
     private staffService: StaffService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private swUpdate: SwUpdate
   ) {
+    // Auto-detect and activate new deployments so users don't stay stuck on a
+    // stale cached build after a release.
+    if (this.swUpdate.isEnabled) {
+      this.swUpdate.checkForUpdate();
+      this.swUpdate.versionUpdates
+        .pipe(filter((evt): evt is VersionReadyEvent => evt.type === 'VERSION_READY'))
+        .subscribe(() => {
+          this.swUpdate.activateUpdate().then(() => {
+            document.location.reload();
+          });
+        });
+    }
+
     this.isUserInactive = this.localservice.get('isUserInactive') === 'true';
     // --- Sidebar and menu tracking ---
     this.router.events.subscribe(event => {
@@ -1773,7 +1789,7 @@ export class AppComponent implements OnInit, OnDestroy {
           const effectiveType: string | undefined = connection?.effectiveType;
           const waitMs = (effectiveType === 'slow-2g' || effectiveType === '2g') ? 600
             : (effectiveType === '3g') ? 350
-            : 150;
+              : 150;
           const start = Date.now();
           while (Date.now() - start < waitMs) {
             // block execution briefly

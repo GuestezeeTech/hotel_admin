@@ -88,6 +88,10 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
   memberId: string | null = null;
   @Input() isVisible = false;
   iscancelVisible = false;
+  // Newly added for password view/hide
+  passwordFieldType: string = 'password';
+  isPasswordVisible: boolean = false;
+
   // Newly added for payment verification
   paymentDone: boolean = false;
   // Newly added for back navigation
@@ -322,12 +326,26 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
               );
             }
 
-            this.router.navigate(['/hotel-registration/confirmation'], {
-              queryParams: {
-                id: id,
-                customer_id: customerId
+            // Canonicalize the address bar to the hotel-registration-prefixed confirmation
+            // URL WITHOUT an Angular router navigation. A real router.navigate() here (even
+            // when the target only differs by this prefix) destroys and recreates this
+            // component, since 'confirmation' and 'hotel-registration/confirmation' are
+            // different route paths. That caused duplicate order writes, duplicate SMS, and
+            // a stale-instance replaceState collision that could strip the id param off the
+            // wrong instance's URL. history.replaceState only rewrites the visible URL.
+            if (!currentUrl.includes('/hotel-registration/confirmation')) {
+              try {
+                if (window.history && window.history.replaceState) {
+                  const params2 = new URLSearchParams();
+                  if (id) { params2.set('id', id); }
+                  if (customerId) { params2.set('customer_id', customerId); }
+                  const query = params2.toString();
+                  window.history.replaceState({}, '', '/hotel-registration/confirmation' + (query ? '?' + query : ''));
+                }
+              } catch (e) {
+                console.error('Failed to canonicalize confirmation URL', e);
               }
-            });
+            }
           });
           //  this.router.navigateByUrl('/hotel-registration'+currentUrl);
           const loader = document.getElementById('loader-overlay');
@@ -788,7 +806,8 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
 
           // Execute a single Upsert if any changes were made
           if (shouldUpdateOrder) {
-            const orderPayload = { ...this.orderdata };
+            //  const orderPayload = { ...this.orderdata };
+            const orderPayload = JSON.parse(JSON.stringify(this.orderdata));
             delete orderPayload._id;
             delete orderPayload.id;
 
@@ -1020,7 +1039,10 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
           let isPaymentProcessed = false;
           let paymentProcessedInstallment: any = null;
           // SMS Block: Update send_sms flag if exactly one confirmed order needs it
-          if (confirmedOrders.length === 1 && confirmedOrders[0].send_sms === true) {
+          // Restricted to the confirmation/cancellation route so other pages sharing this
+          // component (e.g. add-new-hotel, edit-new-hotel) can't independently re-save a
+          // stale copy of this order and wipe out a payment_split update in progress elsewhere.
+          if (this.isPaymentRoute() && confirmedOrders.length === 1 && confirmedOrders[0].send_sms === true) {
             this.sendMessage(this.customerdata);
             this.sendStatusMessage(this.customerdata);
             this.orderdata.send_sms = false;
@@ -1168,9 +1190,14 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
 
           // Execute a single Upsert if any changes were made
           if (shouldUpdateOrder) {
-            const orderPayload = { ...this.orderdata };
+            const orderPayload = JSON.parse(JSON.stringify(this.orderdata));
             delete orderPayload._id;
             delete orderPayload.id;
+
+            // Snapshot payment_split (with _id intact) for the customer update below,
+            // taken before the order-only _id stripping and before the async round trip,
+            // so it can't drift if this.orderdata is mutated again while the request is in flight.
+            const paymentSplitSnapshot = JSON.parse(JSON.stringify(orderPayload.payment_split || []));
 
             // Remove _id from nested objects to avoid backend issues
             orderPayload.payment_split?.forEach((cycle: any) => {
@@ -1196,7 +1223,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
                       extras: { find: { id: this.customerdata.id } },
                       payload: {
                         customer_update: {
-                          payment_split: this.orderdata.payment_split,
+                          payment_split: paymentSplitSnapshot,
                           subscription_end_date: paymentProcessedInstallment.subscription_end_date
                         }
                       }
@@ -2237,14 +2264,17 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
   sendStatusMessage(customerData: any) {
     const payload = {
       "domain_name": "https://www.guestezee.com",
-      "data": {
-        "otp": {
-          "countrycode": "+91",
-          "mobile": customerData.phone_number,
-          "otppurpose": "Pending"
-        }
-      }
+      "user_id": 1,
+      "customer_member_id": customerData.customer_member_id,
+      "templateCode": "pending"
     };
+    /* "data": {
+      "otp": {
+        "countrycode": "+91",
+        "mobile": customerData.phone_number,
+        "otppurpose": "Pending"
+      }
+    } */
     this.hotelenrollmentservice.sendPendingSMS(payload).subscribe({
       next: (res) => {
         // console.log('Email API response:', res);

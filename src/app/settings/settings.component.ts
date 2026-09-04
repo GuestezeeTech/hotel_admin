@@ -1065,14 +1065,16 @@ export class SettingsComponent implements OnInit {
 
   addRoom() {
     if (this.isRoomViewMode || !this.canModifySystemSettings) return;
-    if (this.allowedRoomCount === 1) return;
+    // if (this.allowedRoomCount === 1) return;
     const totalRoomsCreated = this.calculateTotalRooms();
-    if (totalRoomsCreated >= this.allowedRoomCount) {
+    // if (totalRoomsCreated >= this.allowedRoomCount) {
+    if (totalRoomsCreated >= this.allowedRoomCount || this.rooms.length >= this.allowedRoomCount) {
       this.roomErrorMessage = [
         `Maximum ${this.allowedRoomCount} rooms allowed. Cannot add more.`
       ];
       return;
     }
+
     this.rooms.push({ id: '', startRoom: '', endRoom: '', label: '' });
     this.roomRowErrors = {};
     this.checkAtLeastOneRoomRange();

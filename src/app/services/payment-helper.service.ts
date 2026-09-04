@@ -410,7 +410,9 @@ export class PaymentHelperService {
         const upsertData = resp.result.data;
         const hdfcData = {
           domain_name: DOMAIN_NAME,
+          user_id: USER_ID,
           oid: upsertData[0].id,
+          customer_id: customerData?.id,
           amount: nextUnpaid.order_total_amount
         };
         this.checkoutApiService.getHDFClink(hdfcData).then(responseData3 => {
@@ -419,15 +421,15 @@ export class PaymentHelperService {
           if (!respData3) return console.error("Payment link generation failed");
           const form = document.createElement("form");
           form.method = "POST";
-          form.action = respData3.link;
+          form.action = respData3.payment_url;
           form.target = "_self";
           const input1 = document.createElement("input");
           input1.name = "encRequest";
-          input1.value = respData3.encrequest;
+          input1.value = respData3.enc_request;
           form.appendChild(input1);
           const input2 = document.createElement("input");
           input2.name = "access_code";
-          input2.value = respData3.accesscode;
+          input2.value = respData3.access_code;
           form.appendChild(input2);
           document.body.appendChild(form);
           form.submit();

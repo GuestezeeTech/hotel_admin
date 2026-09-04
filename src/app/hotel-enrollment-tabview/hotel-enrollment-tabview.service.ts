@@ -352,7 +352,8 @@ export class HotelEnrollmentTabviewService {
       return new Observable();
     }
     else {
-      return this.http.post(ENDPOINTS.GENERATE_SMS_PHONE, tokenObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) })
+      // return this.http.post(ENDPOINTS.GENERATE_SMS_PHONE, tokenObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) })
+      return this.http.post(ENDPOINTS.GENERRATE_NAME_PASSWORD, tokenObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) })
     }
   }
 
