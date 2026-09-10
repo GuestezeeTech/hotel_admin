@@ -33,3 +33,7 @@ This README would normally document whatever steps are necessary to get your app
 [Deploy:environment:UAT] 
 <!-- PRODUCTION command -->
 [Deploy:environment:PRODUCTION]
+
+Deployment command 
+
+ng build --base-href /hotel-registration/  - after build deploy it in the path - /var/www/www.guestezee.com/public_html/hotel-registration
