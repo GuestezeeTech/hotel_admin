@@ -135,12 +135,20 @@ self.addEventListener('activate', event => {
 importScripts('https://www.gstatic.com/firebasejs/10.11.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.11.1/firebase-messaging-compat.js');
 
+// firebase.initializeApp({
+//   apiKey: "AIzaSyCMX3gUG0fIUFlNRCXpKXM_hyK9eC72jlI",
+//   authDomain: "labes-common-app-a2fa5.firebaseapp.com",
+//   projectId: "labes-common-app-a2fa5",
+//   messagingSenderId: "563382026704",
+//   appId: "1:563382026704:web:3b1e2a5f3f3e8e4c9f4e2d",
+// });
+
 firebase.initializeApp({
-  apiKey: "AIzaSyCMX3gUG0fIUFlNRCXpKXM_hyK9eC72jlI",
-  authDomain: "labes-common-app-a2fa5.firebaseapp.com",
-  projectId: "labes-common-app-a2fa5",
-  messagingSenderId: "563382026704",
-  appId: "1:563382026704:web:3b1e2a5f3f3e8e4c9f4e2d",
+  apiKey: "AIzaSyC7Kc8dcd-Q9hrS18bViBreDGzbtlRCTQ0",
+  authDomain: "hospitalitynewsapp-f7968.firebaseapp.com",
+  projectId: "hospitalitynewsapp-f7968",
+  messagingSenderId: "945771911357",
+  appId: "1:945771911357:web:ce9a1527c47aed31773fd4",
 });
 
 const messaging = firebase.messaging();
