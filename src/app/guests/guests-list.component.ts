@@ -116,7 +116,7 @@ export class GuestsListComponent implements OnInit, OnDestroy {
             extras: {
                 find: {
                     member_id: memberId
-                    // Mobile: "8012169931"
+
                 }
             }
         };

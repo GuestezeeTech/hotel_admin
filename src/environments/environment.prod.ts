@@ -1,15 +1,7 @@
 export const environment = {
   production: true,
   devURL: "https://www.guestezee.com",
-  // devURL: "https://ssltest.ecbee.net",
   firebaseConfig: {
-    /* apiKey: "AIzaSyCMX3gUG0fIUFlNRCXpKXM_hyK9eC72jlI",
-    authDomain: "labes-common-app-a2fa5.firebaseapp.com",
-    projectId: "labes-common-app-a2fa5",
-    storageBucket: "labes-common-app-a2fa5.appspot.com",
-    messagingSenderId: "563382026704",
-    appId: "1:563382026704:web:3224e1b6f267456f14b9d5",
-    measurementId: "G-0W36HEHXC7" */
     apiKey: "AIzaSyC7Kc8dcd-Q9hrS18bViBreDGzbtlRCTQ0",
     authDomain: "hospitalitynewsapp-f7968.firebaseapp.com",
     projectId: "hospitalitynewsapp-f7968",

@@ -113,44 +113,6 @@ export class CheckoutApiService {
     })
   }
 
-  /*  getHDFClink(dataObj: any) {
-    return new Promise((resolve, reject) => {
-      let hdfcData: any = dataObj;
-      // var now = new Date();
-      // var utc_now = new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(),  now.getUTCHours(), now.getUTCMinutes(), now.getUTCSeconds(), now.getUTCMilliseconds());
-      let paymentObjt = {
-        // "domain_name":"https://puduvaibazaar.ecbee.net",
-        "domain_name": "https://www.guestezee.com",
-        "oid": hdfcData.oid,
-        "timestamp": new Date().getTime()
-      }
-      // ENCRYPTION
-      // let _key = enc.Utf8.parse(this.appService.apkkey);
-      let _key = enc.Utf8.parse("@NcRfUjXn2r5u7x!A%D*G-KaPdSgVkYp");
-      let _iv = enc.Utf8.parse('\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f');
-      let encrypted = AES.encrypt(
-        JSON.stringify(paymentObjt), _key, {
-        iv: _iv,
-        format: crypto.format.Hex,
-        mode: crypto.mode.CTR,
-        padding: crypto.pad.NoPadding
-      }).toString();
-      let requestData = {
-        payload: encrypted
-      }
-      console.log('Request body of HDFC', requestData);
-      this.hotelenrollmenttabviewservice.postApiCall(requestData, ENDPOINTS.HDFC_PAYMENT).subscribe(
-        respData => {
-          let resp: any = respData
-          resolve(resp.data)
-        },
-        err => {
-          resolve(false)
-        }
-      )
-    })
-  } */
-
   getHDFClink(dataObj: any) {
     return new Promise((resolve, reject) => {
       let hdfcData: any = dataObj;
