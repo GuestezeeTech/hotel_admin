@@ -99,6 +99,86 @@
                         </table>
                     </div>
                 </form>
+                <form [formGroup]="overviewDashboardForm">
+                    <table>
+                        <tbody>
+                            <tr>
+                                <td style="border-left: 1px solid #6E6E6E !important;" class="fw-semibold">Overview
+                                </td>
+                                <td><input type="checkbox" formControlName="create"
+                                        (change)="allOptionsToggle('specOverviewDashboard')"></td>
+                                <td><input type="checkbox" formControlName="edit"
+                                        (change)="allOptionsToggle('specOverviewDashboard')"></td>
+                                <td><input type="checkbox" formControlName="read"
+                                        (change)="allOptionsToggle('specOverviewDashboard')"></td>
+                                <td><input type="checkbox" formControlName="delete"
+                                        (change)="allOptionsToggle('specOverviewDashboard')"></td>
+                                <td style="border-right: 1px solid #6E6E6E !important;"><input type="checkbox"
+                                        formControlName="all" (change)="allOptionsToggle('overviewDashboard')"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </form>
+                <form [formGroup]="fbDashboardForm">
+                    <table>
+                        <tbody>
+                            <tr>
+                                <td style="border-left: 1px solid #6E6E6E !important;" class="fw-semibold">F&amp;B
+                                </td>
+                                <td><input type="checkbox" formControlName="create"
+                                        (change)="allOptionsToggle('specFbDashboard')"></td>
+                                <td><input type="checkbox" formControlName="edit"
+                                        (change)="allOptionsToggle('specFbDashboard')"></td>
+                                <td><input type="checkbox" formControlName="read"
+                                        (change)="allOptionsToggle('specFbDashboard')"></td>
+                                <td><input type="checkbox" formControlName="delete"
+                                        (change)="allOptionsToggle('specFbDashboard')"></td>
+                                <td style="border-right: 1px solid #6E6E6E !important;"><input type="checkbox"
+                                        formControlName="all" (change)="allOptionsToggle('fbDashboard')"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </form>
+                <form [formGroup]="hkDashboardForm">
+                    <table>
+                        <tbody>
+                            <tr>
+                                <td style="border-left: 1px solid #6E6E6E !important;" class="fw-semibold">Housekeeping
+                                </td>
+                                <td><input type="checkbox" formControlName="create"
+                                        (change)="allOptionsToggle('specHkDashboard')"></td>
+                                <td><input type="checkbox" formControlName="edit"
+                                        (change)="allOptionsToggle('specHkDashboard')"></td>
+                                <td><input type="checkbox" formControlName="read"
+                                        (change)="allOptionsToggle('specHkDashboard')"></td>
+                                <td><input type="checkbox" formControlName="delete"
+                                        (change)="allOptionsToggle('specHkDashboard')"></td>
+                                <td style="border-right: 1px solid #6E6E6E !important;"><input type="checkbox"
+                                        formControlName="all" (change)="allOptionsToggle('hkDashboard')"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </form>
+                <form [formGroup]="foDashboardForm">
+                    <table>
+                        <tbody>
+                            <tr>
+                                <td style="border-left: 1px solid #6E6E6E !important;" class="fw-semibold">FO Dashboard
+                                </td>
+                                <td><input type="checkbox" formControlName="create"
+                                        (change)="allOptionsToggle('specFoDashboard')"></td>
+                                <td><input type="checkbox" formControlName="edit"
+                                        (change)="allOptionsToggle('specFoDashboard')"></td>
+                                <td><input type="checkbox" formControlName="read"
+                                        (change)="allOptionsToggle('specFoDashboard')"></td>
+                                <td><input type="checkbox" formControlName="delete"
+                                        (change)="allOptionsToggle('specFoDashboard')"></td>
+                                <td style="border-right: 1px solid #6E6E6E !important;"><input type="checkbox"
+                                        formControlName="all" (change)="allOptionsToggle('foDashboard')"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </form>
                 <form [formGroup]="hotelsForm">
                     <table>
                         <tbody>

@@ -54,6 +54,16 @@
         </span>
       </div>
       <div class="form-group form1_div">
+        <label>Country Code</label>
+        <select class="input_box" formControlName="country_code">
+          <option *ngFor="let item of countryCodeList" [value]="item.code">{{ item.country }} ({{ item.code }})</option>
+        </select>
+        <span
+          *ngIf="customerProprtyDetailsForm.get('country_code')?.hasError('required') && customerProprtyDetailsForm.get('country_code')?.touched">
+          Country code is required.
+        </span>
+      </div>
+      <div class="form-group form1_div">
         <label>Phone Number</label>
         <input class="input_box" type="text" formControlName="primary_phone_number" />
         <span
@@ -64,11 +74,6 @@
           *ngIf="customerProprtyDetailsForm.get('primary_phone_number')?.hasError('whitespace') && customerProprtyDetailsForm.get('primary_phone_number')?.touched">
           Cannot be empty or only spaces.
         </span>
-        <div
-          *ngIf="customerProprtyDetailsForm.get('primary_phone_number')?.hasError('invalidPhone') && customerProprtyDetailsForm.get('primary_phone_number')?.touched"
-          class="error">
-          ❌ Invalid Phone Number (must be 10 digits & start with 6-9)
-        </div>
         <div
           *ngIf="customerProprtyDetailsForm.get('primary_phone_number')?.hasError('pattern') && customerProprtyDetailsForm.get('primary_phone_number')?.touched">
           <small class="text-danger">Only numbers, +, -, spaces, and brackets ( ) are allowed.</small>
@@ -85,11 +90,6 @@
           *ngIf="customerProprtyDetailsForm.get('secondary_phone_number')?.hasError('whitespace') && customerProprtyDetailsForm.get('secondary_phone_number')?.touched">
           Cannot be empty or only spaces.
         </span>
-        <div
-          *ngIf="customerProprtyDetailsForm.get('secondary_phone_number')?.hasError('invalidPhone') && customerProprtyDetailsForm.get('secondary_phone_number')?.touched"
-          class="error">
-          ❌ Invalid Phone Number (must be 10 digits & start with 6-9)
-        </div>
         <div
           *ngIf="customerProprtyDetailsForm.get('secondary_phone_number')?.hasError('pattern') && customerProprtyDetailsForm.get('secondary_phone_number')?.touched">
           <small class="text-danger">Only numbers, +, -, spaces, and brackets ( ) are allowed.</small>
@@ -580,9 +580,7 @@
   </div>
   <div class="section document-section" *ngIf="customerProprtyDetailsForm.get('company_status')?.value as status">
     <h3 style="font-size: 20px; font-weight: 600; margin-bottom: 0.5rem">Upload Document</h3>
-    <small style="color: #8F9899; font-weight: 500"><span style="color: red ">*</span>We need the below documents to be
-      signed by the Signing authority with the company seal in every page, Signature should match with the signature in
-      Pan card.</small>
+    <small style="color: #8F9899; font-weight: 500"><span style="color: red ">*</span>We require the following mandatory documents</small>
     <div>
       <ul *ngIf="status === 'Private Limited / Public Limited Company'">
         <li>Copy of Company PAN card (Entity Pan card).</li>
@@ -627,7 +625,7 @@
     </div>
     <!-- Upload Product Images -->
     <div class="row d-flex align-items-center"
-      *ngIf="((this.customerdata.property_details?.kyc_documents == undefined || this.customerdata.property_details?.kyc_documents?.uploaded_documents == undefined) || (this.customerdata.property_details?.kyc_documents?.uploaded_documents.length == 0))">
+      *ngIf="((this.customerdata.property_details?.kyc_documents == undefined || this.customerdata.property_details?.kyc_documents?.uploaded_documents == undefined) || (this.customerdata.property_details?.kyc_documents?.uploaded_documents?.length == 0))">
       <!-- Upload Area -->
       <div class="col-md-6">
         <div class="upload-box text-center">
@@ -666,7 +664,7 @@
           <!-- Per-row hidden file input so each upload icon targets the correct document -->
           <input type="file" #rowFileInput class="d-none" (change)="onFileChange($event)" accept=".pdf,.jpg,.jpeg" />
           <div class="d-flex align-items-center">
-            <img src="../../../assets/images/guestezee/pdf.png" alt="PDF" class="me-2" width="22" />
+            <img src="assets/images/guestezee/pdf.png" alt="PDF" class="me-2" width="22" />
             <div>
               <div class="fw-bold" style="font-size: 13px">{{ doc.name }}</div>
               <div style="font-size: 12px; color: #808091; font-weight: 400;">Maximum File size • 2MB</div>
@@ -685,7 +683,7 @@
       </div>
     </div>
     <div class="row d-flex align-items-center"
-      *ngIf="(this.customerdata.property_details?.kyc_documents?.uploaded_documents.length > 0) && uploadedDocumentsApi.length > 0">
+      *ngIf="(this.customerdata.property_details?.kyc_documents?.uploaded_documents?.length > 0) && uploadedDocumentsApi.length > 0">
       <!-- Upload Area -->
       <div class="col-md-6">
         <div class="upload-box text-center">
@@ -725,7 +723,7 @@
           <!-- Per-row hidden file input so each upload icon targets the correct document -->
           <input type="file" #rowFileInput class="d-none" (change)="onFileChangeApi($event)" accept=".pdf,.jpg,.jpeg" />
           <div class="d-flex align-items-center ">
-            <img src="../../../assets/images/guestezee/pdf.png" alt="PDF" class="me-2" width="22" />
+            <img src="assets/images/guestezee/pdf.png" alt="PDF" class="me-2" width="22" />
             <div>
               <div class="fw-bold" style="font-size: 13px">{{ doc.document_name }}</div>
               <div style="font-size: 12px; color: #808091; font-weight: 400;">Maximum File size • 2MB</div>
@@ -754,19 +752,19 @@
       [disabled]="(customerProprtyDetailsForm.invalid || (!isAllDocumentsUploaded()) || !hotelLogoUrl)">Save &
       Continue</button> -->
     <!-- <button type="submit" class="save_bt"
-      *ngIf="this.customerdata.property_details?.kyc_documents?.uploaded_documents.length > 0 && !paymentDone"
+      *ngIf="this.customerdata.property_details?.kyc_documents?.uploaded_documents?.length > 0 && !paymentDone"
       (click)="onSubmit()"
       [disabled]="(customerProprtyDetailsForm.invalid || (!isAllApiDocumentsUploaded()) || !hotelLogoUrl)">Save
       &
       Continue</button> -->
     <!-- <button type="submit" class="save_bt"
-      *ngIf="this.customerdata.property_details?.kyc_documents?.uploaded_documents.length > 0 && this.status !== 'approved'"
+      *ngIf="this.customerdata.property_details?.kyc_documents?.uploaded_documents?.length > 0 && this.status !== 'approved'"
       (click)="onSubmit()"
       [disabled]="(customerProprtyDetailsForm.invalid || (!isAllApiDocumentsUploaded()) || !hotelLogoUrl)">Save
       &
       Continue</button> -->
     <!-- <button type="submit" class="save_bt"
-      *ngIf="this.customerdata.property_details?.kyc_documents?.uploaded_documents.length > 0"
+      *ngIf="this.customerdata.property_details?.kyc_documents?.uploaded_documents?.length > 0"
       (click)="onSubmit()" [disabled]="(customerProprtyDetailsForm.invalid || (!isAllApiDocumentsUploaded()))">Save
       &
       Continue</button> -->
@@ -778,19 +776,19 @@
       [disabled]="(customerProprtyDetailsForm.invalid || (!isAllDocumentsUploaded()) || !hotelLogoUrl)">Save &
       Continue</button>
     <!-- <button type="button" class="save_bt"
-      *ngIf="this.customerdata.property_details?.kyc_documents?.uploaded_documents.length > 0 && !paymentDone"
+      *ngIf="this.customerdata.property_details?.kyc_documents?.uploaded_documents?.length > 0 && !paymentDone"
       (click)="onSubmit()"
       [disabled]="(customerProprtyDetailsForm.invalid || (!isAllApiDocumentsUploaded()) || !hotelLogoUrl)">Save
       &
       Continue</button> -->
     <button type="button" class="save_bt"
-      *ngIf="this.customerdata.property_details?.kyc_documents?.uploaded_documents.length > 0 && this.status != 'approved'"
+      *ngIf="this.customerdata.property_details?.kyc_documents?.uploaded_documents?.length > 0 && this.status != 'approved'"
       (click)="onSubmit()"
       [disabled]="(customerProprtyDetailsForm.invalid || (!isAllApiDocumentsUploaded()) || !hotelLogoUrl)">Save
       &
       Continue</button>
     <!-- <button type="button" class="save_bt"
-      *ngIf="this.customerdata.property_details?.kyc_documents?.uploaded_documents.length > 0"
+      *ngIf="this.customerdata.property_details?.kyc_documents?.uploaded_documents?.length > 0"
       (click)="onSubmit()" [disabled]="(customerProprtyDetailsForm.invalid || (!isAllApiDocumentsUploaded()))">Save
       &
       Continue</button> -->

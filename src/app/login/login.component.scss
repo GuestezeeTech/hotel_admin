@@ -46,6 +46,31 @@ body {
     text-align: start !important;
 }
 
+.signup-phone-row {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+    text-align: left;
+}
+
+.signup-country-code {
+    width: 46%;
+    flex: 0 0 46%;
+    min-width: 0;
+    height: auto;
+    padding: 0.7rem 1.75rem 0.7rem 0.65rem !important;
+    line-height: 1.4;
+    color: #333333 !important;
+    text-align: left;
+    background-color: #FDFDFD;
+}
+
+.signup-phone-row input {
+    flex: 1 1 0;
+    min-width: 0;
+    width: auto;
+}
+
 .login_button {
     background-color: #800020;
     color: white;

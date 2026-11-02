@@ -87,7 +87,7 @@
                 <!-- Card image with shimmer skeleton while loading -->
                 <div class="card-img-wrapper">
                   <div class="img-skeleton-shimmer"></div>
-                  <img [src]="data.logo || '../../../assets/images/guestezee/lock.png'" class="card-img-load"
+                  <img [src]="data.logo || 'assets/images/guestezee/lock.png'" class="card-img-load"
                     (load)="$any($event.target).classList.add('img-loaded')"
                     (error)="$any($event.target).classList.add('img-loaded')" />
                 </div>
@@ -162,7 +162,7 @@
         <!-- <div class="card p-3" >
                 <div class="d-flex mb-3">
                     <div>
-                        <img src="../../../assets/images/guestezee/lock.png" alt="Lock Icon">
+                        <img src="assets/images/guestezee/lock.png" alt="Lock Icon">
                         <i class="fas fa-cog settings outlined-icon" style="font-size: 26px; font-weight: 600;"></i>
                     </div>
                 </div>

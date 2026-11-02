@@ -146,6 +146,10 @@ export const routes: Routes = [
     loadChildren: () => import('./guests/guests-list.module').then(m => m.GuestsListModule)
   },
   {
+    path: '',
+    loadChildren: () => import('./guest-reviews/guest-reviews.module').then(m => m.GuestReviewsModule)
+  },
+  {
     path: '**',
     component: NotFoundComponent
   }

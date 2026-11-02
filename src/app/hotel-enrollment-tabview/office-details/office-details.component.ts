@@ -20,7 +20,7 @@ import { CustomValidators, PINCODE_RULES } from '../validators';
 import { DOMAIN_NAME } from '../../app.config';
 import { NgForm } from '@angular/forms';
 import { OnChanges, SimpleChanges } from '@angular/core';
-import { COUNTRY_STATES, CountryState } from '../../shared/constants/countries';
+import { COUNTRY_CODES, COUNTRY_STATES, CountryState } from '../../shared/constants/countries';
 
 @Component({
   selector: 'app-office-details',
@@ -34,6 +34,7 @@ export class OfficeDetailsComponent implements OnInit, OnChanges {
   customerForm: FormGroup = new FormGroup({});
   hotelId: Number | null = null;
   countryDropdownList: any = [];
+  countryCodeList = COUNTRY_CODES;
   states: any;
   statesDropdownList: any = [];
   customerdata: any = {};
@@ -91,6 +92,7 @@ export class OfficeDetailsComponent implements OnInit, OnChanges {
       first_name: new FormControl('', [Validators.required, CustomValidators.noWhitespaceValidator]),
       last_name: new FormControl('', [Validators.required, CustomValidators.noWhitespaceValidator]),
       designation: new FormControl('', [Validators.required, CustomValidators.noWhitespaceValidator]),
+      primary_contact_countycode: new FormControl('+91', Validators.required),
       phone_number: new FormControl('', [Validators.required, Validators.pattern(/^[0-9\s\-+()]+$/), CustomValidators.noWhitespaceValidator]),
       // Newly added & commented for consective dots
       // email: new FormControl('', [Validators.required, Validators.pattern(/^[a-zA-Z0-9_%+-]+@[a-zA-Z0-9-]+\.[a-zA-Z]{2,}$/)]),
@@ -101,6 +103,7 @@ export class OfficeDetailsComponent implements OnInit, OnChanges {
       sec_first_name: new FormControl('', [Validators.required, CustomValidators.noWhitespaceValidator]),
       sec_last_name: new FormControl('', [Validators.required, CustomValidators.noWhitespaceValidator]),
       sec_designation: new FormControl('', [Validators.required, CustomValidators.noWhitespaceValidator]),
+      sec_contact_countrycode: new FormControl('+91', Validators.required),
       sec_phone_number: new FormControl('', [Validators.required, Validators.pattern(/^[0-9\s\-+()]+$/), CustomValidators.noWhitespaceValidator]),
       // Newly added & commented for consective dots
       // sec_email: new FormControl('', [Validators.required, Validators.pattern(/^[a-zA-Z0-9_%+-]+@[a-zA-Z0-9-]+\.[a-zA-Z]{2,}$/)]),
@@ -440,16 +443,16 @@ export class OfficeDetailsComponent implements OnInit, OnChanges {
           // The template expects objects with a 'state' property
           this.statesDropdownList = selectedCountry.states.map(s => ({ state: s, code: '', flag: '' }));
           if (this.customerForm.disabled || this.customerStatus === 'approved') {
-            this.customerForm.get('state')?.disable();
+            this.customerForm.get('state')?.disable({ emitEvent: false });
           } else {
-            this.customerForm.get('state')?.enable();
+            this.customerForm.get('state')?.enable({ emitEvent: false });
           }
 
           // Reset the state value whenever the country changes
           if (!this.isInitialLoad) {
             const stateCtrl = this.customerForm.get('state');
             if (stateCtrl) {
-              stateCtrl.setValue('');
+              stateCtrl.setValue('', { emitEvent: false });
               const selectedCountryObj = COUNTRY_STATES.find((c) => c.country === selectedCountryName);
               if (selectedCountryObj && !stateCtrl.disabled) {
                 stateCtrl.markAsTouched();
@@ -458,16 +461,16 @@ export class OfficeDetailsComponent implements OnInit, OnChanges {
           }
         } else {
           this.statesDropdownList = [];
-          this.customerForm.get('state')?.disable();
+          this.customerForm.get('state')?.disable({ emitEvent: false });
           if (!this.isInitialLoad) {
-            this.customerForm.get('state')?.setValue('');
+            this.customerForm.get('state')?.setValue('', { emitEvent: false });
           }
         }
       } else {
         this.statesDropdownList = [];
-        this.customerForm.get('state')?.disable();
+        this.customerForm.get('state')?.disable({ emitEvent: false });
         if (!this.isInitialLoad) {
-          this.customerForm.get('state')?.setValue('');
+          this.customerForm.get('state')?.setValue('', { emitEvent: false });
         }
       }
 
@@ -493,6 +496,7 @@ export class OfficeDetailsComponent implements OnInit, OnChanges {
         this.onCountryOrStateChange(this.customerForm.get('country')?.value, selectedStateName);
       }
     });
+
   }
 
   // Newly added for disabling form on payment done
@@ -519,7 +523,9 @@ export class OfficeDetailsComponent implements OnInit, OnChanges {
       outlet_id: this.customerForm.value?.outlet_id || "",
       outlet_name: this.customerForm.value?.outlet_name || "",
       email: this.customerForm.value?.email || "",
+      primary_contact_countycode: this.customerForm.value?.primary_contact_countycode || "",
       phone_number: this.customerForm.value?.phone_number || "",
+      sec_contact_countrycode: this.customerForm.value?.sec_contact_countrycode || "",
       mobile_number: this.customerForm.value?.mobile_number || "",
       customer_group: this.customerForm.value?.customer_group || "",
       customer_type: this.customerForm.value?.customer_type || "",
@@ -568,12 +574,14 @@ export class OfficeDetailsComponent implements OnInit, OnChanges {
         first_name: this.customerForm.value.first_name,
         last_name: this.customerForm.value.last_name,
         designation: this.customerForm.value.designation,
+        primary_contact_countycode: this.customerForm.value.primary_contact_countycode,
         phone_number: this.customerForm.value.phone_number,
         email: this.customerForm.value.email,
         gender: this.customerForm.value.gender,
         sec_first_name: this.customerForm.value.sec_first_name,
         sec_last_name: this.customerForm.value.sec_last_name,
         sec_designation: this.customerForm.value.sec_designation,
+        sec_contact_countrycode: this.customerForm.value.sec_contact_countrycode,
         sec_phone_number: this.customerForm.value.sec_phone_number,
         sec_email: this.customerForm.value.sec_email,
         sec_gender: this.customerForm.value.sec_gender,
@@ -666,12 +674,15 @@ export class OfficeDetailsComponent implements OnInit, OnChanges {
     this.customerdata.first_name = this.customerForm.value.first_name,
       this.customerdata.last_name = this.customerForm.value.last_name,
       this.customerdata.designation = this.customerForm.value.designation,
+      this.customerdata.primary_contact_countycode = this.customerForm.value.primary_contact_countycode,
+      delete this.customerdata.country_code;
       this.customerdata.phone_number = this.customerForm.value.phone_number,
       this.customerdata.primary_email = this.customerForm.value.email,
       this.customerdata.gender = this.customerForm.value.gender,
       this.customerdata.sec_first_name = this.customerForm.value.sec_first_name,
       this.customerdata.sec_last_name = this.customerForm.value.sec_last_name,
       this.customerdata.sec_designation = this.customerForm.value.sec_designation,
+      this.customerdata.sec_contact_countrycode = this.customerForm.value.sec_contact_countrycode,
       this.customerdata.sec_phone_number = this.customerForm.value.sec_phone_number,
       this.customerdata.sec_email = this.customerForm.value.sec_email,
       this.customerdata.sec_gender = this.customerForm.value.sec_gender,
@@ -687,6 +698,7 @@ export class OfficeDetailsComponent implements OnInit, OnChanges {
       this.customerdata.registered_address.city = this.customerForm.value.city,
       this.customerdata.registered_address.state = this.customerForm.value.state,
       this.customerdata.registered_address.country = this.customerForm.value.country,
+      delete this.customerdata.registered_address.reg_add_countrycode;
       this.customerdata.registered_address.pincode = this.customerForm.value.pincode;
 
     if (this.customerForm.value.country === 'India') {
@@ -785,17 +797,19 @@ export class OfficeDetailsComponent implements OnInit, OnChanges {
       this.hotelenrollmenttabviewService.getLoginCustomerById(requestBody).subscribe(
         resp => {
           this.loaderService.emitComplete();
-          if (resp) {
+          if (resp?.result?.data?.[0]) {
             this.customerdata = resp.result.data[0];
             // Newly added for disabling form on payment done to approving the customer
             this.customerStatus = this.customerdata.status;
             // console.log('Customer status:', this.customerStatus);
             if (this.customerStatus == 'approved') {
-              this.customerForm.disable();
+              this.customerForm.disable({ emitEvent: false });
             }
             ////console.log(this.customerdata, "RESPDATA");
             ////console.log(Array.isArray(this.customerdata));
             resolve();  // Resolve promise when data is set
+          } else {
+            resolve();
           }
         },
         err => {
@@ -815,6 +829,9 @@ export class OfficeDetailsComponent implements OnInit, OnChanges {
   }
 
   setFormValues() {
+    if (!this.customerdata) {
+      return;
+    }
     this.isInitialLoad = true;
     ////console.log(this.customerdata.first_name, 'this.customerdata.first_name', this.customerdata.registered_address?.state);
 
@@ -830,6 +847,7 @@ export class OfficeDetailsComponent implements OnInit, OnChanges {
       first_name: this.customerdata.first_name,
       last_name: this.customerdata.last_name,
       designation: this.customerdata.designation,
+      primary_contact_countycode: this.customerdata.primary_contact_countycode || this.customerdata.country_code || '+91',
       phone_number: this.customerdata.phone_number,
       email: isFirstTime ? loginEmail : this.customerdata.primary_email,
       gender: this.customerdata.gender,
@@ -837,6 +855,7 @@ export class OfficeDetailsComponent implements OnInit, OnChanges {
       sec_first_name: this.customerdata.sec_first_name,
       sec_last_name: this.customerdata.sec_last_name,
       sec_designation: this.customerdata.sec_designation,
+      sec_contact_countrycode: this.customerdata.sec_contact_countrycode || '+91',
       sec_phone_number: this.customerdata.sec_phone_number,
       sec_email: isFirstTime ? loginEmail : this.customerdata.sec_email,
       sec_gender: this.customerdata.sec_gender,

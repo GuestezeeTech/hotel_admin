@@ -81,6 +81,7 @@ export const ENDPOINTS = {
   UpdateStatus: API_URL + ':5449/statusupdate/update',
   GETALLSTATUSVALUES: API_URL + ':9440/orderstatus/getall',
   ORDERDETAILSGETBYID: API_URL + ':9475/order/getbyid',
+  GETALL_ORDERS: API_URL + ':9475/order/getall',
   ORDERUPDATE: API_URL + ':5473/order/update',
   ORDERCREATE: API_URL + ':5473/order/create',
   REVIEWGETBYID: API_URL + ':9425/productreviews/getall',
@@ -565,6 +566,7 @@ export const ENDPOINTS = {
   // UPDATE_PRODUCT: API_URL3 + ':5436/product/update',
   // GET_ALL_PRODUCTS: API_URL3 + ':9422/product/getall',
   GET_ALL_PRODUCTS: API_URL1 + ':7903/product/getall',// newly added for IP issue
+  GET_PRODUCT_IMAGES: API_URL1 + ':5400/productimages/getall',
   GET_GUEST_DETAILS: API_URL1 + ':1218/report/getallevent',
   GET_ALL_OUTLETS: API_URL1 + ":9514/outlet/getall",
   GET_PRODUCT_BY_OUTLET: API_URL1 + ":9674/product/getall",

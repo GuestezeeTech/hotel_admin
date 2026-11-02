@@ -120,6 +120,11 @@
   cursor: pointer;
 }
 
+.pay-button.pay-button-overdue {
+  background-color: #ff0000;
+  font-weight: 700;
+}
+
 .pay-button.disabled-btn,
 .pay-button:disabled {
   background-color: #cccccc;

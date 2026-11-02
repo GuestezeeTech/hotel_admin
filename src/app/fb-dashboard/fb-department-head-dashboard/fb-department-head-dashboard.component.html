@@ -1,0 +1,199 @@
+<section class="fnb-shell active">
+  <div class="fnb-main">
+    <div class="fnb-head">
+      <div>
+        <h2>F&amp;B Department Head</h2>
+        <p>Restaurant offers, payments, delays, escalations, delivery and cancellations</p>
+      </div>
+      <div class="fnb-head-actions">
+        <span class="fnb-live">● Live Updates</span>
+        <span class="fnb-clock">{{ liveClock }}　⟳</span>
+      </div>
+    </div>
+
+    <div class="fnb-dashboard-home">
+      <div class="fnb-kpis">
+        <div class="fnb-kpi">
+          <div class="bubble">◇</div>
+          <h4>Restaurant Offer Report</h4>
+          <strong>{{ offerCountLoading ? '…' : offerCountLabel }}</strong><small>Total Offer Orders</small>
+        </div>
+        <div class="fnb-kpi">
+          <div class="bubble">▤</div>
+          <h4>Offer Payment Report</h4>
+          <strong>{{ offerPaymentLoading ? '…' : offerPaymentAmountLabel }}</strong>
+          <small>{{ offerPaymentOrderNote }}</small>
+        </div>
+        <div class="fnb-kpi">
+          <div class="bubble">◷</div>
+          <h4>Delayed Report</h4>
+          <strong>{{ loadingTasks ? '…' : (taskReportCounts.delayed | number) }}</strong>
+          <small>Delayed Orders</small>
+        </div>
+        <div class="fnb-kpi">
+          <div class="bubble">!</div>
+          <h4>Escalation Report</h4>
+          <strong>{{ loadingTasks ? '…' : (taskReportCounts.escalated | number) }}</strong>
+          <small>Total Escalations</small>
+        </div>
+        <div class="fnb-kpi">
+          <div class="bubble">▣</div>
+          <h4>Delivery Report</h4>
+          <strong>{{ loadingTasks ? '…' : (taskReportCounts.delivered | number) }}</strong>
+          <small>Delivered Orders</small>
+        </div>
+        <div class="fnb-kpi">
+          <div class="bubble">⊗</div>
+          <h4>Order Cancellation Report</h4>
+          <strong>48</strong><span class="change change-down">↓ 20%</span><small>Cancelled Orders</small>
+        </div>
+      </div>
+
+      <div class="fnb-columns">
+        <div class="fnb-panel">
+          <div class="fnb-panel-head">
+            <h3>Live Tracking</h3>
+            <div class="fnb-filters">
+              <select class="fnb-filter" [(ngModel)]="restaurantFilter">
+                <option *ngFor="let r of restaurants" [value]="r">{{ r }}</option>
+              </select>
+              <select class="fnb-filter" [(ngModel)]="typeFilter" [disabled]="trackingMode === 'Escalations'">
+                <option *ngFor="let t of orderTypes" [value]="t">{{ t }}</option>
+              </select>
+              <span class="fnb-live">● Live</span>
+            </div>
+          </div>
+          <div class="fnb-tabs">
+            <button type="button" class="fnb-tab" [class.active]="trackingMode === 'Orders'" (click)="setTracking('Orders')">Orders</button>
+            <button type="button" class="fnb-tab" [class.active]="trackingMode === 'Escalations'" (click)="setTracking('Escalations')">Escalations</button>
+          </div>
+          <div class="table-wrap">
+            <table class="fnb-table">
+              <thead>
+                <tr>
+                  <th>Order #</th>
+                  <th>Restaurant</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Updated Time</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngIf="loadingTasks">
+                  <td colspan="6" class="table-empty">Loading Menu Ordering tasks…</td>
+                </tr>
+                <tr *ngIf="!loadingTasks && loadError">
+                  <td colspan="6" class="table-empty">{{ loadError }}</td>
+                </tr>
+                <tr *ngIf="!loadingTasks && !loadError && filteredTrackingRows.length === 0">
+                  <td colspan="6" class="table-empty">No Menu Ordering tasks for today.</td>
+                </tr>
+                <tr *ngFor="let o of filteredTrackingRows">
+                  <td>{{ trackingMode === 'Orders' ? '🔵 ' : '' }}{{ o.id }}</td>
+                  <td>{{ o.restaurant }}</td>
+                  <td><span class="fnb-status">{{ o.type }}</span></td>
+                  <td><span class="fnb-status" [ngClass]="statusClass(o.status)">{{ o.status }}</span></td>
+                  <td>{{ o.time }}</td>
+                  <td><button type="button" class="view" (click)="openDetail(o.id)">View　›</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="fnb-order-summary">
+            <div class="fnb-sum">
+              <small>◷　Total Active Orders</small>
+              <strong>{{ todayOrderSummary.totalActive }}</strong>
+              <small class="up">Today · {{ todayOrderSummary.dateLabel }}</small>
+            </div>
+            <div class="fnb-sum">
+              <small>◇　Preparing</small>
+              <strong>{{ todayOrderSummary.preparing }}</strong>
+              <small class="meta">Processing / ASAP</small>
+            </div>
+            <div class="fnb-sum">
+              <small>▣　Out for Delivery</small>
+              <strong>{{ todayOrderSummary.outForDelivery }}</strong>
+              <small class="meta">Assigned</small>
+            </div>
+            <div class="fnb-sum">
+              <small>✓　Completed Today</small>
+              <strong>{{ todayOrderSummary.completedToday }}</strong>
+              <small class="meta">Delivered / Completed</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="fnb-right-stack">
+          <div class="fnb-panel">
+            <div class="fnb-panel-head">
+              <h3>Order &amp; Escalation Overview</h3>
+              <span class="fnb-legend-hint">🟢 Orders　🟣 Escalations</span>
+            </div>
+            <div class="fnb-donut-row">
+              <div class="fnb-donut">
+                <div class="fnb-donut-label">Total<br>Orders &amp; Escalations<b>437</b></div>
+              </div>
+              <div class="fnb-legend">
+                <div><i class="dot dot-green"></i>Orders <strong>405</strong> 93%</div>
+                <div><i class="dot dot-purple"></i>Escalations <strong>32</strong> 7%</div>
+              </div>
+            </div>
+            <div class="fnb-mini-title">
+              <h4>Recent Escalations</h4>
+              <button type="button" class="fnb-view-all" (click)="setTracking('Escalations')">View All</button>
+            </div>
+            <div class="table-wrap">
+              <table class="fnb-table">
+                <thead>
+                  <tr>
+                    <th>#</th><th>Order #</th><th>Issue Type</th><th>Restaurant</th><th>Time</th><th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngIf="!loadingTasks && recentEscalations.length === 0">
+                    <td colspan="6" class="table-empty">No escalations.</td>
+                  </tr>
+                  <tr *ngFor="let e of recentEscalations">
+                    <td>{{ e.num }}</td>
+                    <td>{{ e.order }}</td>
+                    <td>{{ e.issue }}</td>
+                    <td>{{ e.restaurant }}</td>
+                    <td>{{ e.time }}</td>
+                    <td><span class="fnb-status" [ngClass]="statusClass(e.status)">{{ e.status }}</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="fnb-panel">
+            <div class="fnb-mini-title">
+              <h4>Live Order Status</h4>
+              <button type="button" class="fnb-view-all" (click)="setTracking('Orders')">View All</button>
+            </div>
+            <div class="fnb-live-status">
+              <div class="fnb-live-row fnb-live-row-head">
+                <span>Status</span><span>Count</span><span>%</span><span></span>
+              </div>
+              <div class="fnb-live-row" *ngFor="let row of liveStatusRows">
+                <span>{{ row.label }}</span>
+                <b>{{ row.count }}</b>
+                <span>{{ row.pct }}%</span>
+                <div class="fnb-progress"><i [style.width.%]="row.pct" [style.background]="row.color"></i></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="fnb-modal" [class.show]="showModal" (click)="closeModal()">
+  <div class="fnb-modal-card" (click)="$event.stopPropagation()">
+    <h3>{{ modalTitle }}</h3>
+    <p [innerHTML]="modalBodyHtml"></p>
+    <button type="button" (click)="closeModal()">Close</button>
+  </div>
+</div>

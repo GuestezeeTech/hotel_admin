@@ -395,19 +395,17 @@ export class EditTechnicalInfoComponent implements OnInit {
             }
 
             const lockIndex = customerInfo?.findIndex((item: any) => item.type === this.filterInfo);
-            // this.ecomData = resp.result.data[0].customer_technical_info[1];
-            if (lockIndex !== -1) {
-              ////console.log('Lock found at index:', lockIndex);
+            if (customerInfo && lockIndex !== undefined && lockIndex !== -1) {
               this.ecomData = customerInfo[lockIndex];
             } else {
-              ////console.log('No entry with type "lock" found.');
+              this.ecomData = null;
             }
 
-
-            ////console.log( this.ecomData," this.ecomData")
-
-            // this.uploadedFileName = resp.result.data[0].logo;
             this.techInfoForm.reset();
+            if (!this.ecomData) {
+              resolve();
+              return;
+            }
 
             this.techInfoForm.patchValue({
               name: this.ecomData.name,

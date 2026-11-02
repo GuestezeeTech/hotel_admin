@@ -19,8 +19,8 @@ import { SharedDataService } from '../shared/shared-data.service';
 import { UserAccessService } from '../user-access/user-access.service';
 import { ProfileService } from '../profile/profile.service';
 // Newly added 
-import { CustomValidators } from '../hotel-enrollment-tabview/validators'; //Signup phone number validation logic
 import { HotelListService } from '../hotel-list/hotel-list.service';
+import { COUNTRY_CODES } from '../shared/constants/countries';
 import { HotelEnrollmentTabviewService } from '../hotel-enrollment-tabview/hotel-enrollment-tabview.service';
 import { LoginService } from './login.service';
 import { ServiceDetailService } from '../hotel-enrollment-tabview/service-details/service-details.service';
@@ -66,6 +66,8 @@ export class LoginComponent implements OnInit {
   customerList: any[] = []; // Initialize customerList as an empty array
   email: any;
   phoneNumber: any;
+  countryCode = '+91';
+  countryCodeList = COUNTRY_CODES;
   passwordData: any;
   customerdata: any;
   forgotPassword: boolean = false;
@@ -157,8 +159,9 @@ export class LoginComponent implements OnInit {
     // Newly added 
     // Initialize the signup form with validation rules 
     this.signupForm = this.fb.group({
-      email: ['', [Validators.required, Validators.email]], // Email field with validation
-      phone_number: ['', [Validators.required, CustomValidators.phoneValidator]], // Phone number field with validation
+      email: ['', [Validators.required, Validators.email]],
+      country_code: ['+91', Validators.required],
+      phone_number: ['', [Validators.required, Validators.pattern(/^\d{1,20}$/), Validators.maxLength(20)]],
     });
     // Define controls using FormBuilder.group()
     const group: { [key: string]: any } = {};
@@ -649,7 +652,6 @@ export class LoginComponent implements OnInit {
                     this.getAllStaffIds(userData.staff_id, department, member)
                     this.loaderService.emitComplete();
                     sessionStorage.setItem('fcmAndAvailabilityUpdated', 'pending');
-                    this.router.navigate(['/task-management']);
                     // handles FCM token for Staff
                     try {
                       const userId: any = this.localService.get('UserId');
@@ -888,8 +890,10 @@ export class LoginComponent implements OnInit {
                   }
                   // Ended
                   this.loaderService.emitComplete();
-                  // Navigate based on customer_member_id availability ONLY after permissions are loaded!
-                  if (userData.customer_member_id) { // Customer(but not hotel)
+                  // Navigate ONLY after tokens + roleModules are ready (sidebar needs both)
+                  if (userData.staff_employee_number != undefined) {
+                    this.router.navigate([this.getStaffLandingRoute()]);
+                  } else if (userData.customer_member_id) { // Customer(but not hotel)
                     // Has customer_member_id → navigate to edit-new-hotel
                     this.router.navigate([`/edit-new-hotel/${userData.id}`]);
                   } else {
@@ -1746,13 +1750,13 @@ export class LoginComponent implements OnInit {
   }
 
 
-  sendOTP(email: string, mobileNo: number) {
+  sendOTP(email: string, mobileNo: string | number) {
     return new Promise((resolve, reject) => {
       let requestData = {
         "domain_name": DOMAIN_NAME,
         "user_id": 1,
         "recipient_email": email,
-        "recipient_mobile": Number(mobileNo),
+        "recipient_mobile": String(mobileNo),
         "event": "OTP"
       }
       this.loginService.checkoutAPICall(ENDPOINTS.GENERATE_OTP, requestData).then(
@@ -1814,7 +1818,7 @@ export class LoginComponent implements OnInit {
     let input = event.target;
     let value = input.value.toString();
     // Remove any non-numeric characters
-    value = value.replace(/[^0-9]/g, '');
+    value = value.replace(/[^0-9]/g, '').slice(0, 20);
     // Prevent typing '0' as the very first character
     if (value === '0') {
       value = '';
@@ -1942,6 +1946,7 @@ export class LoginComponent implements OnInit {
     this.isLoggingIn = true;
     return new Promise((resolve, reject) => {
       let customerObject = {
+        country_code: this.countryCode || '+91',
         phone_number: this.phoneNumber,
         email: String(this.email),
         password: String(this.passwordData),
@@ -2450,34 +2455,77 @@ export class LoginComponent implements OnInit {
   // Newly added for role access
   getRoleById(id: any): Promise<void> {
     return new Promise((resolve) => {
-      let requestBody = {
-        "domain_name": DOMAIN_NAME,
-        "user_id": USER_ID,
-        "extras": {
-          "find": {
-            "member_id": this.localStorageService.get('MemberId'),
-            "id": id
-          }
-        }
+      const memberId = this.localStorageService.get('MemberId');
+      const find: any = { id: Number(id) };
+      if (memberId && memberId !== 'null' && memberId !== 'undefined') {
+        find.member_id = memberId;
       }
+      const requestBody = {
+        domain_name: DOMAIN_NAME,
+        user_id: USER_ID,
+        extras: { find }
+      };
       this.roleListingService.getAllRoles(requestBody).subscribe({
         next: (response) => {
-          if (response?.success && response.success === 1 && response.result.data.length > 0) {
+          if (response?.success === 1 && response?.result?.data?.length > 0) {
             const role = response.result.data[0];
-            // console.log('Role based on id:', role);
-            this.localStorageService.set('roleModules', JSON.stringify(role.modules));
-            // console.log('Role Modules:', this.localStorageService.get('roleModules'));
+            this.localStorageService.set('roleModules', JSON.stringify(role.modules || []));
+            resolve();
+            return;
+          }
+          // Retry without member_id if filtered lookup returned nothing
+          if (find.member_id) {
+            const fallbackBody = {
+              domain_name: DOMAIN_NAME,
+              user_id: USER_ID,
+              extras: { find: { id: Number(id) } }
+            };
+            this.roleListingService.getAllRoles(fallbackBody).subscribe({
+              next: (fallbackResp) => {
+                if (fallbackResp?.success === 1 && fallbackResp?.result?.data?.length > 0) {
+                  const role = fallbackResp.result.data[0];
+                  this.localStorageService.set('roleModules', JSON.stringify(role.modules || []));
+                } else {
+                  console.error('No roles found:', fallbackResp?.message);
+                }
+                resolve();
+              },
+              error: () => resolve()
+            });
           } else {
             console.error('No roles found:', response?.message);
+            resolve();
           }
-          resolve();
         },
-        error: (err) => {
-          //console.error('API Error:', err);
+        error: () => {
           resolve();
         }
       });
     });
+  }
+
+  /** First sidebar route Staff is allowed to open based on roleModules. */
+  private getStaffLandingRoute(): string {
+    try {
+      const stored = this.localStorageService.get('roleModules');
+      const modules = stored ? (typeof stored === 'string' ? JSON.parse(stored) : stored) : [];
+      const hasPerm = (name: string) => {
+        const mod = (modules || []).find((m: any) => (m.module_name || '').toUpperCase() === name);
+        const p = mod?.permission;
+        return !!(p && (p.has_read_permission || p.has_add_permission || p.has_edit_permission || p.has_delete_permission));
+      };
+      if (hasPerm('DASHBOARD')) return '/dashboard';
+      if (hasPerm('HOTELS')) return '/hotel-list';
+      if (hasPerm('TASK MANAGEMENT')) return '/task-management';
+      if (hasPerm('BOOKINGS')) return '/bookings';
+      if (hasPerm('GUESTS')) return '/guests-list';
+      if (hasPerm('USER ACCESS')) return '/role-list';
+      if (hasPerm('SYSTEM SETTINGS')) return '/settings';
+      if (hasPerm('PAYMENT')) return '/payment-details';
+      if (hasPerm('OUTLETS')) return '/outlet-list';
+      if (hasPerm('FEATURES')) return '/features';
+    } catch { /* fall through */ }
+    return '/profile';
   }
 
   getCustomerById(hotelId: any): Promise<void> {
@@ -2945,6 +2993,7 @@ export class LoginComponent implements OnInit {
   getAllCustomers() {
     const email = String(this.signupForm.value.email);
     const phoneNumber = String(this.signupForm.value.phone_number);
+    const countryCode = String(this.signupForm.value.country_code || '+91');
     // First check for email
     const emailRequestBody = {
       domain_name: DOMAIN_NAME,
@@ -2961,15 +3010,17 @@ export class LoginComponent implements OnInit {
           this.alertClear();
           this.signup = false;
           this.login = true;
-          this.signupForm.reset();
+          this.signupForm.reset({ country_code: '+91' });
           this.otpForm.reset();
         }
         else {
           this.signup = false;
           this.hasEmailAndPhone = true;
-          this.sendOTP(email, Number(phoneNumber));
+          this.countryCode = countryCode;
+          this.sendOTP(email, phoneNumber);
           this.localStorageService.set('UserEmail', email);
           this.localStorageService.set('UserPhoneNumber', phoneNumber);
+          this.localStorageService.set('UserCountryCode', countryCode);
           this.phoneNumber = phoneNumber;
           this.email = email;
           // this.alertService.success("OTP has been sent to your mobile number.", this.options);
@@ -2995,7 +3046,7 @@ export class LoginComponent implements OnInit {
     this.otp = false;
     this.password = false;
     this.forgotPassword = false;
-    this.signupForm.reset();
+    this.signupForm.reset({ country_code: '+91' });
     this.otpForm.reset();
     if (this.passwordForm) {
       this.passwordForm.reset();

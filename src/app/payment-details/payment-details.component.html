@@ -1,33 +1,169 @@
-]<div class="main">
+<div class="main">
   <div class="centered-container">
     <div class="tab-pane fade show active" id="general" role="tabpanel" aria-labelledby="home-tab">
+      <div class="payment-summary" *ngIf="paidCount > 0 || remainingAmount > 0">
+        <span>Paid {{ paidCount }} time{{ paidCount === 1 ? '' : 's' }}</span>
+        <span>Total paid: {{ totalPaidAmount | currency:'INR' }}</span>
+        <span>Remaining: {{ remainingAmount | currency:'INR' }}</span>
+        <span *ngIf="currentCoverageEnd">Valid until: {{ currentCoverageEnd }}</span>
+      </div>
+      <div class="overdue-banner" *ngIf="isSubscriptionExpired && remainingAmount > 0 && !isInstallmentPlan">
+        Subscription ended. Pay Now for the remaining amount:
+        <strong>{{ remainingAmount | currency:'INR' }}</strong>
+      </div>
+      <div class="overdue-banner" *ngIf="isSubscriptionExpired && isInstallmentPlan">
+        Subscription ended. {{ installmentText }} due:
+        <strong>{{ nextInstallmentAmount | currency:'INR' }}</strong>
+      </div>
       <table class="table">
         <thead>
           <tr>
-            <th>Order Id</th>
-            <!-- <th>Plan</th> -->
-            <th>Payment Type</th>
-            <th>Payment Date</th>
-            <th>Payment Amount</th>
-            <th>Subscription Period</th>
+            <th>Payment</th>
+            <th>Status</th>
+            <th>Sub Total</th>
+            <th>Tax</th>
+            <th>Amount</th>
+            <th>Subscription End</th>
+            <th>Paid Date</th>
             <th>Invoice</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngIf="!paidInstallments || paidInstallments.length === 0">
-            <td colspan="6" class="text-center text-muted">No Payments made</td>
+          <tr *ngIf="paymentRows.length === 0">
+            <td colspan="9" class="text-center text-muted">No confirmed payments available</td>
           </tr>
-          <tr *ngFor="let inst of paidInstallments">
-            <td>{{ inst.orderId }}</td>
-            <td>{{ inst.name }}</td>
-            <td>{{ inst.paid_date_time | date: 'dd-MM-yyyy' }}</td>
-            <td>{{ inst.order_total_amount | currency:'INR' }}</td>
-            <td>{{ inst.subscription_end_date }}</td>
-            <td class="gold"><i class="fa-regular fa-file-lines" style="color: #800020; cursor: pointer;"
-                (click)="downloadInvoice(inst.orderId)"></i></td>
+          <tr *ngFor="let row of paymentRows">
+            <td>{{ row.paymentNo }}</td>
+            <td>
+              <span [ngStyle]="{
+                'color': '#30A75F',
+                'background-color': '#d5efdb',
+                'border-radius': '20px',
+                'padding': '4px 12px',
+                'font-weight': '600',
+                'font-size': '13px'
+              }">{{ row.status }}</span>
+            </td>
+            <td>{{ row.sub_total | currency:'INR' }}</td>
+            <td>{{ row.tax | currency:'INR' }}</td>
+            <td>{{ row.order_total_amount | currency:'INR' }}</td>
+            <td>{{ row.subscription_end_date || '-' }}</td>
+            <td>{{ row.paid_date_time ? (row.paid_date_time | date:'dd-MM-yyyy') : '-' }}</td>
+            <td>
+              <i *ngIf="row.orderId" class="fa-regular fa-file-lines"
+                style="color: #800020; cursor: pointer;"
+                (click)="downloadInvoice(row.orderId)"></i>
+            </td>
+            <td>-</td>
           </tr>
         </tbody>
       </table>
+      <div class="custom-action">
+        <button type="button" class="pay-button"
+          [class.pay-button-overdue]="isSubscriptionExpired"
+          [disabled]="payableAmount <= 0 || paying"
+          (click)="openPayModal()">
+          {{ payButtonLabel }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Quarterly / Half-yearly: remaining payment splits (old flow) -->
+<div *ngIf="isSplitModalOpen" class="custom-modal-backdrop">
+  <div class="custom-modal split-modal">
+    <div class="custom-modal-header">
+      <h2>{{ paymentTypeName || 'Payment Type' }}</h2>
+      <i class="bi bi-x-lg" (click)="closeSplitModal()"></i>
+    </div>
+    <div class="custom-modal-body">
+      <p class="payable-text" *ngIf="nextInstallmentAmount > 0">
+        Next due: <strong>{{ nextInstallmentAmount | currency:'INR' }}</strong>
+      </p>
+      <table class="table split-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Status</th>
+            <th>Amount</th>
+            <th>End Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let split of remainingSplits"
+            [class.split-next]="split.isNext">
+            <td>{{ split.installmentNo }}</td>
+            <td>{{ split.status }}</td>
+            <td>{{ split.order_total_amount | currency:'INR' }}</td>
+            <td>{{ split.subscription_end_date }}</td>
+          </tr>
+          <tr *ngIf="remainingSplits.length === 0">
+            <td colspan="4" class="text-center text-muted">No remaining installments</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="split-custom-section">
+        <h3 class="split-custom-title">Custom payment</h3>
+        <p class="payable-text">
+          Enter any amount you want to pay. Coverage extends from the current end date using RoomPricing per-day rate
+          <span *ngIf="perDayCost > 0">(≈ {{ perDayCost | currency:'INR' }}/day)</span>.
+        </p>
+        <label for="splitCustomAmount">Amount</label>
+        <input id="splitCustomAmount" type="number" min="0" step="0.01" name="splitCustomAmount"
+          [ngModel]="customAmount" (ngModelChange)="onCustomAmountChange($event)"
+          (keydown)="blockInvalidAmountKeys($event)" placeholder="Enter amount">
+        <p class="amount-error" *ngIf="customAmountError">{{ customAmountError }}</p>
+        <button type="button" class="pay-button split-custom-pay-btn"
+          [class.pay-button-overdue]="isSubscriptionExpired"
+          [disabled]="paying || !canPayCustomAmount"
+          (click)="payCustomAmount()">
+          {{ paying ? 'Processing...' : 'Pay Custom Amount' }}
+        </button>
+      </div>
+    </div>
+    <div class="custom-modal-footer">
+      <button type="button" class="custom-cancel-btn" (click)="closeSplitModal()" [disabled]="paying">Close</button>
+      <button type="button" class="pay-button custom-pay-now-btn"
+        [class.pay-button-overdue]="isSubscriptionExpired"
+        [disabled]="paying || nextInstallmentAmount <= 0 || hasCustomAmountInput"
+        (click)="payNextInstallment()">
+        {{ paying ? 'Processing...' : 'Pay Now' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Custom free-amount payment -->
+<div *ngIf="isCustomModalOpen" class="custom-modal-backdrop">
+  <div class="custom-modal">
+    <div class="custom-modal-header">
+      <h2>{{ modalTitle }}</h2>
+      <i class="bi bi-x-lg" (click)="closeCustomModal()"></i>
+    </div>
+    <div class="custom-modal-body">
+      <p class="payable-text" *ngIf="remainingAmount > 0">
+        Remaining amount: {{ remainingAmount | currency:'INR' }}
+      </p>
+      <p class="payable-text">
+        Enter any amount you want to pay. Coverage extends from the current end date using RoomPricing per-day rate
+        <span *ngIf="perDayCost > 0">(≈ {{ perDayCost | currency:'INR' }}/day)</span>.
+      </p>
+      <label for="customAmount">Amount</label>
+      <input id="customAmount" type="number" min="0" step="0.01" name="customAmount"
+        [ngModel]="customAmount" (ngModelChange)="onCustomAmountChange($event)"
+        (keydown)="blockInvalidAmountKeys($event)" placeholder="Enter amount">
+      <p class="amount-error" *ngIf="customAmountError">{{ customAmountError }}</p>
+    </div>
+    <div class="custom-modal-footer">
+      <button type="button" class="custom-cancel-btn" (click)="closeCustomModal()" [disabled]="paying">Cancel</button>
+      <button type="button" class="pay-button custom-pay-now-btn"
+        [class.pay-button-overdue]="isSubscriptionExpired"
+        [disabled]="paying || !canPayCustomAmount"
+        (click)="payCustomAmount()">
+        {{ paying ? 'Processing...' : 'Pay Now' }}
+      </button>
     </div>
   </div>
 </div>

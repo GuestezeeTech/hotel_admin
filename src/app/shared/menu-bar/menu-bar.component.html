@@ -6,82 +6,79 @@
   </div>
 
   <hr style="width: 80%;" class="center-hr" />
-  <ul style="padding: 6px 6px 6px 10px;">
+  <ul class="sidenav-menu">
     <!-- Dashboard -->
-    <!--     <li class="list_container" [class.active]="isActive('dashboard')"
-      (click)="setActiveMenu('dashboard'); sendValue('Dashboard')"
-      *ngIf="(customerType === 'Customer' && customerdata?.status == 'approved' && hasAnyPermission('DASHBOARD'))">
-      <img src="../../assets/images/guestezee/layout.png" alt="Dashboard">
-      <a routerLink="/dashboard">Dashboard</a>
-    </li> -->
     <li class="list_container" [class.active]="isActive('dashboard')"
       (click)="setActiveMenu('dashboard'); sendValue('Dashboard')" routerLink="/dashboard"
-      *ngIf="customerType === 'Customer' && customerdata?.status == 'approved' && hasAnyPermission('DASHBOARD')">
-      <img src="../../assets/images/guestezee/layout.png" alt="Dashboard">
+      *ngIf="canShowMenu('DASHBOARD')">
+      <img src="assets/images/guestezee/layout.png" alt="Dashboard">
       <span>Dashboard</span>
     </li>
+    <li class="list_container" [class.active]="isActive('overview-dashboard')"
+      (click)="setActiveMenu('overview-dashboard'); sendValue('Hotel Overview')" routerLink="/overview-dashboard"
+      *ngIf="canShowMenu('OVERVIEW')">
+      <img src="assets/images/guestezee/layout.png" alt="Hotel Overview">
+      <span>Hotel Overview</span>
+    </li>
+    <li class="list_container" [class.active]="isActive('fb-dashboard')"
+      (click)="setActiveMenu('fb-dashboard'); sendValue('F&B Dashboard')" routerLink="/fb/dashboard"
+      *ngIf="canShowMenu('F&B DASHBOARD')">
+      <img src="assets/images/guestezee/services.png" alt="F&amp;B Dashboard">
+      <span>F&amp;B Dashboard</span>
+    </li>
+    <li class="list_container" [class.active]="isActive('fo-dashboard')"
+      (click)="setActiveMenu('fo-dashboard'); sendValue('Front Office Dashboard')" routerLink="/fo/dashboard"
+      *ngIf="canShowMenu('FO DASHBOARD')">
+      <img src="assets/images/guestezee/bookings.png" alt="Front Office Dashboard">
+      <span>Front Office Dashboard</span>
+    </li>
+    <li class="list_container" [class.active]="isActive('hk-dashboard')"
+      (click)="setActiveMenu('hk-dashboard'); sendValue('Housekeeping Dashboard')" routerLink="/hk/dashboard"
+      *ngIf="canShowMenu('HOUSEKEEPING DASHBOARD')">
+      <img src="assets/images/guestezee/settings.png" alt="Housekeeping Dashboard">
+      <span>Housekeeping Dashboard</span>
+    </li>
     <!-- Task Management -->
-    <!-- <li class="list_container" [class.active]="isActive('task')"
-      (click)="setActiveMenu('task'); sendValue('Task Management')"
-      *ngIf="((customerType === 'Customer' && customerdata?.status=='approved' && hasAnyPermission('TASK MANAGEMENT')) || (customerType=='Staff'))">
-      <img src="../../assets/images/guestezee/taskManagement.png" alt="Task Management">
-      <a routerLink="/task-management">Task Management</a>
-    </li> -->
     <li class="list_container" [class.active]="isActive('task')" [routerLink]="['/task-management']"
       (click)="setActiveMenu('task'); sendValue('Task Management')"
-      *ngIf="((customerType === 'Customer' && customerdata?.status == 'approved' && hasAnyPermission('TASK MANAGEMENT')) || customerType == 'Staff')">
-      <img src="../../assets/images/guestezee/taskManagement.png" alt="Task Management">
+      *ngIf="canShowMenu('TASK MANAGEMENT')">
+      <img src="assets/images/guestezee/taskManagement.png" alt="Task Management">
       <span>Task Management</span>
-
     </li>
     <!-- Hotels -->
     <li class="list_container" [class.active]="isActive('hotel')"
-      *ngIf="(customerType === 'Customer' && hasAnyPermission('HOTELS'))" (click)="toggleSubmenu('Hotels')">
+      *ngIf="canShowMenu('HOTELS')" (click)="toggleSubmenu('Hotels')">
       <div class="list-content">
         <div class="left-content">
-          <img src="../../assets/images/guestezee/hotel (2).png" alt="Hotels">
+          <img src="assets/images/guestezee/hotel (2).png" alt="Hotels">
           <span>Hotels</span>
         </div>
         <i class="fas fa-chevron-down dropdown-icon" [ngClass]="{ 'rotate': isHotelSubmenuOpen }"
-          *ngIf="(customerType === 'Customer' && customerdata?.status=='approved' && hasAnyPermission('HOTELS')) "></i>
+          *ngIf="canShowMenu('HOTELS') && (customerType === 'Staff' || isApproved())"></i>
       </div>
     </li>
     <!-- Hotel submenu -->
     <li class="sub-menu"
-      *ngIf="isHotelSubmenuOpen && (customerType === 'Customer' && customerdata?.status == 'approved' && hasAnyPermission('HOTELS'))">
+      *ngIf="isHotelSubmenuOpen && canShowMenu('HOTELS') && (customerType === 'Staff' || isApproved())">
       <div class="submenu">
-        <!-- Old: (click)="setActiveMenu('hotel-0'); goToTab('Registered Office Details')" -->
         <span class="submenu-item" [class.active]="isActive('hotel-0')"
           (click)="setActiveMenu('hotel-0'); navigateToHotelTab(0)">Office Details</span>
-        <!-- Old: (click)="setActiveMenu('hotel-1'); goToTab('Property Details')" -->
         <span class="submenu-item" [class.active]="isActive('hotel-1')"
           (click)="setActiveMenu('hotel-1'); navigateToHotelTab(1)">Property Details</span>
-        <!-- <span class="submenu-item" [class.active]="isActive('hotel-2')"
-          (click)="setActiveMenu('hotel-2'); goToTab('Services')">Services</span> -->
-        <!-- <span class="submenu-item" [class.active]="isActive('hotel-3')"
-          (click)="setActiveMenu('hotel-3'); goToTab('Hierarchy')">Hierarchy</span> -->
-        <!-- Old: (click)="setActiveMenu('hotel-4'); goToTab('Technical Info')" -->
         <span class="submenu-item" [class.active]="isActive('hotel-4')"
           (click)="setActiveMenu('hotel-4'); navigateToHotelTab(2)">Technical Info</span>
       </div>
     </li>
     <!-- Bookings -->
-    <!--  <li class="list_container" [class.active]="isActive('bookings')"
-      (click)="setActiveMenu('bookings'); sendValue('Bookings')"
-      *ngIf="(customerType === 'Customer' && customerdata?.status=='approved' && hasAnyPermission('BOOKINGS'))">
-      <img src="../../assets/images/guestezee/bookings.png" alt="Bookings">
-      <a routerLink="/bookings">Bookings</a>
-    </li> -->
     <li class="list_container" [class.active]="isActive('bookings')" [routerLink]="['/bookings']"
       (click)="setActiveMenu('bookings'); sendValue('Bookings')"
-      *ngIf="customerType === 'Customer' && customerdata?.status == 'approved' && hasAnyPermission('BOOKINGS')">
-      <img src="../../assets/images/guestezee/bookings.png" alt="Bookings">
+      *ngIf="canShowMenu('BOOKINGS')">
+      <img src="assets/images/guestezee/bookings.png" alt="Bookings">
       <span>Bookings</span>
-
     </li>
     <li class="list_container" [class.active]="isActive('guests')" [routerLink]="['/guests-list']"
       (click)="setActiveMenu('guests'); sendValue('Guests')"
-      *ngIf="customerType === 'Customer' && customerdata?.status == 'approved' && hasAnyPermission('GUESTS')">
+      *ngIf="canShowMenu('GUESTS')">
       <div class="list-content">
         <div class="left-content">
           <i class="fas fa-users" style="color: white; font-size: 16px; margin-right: 2px;"></i>
@@ -91,10 +88,10 @@
     </li>
     <!-- User Access -->
     <li class="list_container" [class.active]="isActive('user-access')" (click)="toggleSubmenu('User Access')"
-      *ngIf="(customerType === 'Customer' &&customerdata?.status=='approved' && hasAnyPermission('USER ACCESS'))">
+      *ngIf="canShowMenu('USER ACCESS')">
       <div class="list-content">
         <div class="left-content">
-          <img src="../../assets/images/guestezee/secure-access (1).png" alt="User Access" />
+          <img src="assets/images/guestezee/secure-access (1).png" alt="User Access" />
           <a>User Access</a>
         </div>
         <i class="fas fa-chevron-down dropdown-icon" [ngClass]="{ 'rotate': isUserAccessSubmenuOpen }"></i>
@@ -102,7 +99,7 @@
     </li>
     <!-- User Access submenu -->
     <li class="sub-menu"
-      *ngIf="isUserAccessSubmenuOpen && (customerType === 'Customer' && customerdata?.status=='approved' && hasAnyPermission('USER ACCESS'))">
+      *ngIf="isUserAccessSubmenuOpen && canShowMenu('USER ACCESS')">
       <div class="submenu">
         <a class="submenu-item" routerLink="/role-list" [class.active]="isActive('role')"
           (click)="setActiveMenu('role'); sendValue('Roles')">Roles</a>
@@ -114,81 +111,54 @@
     </li>
     <!-- Settings -->
     <li class="list_container" [class.active]="isActive('settings-main')" (click)="toggleSubmenu('Settings')"
-      *ngIf="(customerType === 'Staff' || (customerType === 'Customer' && hasAnyPermission('SYSTEM SETTINGS')))">
+      *ngIf="canShowMenu('SYSTEM SETTINGS')">
       <div class="list-content">
         <div class="left-content">
-          <img src="../../assets/images/guestezee/setting.png" alt="Settings" />
+          <img src="assets/images/guestezee/setting.png" alt="Settings" />
           <a>System Settings</a>
         </div>
         <i class="fas fa-chevron-down dropdown-icon" [ngClass]="{ 'rotate': isSettingsSubmenuOpen }"></i>
       </div>
     </li>
     <li class="sub-menu"
-      *ngIf="isSettingsSubmenuOpen && (customerType === 'Staff' || (customerType === 'Customer' && hasAnyPermission('SYSTEM SETTINGS')))">
+      *ngIf="isSettingsSubmenuOpen && canShowMenu('SYSTEM SETTINGS')">
       <div class="submenu">
         <a class="submenu-item" routerLink="/settings" [class.active]="isActive('settings-page')"
-          (click)="setActiveMenu('settings-page'); sendValue('Settings')"
-          *ngIf="customerType === 'Customer' || customerType === 'Staff'">Settings</a>
-        <!-- Newly added for dynamic department -->
+          (click)="setActiveMenu('settings-page'); sendValue('Settings')">Settings</a>
         <a class="submenu-item" routerLink="/department-list" [class.active]="isActive('department')"
           (click)="setActiveMenu('department'); sendValue('Department')"
-          *ngIf="customerType === 'Customer' && customerdata?.status=='approved' && hasAnyPermission('SYSTEM SETTINGS')">Department</a>
-        <!-- Newly added for service -->
+          *ngIf="customerType === 'Customer' && isApproved()">Department</a>
         <a class="submenu-item" routerLink="/service-tab-list" [class.active]="isActive('service-tab')"
           (click)="setActiveMenu('service-tab'); sendValue('Service Tab')"
-          *ngIf="customerType === 'Customer' && customerdata?.status=='approved' && hasAnyPermission('SYSTEM SETTINGS')">Service
+          *ngIf="customerType === 'Customer' && isApproved()">Service
           Tab</a>
         <a class="submenu-item" routerLink="/service-list" [class.active]="isActive('service')"
           (click)="setActiveMenu('service'); sendValue('Service')"
-          *ngIf="customerType === 'Customer' && customerdata?.status=='approved' && hasAnyPermission('SYSTEM SETTINGS')">Service</a>
+          *ngIf="customerType === 'Customer' && isApproved()">Service</a>
         <a class="submenu-item" routerLink="/member-hierarchy" [class.active]="isActive('hierarchy')"
           (click)="setActiveMenu('hierarchy'); sendValue('Hierarchy')"
-          *ngIf="customerType === 'Customer' && customerdata?.status=='approved' && hasAnyPermission('SYSTEM SETTINGS')">Hierarchy</a>
+          *ngIf="customerType === 'Customer' && isApproved()">Hierarchy</a>
       </div>
     </li>
     <!-- Features -->
-    <!--    <li class="list_container" [class.active]="isActive('features')"
-      (click)="setActiveMenu('features'); sendValue('Features')"
-      *ngIf="(customerType === 'Customer' && customerdata?.status=='approved' && hasAnyPermission('FEATURES'))">
-      <img src="https://guestezee.s3.ap-south-2.amazonaws.com/GuestEzee/undefined/feature1.png"
-        alt="Features">
-      <a routerLink="/features">Features (Upselling)</a>
-    </li> -->
     <li class="list_container" [class.active]="isActive('features')" [routerLink]="['/features']"
       (click)="setActiveMenu('features'); sendValue('Features')"
-      *ngIf="customerType === 'Customer' && customerdata?.status == 'approved' && hasAnyPermission('FEATURES')">
+      *ngIf="canShowMenu('FEATURES')">
       <img src="https://guestezee.s3.ap-south-2.amazonaws.com/GuestEzee/undefined/feature1.png"
         alt="Features">
       <span>Features (Upselling)</span>
     </li>
     <!-- Payment -->
-    <!--   <li class="list_container" [class.active]="isActive('payment')"
-      (click)="setActiveMenu('payment'); sendValue('Payment')"
-      *ngIf="(customerType === 'Customer' && customerdata?.status=='approved' && hasAnyPermission('PAYMENT'))">
-      <img src="../../assets/images/guestezee/check.png" alt="Payment">
-      <a routerLink="/payment-details">Payment</a>
-    </li> -->
-    <!-- Payment -->
     <li class="list_container" [class.active]="isActive('payment')" [routerLink]="['/payment-details']"
       (click)="setActiveMenu('payment'); sendValue('Payment')"
-      *ngIf="customerType === 'Customer' && customerdata?.status == 'approved' && hasAnyPermission('PAYMENT')">
-      <img src="../../assets/images/guestezee/check.png" alt="Payment">
+      *ngIf="canShowMenu('PAYMENT')">
+      <img src="assets/images/guestezee/check.png" alt="Payment">
       <span>Payment</span>
     </li>
     <!-- Outlet -->
-    <!-- <li class="list_container" [class.active]="isActive('outlet')"
-      (click)="setActiveMenu('outlet'); sendValue('Outlet')"
-      *ngIf="(customerType === 'Customer' && customerdata?.status=='approved' && hasAnyPermission('OUTLETS'))">
-      <div class="list-content">
-        <div class="left-content">
-          <i class="fas fa-store" style="color: white;"></i>
-          <a routerLink="/outlet-list">Outlets</a>
-        </div>
-      </div>
-    </li> -->
     <li class="list_container" [class.active]="isActive('outlet')" [routerLink]="['/outlet-list']"
       (click)="setActiveMenu('outlet'); sendValue('Outlet')"
-      *ngIf="customerType === 'Customer' && customerdata?.status == 'approved' && hasAnyPermission('OUTLETS')">
+      *ngIf="canShowMenu('OUTLETS')">
       <div class="list-content">
         <div class="left-content">
           <i class="fas fa-store" style="color: white;"></i>

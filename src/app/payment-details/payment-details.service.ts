@@ -28,7 +28,7 @@ export class PaymentDetailsService {
       return new Observable(); 
     }
     else {
-      return this.http.post(ENDPOINTS.GET_ALL_ORDER_DETAILS, orderData, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) })
+      return this.http.post(ENDPOINTS.GETALL_ORDERS, orderData, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) })
     }
     }
      // ORDER-DETAILS-GETBYID

@@ -275,12 +275,12 @@ export class TimelineComponent {
   }
 
   statusIcons: { [key: string]: string } = {
-    'Assigned': '../../assets/images/guestezee/assigned.png',
-    'Scheduled': '../../assets/images/guestezee/assigned.png',
-    'Processing': '../../assets/images/guestezee/assigned.png',
-    'Delivered': '../../assets/images/guestezee/assigned.png',
-    'Reassigned': '../../assets/images/guestezee/reassigned.png',
-    'Escalated': '../../assets/images/guestezee/escalated.png',
+    'Assigned': 'assets/images/guestezee/assigned.png',
+    'Scheduled': 'assets/images/guestezee/assigned.png',
+    'Processing': 'assets/images/guestezee/assigned.png',
+    'Delivered': 'assets/images/guestezee/assigned.png',
+    'Reassigned': 'assets/images/guestezee/reassigned.png',
+    'Escalated': 'assets/images/guestezee/escalated.png',
   };
 
   getStarArray(rating: number): boolean[] {

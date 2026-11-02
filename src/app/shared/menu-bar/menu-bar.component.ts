@@ -1,5 +1,5 @@
 import { RoleListingRoutingModule } from './../../user-access/role-listing/role-listing-routing.module';
-import { Component, OnInit, EventEmitter, Output } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, EventEmitter, Output } from '@angular/core';
 import { Router, ActivatedRoute, NavigationEnd, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { filter } from 'rxjs';
@@ -12,6 +12,7 @@ import { LoaderService } from '../loader/loader.service';
 import { AlertsService } from '../alerts/alerts.service';
 import { RoleListingService } from '../../user-access/role-listing/role-listing.service';
 import { HotelListService } from '../../hotel-list/hotel-list.service';
+import { PermissionService } from '../../services/permission.service';
 
 @Component({
   selector: 'app-menu-bar',
@@ -35,7 +36,7 @@ export class MenuBarComponent implements OnInit {
   isHotelSubmenuOpen = false;
   isUserAccessSubmenuOpen = false;
   isSettingsSubmenuOpen = false;
-  roleModules: any;
+  roleModules: any[] = [];
   // Newlya dded for submenu active
   currentHotelTab: number = 0;
   // End for submenu active
@@ -50,13 +51,16 @@ export class MenuBarComponent implements OnInit {
     private userAccessService: UserAccessService,
     private sharedDataService: SharedDataService,
     private roleListingService: RoleListingService,
-    private hotelListService: HotelListService
+    private hotelListService: HotelListService,
+    private permissionService: PermissionService,
+    private cdr: ChangeDetectorRef
   ) { }
 
   ngOnInit(): void {
     // console.log('menu bar init');
     this.customerType = this.localService.get('CustomerType');
     this.hotelId = Number(this.localService.get('UserId'));
+    this.loadRoleModulesFromStorage();
     this.fetchHotelLogo();
 
     this.sharedDataService.hotelLogo$.subscribe((logoUrl) => {
@@ -102,6 +106,11 @@ export class MenuBarComponent implements OnInit {
           else if (this.customerType === 'Customer' && this.customerdata?.customer_member_id) {
             this.navigationHotelId = this.hotelId;
           }
+          // Staff UserId is staff_id — resolve real hotel customer id via member_id
+          else if (this.customerType === 'Staff') {
+            this.findCustomerByMemberId();
+          }
+          this.resolveAndLoadRoleModules();
           this.updateActiveMenu(this.router.url);
         });
       }
@@ -134,15 +143,45 @@ export class MenuBarComponent implements OnInit {
       .subscribe((event: NavigationEnd) => {
         // event.urlAfterRedirects is reliable
         this.updateActiveMenu(event.urlAfterRedirects);
-        // Newly added for refreshing after payment
-        // End for refreshing after payment
+        // Staff login may set roleModules after first paint — re-resolve on every nav
+        this.customerType = this.localService.get('CustomerType') || this.customerType;
+        this.resolveAndLoadRoleModules();
       });
-    // Newly added for role
-    const roleId = this.localService.get('roleId');
-    // console.log('Role Id:', roleId);
-    // Check if roleId is valid (not null, undefined, empty string, or string "null"/"undefined")
+    // Newly added for role — load from storage first, then refresh from roles/getall
+    this.resolveAndLoadRoleModules();
+  }
+
+  private loadRoleModulesFromStorage(): void {
+    try {
+      const stored = this.localService.get('roleModules');
+      if (!stored) {
+        this.roleModules = [];
+        return;
+      }
+      const parsed = typeof stored === 'string' ? JSON.parse(stored) : stored;
+      this.roleModules = Array.isArray(parsed) ? parsed : [];
+      this.permissionService.refreshModules();
+    } catch {
+      this.roleModules = [];
+    }
+  }
+
+  private getStoredRoleId(): any {
+    const fromStorage = this.localService.get('roleId');
+    if (fromStorage !== null && fromStorage !== undefined && fromStorage !== '' && fromStorage !== 'null' && fromStorage !== 'undefined') {
+      return fromStorage;
+    }
+    return this.customerdata?.role_id || null;
+  }
+
+  private resolveAndLoadRoleModules(): void {
+    const roleId = this.getStoredRoleId();
     if (roleId !== null && roleId !== undefined && roleId !== '' && roleId !== 'null' && roleId !== 'undefined') {
+      this.localService.set('roleId', roleId);
       this.getRoleById(roleId);
+    } else {
+      this.loadRoleModulesFromStorage();
+      this.cdr.detectChanges();
     }
   }
 
@@ -203,7 +242,19 @@ export class MenuBarComponent implements OnInit {
     } else if (url.includes('/payment-details')) {
       this.activeMenu = 'payment';
 
-    } else if (url.includes('/dashboard') || url.includes('report')) {
+    } else if (url.includes('/fb/dashboard')) {
+      this.activeMenu = 'fb-dashboard';
+
+    } else if (url.includes('/fo/dashboard')) {
+      this.activeMenu = 'fo-dashboard';
+
+    } else if (url.includes('/hk/dashboard')) {
+      this.activeMenu = 'hk-dashboard';
+
+    } else if (url.includes('/overview-dashboard') || url.includes('/kot-dashboard')) {
+      this.activeMenu = 'overview-dashboard';
+
+    } else if (url.includes('/dashboard') || url.includes('report') || url.includes('/guest-reviews')) {
       this.activeMenu = 'dashboard';
 
     } else if (url.includes('/task-management')) {
@@ -304,12 +355,10 @@ export class MenuBarComponent implements OnInit {
     });
   }
 
-  // Find customer where customer_member_id matches the logged in person's member_id
-  findCustomerByMemberId(): void {
+  // Find hotel customer where customer_member_id matches the logged-in member_id
+  findCustomerByMemberId(onFound?: (id: number) => void): void {
     const memberId = this.localService.get('MemberId');
     if (!memberId) {
-      // If no memberId, use current hotelId
-      // this.navigationHotelId = this.hotelId;
       return;
     }
     const requestBody = {
@@ -323,27 +372,45 @@ export class MenuBarComponent implements OnInit {
     };
     this.hotelListService.getSignupAllCustomers(requestBody).subscribe({
       next: (resp: any) => {
-        // Old code (commented out)
-        // if (resp && resp.success === 1 && resp.status_code === 200 && resp.result.data.length > 0) {
-        if (resp && resp.success === 1 && resp.status_code === 200) {
+        if (resp && resp.success === 1 && resp.status_code === 200 && resp.result?.data?.length > 0) {
           const foundCustomer = resp.result.data[0];
-          // Use the found customer's id for navigation
           this.navigationHotelId = foundCustomer.id;
-          // console.log('Found customer by customer_member_id:', foundCustomer.id);
+          this.cdr.detectChanges();
+          if (onFound && foundCustomer.id != null) {
+            onFound(Number(foundCustomer.id));
+          }
         }
-        // else {
-        //   console.log('No customer found by customer_member_id:', memberId);
-        //   // If no customer found, use current hotelId
-        //   this.navigationHotelId = this.hotelId;
-        // }
       },
       error: (err: any) => {
         console.error('Error finding customer by customer_member_id:', err);
-        // Old code (commented out)
-        // On error, use current hotelId
-        // this.navigationHotelId = this.hotelId;
       }
     });
+  }
+
+  private resolveHotelAndNavigate(tabIndex?: number): void {
+    this.findCustomerByMemberId((id) => {
+      if (tabIndex != null) {
+        this.router.navigate(['/edit-new-hotel', id], { queryParams: { tab: tabIndex } });
+      } else {
+        this.router.navigate(['/edit-new-hotel', id]);
+      }
+    });
+  }
+
+  /** Hotel customer id for Hotels menu — never use Staff UserId (staff_id). */
+  private getHotelsNavigationId(): number | null {
+    if (this.navigationHotelId != null && !isNaN(Number(this.navigationHotelId))) {
+      return Number(this.navigationHotelId);
+    }
+    const type = this.customerType || this.localService.get('CustomerType');
+    if (type === 'Staff') {
+      // Do not fall back to UserId (staff_id) — that opens a blank enrollment page
+      return null;
+    }
+    if (this.hotelId != null && !isNaN(Number(this.hotelId)) && Number(this.hotelId) !== 0) {
+      return Number(this.hotelId);
+    }
+    return null;
   }
   // Ended for getting customer id for customer type
 
@@ -389,7 +456,35 @@ export class MenuBarComponent implements OnInit {
   }
 
   isApproved(): boolean {
-    return this.customerdata?.status === 'approved' || this.localService.get('Status') === 'approved';
+    const status = (this.customerdata?.status || this.localService.get('Status') || '').toString().toLowerCase();
+    return status === 'approved';
+  }
+
+  /**
+   * Show a sidebar item when the role has any permission for that module.
+   * Staff: permission alone is enough.
+   * Customer: must be approved (except HOTELS, which stays available during enrollment).
+   * If customer type is not yet resolved, still show when permission exists.
+   */
+  canShowMenu(moduleName: string): boolean {
+    // Always re-read from storage so late role loads (e.g. Staff login) are picked up
+    if (!this.roleModules?.length) {
+      this.loadRoleModulesFromStorage();
+    }
+    if (!this.hasAnyPermission(moduleName)) {
+      return false;
+    }
+    const type = this.customerType || this.localService.get('CustomerType');
+    if (type === 'Staff' || !type) {
+      return true;
+    }
+    if (type === 'Customer') {
+      if ((moduleName || '').toUpperCase() === 'HOTELS') {
+        return true;
+      }
+      return this.isApproved();
+    }
+    return true;
   }
 
   handleError(err: any) {
@@ -420,8 +515,11 @@ export class MenuBarComponent implements OnInit {
    * Uses route + query param so the correct tab opens even when coming from another page.
    */
   navigateToHotelTab(tabIndex: number) {
-    const id = this.navigationHotelId ?? this.hotelId;
-    if (id == null) return;
+    const id = this.getHotelsNavigationId();
+    if (id == null) {
+      this.resolveHotelAndNavigate(tabIndex);
+      return;
+    }
     this.router.navigate(['/edit-new-hotel', id], { queryParams: { tab: tabIndex } });
   }
 
@@ -452,9 +550,12 @@ export class MenuBarComponent implements OnInit {
       this.isSettingsSubmenuOpen = false;
       // ensure highlight for Hotels (parent key)
       this.activeMenu = 'hotel';
-      const id = this.navigationHotelId ?? this.hotelId;
+      const id = this.getHotelsNavigationId();
       if (id != null) {
         this.router.navigate(['/edit-new-hotel', id]);
+      } else {
+        // Staff: resolve hotel id then navigate
+        this.resolveHotelAndNavigate();
       }
     } else if (menu === 'User Access') {
       this.isUserAccessSubmenuOpen = !this.isUserAccessSubmenuOpen;
@@ -480,96 +581,110 @@ export class MenuBarComponent implements OnInit {
     return this.activeMenu === menu;
   }
 
-  // Newly added for role access
+  isAdminRole(): boolean {
+    const role = (this.localService.get('roleName') || '').trim().toLowerCase();
+    return role === 'admin';
+  }
+
+  // Newly added for role access — uses www.guestezee.com:1306/roles/getall
   getRoleById(id: any) {
-    let requestBody = {
-      "domain_name": DOMAIN_NAME,
-      "user_id": USER_ID,
-      "extras": {
-        "find": {
-          // "member_id": this.localService.get('MemberId'),
-          "id": Number(id)
-        }
-      }
+    const memberId = this.localService.get('MemberId') || this.customerdata?.customer_member_id || this.customerdata?.member_id;
+    const findWithMember: any = { id: Number(id) };
+    if (memberId && memberId !== 'null' && memberId !== 'undefined') {
+      findWithMember.member_id = memberId;
     }
-    this.roleListingService.getAllRoles(requestBody).subscribe({
+    const requestWithMember = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: { find: findWithMember }
+    };
+    this.roleListingService.getAllRoles(requestWithMember).subscribe({
       next: (response) => {
-        if (response?.success) {
-          const role = response.result.data[0];
-          // console.log('Role based on id:', role);
-          this.localService.set('roleModules', JSON.stringify(role.modules));
-          // console.log('Role Modules:', this.localService.get('roleModules'));
-          const stored = this.localService.get('roleModules');
-          this.roleModules = stored ? JSON.parse(stored) : [];
-          // console.log('Parsed Role Modules:', this.roleModules);
+        if (response?.success === 1 && response?.result?.data?.length > 0) {
+          this.applyRoleModules(response.result.data[0]);
+          return;
+        }
+        // Retry by role id only when member filter returns nothing
+        if (findWithMember.member_id) {
+          this.fetchRoleByIdOnly(id);
         } else {
-          console.error('No roles found:', response?.message);
+          this.loadRoleModulesFromStorage();
+          this.cdr.detectChanges();
         }
       },
-      error: (err) => {
-        //console.error('API Error:', err);
+      error: () => {
+        if (findWithMember.member_id) {
+          this.fetchRoleByIdOnly(id);
+        } else {
+          this.loadRoleModulesFromStorage();
+          this.cdr.detectChanges();
+        }
       }
     });
   }
 
-  hasReadPermission(moduleName: string): boolean {
-    // If no roleId or no modules yet → do NOT check permission → returns false
-    if (!this.roleModules || !Array.isArray(this.roleModules)) {
-      return false;
+  private fetchRoleByIdOnly(id: any): void {
+    const requestBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: { find: { id: Number(id) } }
+    };
+    this.roleListingService.getAllRoles(requestBody).subscribe({
+      next: (response) => {
+        if (response?.success === 1 && response?.result?.data?.length > 0) {
+          this.applyRoleModules(response.result.data[0]);
+        } else {
+          this.loadRoleModulesFromStorage();
+          this.cdr.detectChanges();
+        }
+      },
+      error: () => {
+        this.loadRoleModulesFromStorage();
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  private applyRoleModules(role: any): void {
+    const modules = Array.isArray(role?.modules) ? role.modules : [];
+    this.localService.set('roleModules', JSON.stringify(modules));
+    if (role?.id !== undefined && role?.id !== null) {
+      this.localService.set('roleId', role.id);
     }
-    // console.log('Role Modules Name(in hasReadPermission):', moduleName);
-    // console.log('Role Modules(in hasReadPermission):', this.roleModules);
-    const moduleObj = this.roleModules.find(
-      (m: any) => m.module_name === moduleName
+    if (role?.name) {
+      this.localService.set('roleName', role.name);
+    }
+    this.roleModules = modules;
+    this.permissionService.refreshModules();
+    this.cdr.detectChanges();
+  }
+
+  private findRoleModule(moduleName: string): any {
+    if (!this.roleModules || !Array.isArray(this.roleModules) || this.roleModules.length === 0) {
+      this.loadRoleModulesFromStorage();
+    }
+    if (!this.roleModules || !Array.isArray(this.roleModules)) {
+      return null;
+    }
+    return this.roleModules.find(
+      (m: any) => (m.module_name || '').toUpperCase() === (moduleName || '').toUpperCase()
     );
-    // console.log('Module Object(in hasReadPermission):', moduleObj);
-    // console.log('Module Permission(in hasReadPermission):', moduleObj?.permission?.has_read_permission);
-    return moduleObj?.permission?.has_read_permission === true;
+  }
+
+  hasReadPermission(moduleName: string): boolean {
+    return this.findRoleModule(moduleName)?.permission?.has_read_permission === true;
   }
 
   hasAddPermission(moduleName: string): boolean {
-    // If no roleId or no modules yet → do NOT check permission → returns false
-    if (!this.roleModules || !Array.isArray(this.roleModules)) {
-      return false;
-    }
-    // console.log('Role Modules Name(in hasReadPermission):', moduleName);
-    // console.log('Role Modules(in hasReadPermission):', this.roleModules);
-    const moduleObj = this.roleModules.find(
-      (m: any) => m.module_name === moduleName
-    );
-    // console.log('Module Object(in hasReadPermission):', moduleObj);
-    // console.log('Module Permission(in hasReadPermission):', moduleObj?.permission?.has_read_permission);
-    return moduleObj?.permission?.has_add_permission === true;
+    return this.findRoleModule(moduleName)?.permission?.has_add_permission === true;
   }
 
   hasEditPermission(moduleName: string): boolean {
-    // If no roleId or no modules yet → do NOT check permission → returns false
-    if (!this.roleModules || !Array.isArray(this.roleModules)) {
-      return false;
-    }
-    // console.log('Role Modules Name(in hasReadPermission):', moduleName);
-    // console.log('Role Modules(in hasReadPermission):', this.roleModules);
-    const moduleObj = this.roleModules.find(
-      (m: any) => m.module_name === moduleName
-    );
-    // console.log('Module Object(in hasReadPermission):', moduleObj);
-    // console.log('Module Permission(in hasReadPermission):', moduleObj?.permission?.has_read_permission);
-    return moduleObj?.permission?.has_edit_permission === true;
+    return this.findRoleModule(moduleName)?.permission?.has_edit_permission === true;
   }
 
   hasDeletePermission(moduleName: string): boolean {
-    // If no roleId or no modules yet → do NOT check permission → returns false
-    if (!this.roleModules || !Array.isArray(this.roleModules)) {
-      return false;
-    }
-    // console.log('Role Modules Name(in hasReadPermission):', moduleName);
-    // console.log('Role Modules(in hasReadPermission):', this.roleModules);
-    const moduleObj = this.roleModules.find(
-      (m: any) => m.module_name === moduleName
-    );
-    // console.log('Module Object(in hasReadPermission):', moduleObj);
-    // console.log('Module Permission(in hasReadPermission):', moduleObj?.permission?.has_read_permission);
-    return moduleObj?.permission?.has_delete_permission === true;
+    return this.findRoleModule(moduleName)?.permission?.has_delete_permission === true;
   }
 
   // Newly added for refreshing after payment
@@ -589,10 +704,8 @@ export class MenuBarComponent implements OnInit {
           else if (this.customerType === 'Customer' && this.customerdata?.customer_member_id) {
             this.navigationHotelId = this.hotelId;  // if you have this method
           }
-          // Newly added for reloading role
-          if (this.customerdata?.role_id) {
-            this.getRoleById(this.customerdata.role_id);
-          }
+          // Newly added for reloading role from roles/getall
+          this.resolveAndLoadRoleModules();
           this.updateActiveMenu(this.router.url);
         });
       }
@@ -636,13 +749,8 @@ export class MenuBarComponent implements OnInit {
 
   // Newly added for checking any permission
   hasAnyPermission(moduleName: string): boolean {
-    if (!this.roleModules || !Array.isArray(this.roleModules)) {
-      return false;
-    }
-    const moduleObj = this.roleModules.find(
-      (m: any) => m.module_name === moduleName
-    );
-    if (!moduleObj || !moduleObj.permission) {
+    const moduleObj = this.findRoleModule(moduleName);
+    if (!moduleObj?.permission) {
       return false;
     }
     const p = moduleObj.permission;

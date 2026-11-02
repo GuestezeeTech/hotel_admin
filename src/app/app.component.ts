@@ -76,6 +76,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
     // Only intercept single uppercase letters (A-Z), skip shortcuts like Ctrl+C
     if (
+      event.key &&
       event.key.length === 1 &&
       event.key >= 'A' && event.key <= 'Z' &&
       !event.ctrlKey && !event.metaKey && !event.altKey
@@ -402,6 +403,16 @@ export class AppComponent implements OnInit, OnDestroy {
           this.selectedMenuItem = "Payment";
         } else if (url.includes('/outlet-list') || url.includes('/outlet-creation') || url.includes('/create-outlet') || url.includes('/product') || url.includes('/add-product')) {
           this.selectedMenuItem = "Outlets";
+        } else if (url.includes('/guest-reviews')) {
+          this.selectedMenuItem = "Reviews";
+        } else if (url.includes('/fb/dashboard')) {
+          this.selectedMenuItem = 'F&B Dashboard';
+        } else if (url.includes('/fo/dashboard')) {
+          this.selectedMenuItem = 'Front Office Dashboard';
+        } else if (url.includes('/hk/dashboard')) {
+          this.selectedMenuItem = 'Housekeeping Dashboard';
+        } else if (url.includes('/overview-dashboard') || url.includes('/kot-dashboard')) {
+          this.selectedMenuItem = "Hotel Overview";
         } else if (url.includes('/dashboard')) {
           this.selectedMenuItem = "Dashboard";
         } else if (url.includes('report')) {
@@ -1892,23 +1903,27 @@ export class AppComponent implements OnInit, OnDestroy {
     }
 
     if (customerType === 'Staff') {
-      const isTaskManagement = cleanUrl.includes('task-management') ||
-        cleanUrl.includes('create-task') ||
-        cleanUrl.includes('timeline');
-      const isSettings = cleanUrl.includes('settings') ||
-        cleanUrl.includes('privacy-policy') ||
-        cleanUrl.includes('terms-conditions') ||
-        cleanUrl.includes('department') ||
-        cleanUrl.includes('service') ||
-        cleanUrl.includes('service-tab') ||
-        cleanUrl.includes('member-hierarchy') ||
-        cleanUrl.includes('create-new-hierarchy') ||
-        cleanUrl.includes('edit-hierarchy') ||
-        cleanUrl.includes('view-hierarchy');
-      const isProfile = cleanUrl.includes('profile');
-
-      this.isRouteAuthorized = isTaskManagement || isSettings || isProfile;
-      // console.log('[AuthCheck] Staff path:', cleanUrl, 'isRouteAuthorized:', this.isRouteAuthorized);
+      // Profile is always allowed; other routes follow role module permissions
+      if (cleanUrl.includes('/profile')) {
+        this.isRouteAuthorized = true;
+        return;
+      }
+      const moduleName = this.getModuleForPath(cleanUrl);
+      if (!moduleName) {
+        this.isRouteAuthorized = true;
+        return;
+      }
+      const permission = this.permissionService.getModulePermission(moduleName);
+      if (!permission) {
+        this.isRouteAuthorized = false;
+        return;
+      }
+      this.isRouteAuthorized = !!(
+        permission.has_read_permission ||
+        permission.has_add_permission ||
+        permission.has_edit_permission ||
+        permission.has_delete_permission
+      );
       return;
     }
 
@@ -1990,7 +2005,11 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   private getModuleForPath(path: string): string | null {
-    if (path.includes('/dashboard') || path.includes('report')) return 'DASHBOARD';
+    if (path.includes('/fb/dashboard')) return 'F&B DASHBOARD';
+    if (path.includes('/fo/dashboard')) return 'FO DASHBOARD';
+    if (path.includes('/hk/dashboard')) return 'HOUSEKEEPING DASHBOARD';
+    if (path.includes('/overview-dashboard') || path.includes('/kot-dashboard')) return 'OVERVIEW';
+    if (path.includes('/dashboard') || path.includes('report') || path.includes('/guest-reviews')) return 'DASHBOARD';
 
     if (path.includes('/task-management') ||
       path.includes('/create-task') ||
@@ -2049,7 +2068,16 @@ export class AppComponent implements OnInit, OnDestroy {
     } else {
       const customerType = localStorage.getItem('CustomerType');
       if (customerType === 'Staff') {
-        this.router.navigate(['/task-management']);
+        // Prefer first permitted module; fall back to profile
+        if (this.permissionService.hasAnyPermission('DASHBOARD')) {
+          this.router.navigate(['/dashboard']);
+        } else if (this.permissionService.hasAnyPermission('HOTELS')) {
+          this.router.navigate(['/hotel-list']);
+        } else if (this.permissionService.hasAnyPermission('TASK MANAGEMENT')) {
+          this.router.navigate(['/task-management']);
+        } else {
+          this.router.navigate(['/profile']);
+        }
       } else if (customerType === 'Customer') {
         const status = (localStorage.getItem('Status') || '').toLowerCase();
         if (status === 'approved') {

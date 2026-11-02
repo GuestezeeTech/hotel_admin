@@ -3,6 +3,22 @@ export interface CountryState {
   states: string[];
 }
 
+export interface CountryCode {
+  country: string;
+  code: string;
+}
+
+export const COUNTRY_CODES: CountryCode[] = [
+  { country: 'Austria', code: '+43' },
+  { country: 'Germany', code: '+49' },
+  { country: 'India', code: '+91' },
+  { country: 'Poland', code: '+48' },
+  { country: 'Romania', code: '+40' },
+  { country: 'Spain', code: '+34' },
+  { country: 'Switzerland', code: '+41' },
+  { country: 'United Kingdom', code: '+44' }
+];
+
 export const COUNTRY_STATES: CountryState[] = [
   {
     country: 'Austria',

@@ -2,7 +2,7 @@
 <div class="container-fluid" style=" background-color: #FFFEFA; backdrop-filter: blur(638.83px);">
   <div class="row">
     <div class="col-xs-5 col-sm-5 col-md-5 col-lg-5  p-0" *ngIf="!login">
-      <!-- <img src="../../assets/images/guestezee/login-img.png" class="img-fluid" class="login-page_img"> -->
+      <!-- <img src="assets/images/guestezee/login-img.png" class="img-fluid" class="login-page_img"> -->
       <img src="https://guestezee.s3.ap-south-2.amazonaws.com/GuestEzee/Brand/login-img.webp" class="img-fluid login-page_img"
         fetchpriority="high" loading="eager">
     </div>
@@ -14,7 +14,7 @@
         class="img-fluid login-page_img" fetchpriority="high" loading="eager">
     </div>
     <div class="col-xs-7 col-sm-7 col-md-7 col-lg-7 justify-content-center" style="text-align: center;">
-      <img src="../../assets/images/guestezee/logo.png" class="img-fluid login_logo_img" fetchpriority="high"
+      <img src="assets/images/guestezee/logo.png" class="img-fluid login_logo_img" fetchpriority="high"
         loading="eager">
       <h4 style="font-weight: 700;margin-top: 3%;">{{ this.login ? 'Welcome back !' : this.signup ? 'Sign Up' : this.otp
         ? 'Enter OTP' : 'Create New Password'}}</h4>
@@ -110,14 +110,21 @@
             </div>
           </div>
           <div class="form-group" style="position: relative;">
-            <span>
+            <div class="signup-phone-row">
+              <select class="form-control signup-country-code" formControlName="country_code">
+                <option *ngFor="let item of countryCodeList" [ngValue]="item.code">{{ item.code }} {{ item.country }}</option>
+              </select>
               <input type="tel" class="form-control login_content_color" id="phone_number" name="phone_number"
-                placeholder="Phone Number" formControlName="phone_number" (input)="onPhoneInput($event)">
-              <div *ngIf="signupForm.controls['phone_number'].invalid && signupForm.controls['phone_number'].touched"
-                class="error-message" style="color: red; text-align: start">
-                Please enter a valid phone number.
-              </div>
-            </span>
+                placeholder="Phone Number" formControlName="phone_number" maxlength="20" (input)="onPhoneInput($event)">
+            </div>
+            <div *ngIf="signupForm.controls['country_code'].invalid && signupForm.controls['country_code'].touched"
+              class="error-message" style="color: red; text-align: start">
+              Country code is required.
+            </div>
+            <div *ngIf="signupForm.controls['phone_number'].invalid && signupForm.controls['phone_number'].touched"
+              class="error-message" style="color: red; text-align: start">
+              Enter a phone number of up to 20 digits.
+            </div>
           </div>
           <button type="submit" class="btn btn-primary login_button" style="width: 100%;" (click)="getOtp()">Get
             OTP</button>

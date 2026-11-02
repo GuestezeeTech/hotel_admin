@@ -5,7 +5,7 @@
             <!-- <div class="card p-3 mb-1 settings-item">
                 <div class="d-flex align-items-center justify-content-between">
                     <div class="d-flex align-items-center">
-                        <img src="../../assets/images/guestezee/language.png" alt="Language" class="me-3" />
+                        <img src="assets/images/guestezee/language.png" alt="Language" class="me-3" />
                         <div>
                             <h6 class="mb-1 fw-bold">Languages</h6>
                             <p class="mb-0 fw-medium small">Chosen Language: English</p>
@@ -22,7 +22,7 @@
             <!-- <div class="card p-3 mb-1 settings-item">
                 <div class="d-flex align-items-center justify-content-between">
                     <div class="d-flex align-items-center">
-                        <img src="../../assets/images/guestezee/settings.png" alt="General Settings" class="me-3" />
+                        <img src="assets/images/guestezee/settings.png" alt="General Settings" class="me-3" />
                         <div>
                             <h6 class="mb-1 fw-bold">General Settings</h6>
                             <p class="mb-0 fw-medium small">Manage general settings</p>
@@ -108,22 +108,50 @@
                         </div>
                     </div>
                     <div class="d-flex align-items-center gap-2">
-                        <i class="fa fa-eye view-icon" (click)="canReadSystemSettings ? viewSosNumber() : null"
-                            [style.opacity]="canReadSystemSettings ? 1 : 0.4"
-                            [style.cursor]="canReadSystemSettings ? 'pointer' : 'not-allowed'"
-                            [style.pointer-events]="canReadSystemSettings ? 'auto' : 'auto'" title="View"
-                            style="font-size: 16px; color: #800020; margin-right: 8px;"></i>
-                        <i class="bi bi-chevron-right" (click)="canModifySystemSettings ? openSosModal() : null"
-                            [style.opacity]="canModifySystemSettings ? 1 : 0.4"
-                            [style.cursor]="canModifySystemSettings ? 'pointer' : 'not-allowed'"
-                            [style.pointer-events]="canModifySystemSettings ? 'auto' : 'auto'"></i>
+                        <i class="fa fa-eye view-icon" (click)="openSosModal()" title="Edit"
+                            style="font-size: 16px; color: #800020; margin-right: 8px; cursor: pointer;"></i>
+                        <i class="bi bi-chevron-right" (click)="openSosModal()" style="cursor: pointer;"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card p-3 mb-1 settings-item"
+                *ngIf="this.customerType == 'Customer' && (this.customerStatus == 'approved' || this.customerStatus == 'Approved')">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center">
+                        <i class="fa-solid fa-phone-volume me-3" style="font-size: 16px; color:#800020"></i>
+                        <div>
+                            <h6 class="mb-1 fw-bold">Desk Phone Number</h6>
+                            <p class="mb-0 fw-medium small">Manage desk contact numbers</p>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa fa-eye view-icon" (click)="openDeskPhoneModal()" title="Edit"
+                            style="font-size: 16px; color: #800020; margin-right: 8px; cursor: pointer;"></i>
+                        <i class="bi bi-chevron-right" (click)="openDeskPhoneModal()" style="cursor: pointer;"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card p-3 mb-1 settings-item"
+                *ngIf="this.customerType == 'Customer' && (this.customerStatus == 'approved' || this.customerStatus == 'Approved')">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center">
+                        <i class="fa-solid fa-utensils me-3" style="font-size: 16px; color:#800020"></i>
+                        <div>
+                            <h6 class="mb-1 fw-bold">Food Timing</h6>
+                            <p class="mb-0 fw-medium small">Manage breakfast, lunch and dinner timings</p>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa fa-eye view-icon" (click)="openFoodTimingModal()" title="Edit"
+                            style="font-size: 16px; color: #800020; margin-right: 8px; cursor: pointer;"></i>
+                        <i class="bi bi-chevron-right" (click)="openFoodTimingModal()" style="cursor: pointer;"></i>
                     </div>
                 </div>
             </div>
             <!-- <div class="card p-3 mb-1 settings-item">
                 <div class="d-flex align-items-center justify-content-between">
                     <div class="d-flex align-items-center">
-                        <img src="../../assets/images/guestezee/notification.png" alt="Notification Settings"
+                        <img src="assets/images/guestezee/notification.png" alt="Notification Settings"
                             class="me-3" />
                         <div>
                             <h6 class="mb-1 fw-bold">Notification Settings</h6>
@@ -136,7 +164,7 @@
             <div class="card p-3 mb-1 settings-item">
                 <div class="d-flex align-items-center justify-content-between">
                     <div class="d-flex align-items-center">
-                        <img src="../../assets/images/guestezee/password.png" alt="Change Password"
+                        <img src="assets/images/guestezee/password.png" alt="Change Password"
                             class="me-3 password" />
                         <div>
                             <h6 class="mb-1 fw-bold">Change Password</h6>
@@ -149,7 +177,7 @@
             <!-- <div class="card p-3 mb-1 settings-item">
                 <div class="d-flex align-items-center justify-content-between" (click)="openPaymentPlan()">
                     <div class="d-flex align-items-center">
-                        <img src="../../assets/images/guestezee/payment.png" alt="Payment" class="me-3 payment" />
+                        <img src="assets/images/guestezee/payment.png" alt="Payment" class="me-3 payment" />
                         <div>
                             <h6 class="mb-1 fw-bold">Payment & Subscription Management</h6>
                             <p class="mb-0 fw-medium small">Check payment status of clients</p>
@@ -161,7 +189,7 @@
             <div class="card p-3 mb-1 settings-item">
                 <div class="d-flex align-items-center justify-content-between">
                     <div class="d-flex align-items-center">
-                        <img src="../../assets/images/guestezee/policy.png" alt="Privacy" class="me-3" />
+                        <img src="assets/images/guestezee/policy.png" alt="Privacy" class="me-3" />
                         <div>
                             <h6 class="mb-1 fw-bold">Privacy Policy</h6>
                             <p class="mb-0 fw-medium small">Read Company policy</p>
@@ -173,7 +201,7 @@
             <div class="card p-3 mb-1 settings-item">
                 <div class="d-flex align-items-center justify-content-between">
                     <div class="d-flex align-items-center">
-                        <img src="../../assets/images/guestezee/terms.png" alt="Terms" class="me-3" />
+                        <img src="assets/images/guestezee/terms.png" alt="Terms" class="me-3" />
                         <div>
                             <h6 class="mb-1 fw-bold">Terms and Conditions</h6>
                             <p class="mb-0 fw-medium small">Read User Terms</p>
@@ -182,6 +210,40 @@
                     <i class="bi bi-chevron-right arrow-icon" (click)="navigateToTerms()"></i>
                 </div>
             </div>
+            <div class="card p-3 mb-1 settings-item">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center">
+                        <i class="fa-solid fa-circle-question me-3" style="font-size: 16px; color:#800020"></i>
+                        <div>
+                            <h6 class="mb-1 fw-bold">Help</h6>
+                            <p class="mb-0 fw-medium small">Contact support</p>
+                        </div>
+                    </div>
+                    <i class="bi bi-chevron-right arrow-icon" (click)="openHelpModal()"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div *ngIf="isHelpModalOpen"
+    style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center; z-index: 1050;">
+    <div
+        style="background: white; border-radius: 15px; width: 35%; min-width: 320px; text-align: left; box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);">
+        <div class="d-flex justify-content-between align-items-center"
+            style="padding: 20px 24px; background-color: #FFF6F8; border-radius: 15px 15px 0 0;">
+            <h2 style="margin-bottom: 0; font-size: 20px; font-weight: bold;">Help</h2>
+            <i class="bi bi-x-lg" style="cursor: pointer;" (click)="closeHelpModal()"></i>
+        </div>
+        <div style="padding: 24px;">
+            <p class="mb-2 fw-medium">Contact us</p>
+            <p class="mb-2">
+                <i class="fa-solid fa-phone me-2" style="color:#800020"></i>
+                <a href="tel:8122693950" style="color: #1A1A1A; text-decoration: none;">8122693950</a>
+            </p>
+            <p class="mb-0">
+                <i class="fa-solid fa-envelope me-2" style="color:#800020"></i>
+                <a href="mailto:enquiry&#64;guestezee.com" style="color: #1A1A1A; text-decoration: none;">enquiry&#64;guestezee.com</a>
+            </p>
         </div>
     </div>
 </div>
@@ -193,7 +255,7 @@
         <div class="d-flex justify-content-between align-items-center"
             style="padding: 30px; padding-top: 3%;padding-bottom: 3%; background-color: #FFF6F8 !important;  border-radius: 15px;">
             <h2 style="margin-bottom: 10px; font-size: 20px; font-weight: bold;">Change Password</h2>
-            <img src="../../assets/images/guestezee/passwordSettings.png" alt="lock icon" style="width: 8% !important">
+            <img src="assets/images/guestezee/passwordSettings.png" alt="lock icon" style="width: 8% !important">
         </div>
         <form [formGroup]="passwordUpdateForm" novalidate style=" padding-top: 0px !important; padding: 30px;">
             <!-- Change Password Title -->
@@ -608,10 +670,133 @@
                        font-size: 16px; border-radius: 8px; margin-right: 10px;" (click)="closeSosModal()">
                     {{ isSosViewMode ? 'Close' : 'Cancel' }}
                 </button>
-                <button type="button" *ngIf="!isSosViewMode" [disabled]="!canModifySystemSettings"
-                    [style.background]="canModifySystemSettings ? '#800020' : '#cccccc'"
-                    [style.cursor]="canModifySystemSettings ? 'pointer' : 'not-allowed'" style="padding: 8px 16px; color: white; border: none; width: 25%;
-                       font-size: 16px; border-radius: 8px;" (click)="saveSosNumber()">
+                <button type="button" style="padding: 8px 16px; color: white; background: #800020; border: none; width: 25%;
+                       font-size: 16px; border-radius: 8px; cursor: pointer;" (click)="saveSosNumber()">
+                    Save
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Desk Phone Number Modal -->
+<div *ngIf="isDeskPhoneModalOpen"
+    style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center; z-index: 1050;">
+    <div style="background: white; border-radius: 15px; width: 40%; text-align: center;
+              box-shadow: 0 0 10px rgba(0,0,0,0.2); display: flex; flex-direction: column;">
+        <div class="d-flex justify-content-between align-items-center"
+            style="padding: 15px 20px; background-color: #FFF6F8; border-radius: 15px 15px 0 0;">
+            <h2 style="font-size: 19px; font-weight: bold; margin-bottom: 0;">{{ isDeskPhoneViewMode ? 'View Desk Phone Number' : 'Desk Phone Number' }}</h2>
+            <i class="fa-solid fa-phone-volume" style="font-size: 16px; color: #800020;"></i>
+        </div>
+        <div style="padding: 30px; text-align: start;">
+            <form [formGroup]="deskPhoneForm" novalidate>
+                <div style="position: relative; margin-bottom: 16px;">
+                    <label for="kot_desk_ph_number" style="font-weight: 600; margin-bottom: 8px; font-size: 14px;">KOT desk no</label>
+                    <input type="text" class="form-control" id="kot_desk_ph_number" placeholder="Enter KOT desk number"
+                        formControlName="kot_desk_ph_number" (input)="onDeskPhoneInput($event, 'kot_desk_ph_number')" maxlength="20"
+                        style="padding: 12px; border: 1px solid #E1E2EB; border-radius: 8px; width: 100%; font-size: 14px; outline: none; box-shadow: none;" />
+                    <div *ngIf="deskPhoneForm.controls['kot_desk_ph_number'].invalid && (deskPhoneForm.controls['kot_desk_ph_number'].touched || validateDeskPhoneForm)"
+                        style="color: red; font-size: 13px; margin-top: 5px;">
+                        <div *ngIf="deskPhoneForm.controls['kot_desk_ph_number'].hasError('required')">KOT desk number is required.</div>
+                        <div *ngIf="deskPhoneForm.controls['kot_desk_ph_number'].hasError('pattern')">Only numbers are allowed.</div>
+                        <div *ngIf="deskPhoneForm.controls['kot_desk_ph_number'].hasError('maxlength')">Number can be up to 20 digits.</div>
+                    </div>
+                </div>
+                <div style="position: relative; margin-bottom: 16px;">
+                    <label for="hk_desk_ph_number" style="font-weight: 600; margin-bottom: 8px; font-size: 14px;">House keeping desk no</label>
+                    <input type="text" class="form-control" id="hk_desk_ph_number" placeholder="Enter house keeping desk number"
+                        formControlName="hk_desk_ph_number" (input)="onDeskPhoneInput($event, 'hk_desk_ph_number')" maxlength="20"
+                        style="padding: 12px; border: 1px solid #E1E2EB; border-radius: 8px; width: 100%; font-size: 14px; outline: none; box-shadow: none;" />
+                    <div *ngIf="deskPhoneForm.controls['hk_desk_ph_number'].invalid && (deskPhoneForm.controls['hk_desk_ph_number'].touched || validateDeskPhoneForm)"
+                        style="color: red; font-size: 13px; margin-top: 5px;">
+                        <div *ngIf="deskPhoneForm.controls['hk_desk_ph_number'].hasError('required')">House keeping desk number is required.</div>
+                        <div *ngIf="deskPhoneForm.controls['hk_desk_ph_number'].hasError('pattern')">Only numbers are allowed.</div>
+                        <div *ngIf="deskPhoneForm.controls['hk_desk_ph_number'].hasError('maxlength')">Number can be up to 20 digits.</div>
+                    </div>
+                </div>
+                <div style="position: relative; margin-bottom: 10px;">
+                    <label for="fn_desk_ph_number" style="font-weight: 600; margin-bottom: 8px; font-size: 14px;">Front office desk no</label>
+                    <input type="text" class="form-control" id="fn_desk_ph_number" placeholder="Enter front office desk number"
+                        formControlName="fn_desk_ph_number" (input)="onDeskPhoneInput($event, 'fn_desk_ph_number')" maxlength="20"
+                        style="padding: 12px; border: 1px solid #E1E2EB; border-radius: 8px; width: 100%; font-size: 14px; outline: none; box-shadow: none;" />
+                    <div *ngIf="deskPhoneForm.controls['fn_desk_ph_number'].invalid && (deskPhoneForm.controls['fn_desk_ph_number'].touched || validateDeskPhoneForm)"
+                        style="color: red; font-size: 13px; margin-top: 5px;">
+                        <div *ngIf="deskPhoneForm.controls['fn_desk_ph_number'].hasError('required')">Front office desk number is required.</div>
+                        <div *ngIf="deskPhoneForm.controls['fn_desk_ph_number'].hasError('pattern')">Only numbers are allowed.</div>
+                        <div *ngIf="deskPhoneForm.controls['fn_desk_ph_number'].hasError('maxlength')">Number can be up to 20 digits.</div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div style="padding: 15px 20px; border-top: 1px solid #e0e0e0; border-radius: 0 0 15px 15px;">
+            <div class="d-flex justify-content-end">
+                <button type="button" style="padding: 8px 16px; background: #959FA34D; color: #000000B2;
+                       border: none; cursor: pointer; width: 25%;
+                       font-size: 16px; border-radius: 8px; margin-right: 10px;" (click)="closeDeskPhoneModal()">
+                    {{ isDeskPhoneViewMode ? 'Close' : 'Cancel' }}
+                </button>
+                <button type="button" style="padding: 8px 16px; color: white; background: #800020; border: none; width: 25%;
+                       font-size: 16px; border-radius: 8px; cursor: pointer;" (click)="saveDeskPhone()">
+                    Save
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Food Timing Modal -->
+<div *ngIf="isFoodTimingModalOpen"
+    style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center; z-index: 1050;">
+    <div style="background: white; border-radius: 15px; width: 40%; text-align: center;
+              box-shadow: 0 0 10px rgba(0,0,0,0.2); display: flex; flex-direction: column;">
+        <div class="d-flex justify-content-between align-items-center"
+            style="padding: 15px 20px; background-color: #FFF6F8; border-radius: 15px 15px 0 0;">
+            <h2 style="font-size: 19px; font-weight: bold; margin-bottom: 0;">Food Timing</h2>
+            <i class="fa-solid fa-utensils" style="font-size: 16px; color: #800020;"></i>
+        </div>
+        <div style="padding: 30px; text-align: start;">
+            <form [formGroup]="foodTimingForm" novalidate>
+                <div style="position: relative; margin-bottom: 16px;">
+                    <label for="breakfast" style="font-weight: 600; margin-bottom: 8px; font-size: 14px;">Breakfast</label>
+                    <input type="time" class="form-control" id="breakfast" formControlName="breakfast"
+                        style="padding: 12px; border: 1px solid #E1E2EB; border-radius: 8px; width: 100%; font-size: 14px; outline: none; box-shadow: none;" />
+                    <div *ngIf="foodTimingForm.controls['breakfast'].invalid && (foodTimingForm.controls['breakfast'].touched || validateFoodTimingForm)"
+                        style="color: red; font-size: 13px; margin-top: 5px;">
+                        Breakfast time is required.
+                    </div>
+                </div>
+                <div style="position: relative; margin-bottom: 16px;">
+                    <label for="lunch" style="font-weight: 600; margin-bottom: 8px; font-size: 14px;">Lunch</label>
+                    <input type="time" class="form-control" id="lunch" formControlName="lunch"
+                        style="padding: 12px; border: 1px solid #E1E2EB; border-radius: 8px; width: 100%; font-size: 14px; outline: none; box-shadow: none;" />
+                    <div *ngIf="foodTimingForm.controls['lunch'].invalid && (foodTimingForm.controls['lunch'].touched || validateFoodTimingForm)"
+                        style="color: red; font-size: 13px; margin-top: 5px;">
+                        Lunch time is required.
+                    </div>
+                </div>
+                <div style="position: relative; margin-bottom: 10px;">
+                    <label for="dinner" style="font-weight: 600; margin-bottom: 8px; font-size: 14px;">Dinner</label>
+                    <input type="time" class="form-control" id="dinner" formControlName="dinner"
+                        style="padding: 12px; border: 1px solid #E1E2EB; border-radius: 8px; width: 100%; font-size: 14px; outline: none; box-shadow: none;" />
+                    <div *ngIf="foodTimingForm.controls['dinner'].invalid && (foodTimingForm.controls['dinner'].touched || validateFoodTimingForm)"
+                        style="color: red; font-size: 13px; margin-top: 5px;">
+                        Dinner time is required.
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div style="padding: 15px 20px; border-top: 1px solid #e0e0e0; border-radius: 0 0 15px 15px;">
+            <div class="d-flex justify-content-end">
+                <button type="button" style="padding: 8px 16px; background: #959FA34D; color: #000000B2;
+                       border: none; cursor: pointer; width: 25%;
+                       font-size: 16px; border-radius: 8px; margin-right: 10px;" (click)="closeFoodTimingModal()">
+                    Cancel
+                </button>
+                <button type="button" style="padding: 8px 16px; color: white; background: #800020; border: none; width: 25%;
+                       font-size: 16px; border-radius: 8px; cursor: pointer;" (click)="saveFoodTiming()">
                     Save
                 </button>
             </div>

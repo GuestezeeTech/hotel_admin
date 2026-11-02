@@ -373,6 +373,20 @@
                             Type a new password to change it, or leave it empty to keep your current password.
                         </small>
                     </div>
+                    <div class="col-md-4 mb-4 form-group pb-3">
+                        <label class="fw-semibold" style="font-size: 14px">Role<span class="text-danger">*</span></label>
+                        <select class="form-control shadow-none" formControlName="role_id"
+                            (change)="clearError('role_id')"
+                            [class.is-invalid]="validateForm && f['role_id'].errors" (click)="closeAllDropdowns()"
+                            style="appearance: auto; background-color: white !important;"
+                            [style.cursor]="isViewMode ? 'not-allowed' : 'pointer'">
+                            <option [ngValue]="null" disabled>Please select</option>
+                            <option *ngFor="let role of roleList" [ngValue]="role.id">{{ role.name }}</option>
+                        </select>
+                        <div class="invalid-feedback" *ngIf="f['role_id'].errors">
+                            <div *ngIf="f['role_id'].errors['required']">please select a role</div>
+                        </div>
+                    </div>
                     <!-- Newly commented because no need of fo desk -->
                     <!--  <div class="col-md-4 mb-4 form-group pb-3">
                         <label class="fw-semibold" style="font-size: 14px;">Front Office Desk</label>

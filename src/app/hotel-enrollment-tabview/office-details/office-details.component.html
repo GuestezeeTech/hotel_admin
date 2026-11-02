@@ -48,6 +48,16 @@
         </span>
       </div>
       <div class="form-group form1_div">
+        <label>Country Code</label>
+        <select class="input_box" formControlName="primary_contact_countycode">
+          <option *ngFor="let item of countryCodeList" [value]="item.code">{{ item.country }} ({{ item.code }})</option>
+        </select>
+        <span
+          *ngIf="customerForm.controls['primary_contact_countycode'].hasError('required') && customerForm.controls['primary_contact_countycode'].touched">
+          Country code is required.
+        </span>
+      </div>
+      <div class="form-group form1_div">
         <label>Phone Number</label>
         <input class="input_box" type="text" formControlName="phone_number" />
         <span
@@ -61,14 +71,6 @@
         <div *ngIf="customerForm.get('phone_number')?.hasError('pattern') && customerForm.get('phone_number')?.touched">
           <small class="text-danger">Only numbers, +, -, spaces, and brackets ( ) are allowed.</small>
         </div>
-
-
-
-        <!-- <div
-          *ngIf="customerForm.get('phone_number')?.hasError('invalidPhone') && customerForm.get('phone_number')?.touched"
-          class="error">
-          ❌ Invalid Phone Number (must be 10 digits & start with 6-9)
-        </div> -->
       </div>
       <div class="form-group form1_div">
         <label>Email Id</label>
@@ -146,6 +148,16 @@
         </span>
       </div>
       <div class="form-group form1_div">
+        <label>Country Code</label>
+        <select class="input_box" formControlName="sec_contact_countrycode">
+          <option *ngFor="let item of countryCodeList" [value]="item.code">{{ item.country }} ({{ item.code }})</option>
+        </select>
+        <span
+          *ngIf="customerForm.controls['sec_contact_countrycode'].hasError('required') && customerForm.controls['sec_contact_countrycode'].touched">
+          Country code is required.
+        </span>
+      </div>
+      <div class="form-group form1_div">
         <label>Phone Number</label>
         <input class="input_box" type="text" formControlName="sec_phone_number" />
         <span
@@ -159,11 +171,6 @@
         <div
           *ngIf="customerForm.get('sec_phone_number')?.hasError('pattern') && customerForm.get('sec_phone_number')?.touched">
           <small class="text-danger">Only numbers, +, -, spaces, and brackets ( ) are allowed.</small>
-        </div>
-        <div
-          *ngIf="customerForm.get('sec_phone_number')?.hasError('invalidPhone') && customerForm.get('sec_phone_number')?.touched"
-          class="error">
-          ❌ Invalid Phone Number (must be 10 digits & start with 6-9)
         </div>
       </div>
       <div class="form-group form1_div">

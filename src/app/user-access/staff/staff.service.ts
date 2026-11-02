@@ -66,6 +66,35 @@ export class StaffService {
         }
     }
 
+    getAllRoles(memberId: string): Observable<any> {
+        if (this.authTokenService.isTokenExpired()) {
+            this.router.navigate([`/login`], { skipLocationChange: false });
+            return of({ success: 0, result: { data: [] }, message: "Session Expired" });
+        }
+        return this.http.post(ENDPOINTS.GET_ALL_ROLES, {
+            domain_name: DOMAIN_NAME,
+            user_id: USER_ID,
+            extras: {
+                find: {
+                    member_id: memberId
+                },
+                pagination: false,
+                paginationDetails: {
+                    limit: 0,
+                    pageSize: 10
+                },
+                sorting: true,
+                sortingDetails: {
+                    id: -1
+                }
+            }
+        }, {
+            headers: new HttpHeaders()
+                .set('Content-Type', 'application/json')
+                .set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken())
+        });
+    }
+
     // First time staff creation(top level hierarchy)
     async getDefaultHierarchyForFirstStaff(): Promise<any> {
         return new Promise((resolve) => {

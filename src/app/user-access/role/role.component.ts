@@ -28,6 +28,10 @@ export class RoleComponent implements OnInit {
   showAddRoleForm = false;
   validateForm: boolean = false;
   dashboardForm !: FormGroup;
+  overviewDashboardForm !: FormGroup;
+  fbDashboardForm !: FormGroup;
+  hkDashboardForm !: FormGroup;
+  foDashboardForm !: FormGroup;
   // customersForm !: FormGroup;
   paymentForm !: FormGroup;
   systemSettingsForm !: FormGroup;
@@ -97,6 +101,10 @@ export class RoleComponent implements OnInit {
       delete: this.formBuilder.control(false),
       all: this.formBuilder.control(false)
     })
+    this.overviewDashboardForm = this.createModulePermissionForm();
+    this.fbDashboardForm = this.createModulePermissionForm();
+    this.hkDashboardForm = this.createModulePermissionForm();
+    this.foDashboardForm = this.createModulePermissionForm();
     /*  this.customersForm = new FormGroup({
        create: this.formBuilder.control(false),
        edit: this.formBuilder.control(false),
@@ -199,6 +207,10 @@ export class RoleComponent implements OnInit {
     if (this.isViewMode) {
       this.roleForm.disable({ emitEvent: false });
       this.dashboardForm.disable({ emitEvent: false });
+      this.overviewDashboardForm.disable({ emitEvent: false });
+      this.fbDashboardForm.disable({ emitEvent: false });
+      this.hkDashboardForm.disable({ emitEvent: false });
+      this.foDashboardForm.disable({ emitEvent: false });
       this.paymentForm.disable({ emitEvent: false });
       this.userAccessForm.disable({ emitEvent: false });
       this.systemSettingsForm.disable({ emitEvent: false });
@@ -271,6 +283,62 @@ export class RoleComponent implements OnInit {
   }
 
   get f() { return this.roleForm.controls };
+
+  private createModulePermissionForm(): FormGroup {
+    return new FormGroup({
+      create: this.formBuilder.control(false),
+      edit: this.formBuilder.control(false),
+      read: this.formBuilder.control(false),
+      delete: this.formBuilder.control(false),
+      all: this.formBuilder.control(false)
+    });
+  }
+
+  private hasAnyPermissionOnForm(form: FormGroup): boolean {
+    const v = form.value;
+    return !!(v.create || v.edit || v.read || v.delete);
+  }
+
+  private modulePermissionEntry(moduleName: string, form: FormGroup) {
+    return {
+      module_name: moduleName,
+      permission: {
+        has_add_permission: form.value.create,
+        has_edit_permission: form.value.edit,
+        has_read_permission: form.value.read,
+        has_delete_permission: form.value.delete
+      }
+    };
+  }
+
+  private applyModuleFromRole(form: FormGroup, toggleKey: string, element: any): void {
+    form.controls['create'].setValue(element.permission.has_add_permission);
+    form.controls['edit'].setValue(element.permission.has_edit_permission);
+    form.controls['read'].setValue(element.permission.has_read_permission);
+    form.controls['delete'].setValue(element.permission.has_delete_permission);
+    this.allOptionsToggle(toggleKey);
+  }
+
+  private resetModuleForm(form: FormGroup): void {
+    form.controls['create'].setValue(false);
+    form.controls['edit'].setValue(false);
+    form.controls['read'].setValue(false);
+    form.controls['delete'].setValue(false);
+    form.controls['all'].setValue(false);
+  }
+
+  private syncModuleAllToggle(form: FormGroup, allOption: string, specOption: string, option: string): void {
+    if (option === allOption) {
+      const isAllChecked = form.controls['all'].value;
+      form.controls['create'].setValue(isAllChecked);
+      form.controls['edit'].setValue(isAllChecked);
+      form.controls['read'].setValue(isAllChecked);
+      form.controls['delete'].setValue(isAllChecked);
+    } else if (option === specOption) {
+      const { create, edit, read, delete: del } = form.value;
+      form.controls['all'].setValue(create && edit && read && del);
+    }
+  }
 
   // For checking all options in modules (your original logic, kept as‑is)
   allOptions(option: any) {
@@ -527,6 +595,10 @@ export class RoleComponent implements OnInit {
       const allSelected = create && edit && read && del;
       this.featuresForm.controls['all'].setValue(allSelected);
     }
+    this.syncModuleAllToggle(this.overviewDashboardForm, 'overviewDashboard', 'specOverviewDashboard', option);
+    this.syncModuleAllToggle(this.fbDashboardForm, 'fbDashboard', 'specFbDashboard', option);
+    this.syncModuleAllToggle(this.hkDashboardForm, 'hkDashboard', 'specHkDashboard', option);
+    this.syncModuleAllToggle(this.foDashboardForm, 'foDashboard', 'specFoDashboard', option);
   }
 
   // For setting existing values
@@ -556,6 +628,18 @@ export class RoleComponent implements OnInit {
             this.dashboardForm.controls["read"].setValue(element.permission.has_read_permission)
             this.dashboardForm.controls["delete"].setValue(element.permission.has_delete_permission)
             this.allOptionsToggle('specdashboard');
+          }
+          else if (element.module_name === "OVERVIEW") {
+            this.applyModuleFromRole(this.overviewDashboardForm, 'specOverviewDashboard', element);
+          }
+          else if (element.module_name === "F&B DASHBOARD") {
+            this.applyModuleFromRole(this.fbDashboardForm, 'specFbDashboard', element);
+          }
+          else if (element.module_name === "HOUSEKEEPING DASHBOARD") {
+            this.applyModuleFromRole(this.hkDashboardForm, 'specHkDashboard', element);
+          }
+          else if (element.module_name === "FO DASHBOARD") {
+            this.applyModuleFromRole(this.foDashboardForm, 'specFoDashboard', element);
           }
           /* else if (element.module_name === "CUSTOMERS") {
             this.customersForm.controls["create"].setValue(element.permission.has_add_permission)
@@ -664,6 +748,10 @@ export class RoleComponent implements OnInit {
     this.dashboardForm.controls["read"].setValue(false);
     this.dashboardForm.controls["delete"].setValue(false);
     this.dashboardForm.controls["all"].setValue(false);
+    this.resetModuleForm(this.overviewDashboardForm);
+    this.resetModuleForm(this.fbDashboardForm);
+    this.resetModuleForm(this.hkDashboardForm);
+    this.resetModuleForm(this.foDashboardForm);
     /* this.customersForm.controls["create"].setValue(false);
     this.customersForm.controls["edit"].setValue(false);
     this.customersForm.controls["read"].setValue(false);
@@ -737,6 +825,10 @@ export class RoleComponent implements OnInit {
     this.showalertmsg = true;
     if (this.roleForm.valid) {
       if (!this.dashboardForm.value.create && !this.dashboardForm.value.edit && !this.dashboardForm.value.read && !this.dashboardForm.value.delete &&
+        !this.hasAnyPermissionOnForm(this.overviewDashboardForm) &&
+        !this.hasAnyPermissionOnForm(this.fbDashboardForm) &&
+        !this.hasAnyPermissionOnForm(this.hkDashboardForm) &&
+        !this.hasAnyPermissionOnForm(this.foDashboardForm) &&
         !this.hotelsForm.value.create && !this.hotelsForm.value.edit && !this.hotelsForm.value.read && !this.hotelsForm.value.delete &&
         !this.taskManagementForm.value.create && !this.taskManagementForm.value.edit && !this.taskManagementForm.value.read && !this.taskManagementForm.value.delete &&
         !this.paymentForm.value.create && !this.paymentForm.value.edit && !this.paymentForm.value.read && !this.paymentForm.value.delete &&
@@ -763,6 +855,10 @@ export class RoleComponent implements OnInit {
               "has_delete_permission": this.dashboardForm.value.delete
             }
           },
+          this.modulePermissionEntry('OVERVIEW', this.overviewDashboardForm),
+          this.modulePermissionEntry('F&B DASHBOARD', this.fbDashboardForm),
+          this.modulePermissionEntry('HOUSEKEEPING DASHBOARD', this.hkDashboardForm),
+          this.modulePermissionEntry('FO DASHBOARD', this.foDashboardForm),
           /*   {
               "module_name": "CUSTOMERS",
               "permission": {
@@ -954,6 +1050,10 @@ export class RoleComponent implements OnInit {
     this.showalertmsg = true;
     if (this.roleForm.valid) {
       if (!this.dashboardForm.value.create && !this.dashboardForm.value.edit && !this.dashboardForm.value.read && !this.dashboardForm.value.delete &&
+        !this.hasAnyPermissionOnForm(this.overviewDashboardForm) &&
+        !this.hasAnyPermissionOnForm(this.fbDashboardForm) &&
+        !this.hasAnyPermissionOnForm(this.hkDashboardForm) &&
+        !this.hasAnyPermissionOnForm(this.foDashboardForm) &&
         !this.hotelsForm.value.create && !this.hotelsForm.value.edit && !this.hotelsForm.value.read && !this.hotelsForm.value.delete &&
         !this.taskManagementForm.value.create && !this.taskManagementForm.value.edit && !this.taskManagementForm.value.read && !this.taskManagementForm.value.delete &&
         !this.paymentForm.value.create && !this.paymentForm.value.edit && !this.paymentForm.value.read && !this.paymentForm.value.delete &&
@@ -980,6 +1080,10 @@ export class RoleComponent implements OnInit {
               "has_delete_permission": this.dashboardForm.value.delete
             }
           },
+          this.modulePermissionEntry('OVERVIEW', this.overviewDashboardForm),
+          this.modulePermissionEntry('F&B DASHBOARD', this.fbDashboardForm),
+          this.modulePermissionEntry('HOUSEKEEPING DASHBOARD', this.hkDashboardForm),
+          this.modulePermissionEntry('FO DASHBOARD', this.foDashboardForm),
           /* {
             "module_name": "CUSTOMERS",
             "permission": {

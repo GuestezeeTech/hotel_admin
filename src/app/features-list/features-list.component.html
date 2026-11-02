@@ -7,11 +7,6 @@
           <h5 class="fw-bolder" style="margin-bottom: 0">{{upsell.name}}</h5>
           <p class="mb-0" *ngIf="menuOutlets && menuOutlets.length > 0 && selectedOutlet"
             style="color: #9E9E9E; font-size: 14px;">Select a {{upsell.name}} to view its offers</p>
-          <p class="mb-0" *ngIf="customerdata && !customerdata.Hotel_Code"
-            style="color: #d9534f; font-size: 13px; font-weight: 500;">
-            <i class="bi bi-info-circle-fill me-1"></i>
-            Please set Hotel Code in Technical Info before adding any {{upsell.name}}.
-          </p>
         </div>
         <button class="fw-semibold" (click)="canAddFeatures ? openModal() : null" [disabled]="!canAddFeatures"
           style="background-color: #800020; color: white; padding: 10px 20px; border-radius: 8px; font-size: 14px; border: none;"

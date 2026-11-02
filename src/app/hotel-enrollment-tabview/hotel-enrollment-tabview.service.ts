@@ -38,13 +38,42 @@ export class HotelEnrollmentTabviewService {
   httpOptions = new HttpHeaders().set('Content-Type', 'application/json');
   // httpOptions = new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken())
 
+  /** Payment gateway returns to confirmation/cancellation — never bounce those URLs to login. */
+  private isEnrollmentCallbackRoute(): boolean {
+    const path = (this.router?.url || (typeof window !== 'undefined' ? window.location.pathname : '') || '')
+      .toLowerCase()
+      .replace(/\/+$/, '');
+    return path.includes('confirmation')
+      || path.includes('cancellation')
+      || path.includes('hotel-registration')
+      || path.includes('/payment');
+  }
+
+  private authHeaders(): HttpHeaders {
+    return new HttpHeaders()
+      .set('Content-Type', 'application/json')
+      .set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken());
+  }
+
+  /** On enrollment callbacks, still call the API even if the access token expired. */
+  private blockIfTokenExpired(): boolean {
+    if (!this.authTokenService.isTokenExpired()) {
+      return false;
+    }
+    if (this.isEnrollmentCallbackRoute()) {
+      return false;
+    }
+    this.router.navigate([`/login`], { skipLocationChange: false });
+    return true;
+  }
+
   // MAKE API SERVICE CALLS HERE...
 
   // API CALLS
 
   // POST
   postApiCall(dataObj: any, api_endpoint: any): Observable<any> {
-    return this.http.post(api_endpoint, dataObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
+    return this.http.post(api_endpoint, dataObj, { headers: this.authHeaders() });
   }
   postApiCall1(dataObj: any, api_endpoint: any): Observable<any> {
     if (typeof api_endpoint !== 'string') {
@@ -131,13 +160,10 @@ export class HotelEnrollmentTabviewService {
 
 
   orderUpsert(UpdateCustomerObj: any): Observable<any> {
-    if (this.authTokenService.isTokenExpired()) {
-      this.router.navigate([`/login`], { skipLocationChange: false });
+    if (this.blockIfTokenExpired()) {
       return new Observable();
     }
-    else {
-      return this.http.post(ENDPOINTS.ORDER_UPDATION, UpdateCustomerObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
-    }
+    return this.http.post(ENDPOINTS.ORDER_UPDATION, UpdateCustomerObj, { headers: this.authHeaders() });
   }
 
   // getCountries(): Observable<any> {
@@ -169,7 +195,8 @@ export class HotelEnrollmentTabviewService {
       return new Observable();
     }
     else {
-      return this.http.post("http://40.192.104.15:5300/es-countries/all", {
+      return this.http.post("http://40.192.104.15:5300/es-countries/all", 
+        {
         "domain_name": "https://www.beaubelle.in",
         "user_id": USER_ID,
         "extras": {
@@ -202,24 +229,18 @@ export class HotelEnrollmentTabviewService {
   }
 
   orderDetailsGetById(jsonObj: any): Observable<any> {
-    if (this.authTokenService.isTokenExpired()) {
-      this.router.navigate([`/login`], { skipLocationChange: false });
+    if (this.blockIfTokenExpired()) {
       return new Observable();
     }
-    else {
-      return this.http.post(ENDPOINTS.ORDERDETAILSGETBYID, jsonObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
-    }
+    return this.http.post(ENDPOINTS.ORDERDETAILSGETBYID, jsonObj, { headers: this.authHeaders() });
   }
 
   // Newly added
   getLoginCustomerById(getCustomerObj: any): Observable<any> {
-    if (this.authTokenService.isTokenExpired()) {
-      this.router.navigate([`/login`], { skipLocationChange: false });
+    if (this.blockIfTokenExpired()) {
       return new Observable();
     }
-    else {
-      return this.http.post(ENDPOINTS.GET_LOGIN_CUSTOMER, getCustomerObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
-    }
+    return this.http.post(ENDPOINTS.GET_LOGIN_CUSTOMER, getCustomerObj, { headers: this.authHeaders() });
   }
 
 
@@ -296,13 +317,10 @@ export class HotelEnrollmentTabviewService {
   }
 
   updateCustomerFcm(UpdateCustomerObj: any): Observable<any> {
-    if (this.authTokenService.isTokenExpired()) {
-      this.router.navigate([`/login`], { skipLocationChange: false });
+    if (this.blockIfTokenExpired()) {
       return new Observable();
     }
-    else {
-      return this.http.post(ENDPOINTS.UPDATE_LOGIN_CUSTOMER_FCM, UpdateCustomerObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
-    }
+    return this.http.post(ENDPOINTS.UPDATE_LOGIN_CUSTOMER_FCM, UpdateCustomerObj, { headers: this.authHeaders() });
   }
 
   updateCustomercFcmToken(UpdateCustomerObj: any): Observable<any> {
@@ -390,22 +408,18 @@ export class HotelEnrollmentTabviewService {
 
   // Newly added for invoice generator
   invoiceGenerator(jsonObj: any): Observable<any> {
-    if (this.authTokenService.isTokenExpired()) {
-      this.router.navigate([`/login`], { skipLocationChange: false });
+    if (this.blockIfTokenExpired()) {
       return new Observable();
-    } else {
-      return this.http.post(ENDPOINTS.INVOICE_GENERATOR, jsonObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
     }
+    return this.http.post(ENDPOINTS.INVOICE_GENERATOR, jsonObj, { headers: this.authHeaders() });
   }
 
   // Newly added for 
   enableHotel(jsonObj: any): Observable<any> {
-    if (this.authTokenService.isTokenExpired()) {
-      this.router.navigate([`/login`], { skipLocationChange: false });
+    if (this.blockIfTokenExpired()) {
       return new Observable();
-    } else {
-      return this.http.post(ENDPOINTS.ENABLE_HOTEL, jsonObj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken()) });
     }
+    return this.http.post(ENDPOINTS.ENABLE_HOTEL, jsonObj, { headers: this.authHeaders() });
   }
-
+ 
 }

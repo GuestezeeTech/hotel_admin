@@ -109,7 +109,7 @@ export class PushService {
 
   private playNotificationSound() {
     try {
-      const audio = new Audio('/assets/images/guestezee/alarm.mp3');
+      const audio = new Audio('assets/images/guestezee/alarm.mp3');
       audio.volume = 1.0;
       audio.play().catch(err => console.warn('Audio play failed:', err));
     } catch (e) {

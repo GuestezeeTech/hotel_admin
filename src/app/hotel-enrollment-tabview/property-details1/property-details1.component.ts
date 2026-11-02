@@ -17,7 +17,7 @@ import { LocalStorageService } from '../../auth-services/local-storage.service';
 import { HttpHeaders } from '@angular/common/http';
 import { ProfileService } from '../../profile/profile.service';
 import { HierarchyService } from '../../hierarchy/hierarchy.service';
-import { COUNTRY_STATES, CountryState } from '../../shared/constants/countries';
+import { COUNTRY_CODES, COUNTRY_STATES, CountryState } from '../../shared/constants/countries';
 import { SharedDataService } from '../../shared/shared-data.service';
 
 @Component({
@@ -34,6 +34,7 @@ export class PropertyDetails1Component {
   customerProprtyDetailsForm: FormGroup = new FormGroup({});
   hotelId: Number | null = null;
   countryDropdownList: any = [];
+  countryCodeList = COUNTRY_CODES;
   customerId: string | null = null;
   orderData: any;
   memberId: any | null = null;
@@ -211,6 +212,7 @@ export class PropertyDetails1Component {
       // contact_person: new FormControl('', [Validators.required, CustomValidators.noWhitespaceValidator]),
       contact_person: new FormControl('', [Validators.required, Validators.pattern(/^([^0-9]*)$/), CustomValidators.noWhitespaceValidator]),
       designation: new FormControl('', [Validators.required, CustomValidators.noWhitespaceValidator]),
+      country_code: new FormControl('+91', Validators.required),
       primary_phone_number: new FormControl('', [Validators.required, Validators.pattern(/^[0-9\s\-+()]+$/), CustomValidators.noWhitespaceValidator]),
       secondary_phone_number: new FormControl('', [Validators.required, Validators.pattern(/^[0-9\s\-+()]+$/), CustomValidators.noWhitespaceValidator]),
       // email: new FormControl('', [Validators.required, Validators.email]), 
@@ -285,24 +287,24 @@ export class PropertyDetails1Component {
           // The template expects objects with a 'state' property
           this.statesDropdownList = selectedCountry.states.map(s => ({ state: s, code: '', flag: '' }));
           if (this.customerProprtyDetailsForm.disabled || this.customerStatus === 'approved') {
-            this.customerProprtyDetailsForm.get('property_state')?.disable();
+            this.customerProprtyDetailsForm.get('property_state')?.disable({ emitEvent: false });
           } else {
-            this.customerProprtyDetailsForm.get('property_state')?.enable();
+            this.customerProprtyDetailsForm.get('property_state')?.enable({ emitEvent: false });
           }
         } else {
           this.statesDropdownList = [];
-          this.customerProprtyDetailsForm.get('property_state')?.disable();
+          this.customerProprtyDetailsForm.get('property_state')?.disable({ emitEvent: false });
         }
       } else {
         this.statesDropdownList = [];
-        this.customerProprtyDetailsForm.get('property_state')?.disable();
+        this.customerProprtyDetailsForm.get('property_state')?.disable({ emitEvent: false });
       }
 
       // Reset the state value whenever the country changes
       if (!this.isInitialLoad) {
         const stateCtrl = this.customerProprtyDetailsForm.get('property_state');
         if (stateCtrl) {
-          stateCtrl.setValue('');
+          stateCtrl.setValue('', { emitEvent: false });
           const selectedCountry = COUNTRY_STATES.find((c) => c.country === selectedCountryName);
           if (selectedCountry && !stateCtrl.disabled) {
             stateCtrl.markAsTouched();
@@ -870,6 +872,7 @@ export class PropertyDetails1Component {
         hotel_name: formValues.hotel_name,
         contact_person: formValues.contact_person,
         designation: formValues.designation,
+        country_code: formValues.country_code,
         primary_phone_number: formValues.primary_phone_number,
         secondary_phone_number: formValues.secondary_phone_number,
         email: formValues.email,
@@ -1267,9 +1270,10 @@ export class PropertyDetails1Component {
       this.hotelenrollmenttabviewService.getLoginCustomerById(requestBody).subscribe(
         resp => {
           this.loaderService.emitComplete();
-          if (resp) {
-            this.customerdata = resp.result.data[0];
-            this.hotelId = resp.result.data[0].id;
+          const customer = resp?.result?.data?.[0];
+          if (customer) {
+            this.customerdata = customer;
+            this.hotelId = customer.id;
             // console.log('Customer data:', this.customerdata);
             if (resp.result.data[0]) {
               if (resp?.result?.data[0]?.property_details?.kyc_documents?.uploaded_documents) {
@@ -1303,7 +1307,7 @@ export class PropertyDetails1Component {
               }
               if (this.status == 'approved') {
                 // Disable the form if not approved
-                this.customerProprtyDetailsForm.disable();
+                this.customerProprtyDetailsForm.disable({ emitEvent: false });
               }
               // Set perRoomCost from customer subscription if exists
               // if (this.customerdata?.subscription_detail?.perRoomCost) {
@@ -1324,6 +1328,8 @@ export class PropertyDetails1Component {
             //console.log(this.customerdata, "RESPDATA",this.uploaded_documents);
             //console.log(Array.isArray(this.customerdata));
             resolve();  // Resolve promise when data is set
+          } else {
+            resolve();
           }
         },
         err => {
@@ -1403,6 +1409,9 @@ export class PropertyDetails1Component {
 
 
   setFormValues() {
+    if (!this.customerdata) {
+      return;
+    }
     if (
       this.customerdata?.property_details?.contact_details &&
       this.customerdata?.property_details?.property_address &&
@@ -1410,13 +1419,13 @@ export class PropertyDetails1Component {
     ) {
       this.isInitialLoad = true;
       const docs = this.customerdata.property_details?.kyc_documents?.uploaded_documents;
-      //console.log( this.uploadedDocumentsApi,'this.uploadedDocumentsApi');
-      //console.log( this.uploadedDocumentsApi,'this.uploadedDocumentsApi')
-
-      // if (docs?.length ) {
-      docs.forEach((doc: any) => {
-        this.uploadedDocumentsApi[doc.document_name] = doc.document_url;
-      });
+      if (Array.isArray(docs)) {
+        docs.forEach((doc: any) => {
+          if (doc?.document_name) {
+            this.uploadedDocumentsApi[doc.document_name] = doc.document_url;
+          }
+        });
+      }
       // }
       if (this.customerdata.property_details.contact_details?.brand == "Others") {
         this.isOtherBrand = true;
@@ -1437,6 +1446,7 @@ export class PropertyDetails1Component {
         hotel_name: this.customerdata?.property_details?.contact_details?.hotel_name,
         contact_person: this.customerdata.property_details?.contact_details?.contact_person,
         designation: this.customerdata.property_details?.contact_details?.designation,
+        country_code: this.customerdata.property_details?.contact_details?.country_code || '+91',
         primary_phone_number: this.customerdata.property_details?.contact_details?.primary_phone_number,
         secondary_phone_number: this.customerdata.property_details?.contact_details?.secondary_phone_number,
         email: this.customerdata.property_details.contact_details?.email,

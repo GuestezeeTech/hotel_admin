@@ -90,7 +90,7 @@
                   <i class="fa fa-spinner fa-spin"></i> Uploading...
                 </ng-container>
               </button> -->
-              <button class="upload-btn" (click)="!isViewMode && triggerFileInput()"
+              <button class="upload-btn" (click)="!isViewMode && openImageGallery()"
                 [class.disabled]="isUploading || allFilesUploaded() || isViewMode"
                 [style.cursor]="isViewMode ? 'not-allowed' : 'pointer'" [disabled]="isViewMode">
                 <ng-container *ngIf="!isUploading">
@@ -124,7 +124,7 @@
               </i>
               <i class="fa fa-upload"
                 style="-webkit-text-fill-color: white; -webkit-text-stroke: 1px #883a01; font-size: 12px;"
-                (click)="!isViewMode && triggerFileInput1(fileInput)" [style.opacity]="isViewMode ? 0.4 : 1"
+                (click)="!isViewMode && openImageGallery(i)" [style.opacity]="isViewMode ? 0.4 : 1"
                 [style.cursor]="isViewMode ? 'not-allowed' : 'pointer'">
               </i>
               <!-- File Input (Hidden) -->
@@ -143,6 +143,35 @@
         <div class="modal-content" (click)="$event.stopPropagation()">
           <button (click)="closeModal()" class="close-btn"><i class="fa fa-times"></i></button>
           <img [src]="selectedImageUrl" alt="Document Preview" class="modal-image">
+        </div>
+      </div>
+      <div class="modal-overlay" *ngIf="isImageGalleryOpen" (click)="closeImageGallery()">
+        <div class="image-gallery-modal" (click)="$event.stopPropagation()">
+          <div class="image-gallery-header">
+            <h3>Images</h3>
+            <input type="text" class="image-gallery-search" placeholder="Search by product name"
+              [ngModelOptions]="{ standalone: true }"
+              [ngModel]="gallerySearch"
+              (ngModelChange)="filterGalleryImages($event)"
+              (input)="onGallerySearchInput($event)">
+            <button type="button" class="gallery-close" (click)="closeImageGallery()">
+              <i class="fa fa-times"></i>
+            </button>
+          </div>
+          <div class="image-gallery-body">
+            <p *ngIf="galleryLoading" class="gallery-status">Loading images...</p>
+            <p *ngIf="!galleryLoading && filteredProductImages.length === 0" class="gallery-status">No images found</p>
+            <div class="image-gallery-grid" *ngIf="!galleryLoading">
+              <button type="button" class="gallery-card" *ngFor="let image of filteredProductImages"
+                (click)="selectGalleryImage(image)">
+                <img [src]="image.image_source" [alt]="image.image_name" loading="lazy">
+                <span>{{ getGalleryImageDisplayName(image) || image.image_name }}</span>
+              </button>
+            </div>
+          </div>
+          <div class="image-gallery-footer">
+            <button type="button" class="gallery-close-btn" (click)="closeImageGallery()">Close</button>
+          </div>
         </div>
       </div>
     </div>

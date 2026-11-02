@@ -78,3 +78,195 @@ body {
 .table {
   border: 1px solid #dedede;
 }
+
+.pay-button {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 4px 14px;
+  color: white;
+  background-color: #800020;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.pay-button:disabled {
+  background-color: #cccccc;
+  color: #666666;
+  cursor: not-allowed;
+}
+
+.custom-action {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.payment-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-bottom: 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #464646;
+}
+
+.overdue-banner {
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #ffecec;
+  color: #ff0000;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.pay-button-overdue {
+  background-color: #ff0000 !important;
+  font-weight: 700;
+}
+
+.custom-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1050;
+}
+
+.custom-modal {
+  background: white;
+  border-radius: 15px;
+  width: 360px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+}
+
+.custom-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background-color: #fff6f8;
+  border-radius: 15px 15px 0 0;
+
+  h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  i {
+    cursor: pointer;
+  }
+}
+
+.custom-modal-body {
+  padding: 20px;
+
+  label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+
+  input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #e1e2eb;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+  }
+}
+
+.payable-text {
+  margin-bottom: 14px;
+  color: #464646;
+}
+
+.amount-error {
+  margin: 8px 0 0;
+  color: #ff0000;
+  font-size: 13px;
+}
+
+.custom-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 0 20px 20px;
+}
+
+.custom-cancel-btn {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 16px;
+  color: #000000b2;
+  background-color: #959fa34d;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.custom-pay-now-btn {
+  padding: 8px 16px;
+  min-width: 100px;
+}
+
+.split-modal {
+  width: 520px;
+  max-width: 95vw;
+}
+
+.split-table {
+  margin-bottom: 0;
+  font-size: 13px;
+}
+
+.split-table thead th {
+  font-size: 13px;
+}
+
+.split-next td {
+  background-color: #fff6f8 !important;
+  font-weight: 600;
+}
+
+.split-custom-section {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid #eee;
+}
+
+.split-custom-title {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.split-custom-section label {
+  display: block;
+  margin: 10px 0 6px;
+  font-weight: 600;
+}
+
+.split-custom-section input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e1e2eb;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+}
+
+.split-custom-pay-btn {
+  margin-top: 12px;
+  width: 100%;
+}

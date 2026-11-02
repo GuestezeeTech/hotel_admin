@@ -53,6 +53,12 @@ export class ProductDetailsComponent {
   currentStage = 0;
   selectedImageUrl: string | null = null;
   isModalOpen = false;
+  isImageGalleryOpen = false;
+  galleryLoading = false;
+  productImages: any[] = [];
+  filteredProductImages: any[] = [];
+  gallerySearch = '';
+  galleryTargetIndex: number | null = null;
   uploadedFiles = [
     { name: "Image 1", fileName: "", fileUrl: "", fileSelected: null },
     { name: "Image 2", fileName: "", fileUrl: "", fileSelected: null },
@@ -68,7 +74,7 @@ export class ProductDetailsComponent {
     autoClose: true,
     keepAfterRouteChange: false
   };
-  defaultImageUrl = '../../assets/images/guestezee/menu.jpg';
+  defaultImageUrl = 'assets/images/guestezee/menu.jpg';
   outlet_id: number = 0;
   // File uploading
   @ViewChild('fileInput') fileInput!: ElementRef;
@@ -501,6 +507,120 @@ export class ProductDetailsComponent {
     if (!this.isUploading && this.fileInput) {
       this.fileInput.nativeElement.click();
     }
+  }
+
+  /** Opens the product-image gallery. No index uses the next empty upload slot. */
+  openImageGallery(index?: number) {
+    if (this.isViewMode || this.isUploading) {
+      return;
+    }
+    this.galleryTargetIndex = index ?? null;
+    this.gallerySearch = '';
+    this.isImageGalleryOpen = true;
+    this.loadProductImages();
+  }
+
+  closeImageGallery() {
+    this.isImageGalleryOpen = false;
+    this.galleryTargetIndex = null;
+  }
+
+  loadProductImages() {
+    this.galleryLoading = true;
+    const requestBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: {
+        find: {}
+      }
+    };
+    this.productDetailService.postApiCall(requestBody, ENDPOINTS.GET_PRODUCT_IMAGES).subscribe({
+      next: (resp: any) => {
+        this.galleryLoading = false;
+        const images = resp?.result?.data || [];
+        this.productImages = images.filter((img: any) => img?.image_source && img?.is_deleted !== true);
+        this.filterGalleryImages();
+      },
+      error: () => {
+        this.galleryLoading = false;
+        this.productImages = [];
+        this.filteredProductImages = [];
+        this.alertService.error('Unable to load images. Please try again.', this.options);
+      }
+    });
+  }
+
+  filterGalleryImages(searchText?: string) {
+    if (searchText !== undefined) {
+      this.gallerySearch = searchText;
+    }
+    const query = this.gallerySearch.trim().toLowerCase();
+    if (!query) {
+      this.filteredProductImages = [...this.productImages];
+      return;
+    }
+    const tokens = query.split(/\s+/).filter(Boolean);
+    this.filteredProductImages = this.productImages.filter((img: any) => {
+      const searchable = this.getGalleryImageSearchText(img);
+      return tokens.every(token => searchable.includes(token));
+    });
+  }
+
+  onGallerySearchInput(event: Event) {
+    const value = (event.target as HTMLInputElement).value;
+    this.filterGalleryImages(value);
+  }
+
+  /** Human-readable product name for gallery labels and search. */
+  getGalleryImageDisplayName(image: any): string {
+    const raw = this.decodeGalleryText(image?.image_name || '');
+    if (!raw) {
+      return '';
+    }
+    const fromPath = raw.includes('/') ? raw.split('/').pop() || raw : raw;
+    const withoutExt = fromPath.replace(/\.(webp|png|jpe?g|gif|pdf)$/i, '');
+    const dashParts = withoutExt.split(/\s*-\s*/);
+    if (dashParts.length > 1 && /^\d+$/.test(dashParts[0].trim())) {
+      return dashParts.slice(1).join(' - ').trim();
+    }
+    return withoutExt.replace(/_/g, ' ').trim();
+  }
+
+  private getGalleryImageSearchText(image: any): string {
+    const display = this.getGalleryImageDisplayName(image).toLowerCase();
+    const rawName = this.decodeGalleryText(image?.image_name || '').toLowerCase();
+    const source = this.decodeGalleryText(image?.image_source || '').toLowerCase();
+    const sourceFile = source.split('/').pop() || '';
+    return `${display} ${rawName} ${sourceFile}`.replace(/[_%]/g, ' ');
+  }
+
+  private decodeGalleryText(value: string): string {
+    try {
+      return decodeURIComponent(String(value || ''));
+    } catch {
+      return String(value || '');
+    }
+  }
+
+  selectGalleryImage(image: any) {
+    if (!image?.image_source) {
+      return;
+    }
+    let index = this.galleryTargetIndex;
+    if (index === null || index === undefined) {
+      index = this.uploadedFiles.findIndex(file => !file.fileUrl || String(file.fileUrl).trim() === '');
+    }
+    if (index === -1 || index == null || !this.uploadedFiles[index]) {
+      this.alertService.error('All image slots are filled.', this.options);
+      return;
+    }
+    this.uploadedFiles[index].fileName = image.image_name || 'Selected image';
+    this.uploadedFiles[index].fileUrl = image.image_source;
+    this.companyForm.patchValue({ uploadedDocuments: [...this.uploadedFiles] });
+    const nextIndex = this.uploadedFiles.findIndex(file => !file.fileUrl || String(file.fileUrl).trim() === '');
+    this.currentStage = nextIndex === -1 ? this.uploadedFiles.length : nextIndex;
+    this.alertService.success('Image selected. Please save the changes to reflect it.', this.options);
+    this.closeImageGallery();
   }
 
   // To get the index of image name

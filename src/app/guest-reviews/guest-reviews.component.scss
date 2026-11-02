@@ -1,0 +1,33 @@
+.centered-container {
+  background-color: white;
+  min-height: 100vh;
+  width: 98%;
+  margin: 0 auto;
+  padding: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  margin-top: 1%;
+}
+
+.guest-reviews {
+  border-left: 1px solid #dee2e6;
+  border-right: 1px solid #dee2e6;
+  border-collapse: collapse;
+  width: 100%;
+  margin-top: 1.5%;
+
+  tbody tr td {
+    background-color: white;
+    font-size: 13px;
+    font-weight: 500;
+    color: #181818;
+    padding: 1.2% 1% !important;
+  }
+
+  thead tr th {
+    color: #800020;
+    font-size: 14px;
+    border-bottom: none !important;
+    padding: 1.2% 1% !important;
+  }
+}

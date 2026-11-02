@@ -30,7 +30,7 @@ export class BookingsComponent {
       checkOut: '25/04/12',
       checkOutTime: '11:00 AM',
       roomOccupancy: 'Stayed',
-      image: '../assets/images/guestezee/guestRoom.png',
+      image: 'assets/images/guestezee/guestRoom.png',
       imageType: 'Platinum',
       actions: 'View/Edit'
     },
@@ -44,7 +44,7 @@ export class BookingsComponent {
       checkOut: '25/04/13',
       checkOutTime: '10:30 AM',
       roomOccupancy: 'Staying',
-      image: '../assets/images/guestezee/guestRoom.png',
+      image: 'assets/images/guestezee/guestRoom.png',
       imageType: 'Bronze',
       actions: 'View/Edit'
     },
@@ -58,7 +58,7 @@ export class BookingsComponent {
       checkOut: '25/04/14',
       checkOutTime: '11:30 AM',
       roomOccupancy: 'Stayed',
-      image: '../assets/images/guestezee/guestRoom.png',
+      image: 'assets/images/guestezee/guestRoom.png',
       imageType: 'Gold',
       actions: 'View/Edit'
     },
@@ -72,7 +72,7 @@ export class BookingsComponent {
       checkOut: '25/04/11',
       checkOutTime: '11:00 AM',
       roomOccupancy: 'Staying',
-      image: '../assets/images/guestezee/guestRoom.png',
+      image: 'assets/images/guestezee/guestRoom.png',
       imageType: 'Silver',
       actions: 'View/Edit'
     },
@@ -86,7 +86,7 @@ export class BookingsComponent {
       checkOut: '25/04/15',
       checkOutTime: '12:00 PM',
       roomOccupancy: 'Stayed',
-      image: '../assets/images/guestezee/guestRoom.png',
+      image: 'assets/images/guestezee/guestRoom.png',
       imageType: 'Platinum',
       actions: 'View/Edit'
     },
@@ -100,7 +100,7 @@ export class BookingsComponent {
       checkOut: '25/04/14',
       checkOutTime: '11:00 AM',
       roomOccupancy: 'Stayed',
-      image: '../assets/images/guestezee/guestRoom.png',
+      image: 'assets/images/guestezee/guestRoom.png',
       imageType: 'Gold',
       actions: 'View/Edit'
     },
@@ -114,7 +114,7 @@ export class BookingsComponent {
       checkOut: '25/04/13',
       checkOutTime: '10:00 AM',
       roomOccupancy: 'Staying',
-      image: '../assets/images/guestezee/guestRoom.png',
+      image: 'assets/images/guestezee/guestRoom.png',
       imageType: 'Bronze',
       actions: 'View/Edit'
     },
@@ -128,7 +128,7 @@ export class BookingsComponent {
       checkOut: '25/04/12',
       checkOutTime: '11:00 AM',
       roomOccupancy: 'Stayed',
-      image: '../assets/images/guestezee/guestRoom.png',
+      image: 'assets/images/guestezee/guestRoom.png',
       imageType: 'Silver',
       actions: 'View/Edit'
     },
@@ -142,7 +142,7 @@ export class BookingsComponent {
       checkOut: '25/04/13',
       checkOutTime: '10:30 AM',
       roomOccupancy: 'Stayed',
-      image: '../assets/images/guestezee/guestRoom.png',
+      image: 'assets/images/guestezee/guestRoom.png',
       imageType: 'Gold',
       actions: 'View/Edit'
     },
@@ -156,7 +156,7 @@ export class BookingsComponent {
       checkOut: '25/04/14',
       checkOutTime: '11:00 AM',
       roomOccupancy: 'Staying',
-      image: '../assets/images/guestezee/guestRoom.png',
+      image: 'assets/images/guestezee/guestRoom.png',
       imageType: 'Silver',
       actions: 'View/Edit'
     }

@@ -1,0 +1,56 @@
+<div class="main">
+  <app-alerts></app-alerts>
+  <div class="centered-container">
+    <div class="container">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <div class="d-flex align-items-center gap-2">
+          <button class="btn btn-light rounded-circle px-2 py-1" (click)="goBack()">
+            <i class="bi bi-arrow-left"></i>
+          </button>
+          <h5 class="mb-0 fw-bold">Guest Reviews</h5>
+        </div>
+      </div>
+      <div *ngIf="loading" class="d-flex justify-content-center align-items-center" style="height: 50vh;">
+        <div class="spinner-border" role="status" style="width: 3rem; height: 3rem; color: #800020;">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+      </div>
+      <table class="table guest-reviews" *ngIf="!loading">
+        <thead>
+          <tr>
+            <th>Res.No</th>
+            <th>Room no</th>
+            <th>Rating</th>
+            <th>Service Name</th>
+            <th>Feedback</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="guestReviews.length == 0">
+            <td colspan="5" style="text-align: center; color: #888;">
+              No reviews available
+            </td>
+          </tr>
+          <tr *ngFor="let reviewItem of guestReviews">
+            <td>{{ reviewItem.reserve_no || '-' }}</td>
+            <td>{{ reviewItem.room_no || '-' }}</td>
+            <td>
+              <ng-container *ngIf="reviewItem.rating != null; else noRating">
+                <ng-container *ngFor="let star of getStarArray(reviewItem.rating)">
+                  <i *ngIf="star === 'full'" class="bi bi-star-fill" style="color: #FFC300; font-size: 14px;"></i>
+                  <i *ngIf="star === 'half'" class="bi bi-star-half" style="color: #FFC300; font-size: 14px;"></i>
+                  <i *ngIf="star === 'empty'" class="bi bi-star" style="color: #E0E0E0; font-size: 14px;"></i>
+                </ng-container>
+              </ng-container>
+              <ng-template #noRating>-</ng-template>
+            </td>
+            <td>{{ reviewItem.service_name || '-' }}</td>
+            <td>{{ reviewItem.feedback_text || '-' }}</td>
+            <td>{{ reviewItem.created_on ? (reviewItem.created_on | date:'dd MMM yyyy, hh:mm a') : '-' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

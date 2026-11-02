@@ -10,17 +10,12 @@ body {
     top: 0;
     left: 0;
     background-color: #6D575C;
-    // overflow-x: hidden;
-    padding-top: 20px;
+    padding: 20px 10px 24px 12px;
     overflow-x: hidden;
     overflow-y: auto;
-    /* ✅ Allow scroll but hide scrollbar visually */
-    padding-top: 20px;
     scrollbar-width: none;
-    /* Firefox */
     -ms-overflow-style: none;
-    /* IE, Edge */
-
+    box-sizing: border-box;
 }
 
 .logo-container {
@@ -115,15 +110,21 @@ ul {
     padding: 0;
 }
 
+.sidenav-menu {
+    padding: 4px 0 12px;
+    margin: 0;
+}
+
 .list_container {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 14px 14px;
-    margin-bottom: 10px;
+    padding: 14px 12px;
+    margin: 0 6px 10px;
     transition: background-color 0.3s ease, color 0.3s ease;
-    /* Add transition for smoother hover effect */
     font-family: 'Urbanist', sans-serif !important;
+    border-radius: 7px;
+    box-sizing: border-box;
 }
 
 .list_container:hover,

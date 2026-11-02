@@ -103,11 +103,11 @@ export class TechnicalInfoService {
   }
 
   // For payment button enable & showing
-  private payNowButtonSubject = new BehaviorSubject<any>({ show: false, enabled: false, installmentText: '' });
+  private payNowButtonSubject = new BehaviorSubject<any>({ show: false, enabled: false, installmentText: '', overdue: false });
   payNowButton$ = this.payNowButtonSubject.asObservable();
 
-  updatePayNowButton(show: boolean, enabled: boolean, installmentText: string = '') {
-    this.payNowButtonSubject.next({ show, enabled, installmentText });
+  updatePayNowButton(show: boolean, enabled: boolean, installmentText: string = '', overdue: boolean = false) {
+    this.payNowButtonSubject.next({ show, enabled, installmentText, overdue });
   }
 
   /*   updateTechnicalInfo(UpdateCustomerObj: any): Observable<any> {

@@ -14,6 +14,7 @@ import { DOMAIN_NAME, USER_ID } from '../app.config';
 import { FormsModule } from '@angular/forms';
 import { HostListener } from '@angular/core';
 import { LoaderService } from '../shared/loader/loader.service';
+import { reviewsForDashboard } from '../guest-reviews/guest-reviews.util';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -85,6 +86,7 @@ export class AdminDashboardComponent implements OnInit {
   // Selected service 
   selectedButton: string = 'asap';  // Tracks the selected button
   allBookings: any[] = [];
+  guestReviews: any[] = [];
   options = {
     autoClose: true,
     keepAfterRouteChange: false
@@ -247,9 +249,10 @@ export class AdminDashboardComponent implements OnInit {
       /* console.log('Min Date:', this.minDate); */
       /* console.log('Max Date:', this.maxDate); */
 
-      this.pendingRequests = 3;
+      this.pendingRequests = 4;
       this.guestActivity(this.selectedYear, this.selectedReviewYear);
       this.getAllBookings();
+      this.getAllGuestReviews();
       this.selectButton('asap', false);
 
     } catch (err) {
@@ -257,9 +260,10 @@ export class AdminDashboardComponent implements OnInit {
 
       this.years = [currentYear];
 
-      this.pendingRequests = 3;
+      this.pendingRequests = 4;
       this.guestActivity(this.selectedYear, this.selectedReviewYear);
       this.getAllBookings();
+      this.getAllGuestReviews();
       this.selectButton('asap', false);
     }
   }
@@ -642,6 +646,10 @@ export class AdminDashboardComponent implements OnInit {
     this.routerUrl.navigate(['/bookings']);
   }
 
+  navigateToGuestReviews() {
+    this.routerUrl.navigate(['/guest-reviews']);
+  }
+
   navigateToTask() {
     this.routerUrl.navigate(['/task-management']);
   }
@@ -731,6 +739,43 @@ export class AdminDashboardComponent implements OnInit {
       },
       error: (err) => {
         console.error('Task API Error:', err);
+        this.decrementPendingRequests();
+      }
+    });
+  }
+
+  getAllGuestReviews() {
+    const requestBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: {
+        find: {
+          member_id: this.memberId
+        },
+        pagination: false,
+        sorting: true,
+        sortingDetails: { id: -1 }
+      }
+    };
+    this.taskManagementService.getAllRatings(requestBody).subscribe({
+      next: (response) => {
+        if (response?.success) {
+          this.guestReviews = reviewsForDashboard(response.result?.data || []);
+        } else {
+          this.guestReviews = [];
+        }
+        this.decrementPendingRequests();
+      },
+      error: (err) => {
+        this.guestReviews = [];
+        if (err.error?.statusCode === 403) {
+          this.alerts.error('Session Time Out! Please login Again', this.options);
+          this.routerUrl.navigate([`/login`], { skipLocationChange: false });
+        } else if (err.error?.message) {
+          this.alerts.error(err.error.message, this.options);
+        } else {
+          this.alerts.error('Something bad happened. Please try again!', this.options);
+        }
         this.decrementPendingRequests();
       }
     });

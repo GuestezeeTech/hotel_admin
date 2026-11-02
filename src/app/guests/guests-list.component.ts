@@ -211,6 +211,55 @@ export class GuestsListComponent implements OnInit, OnDestroy {
         this.isDocumentLoading = false;
     }
 
+    exportGuests() {
+        if (!this.guests.length) {
+            this.alertsService.error('No guests to export.', this.options);
+            return;
+        }
+
+        const headers = ['S.No', 'Guest Name', 'Mobile', 'Email', 'KYC Document'];
+        const rows = this.guests.map((guest, index) => [
+            String(index + 1),
+            `${guest.First_Name || ''} ${guest.Last_Name || ''}`.trim(),
+            guest.Mobile || '',
+            guest.Email || '',
+            guest.kyc_document || ''
+        ]);
+
+        const escapeXml = (value: string) => value
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+
+        const headerXml = headers.map(header =>
+            `<Cell><Data ss:Type="String">${escapeXml(header)}</Data></Cell>`
+        ).join('');
+        const bodyXml = rows.map(row =>
+            `<Row>${row.map(cell => `<Cell><Data ss:Type="String">${escapeXml(cell)}</Data></Cell>`).join('')}</Row>`
+        ).join('');
+
+        const workbook = `<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+ <Worksheet ss:Name="Guests">
+  <Table>
+   <Row>${headerXml}</Row>
+   ${bodyXml}
+  </Table>
+ </Worksheet>
+</Workbook>`;
+
+        const blob = new Blob([workbook], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'guests-list.xls';
+        link.click();
+        URL.revokeObjectURL(url);
+    }
+
     closeKycModal() {
         this.selectedKycUrl = null;
         this.originalKycUrl = '';

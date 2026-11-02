@@ -1,0 +1,223 @@
+<div class="overview-state" *ngIf="loading">
+  <p>Loading Hotel Overview…</p>
+</div>
+
+<div class="overview-state overview-state--error" *ngIf="!loading && loadError">
+  <h3>Unable to load overview</h3>
+  <p>{{ loadError }}</p>
+</div>
+
+<section class="hotel-overview" *ngIf="!loading && !loadError">
+  <div class="page-head">
+    <div>
+      <h2>Hotel Overview</h2>
+      <p>Operational performance and guest service summary</p>
+    </div>
+    <select class="period" [(ngModel)]="selectedPeriod">
+      <option>This Month</option>
+      <option>This Week</option>
+      <option>Today</option>
+      <option>Custom Range</option>
+    </select>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi" *ngFor="let kpi of kpis" [ngClass]="kpi.cssClass">
+      <div class="kpi-top"><span class="kpi-icon">{{ kpi.icon }}</span>{{ kpi.label }}</div>
+      <strong>{{ kpi.value }}</strong>
+      <small>{{ kpi.note }}</small>
+    </div>
+  </div>
+
+  <div class="grid3">
+    <div class="panel">
+      <h3>Revenue Breakdown</h3>
+      <div class="panel-sub">Total ₹25.75 Lakh · {{ selectedPeriod }}</div>
+      <div class="revenue-layout">
+        <div class="donut">
+          <div class="donut-label">₹25.75 Lakh<small>Total Revenue</small></div>
+        </div>
+        <div class="legend">
+          <div class="legend-row" *ngFor="let row of revenueLegend">
+            <span class="legend-name"><i class="dot" [style.background]="row.color"></i>{{ row.name }}</span>
+            <b>{{ row.amount }}　{{ row.pct }}</b>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Department Overview</h3>
+      <div class="panel-sub">Click a department card to open its dashboard</div>
+      <div class="dept-list">
+        <button type="button" class="dept-card" *ngFor="let dept of departments"
+          [style.--dept]="dept.accent" (click)="openDepartment(dept.name)">
+          <span class="dept-accent" aria-hidden="true"></span>
+          <div class="dept-body">
+            <div class="dept-title">
+              <span class="dept-emoji">{{ dept.emoji }}</span>
+              <span class="dept-name">{{ dept.name }}</span>
+              <span class="dept-chevron">›</span>
+            </div>
+            <div class="dept-number">{{ dept.total }}</div>
+            <small>{{ dept.totalLabel }}</small>
+            <div class="mini-stats">
+              <span class="stat-done">● Completed　{{ dept.completed }}</span>
+              <span class="stat-pending">● Pending　{{ dept.pending }}</span>
+              <span class="stat-esc">● Escalated　{{ dept.escalated }}</span>
+              <span class="dept-extra">{{ dept.extra }}</span>
+            </div>
+          </div>
+        </button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Upselling / Offers Performance</h3>
+      <div class="offers-kpis">
+        <div class="offer-box"><small>Total Offers</small><strong>25</strong><small>Active Offers　18</small></div>
+        <div class="offer-box"><small>Offers Sold</small><strong>325</strong><small>Conversion　18%</small></div>
+      </div>
+      <div class="offer-revenue">₹2,10,000 <small>Revenue</small></div>
+      <div class="offer-list">
+        <div *ngFor="let item of offerItems"><span>{{ item.name }}</span><b>{{ item.amount }}</b></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="lower-grid">
+    <div class="panel status-panel">
+      <h3>F&amp;B Order Status</h3>
+      <div class="panel-sub">Today · {{ todayPanels.dateLabel }}</div>
+      <div class="status-content">
+        <div class="small-donut" [style.background]="todayPanels.fnb.donutStyle"><span>{{ todayPanels.fnb.total }}</span></div>
+        <div class="status-legend">
+          <span class="stat-done">● Completed　{{ todayPanels.fnb.completed }} ({{ todayPanels.fnb.completedPct }}%)</span><br>
+          <span class="stat-pending">● Pending　{{ todayPanels.fnb.pending }} ({{ todayPanels.fnb.pendingPct }}%)</span><br>
+          <span class="stat-esc">● {{ todayPanels.fnb.thirdLabel }}　{{ todayPanels.fnb.thirdCount }} ({{ todayPanels.fnb.thirdPct }}%)</span>
+        </div>
+      </div>
+      <h3 class="section-gap">Services today</h3>
+      <ng-container *ngIf="todayPanels.fnb.serviceBars.length; else fnbNoServices">
+        <div class="bars">
+          <div class="bar" *ngFor="let bar of todayPanels.fnb.serviceBars" [style.height.%]="bar.heightPct" [title]="bar.label + ': ' + bar.count"></div>
+        </div>
+        <div class="bar-labels bar-labels--services">
+          <span *ngFor="let bar of todayPanels.fnb.serviceBars">{{ bar.label }}</span>
+        </div>
+      </ng-container>
+      <ng-template #fnbNoServices><div class="panel-sub empty-chart">No F&amp;B services today</div></ng-template>
+    </div>
+
+    <div class="panel status-panel">
+      <h3>Housekeeping Requests</h3>
+      <div class="panel-sub">Today · {{ todayPanels.dateLabel }}</div>
+      <div class="status-content">
+        <div class="small-donut" [style.background]="todayPanels.hk.donutStyle"><span>{{ todayPanels.hk.total }}</span></div>
+        <div class="status-legend">
+          <span class="stat-done">● Completed　{{ todayPanels.hk.completed }} ({{ todayPanels.hk.completedPct }}%)</span><br>
+          <span class="stat-pending">● Pending　{{ todayPanels.hk.pending }} ({{ todayPanels.hk.pendingPct }}%)</span><br>
+          <span class="stat-esc">● {{ todayPanels.hk.thirdLabel }}　{{ todayPanels.hk.thirdCount }} ({{ todayPanels.hk.thirdPct }}%)</span>
+        </div>
+      </div>
+      <h3 class="section-gap">Services today</h3>
+      <ng-container *ngIf="todayPanels.hk.serviceBars.length; else hkNoServices">
+        <div class="bars">
+          <div class="bar bar--hk" *ngFor="let bar of todayPanels.hk.serviceBars" [style.height.%]="bar.heightPct" [title]="bar.label + ': ' + bar.count"></div>
+        </div>
+        <div class="bar-labels bar-labels--services">
+          <span *ngFor="let bar of todayPanels.hk.serviceBars">{{ bar.label }}</span>
+        </div>
+      </ng-container>
+      <ng-template #hkNoServices><div class="panel-sub empty-chart">No housekeeping services today</div></ng-template>
+    </div>
+
+    <div class="panel status-panel">
+      <h3>Front Office Service Requests</h3>
+      <div class="panel-sub">Today · {{ todayPanels.dateLabel }}</div>
+      <div class="status-content">
+        <div class="small-donut" [style.background]="todayPanels.fo.donutStyle"><span>{{ todayPanels.fo.total }}</span></div>
+        <div class="status-legend">
+          <span class="stat-done">● Completed　{{ todayPanels.fo.completed }} ({{ todayPanels.fo.completedPct }}%)</span><br>
+          <span class="stat-pending">● Pending　{{ todayPanels.fo.pending }} ({{ todayPanels.fo.pendingPct }}%)</span><br>
+          <span class="stat-esc">● {{ todayPanels.fo.thirdLabel }}　{{ todayPanels.fo.thirdCount }} ({{ todayPanels.fo.thirdPct }}%)</span>
+        </div>
+      </div>
+      <h3 class="section-gap">Services today</h3>
+      <ng-container *ngIf="todayPanels.fo.serviceBars.length; else foNoServices">
+        <div class="bars">
+          <div class="bar bar--fo" *ngFor="let bar of todayPanels.fo.serviceBars" [style.height.%]="bar.heightPct" [title]="bar.label + ': ' + bar.count"></div>
+        </div>
+        <div class="bar-labels bar-labels--services">
+          <span *ngFor="let bar of todayPanels.fo.serviceBars">{{ bar.label }}</span>
+        </div>
+      </ng-container>
+      <ng-template #foNoServices><div class="panel-sub empty-chart">No front office services today</div></ng-template>
+    </div>
+
+    <div class="panel">
+      <h3>Revenue Trend</h3>
+      <div class="panel-sub">Monthly performance</div>
+      <svg class="trend" viewBox="0 0 260 150" preserveAspectRatio="none" aria-hidden="true">
+        <g stroke="#e5eaed" stroke-width="1">
+          <path d="M25 15H250M25 45H250M25 75H250M25 105H250M25 135H250"/>
+        </g>
+        <g fill="#1769aa">
+          <rect x="36" y="90" width="12" height="45"/><rect x="76" y="76" width="12" height="59"/>
+          <rect x="116" y="62" width="12" height="73"/><rect x="156" y="54" width="12" height="81"/>
+          <rect x="196" y="35" width="12" height="100"/><rect x="236" y="20" width="12" height="115"/>
+        </g>
+        <polyline points="42,82 82,66 122,51 162,46 202,27 242,9" fill="none" stroke="#174d8d" stroke-width="2"/>
+        <g fill="#174d8d">
+          <circle cx="42" cy="82" r="3"/><circle cx="82" cy="66" r="3"/><circle cx="122" cy="51" r="3"/>
+          <circle cx="162" cy="46" r="3"/><circle cx="202" cy="27" r="3"/><circle cx="242" cy="9" r="3"/>
+        </g>
+        <g fill="#758391" font-size="9">
+          <text x="29" y="147">1 Oct</text><text x="69" y="147">8 Oct</text><text x="108" y="147">15 Oct</text>
+          <text x="148" y="147">22 Oct</text><text x="225" y="147">31 Oct</text>
+        </g>
+      </svg>
+      <div class="click-hint">■ Room　■ F&amp;B　■ Upselling　— Total revenue</div>
+    </div>
+  </div>
+
+  <div class="bottom-grid">
+    <div class="panel">
+      <h3>Recent Escalations</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Date &amp; Time</th><th>Department</th><th>Request ID</th><th>Details</th><th>Status</th><th>ETA/Delay</th></tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="escalations.length === 0">
+              <td colspan="6">No recent escalations</td>
+            </tr>
+            <tr *ngFor="let row of escalations">
+              <td>{{ row.datetime }}</td>
+              <td>{{ row.dept }}</td>
+              <td>{{ row.id }}</td>
+              <td>{{ row.details }}</td>
+              <td><span class="status-pill" [ngClass]="row.statusClass">{{ row.status }}</span></td>
+              <td>{{ row.eta }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>Quick Actions / Insights</h3>
+      <div class="insight" *ngFor="let text of insights"><b>✦</b> {{ text }}</div>
+    </div>
+    <div class="panel">
+      <h3>Focus Areas for GM</h3>
+      <div class="focus">
+        <b>Priority actions</b><br>
+        1. Reduce F&amp;B escalations<br>
+        2. Improve upselling conversion<br>
+        3. Monitor housekeeping delays<br>
+        4. Improve guest communication
+      </div>
+    </div>
+  </div>
+</section>

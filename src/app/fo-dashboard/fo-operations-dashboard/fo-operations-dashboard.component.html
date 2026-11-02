@@ -1,0 +1,246 @@
+<div class="fo-root">
+  <div class="fo-main">
+      <section class="fo-overview">
+        <div class="page-heading">
+          <div>
+            <h1>Front Office Operations Dashboard</h1>
+            <p>Real-time FO data · Guest service and arrival operations</p>
+          </div>
+          <div class="live-label">● Live Updates　 <span class="clock-muted">{{ liveClock }}　⟳</span></div>
+        </div>
+
+        <div class="section-label">Real-time FO data</div>
+        <div class="kpi-metrics-row">
+          <div class="card kpi">
+            <div class="kpi-top">
+              Total FO Requests <span class="kpi-icon kpi-icon-gold">⋮</span>
+            </div>
+            <div class="kpi-value">95 <span class="trend-up">↑</span></div>
+            <div class="kpi-foot"><span class="trend-up">+10%</span> vs. last week</div>
+          </div>
+          <div class="card kpi complete">
+            <div class="kpi-top">
+              Completed <span class="kpi-icon kpi-icon-green">✓</span>
+            </div>
+            <div class="kpi-value">88</div>
+            <div class="kpi-foot"><span class="text-green">93%</span> completion</div>
+          </div>
+          <div class="card kpi pending">
+            <div class="kpi-top">
+              Pending <span class="kpi-icon kpi-icon-orange">!</span>
+            </div>
+            <div class="kpi-value">5</div>
+            <div class="kpi-foot"><span class="text-orange">5%</span> pending</div>
+          </div>
+          <div class="card kpi escalated">
+            <div class="kpi-top">
+              Escalated <span class="kpi-icon kpi-icon-red">!</span>
+            </div>
+            <div class="kpi-value">2</div>
+            <div class="kpi-foot"><span class="text-red">2%</span> escalated</div>
+          </div>
+        </div>
+        <div class="kpi-charts-row">
+          <div class="card kpi kpi-activities">
+            <div class="kpi-top">
+              Front Office Activities (24 Hours) <span class="muted-icon">⋮</span>
+            </div>
+            <div class="activity-layout">
+              <div class="donut">
+                <div class="donut-center">Activities<b>100%</b></div>
+              </div>
+              <div class="legend">
+                <div class="legend-row"><i class="dot dot-blue"></i>Regular Check-in <b>40%</b></div>
+                <div class="legend-row"><i class="dot dot-teal"></i>Group Check-in <b>15%</b></div>
+                <div class="legend-row"><i class="dot dot-gold"></i>Express Check-out <b>10%</b></div>
+                <div class="legend-row"><i class="dot dot-coral"></i>Late Check-out Request <b>10%</b></div>
+                <div class="legend-row"><i class="dot dot-purple"></i>Mobile Key Activation <b>10%</b></div>
+                <div class="legend-row"><i class="dot dot-amber"></i>General Inquiry <b>15%</b></div>
+              </div>
+            </div>
+          </div>
+          <div class="card kpi kpi-delayed">
+            <div class="kpi-top">
+              Delayed Arrivals <span class="muted-icon">⋮</span>
+            </div>
+            <div class="kpi-value kpi-value-sm">9 requests</div>
+            <div class="delayed-list">
+              <div><i class="dot dot-blue"></i>Regular Check-in</div>
+              <div><i class="dot dot-teal"></i>Group Check-in</div>
+              <div><i class="dot dot-gold"></i>Express Check-out</div>
+              <div><i class="dot dot-coral"></i>Late Check-out Request</div>
+              <div><i class="dot dot-purple"></i>Mobile Key Activation</div>
+              <div><i class="dot dot-amber"></i>General Inquiry</div>
+            </div>
+            <div class="bar-mini">
+              <i style="height: 70%"></i><i style="height: 90%"></i><i style="height: 45%"></i
+              ><i style="height: 60%"></i><i class="bar-accent" style="height: 100%"></i
+              ><i style="height: 76%"></i><i style="height: 24%"></i><i style="height: 40%"></i
+              ><i style="height: 33%"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="middle-grid">
+          <div class="card report-card">
+            <div class="card-heading">
+              <h2>Detailed FO Service Report</h2>
+              <button type="button" class="outline-btn" (click)="toggleFilters()">☷ &nbsp;Filter</button>
+            </div>
+            <div class="filters" *ngIf="filtersVisible">
+              <select [(ngModel)]="dateFilter">
+                <option value="">Date</option>
+                <option>Today</option>
+                <option>Yesterday</option>
+              </select>
+              <select [(ngModel)]="timeFilter">
+                <option value="">Time</option>
+                <option>Morning</option>
+                <option>Afternoon</option>
+              </select>
+              <select [(ngModel)]="roomFilter">
+                <option value="">Room</option>
+                <option>101</option>
+                <option>205</option>
+                <option>308</option>
+                <option>402</option>
+              </select>
+              <input [(ngModel)]="guestFilter" placeholder="Guest" />
+              <select [(ngModel)]="typeFilter">
+                <option value="">Order type</option>
+                <option>Regular Check-in</option>
+                <option>Group Check-in</option>
+                <option>Express Check-out</option>
+                <option>Late Check-out</option>
+                <option>Mobile Key Activation</option>
+                <option>General Inquiry</option>
+              </select>
+              <select [(ngModel)]="staffFilter">
+                <option value="">Staff</option>
+                <option>John Selan</option>
+                <option>John Alam</option>
+                <option>Janv Sleen</option>
+                <option>Staff Assigned</option>
+              </select>
+              <select [(ngModel)]="statusFilter">
+                <option value="">Status</option>
+                <option>Completed</option>
+                <option>Pending</option>
+                <option>Escalated</option>
+                <option>Processing</option>
+              </select>
+            </div>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Request ID</th>
+                    <th>Room</th>
+                    <th>Guest</th>
+                    <th>Request Type</th>
+                    <th>Staff Assigned</th>
+                    <th>Status</th>
+                    <th>ETA</th>
+                    <th>Delay</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let r of filteredRecords">
+                    <td class="req-id">{{ r.id }}</td>
+                    <td>{{ r.room }}</td>
+                    <td>{{ r.guest }}</td>
+                    <td>{{ r.type }}</td>
+                    <td>{{ r.staff }}</td>
+                    <td>
+                      <span class="status" [ngClass]="statusClass(r.status)">{{ r.status }}</span>
+                    </td>
+                    <td>{{ r.eta }}</td>
+                    <td [ngClass]="delayClass(r.delay)">{{ r.delay }}</td>
+                    <td>
+                      <button type="button" class="view-link" (click)="viewRequest(r)">View ›</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="kpi-foot row-count">Showing {{ filteredRecords.length }} service requests</div>
+          </div>
+
+          <div class="right-column">
+            <div class="card right-card">
+              <h3>Key Services Overview</h3>
+              <div class="service-list">
+                <div class="service-item">
+                  <div class="service-icon">▣</div>
+                  <span>Mobile Keys</span><b>12</b>
+                </div>
+                <div class="service-item">
+                  <div class="service-icon service-icon-2">⇥</div>
+                  <span>App Check-outs</span><b>8</b>
+                </div>
+                <div class="service-item">
+                  <div class="service-icon service-icon-3">▤</div>
+                  <span>Late Check-out Payments</span><b>1</b>
+                </div>
+              </div>
+            </div>
+            <div class="card right-card">
+              <h3>Quick Action Modules</h3>
+              <div class="quick-grid">
+                <button type="button" class="quick" (click)="quickAction('New Reservation')">
+                  New Reservation <span>＋</span>
+                </button>
+                <button type="button" class="quick" (click)="quickAction('Process Check-In')">
+                  Process Check-In <span>♙</span>
+                </button>
+                <button type="button" class="quick" (click)="quickAction('Assign Room')">
+                  Assign Room <span>♧</span>
+                </button>
+                <button type="button" class="quick" (click)="quickAction('Group Check-in')">
+                  Group Check-in <span>▤</span>
+                </button>
+                <button type="button" class="quick" (click)="quickAction('Issue Mobile Key')">
+                  Issue Mobile Key <span>▣</span>
+                </button>
+                <button type="button" class="quick" (click)="quickAction('Create Invoice')">
+                  Create Invoice <span>▤</span>
+                </button>
+              </div>
+            </div>
+            <div class="card right-card">
+              <h3>Front Office Escalation Summary</h3>
+              <div class="summary-grid">
+                <div>Open<b class="text-red">2</b></div>
+                <div>In Progress<b>3</b></div>
+                <div>Resolved<b class="text-green">8</b></div>
+                <div>Avg Delay<b>32 min</b></div>
+              </div>
+            </div>
+            <div class="card right-card">
+              <div class="focus-head">
+                <h3>Team Focus Areas</h3>
+                <button type="button" (click)="openTeamFocusModal()">HOD View</button>
+              </div>
+              <div class="focus-list">
+                <div>Reduce FO Escalations by 15%</div>
+                <div>Monitor Late Arrival check-ins</div>
+                <div>Review Group Check-in process</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+  </div>
+
+  <div class="modal" [class.show]="showModal" (click)="onModalBackdropClick($event)">
+    <div class="modal-box">
+      <h3>{{ modalTitle }}</h3>
+      <p [innerHTML]="modalHtml"></p>
+      <div class="modal-actions">
+        <button type="button" class="secondary-btn" (click)="closeModal()">Close</button>
+        <button type="button" class="primary-btn" (click)="closeModal()">OK</button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -24,6 +24,7 @@ import { CustomValidators } from '../hotel-enrollment-tabview/validators';
 export class SettingsComponent implements OnInit {
   // Modal
   isPasswordModalOpen = false;
+  isHelpModalOpen = false;
   // For eye visibility
   showCurrentPassword = false;
   showNewPassword = false;
@@ -78,6 +79,15 @@ export class SettingsComponent implements OnInit {
   isSosViewMode: boolean = false;
   sosForm!: UntypedFormGroup;
   validateSosForm: boolean = false;
+  // Desk phone number variables
+  isDeskPhoneModalOpen: boolean = false;
+  isDeskPhoneViewMode: boolean = false;
+  deskPhoneForm!: UntypedFormGroup;
+  validateDeskPhoneForm: boolean = false;
+  // Food timing variables
+  isFoodTimingModalOpen: boolean = false;
+  foodTimingForm!: UntypedFormGroup;
+  validateFoodTimingForm: boolean = false;
 
   /**
    * Enable/disable background page scrolling when any modal is open.
@@ -87,7 +97,9 @@ export class SettingsComponent implements OnInit {
       this.isPasswordModalOpen ||
       this.isDurationModalOpen ||
       this.isRoomModalOpen ||
-      this.isSosModalOpen;
+      this.isSosModalOpen ||
+      this.isDeskPhoneModalOpen ||
+      this.isFoodTimingModalOpen;
     if (anyModalOpen) {
       document.body.style.overflow = 'hidden';
     } else {
@@ -124,6 +136,19 @@ export class SettingsComponent implements OnInit {
       sos_number: ['', [Validators.required, Validators.pattern(/^[0-9]+$/), Validators.minLength(10), Validators.maxLength(10)]]
     });
 
+    const deskPhoneValidators = [Validators.required, Validators.pattern(/^[0-9]+$/), Validators.maxLength(20)];
+    this.deskPhoneForm = this.fb.group({
+      kot_desk_ph_number: ['', deskPhoneValidators],
+      hk_desk_ph_number: ['', deskPhoneValidators],
+      fn_desk_ph_number: ['', deskPhoneValidators]
+    });
+
+    this.foodTimingForm = this.fb.group({
+      breakfast: ['', Validators.required],
+      lunch: ['', Validators.required],
+      dinner: ['', Validators.required]
+    });
+
     // Customer id
     this.customerType = this.localService.get('CustomerType');
     // Newly added for getting customer id for customer type
@@ -137,6 +162,8 @@ export class SettingsComponent implements OnInit {
     this.getLateCheckoutSettings();
     this.getRoomCount();
     this.getSosNumberSettings();
+    this.getDeskPhoneSettings();
+    this.getFoodTimingSettings();
   }
 
   getCustomerStatus(userId: any): Promise<any> {
@@ -1733,6 +1760,14 @@ export class SettingsComponent implements OnInit {
     this.routerUrl.navigate(['/terms-conditions']);
   }
 
+  openHelpModal() {
+    this.isHelpModalOpen = true;
+  }
+
+  closeHelpModal() {
+    this.isHelpModalOpen = false;
+  }
+
   getLateCheckoutSettings() {
     const requestBody = {
       domain_name: DOMAIN_NAME,
@@ -2403,7 +2438,6 @@ export class SettingsComponent implements OnInit {
   }
 
   openSosModal() {
-    if (!this.canModifySystemSettings && !this.canReadSystemSettings) return;
     this.isSosViewMode = false;
     this.validateSosForm = false;
     this.loadSosData();
@@ -2436,23 +2470,14 @@ export class SettingsComponent implements OnInit {
           this.sosForm.controls['sos_number'].setValue('');
         }
 
-        if (this.isSosViewMode) {
-          this.sosForm.controls['sos_number'].disable();
-        } else {
-          this.sosForm.controls['sos_number'].enable();
-        }
+        this.sosForm.controls['sos_number'].enable();
 
         this.isSosModalOpen = true;
         this.updateBodyScrollLock();
       },
       (err: any) => {
         this.sosForm.controls['sos_number'].setValue('');
-
-        if (this.isSosViewMode) {
-          this.sosForm.controls['sos_number'].disable();
-        } else {
-          this.sosForm.controls['sos_number'].enable();
-        }
+        this.sosForm.controls['sos_number'].enable();
 
         this.isSosModalOpen = true;
         this.updateBodyScrollLock();
@@ -2470,8 +2495,309 @@ export class SettingsComponent implements OnInit {
     this.updateBodyScrollLock();
   }
 
+  getDeskPhoneSettings() {
+    const requestBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: {
+        find: {
+          customer_member_id: this.memberId
+        }
+      }
+    };
+    this.hotelEnrollmentTabviewService.getCustomerById(requestBody).subscribe(
+      (resp: any) => {
+        if (resp.success === 1 && resp.status_code === 200 && resp.result.data.length > 0) {
+          this.patchDeskPhoneForm(resp.result.data[0]?.settings);
+        }
+      },
+      (err: any) => {
+        console.error('Error loading desk phone settings:', err);
+      }
+    );
+  }
+
+  onDeskPhoneInput(event: any, controlName: string) {
+    const input = event.target;
+    const value = input.value.toString().replace(/[^0-9]/g, '').slice(0, 20);
+    input.value = value;
+    this.deskPhoneForm?.controls[controlName]?.setValue(value);
+  }
+
+  openDeskPhoneModal() {
+    this.isDeskPhoneViewMode = false;
+    this.validateDeskPhoneForm = false;
+    this.loadDeskPhoneData();
+  }
+
+  viewDeskPhone() {
+    if (!this.canReadSystemSettings) return;
+    this.isDeskPhoneViewMode = true;
+    this.validateDeskPhoneForm = false;
+    this.loadDeskPhoneData();
+  }
+
+  private patchDeskPhoneForm(settings: any) {
+    this.deskPhoneForm.patchValue({
+      kot_desk_ph_number: settings?.kot_desk_ph_number || '',
+      hk_desk_ph_number: settings?.hk_desk_ph_number || '',
+      fn_desk_ph_number: settings?.fn_desk_ph_number || ''
+    });
+  }
+
+  private setDeskPhoneEnabled(enabled: boolean) {
+    const method = enabled ? 'enable' : 'disable';
+    this.deskPhoneForm.controls['kot_desk_ph_number'][method]();
+    this.deskPhoneForm.controls['hk_desk_ph_number'][method]();
+    this.deskPhoneForm.controls['fn_desk_ph_number'][method]();
+  }
+
+  loadDeskPhoneData() {
+    const requestBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: {
+        find: {
+          customer_member_id: this.memberId
+        }
+      }
+    };
+    this.hotelEnrollmentTabviewService.getCustomerById(requestBody).subscribe(
+      (resp: any) => {
+        if (resp.success === 1 && resp.status_code === 200 && resp.result.data.length > 0) {
+          this.patchDeskPhoneForm(resp.result.data[0]?.settings);
+        } else {
+          this.deskPhoneForm.reset();
+        }
+        this.setDeskPhoneEnabled(true);
+        this.isDeskPhoneModalOpen = true;
+        this.updateBodyScrollLock();
+      },
+      () => {
+        this.deskPhoneForm.reset();
+        this.setDeskPhoneEnabled(true);
+        this.isDeskPhoneModalOpen = true;
+        this.updateBodyScrollLock();
+      }
+    );
+  }
+
+  closeDeskPhoneModal() {
+    this.isDeskPhoneModalOpen = false;
+    this.isDeskPhoneViewMode = false;
+    this.validateDeskPhoneForm = false;
+    if (this.deskPhoneForm) {
+      this.setDeskPhoneEnabled(true);
+    }
+    this.updateBodyScrollLock();
+  }
+
+  saveDeskPhone() {
+    if (this.isDeskPhoneViewMode) return;
+    this.validateDeskPhoneForm = true;
+
+    if (this.deskPhoneForm.invalid) {
+      this.deskPhoneForm.markAllAsTouched();
+      return;
+    }
+
+    const deskPhoneValue = this.deskPhoneForm.getRawValue();
+    const requestBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: {
+        find: {
+          customer_member_id: this.memberId
+        }
+      }
+    };
+
+    this.hotelEnrollmentTabviewService.getCustomerById(requestBody).subscribe(
+      (resp: any) => {
+        if (resp.success === 1 && resp.status_code === 200 && resp.result.data.length > 0) {
+          const existingData = resp.result.data[0];
+          if (!existingData.settings) {
+            existingData.settings = {};
+          }
+          const mergedSettings = {
+            ...existingData.settings,
+            kot_desk_ph_number: deskPhoneValue.kot_desk_ph_number,
+            hk_desk_ph_number: deskPhoneValue.hk_desk_ph_number,
+            fn_desk_ph_number: deskPhoneValue.fn_desk_ph_number
+          };
+          const updateRequestBody = {
+            domain_name: DOMAIN_NAME,
+            user_id: USER_ID,
+            payload: {
+              customer_update: {
+                settings: mergedSettings
+              }
+            },
+            extras: {
+              find: {
+                customer_member_id: this.memberId
+              }
+            }
+          };
+          this.hotelEnrollmentTabviewService.updateCustomer(updateRequestBody).subscribe(
+            (updateResp: any) => {
+              if (updateResp.success === 1 && updateResp.status_code === 200) {
+                this.alertService.success('Desk phone numbers saved successfully!', this.options);
+                this.closeDeskPhoneModal();
+              } else {
+                const message = updateResp?.message || 'Something went wrong while saving desk phone numbers.';
+                this.alertService.error(message, this.options);
+              }
+            },
+            () => this.alertService.error('Error while saving desk phone numbers!', this.options)
+          );
+        } else {
+          this.alertService.error('No existing settings found!', this.options);
+        }
+      },
+      () => this.alertService.error('Something went wrong while fetching existing settings!', this.options)
+    );
+  }
+
+  getFoodTimingSettings() {
+    const requestBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: {
+        find: {
+          customer_member_id: this.memberId
+        }
+      }
+    };
+    this.hotelEnrollmentTabviewService.getCustomerById(requestBody).subscribe(
+      (resp: any) => {
+        if (resp.success === 1 && resp.status_code === 200 && resp.result.data.length > 0) {
+          this.patchFoodTimingForm(resp.result.data[0]?.settings?.food_timing);
+        }
+      },
+      (err: any) => {
+        console.error('Error loading food timing settings:', err);
+      }
+    );
+  }
+
+  openFoodTimingModal() {
+    this.validateFoodTimingForm = false;
+    this.loadFoodTimingData();
+  }
+
+  private patchFoodTimingForm(foodTiming: any) {
+    this.foodTimingForm.patchValue({
+      breakfast: foodTiming?.breakfast || '',
+      lunch: foodTiming?.lunch || '',
+      dinner: foodTiming?.dinner || ''
+    });
+  }
+
+  loadFoodTimingData() {
+    const requestBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: {
+        find: {
+          customer_member_id: this.memberId
+        }
+      }
+    };
+    this.hotelEnrollmentTabviewService.getCustomerById(requestBody).subscribe(
+      (resp: any) => {
+        if (resp.success === 1 && resp.status_code === 200 && resp.result.data.length > 0) {
+          this.patchFoodTimingForm(resp.result.data[0]?.settings?.food_timing);
+        } else {
+          this.foodTimingForm.reset();
+        }
+        this.isFoodTimingModalOpen = true;
+        this.updateBodyScrollLock();
+      },
+      () => {
+        this.foodTimingForm.reset();
+        this.isFoodTimingModalOpen = true;
+        this.updateBodyScrollLock();
+      }
+    );
+  }
+
+  closeFoodTimingModal() {
+    this.isFoodTimingModalOpen = false;
+    this.validateFoodTimingForm = false;
+    this.updateBodyScrollLock();
+  }
+
+  saveFoodTiming() {
+    this.validateFoodTimingForm = true;
+
+    if (this.foodTimingForm.invalid) {
+      this.foodTimingForm.markAllAsTouched();
+      return;
+    }
+
+    const foodTimingValue = this.foodTimingForm.getRawValue();
+    const requestBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: {
+        find: {
+          customer_member_id: this.memberId
+        }
+      }
+    };
+
+    this.hotelEnrollmentTabviewService.getCustomerById(requestBody).subscribe(
+      (resp: any) => {
+        if (resp.success === 1 && resp.status_code === 200 && resp.result.data.length > 0) {
+          const existingData = resp.result.data[0];
+          if (!existingData.settings) {
+            existingData.settings = {};
+          }
+          const mergedSettings = {
+            ...existingData.settings,
+            food_timing: {
+              breakfast: foodTimingValue.breakfast,
+              lunch: foodTimingValue.lunch,
+              dinner: foodTimingValue.dinner
+            }
+          };
+          const updateRequestBody = {
+            domain_name: DOMAIN_NAME,
+            user_id: USER_ID,
+            payload: {
+              customer_update: {
+                settings: mergedSettings
+              }
+            },
+            extras: {
+              find: {
+                customer_member_id: this.memberId
+              }
+            }
+          };
+          this.hotelEnrollmentTabviewService.updateCustomer(updateRequestBody).subscribe(
+            (updateResp: any) => {
+              if (updateResp.success === 1 && updateResp.status_code === 200) {
+                this.alertService.success('Food timing saved successfully!', this.options);
+                this.closeFoodTimingModal();
+              } else {
+                const message = updateResp?.message || 'Something went wrong while saving food timing.';
+                this.alertService.error(message, this.options);
+              }
+            },
+            () => this.alertService.error('Error while saving food timing!', this.options)
+          );
+        } else {
+          this.alertService.error('No existing settings found!', this.options);
+        }
+      },
+      () => this.alertService.error('Something went wrong while fetching existing settings!', this.options)
+    );
+  }
+
   saveSosNumber() {
-    if (this.isSosViewMode || !this.canModifySystemSettings) return;
+    if (this.isSosViewMode) return;
     this.validateSosForm = true;
 
     if (this.sosForm.invalid) {

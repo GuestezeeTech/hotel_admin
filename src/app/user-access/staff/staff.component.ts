@@ -93,6 +93,9 @@ export class StaffComponent implements OnInit {
   };
   memberId: any;
   memberIdDisplay: any;
+  roleList: any[] = [];
+  existingStaff: any = null;
+  staffRoleId: number | null = null;
   hierarchyDropdownOpen: boolean = false;
   selectedHierarchies: any[] = [];
   officerDropdownOpen: boolean = false;
@@ -151,6 +154,7 @@ export class StaffComponent implements OnInit {
       room_no: this.formBuilder.control('', [Validators.required]),
       is_staff_active: this.formBuilder.control(true),
       at_desk: this.formBuilder.control('', [Validators.required]),
+      role_id: this.formBuilder.control(null, [Validators.required]),
       password: this.formBuilder.control(''),
       //  Newly commented because no need of fo desk 
       // front_office_desk: this.formBuilder.control(false)
@@ -204,6 +208,7 @@ export class StaffComponent implements OnInit {
     try {
       // Wait for customer data to be fetched
       await this.getCustomerById();
+      this.getRoles();
       // Only after getting customer info, handle edit/add logic
       if (this.router.snapshot.params['id'] !== undefined) {
         this.staffId = this.router.snapshot.params['id'];
@@ -1720,6 +1725,7 @@ export class StaffComponent implements OnInit {
             created_by_name: this.createdByName,
             is_staff_active: formValues.is_staff_active,
             member_id: this.memberId,
+            role_id: formValues.role_id,
             higher_level_officer: officerDetails,
             password: formValues.password,
             // Newly commnted for is_available because while logging in the staff will be available while logging out it will be unavailable
@@ -1842,6 +1848,7 @@ export class StaffComponent implements OnInit {
         }
         // Build payload only if phone validation passed
         const payloadData: any = {
+          ...(this.existingStaff || {}),
           email: formValues.email,
           full_name: formValues.full_name,
           phone_number: formValues.phone_number,
@@ -1849,20 +1856,16 @@ export class StaffComponent implements OnInit {
           higher_level_hierarchy: formValues.higher_level_hierarchy,
           at_desk: formValues.at_desk,
           hierarchy: formValues.hierarchy,
-          // Newly changed for shift time
-          // shift_time: this.selectedShiftTimes.length ? this.selectedShiftTimes : null,
           shift_time: this.selectedShiftTimes.length ? this.selectedShiftTimes.map(st => ({ label: st.label })) : null,
-          // room_no: this.selectedRooms.length ? this.selectedRooms : null,
           room_no: this.selectedRooms.length ? this.selectedRooms.map(st => ({ label: st.label })) : null,
           is_staff_active: formValues.is_staff_active,
+          role_id: formValues.role_id,
           created_by_id: this.createdById,
           created_by_name: this.createdByName,
           password: this.password,
-          // higher_level_officer: officerDetails
-          //  Newly commented because no need of fo desk 
-          // front_office_desk: formValues.front_office_desk
-          // End of newly commented code
         };
+        delete payloadData._id;
+        delete payloadData.id;
         // only include password if changed
         if (formValues.password) {
           payloadData.password = formValues.password;
@@ -2028,6 +2031,37 @@ export class StaffComponent implements OnInit {
   //   );
   // }
 
+  getRoles() {
+    const memberId = this.memberId || this.localStorageService.get('MemberId');
+    if (!memberId || memberId === 'undefined' || memberId === 'null') {
+      return;
+    }
+    this.staffService.getAllRoles(memberId).subscribe({
+      next: (resp: any) => {
+        const roles = resp?.result?.data || [];
+        this.roleList = roles
+          .filter((role: any) => role.is_active !== false)
+          .map((role: any) => ({
+            ...role,
+            id: Number(role.id),
+            name: role.name || role.role_name
+          }));
+        this.applySavedRole();
+      },
+      error: (err) => {
+        console.error('Error fetching roles', err);
+        this.roleList = [];
+      }
+    });
+  }
+
+  applySavedRole() {
+    if (this.staffRoleId == null) {
+      return;
+    }
+    this.staffForm.patchValue({ role_id: this.staffRoleId });
+  }
+
   setInitialValues(staffId: any) {
     // console.log('Staff ID:', staffId, this.memberId);
     this.staffId = staffId;
@@ -2045,6 +2079,9 @@ export class StaffComponent implements OnInit {
         this.isPageLoading = false; //newly added for loading
         if (resp.success === 1 && resp.status_code === 200) {
           const respData = resp.result.data[0];
+          this.existingStaff = respData;
+          const savedRoleId = respData?.role_id ?? respData?.['role-id'];
+          this.staffRoleId = savedRoleId != null && savedRoleId !== '' ? Number(savedRoleId) : null;
           // Patch basic info
           this.staffForm.patchValue({
             email: respData?.email,
@@ -2052,10 +2089,9 @@ export class StaffComponent implements OnInit {
             phone_number: respData?.phone_number,
             is_staff_active: respData?.is_staff_active,
             at_desk: !!respData?.at_desk,
-            //  Newly commented because no need of fo desk 
-            // front_office_desk: respData?.front_office_desk
-            // End of newly commented code
+            role_id: this.staffRoleId,
           });
+          this.applySavedRole();
           // Password handling
           if (respData?.password) {
             this.password = respData?.password;

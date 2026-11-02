@@ -241,6 +241,10 @@ export class FeaturesListComponent implements OnInit, OnDestroy {
           this.loaderService.emitComplete();
           if (resp) {
             this.customerdata = resp.result.data[0]; // store customer data
+            const profileMemberId = (this.customerdata?.customer_member_id || '').trim();
+            if (profileMemberId) {
+              this.member_id = profileMemberId;
+            }
             // console.log('Customer data:', this.customerdata);
             this.initializeRoomsFromCustomer();
             this.getMenuOutlets();
@@ -405,21 +409,25 @@ export class FeaturesListComponent implements OnInit, OnDestroy {
   }
 
   getMenuOutlets() {
-    if (!this.customerdata?.Hotel_Code || !this.member_id) {
-      console.error('Cannot fetch outlets: Hotel_Code or member_id missing');
+    if (!this.member_id) {
+      console.error('Cannot fetch outlets: member_id missing');
       this.menuOutlets = [];
       return;
     }
+    const find: Record<string, string> = {
+      member_id: String(this.member_id).trim()
+    };
+    if (this.customerdata?.Hotel_Code) {
+      find['Hotel_Code'] = this.customerdata.Hotel_Code;
+    }
+    if (this.passedOutletType) {
+      find['outlet_type'] = this.passedOutletType;
+    }
     const requestBody = {
-      // domain_name: 'https://www.guestezee.com',
-      // user_id: 12,
       domain_name: DOMAIN_NAME,
       user_id: USER_ID,
       extras: {
-        find: {
-          Hotel_Code: this.customerdata.Hotel_Code,
-          outlet_type: this.passedOutletType
-        },
+        find,
         pagination: false,
         sorting: false
       }

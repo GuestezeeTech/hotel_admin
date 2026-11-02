@@ -66,7 +66,7 @@ export class ProfileComponent implements OnInit {
   imageName: string = '';
   enableEdit: boolean = true;
   imgFile: File | null = null;
-  // profile_image: string | null = '../../assets/images/guestezee/profile.png';
+  // profile_image: string | null = 'assets/images/guestezee/profile.png';
   profile_image: string | null = 'https://guestezee.s3.ap-south-2.amazonaws.com/GuestEzee/Brand/ChatGPT_Image_Jun_19__2026__01_25_37_PM.webp';
 
 
@@ -102,7 +102,7 @@ export class ProfileComponent implements OnInit {
         this.mail = this.localService.get('UserEmail');
         //console.log("mail", this.mail);
         const profileImage = data?.profile_image?.trim() || null;
-        // this.profile_image = profileImage || '../../assets/images/guestezee/profile.png';
+        // this.profile_image = profileImage || 'assets/images/guestezee/profile.png';
         this.profile_image = profileImage || 'https://guestezee.s3.ap-south-2.amazonaws.com/GuestEzee/Brand/ChatGPT_Image_Jun_19__2026__01_25_37_PM.webp';
         let profileName: string;
         if (this.customerType === 'Staff') {
@@ -144,7 +144,7 @@ export class ProfileComponent implements OnInit {
     if (this.customerType === 'Staff') {
       this.userRegistartionForm = this.formBuilder.group({
         full_name: ['', [Validators.maxLength(40), Validators.pattern("^[a-zA-Z][a-z A-Z]*$")]],
-        // profile_image: '../../assets/images/guestezee/profile.png',
+        // profile_image: 'assets/images/guestezee/profile.png',
         profile_image: 'https://guestezee.s3.ap-south-2.amazonaws.com/GuestEzee/Brand/ChatGPT_Image_Jun_19__2026__01_25_37_PM.webp',
         imageFile: [''],
       });
@@ -153,7 +153,7 @@ export class ProfileComponent implements OnInit {
       this.userRegistartionForm = this.formBuilder.group({
         first_name: ['', [Validators.maxLength(40), Validators.pattern("^[a-zA-Z][a-z A-Z]*$")]],
         last_name: ['', [Validators.maxLength(40), Validators.pattern("^[a-zA-Z][a-z A-Z]*$")]],
-        // profile_image: '../../assets/images/guestezee/profile.png',
+        // profile_image: 'assets/images/guestezee/profile.png',
         profile_image: 'https://guestezee.s3.ap-south-2.amazonaws.com/GuestEzee/Brand/ChatGPT_Image_Jun_19__2026__01_25_37_PM.webp',
         imageFile: [''],
       });
@@ -287,7 +287,7 @@ export class ProfileComponent implements OnInit {
   }
 
   deleteImage() {
-    // this.profile_image = '../../assets/images/guestezee/profile.png';
+    // this.profile_image = 'assets/images/guestezee/profile.png';
     this.profile_image = 'https://guestezee.s3.ap-south-2.amazonaws.com/GuestEzee/Brand/ChatGPT_Image_Jun_19__2026__01_25_37_PM.webp';
     this.profileUpdate(this.profile_image, "Profile image deleted successfully!");
     this.userRegistartionForm.controls['imageFile'].setErrors({ 'type': false });
@@ -309,7 +309,7 @@ export class ProfileComponent implements OnInit {
   //     if (resp.success === 1 && resp.status_code === 200) {
   //       this.adminUserData = {
   //         ...resp.result.data[0],
-  //         profile_image: resp.result.data[0]?.profile_image ?? '../../assets/images/guestezee/profile.png'
+  //         profile_image: resp.result.data[0]?.profile_image ?? 'assets/images/guestezee/profile.png'
   //       };
 
   //       if (!this.adminUserData) {
@@ -331,10 +331,10 @@ export class ProfileComponent implements OnInit {
   //         const firstName = this.adminUserData.first_name?.trim();
   //         const lastName = this.adminUserData.last_name?.trim();
   //         const profileName = (firstName || lastName) ? `${firstName || ''} ${lastName || ''}`.trim() : (this.adminUserData.phone_number);
-  //         const profileImage = this.adminUserData.profile_image?.trim() || '../../assets/images/guestezee/profile.png';
+  //         const profileImage = this.adminUserData.profile_image?.trim() || 'assets/images/guestezee/profile.png';
 
   //         this.profileService.updateProfileName(profileName);
-  //         // this.profile_image = this.adminUserData.profile_image || '../../assets/images/guestezee/profile.png';
+  //         // this.profile_image = this.adminUserData.profile_image || 'assets/images/guestezee/profile.png';
   //         this.profileService.updateProfileImage(profileImage);
   //          // this.profileService.updateProfileName(this.adminUserData.first_name + ' ' + this.adminUserData.last_name);
 

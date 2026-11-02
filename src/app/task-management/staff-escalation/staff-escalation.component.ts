@@ -27,7 +27,6 @@ export class StaffEscalatedComponent {
   at_desk: any;
   // Newly added for find
   member_id: any;
-  lowerStaffIds: number[] = [];
   hotelId: any;
   memberId: any;
   customerType: any
@@ -51,22 +50,6 @@ export class StaffEscalatedComponent {
 
   async ngOnInit() {
     this.customerType = this.localService.get('CustomerType');
-    
-    // console.log('Hotel Id:', this.hotelId);
-    // this.member_id = this.localService.get('MemberId');
-    const storedIds = this.localService.get('allLowerStaffIds');
-    // console.log('Stored Lower Staff Ids(Staff escalation):', storedIds);
-    if (storedIds) {
-      try {
-        this.lowerStaffIds = JSON.parse(storedIds);  // works if stored properly
-      } catch {
-        // fallback: maybe it was stored as "389, 390"
-        this.lowerStaffIds = storedIds.split(',').map((id: string) => Number(id.trim()));
-      }
-    }
-    // console.log('Base Staff Ids:', this.lowerStaffIds);
-    // Newly added for getting member id for customer type
-    // this.hotelId = Number(this.localService.get('UserId'));
     this.memberId = this.localService.get('MemberId');
     // console.log('Member ID from staff escalation component:', this.memberId);
     if (this.customerType == 'Customer') {
@@ -81,26 +64,6 @@ export class StaffEscalatedComponent {
       this.member_id = this.localService.get('MemberId');
     }
     this.getAllTask();
-  }
-
-  // Helper function to normalize escalated_from_id (can be array or single value)
-  private normalizeEscalationId(value: any): number[] {
-    if (value === null || value === undefined) {
-      return [];
-    }
-    if (Array.isArray(value)) {
-      return value.map((id: any) => Number(id)).filter((id: any) => !isNaN(id));
-    }
-    const numValue = Number(value);
-    return isNaN(numValue) ? [] : [numValue];
-  }
-
-  // Helper function to check if any lowerStaffId is in escalated_from_id (handles both array and single value)
-  private isAnyLowerStaffIdInEscalatedFrom(escalatedFromId: any, lowerStaffIds: number[]): boolean {
-    // console.log("Escalated From Id's(Staff Escalation):", escalatedFromId);
-    const normalizedIds = this.normalizeEscalationId(escalatedFromId);
-    // console.log('Normalized Escalated From Id(Staff Escalation):', normalizedIds);
-    return normalizedIds.some((id: number) => lowerStaffIds.includes(id));
   }
 
   // For modal in task component
@@ -174,22 +137,17 @@ export class StaffEscalatedComponent {
         }
       }
     };
+    const roleName = (this.localService.get('roleName') || '').toString().trim().toLowerCase();
+    const isAdmin = roleName === 'admin';
     this.isLoading = true;
     this.taskManagementService.getAllTask(requestBody).subscribe({
       next: (response) => {
         if (response?.success) {
           this.escalatedTasks = (response?.result?.data || [])
             .reduce((acc: any[], task: any) => {
-              let matchedEscalations: any[] = [];
-              if (customerType == 'Staff') {
-                // Updated to handle escalated_from_id as array or single value
-                matchedEscalations = (task.time_line || []).filter((t: any) =>
-                  t.status === "Escalated" &&
-                  this.isAnyLowerStaffIdInEscalatedFrom(t.escalated_from_id, this.lowerStaffIds)
-                );
-                // Old code - only handled single value:
-                // this.lowerStaffIds.includes(Number(t.escalated_from_id))
-                // Newly added for department(Not only on id but also on department)
+              const timeline = Array.isArray(task?.time_line) ? task.time_line : [];
+              const matchedEscalations = timeline.filter((t: any) => t?.status === 'Escalated');
+              if (customerType == 'Staff' && !isAdmin) {
                 // Filter by department matching service category.
                 // Skip this filter entirely if logged-in user's department is "Default".
                 const isDefaultDept = Array.isArray(department)
@@ -202,19 +160,16 @@ export class StaffEscalatedComponent {
                   const serviceCategory = task.service.category;
                   const departmentMatches = department.includes(serviceCategory);
                   if (!departmentMatches) {
-                    // If department doesn't match service category, don't include this task
                     return acc;
                   }
                 }
-                // Ended
-              } else {
-                matchedEscalations = (task.time_line || []).filter((t: any) =>
-                  t.status === "Escalated"
-                );
               }
-              // Push only the most recent matched escalation to avoid duplicate entries for the same task
-              if (matchedEscalations.length > 0) {
-                const esc = matchedEscalations[matchedEscalations.length - 1];
+              // Admin: one row for every Escalated entry in time_line.
+              // Other roles: only the latest Escalated entry.
+              const escalationsToShow = isAdmin
+                ? matchedEscalations
+                : (matchedEscalations.length > 0 ? [matchedEscalations[matchedEscalations.length - 1]] : []);
+              escalationsToShow.forEach((esc: any) => {
                 acc.push({
                   ...task,
                   escalated_from_id: esc.escalated_from_id,
@@ -222,7 +177,7 @@ export class StaffEscalatedComponent {
                   escalated_to_name: esc.escalated_to_name,
                   escalated_time: esc.time
                 });
-              }
+              });
               return acc;
             }, []);
           // Ensure newest staff-escalation tasks appear first

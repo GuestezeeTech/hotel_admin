@@ -1,0 +1,227 @@
+<div class="hk-root">
+  <section class="hk-module" [class.active]="activeView === 'overview'">
+    <div class="heading">
+      <div>
+        <h1>Housekeeping Operations Dashboard</h1>
+        <p>Monitor room cleaning, guest amenities, laundry and task fulfilment</p>
+      </div>
+      <div class="live">● Live Updates　 <span class="clock-muted">{{ liveClock }}　<button type="button" class="refresh-btn" (click)="refreshPerformance()" [disabled]="loadingPerformance" aria-label="Refresh">⟳</button></span></div>
+    </div>
+
+    <div class="section-label">Housekeeping performance</div>
+    <p class="load-hint muted" *ngIf="performanceLoadError">{{ performanceLoadError }}</p>
+    <div class="metrics">
+      <div class="card metric">
+        <div class="label">Total Requests</div>
+        <strong>{{ loadingPerformance ? '…' : performanceCounts.total }}</strong>
+        <small>Completed + Processing + Escalated<ng-container *ngIf="performanceCounts.awaiting"> + {{ performanceCounts.awaiting }} awaiting</ng-container> (excl. cancelled)</small>
+      </div>
+      <div class="card metric good">
+        <div class="label">Completed</div>
+        <strong>{{ loadingPerformance ? '…' : performanceCounts.completed }}</strong>
+        <small>Completed &amp; Delivered · {{ performanceCounts.completedPct }}%</small>
+      </div>
+      <div class="card metric blue">
+        <div class="label">Processing</div>
+        <strong>{{ loadingPerformance ? '…' : performanceCounts.processing }}</strong>
+        <small>Status: Processing</small>
+      </div>
+      <div class="card metric bad">
+        <div class="label">Escalated</div>
+        <strong>{{ loadingPerformance ? '…' : performanceCounts.escalated }}</strong>
+        <small>Requires supervisor attention</small>
+      </div>
+      <div class="card metric warn">
+        <div class="label">Delayed Tasks</div>
+        <strong>{{ loadingPerformance ? '…' : performanceCounts.delayed }}</strong>
+        <small>SLA flag · may overlap completed/processing</small>
+      </div>
+    </div>
+
+    <div class="statuses">
+      <button type="button" class="status" (click)="goModule('Tasks', 'Processing')">
+        <span class="metric-icon">↻</span>
+        <div><b>{{ loadingPerformance ? '…' : performanceCounts.processing }}</b><small>Processing · View active tasks</small></div>
+      </button>
+      <button type="button" class="status done" (click)="goModule('Tasks', 'Completed')">
+        <span>✓</span>
+        <div><b>{{ loadingPerformance ? '…' : performanceCounts.completed }}</b><small>Delivered / Completed · View completed tasks</small></div>
+      </button>
+      <button type="button" class="status alert" (click)="goModule('Escalations')">
+        <span>!</span>
+        <div><b>{{ loadingPerformance ? '…' : performanceCounts.escalated }}</b><small>Escalated · Requires action</small></div>
+      </button>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="panel-head">
+          <h2>Housekeeping Task Board</h2>
+          <button type="button" class="outline" (click)="goModule('Tasks')">View All Tasks ›</button>
+        </div>
+        <div class="filters">
+          <select [(ngModel)]="catFilter" (ngModelChange)="applyHomeFilters()">
+            <option value="">All Services</option>
+            <option *ngFor="let c of categoryOptions" [value]="c">{{ c }}</option>
+          </select>
+          <select [(ngModel)]="statusFilter" (ngModelChange)="applyHomeFilters()">
+            <option value="">All Statuses</option>
+            <option *ngFor="let opt of statusFilterOptions" [value]="opt.value">{{ opt.label }}</option>
+          </select>
+          <select [(ngModel)]="staffFilter" (ngModelChange)="applyHomeFilters()">
+            <option value="">All Staff</option>
+            <option *ngFor="let s of staffOptions" [value]="s">{{ s }}</option>
+          </select>
+          <input [(ngModel)]="roomFilter" (ngModelChange)="applyHomeFilters()" placeholder="Room no." />
+          <input [(ngModel)]="guestFilter" (ngModelChange)="applyHomeFilters()" placeholder="Guest name" />
+        </div>
+        <div class="scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Request ID</th>
+                <th>Room</th>
+                <th>Guest</th>
+                <th>Department / Service</th>
+                <th>Assigned Staff</th>
+                <th>Status</th>
+                <th>Response</th>
+                <th>ETA / Delay</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngIf="loadingPerformance">
+                <td colspan="9" class="empty-cell">Loading tasks…</td>
+              </tr>
+              <tr *ngIf="!loadingPerformance && !filteredHomeTasks.length">
+                <td colspan="9" class="empty-cell">{{ tasksLoadError || 'No housekeeping tasks for this hotel.' }}</td>
+              </tr>
+              <tr *ngFor="let t of filteredHomeTasks">
+                <td class="id">{{ t.id }}</td>
+                <td>{{ t.room }}</td>
+                <td>{{ t.guest }}</td>
+                <td>{{ t.cat }} · {{ t.service }}</td>
+                <td>{{ t.staff }}</td>
+                <td>
+                  <span class="pill" [ngClass]="statusPillClass(t.apiStatus)">{{ t.apiStatus }}</span>
+                </td>
+                <td>{{ t.response }}</td>
+                <td>{{ t.eta }}</td>
+                <td>
+                  <button type="button" class="link" (click)="viewTask(t.id)">View ›</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="muted count-line">Showing {{ filteredHomeTasks.length }} housekeeping tasks</div>
+      </div>
+
+      <div class="stack">
+        <div class="card">
+          <div class="panel-head">
+            <h2>Services Overview</h2>
+            <span class="muted">Today</span>
+          </div>
+          <div class="bars" *ngIf="categoryOverview.length; else noCategoryBars">
+            <div
+              class="barrow"
+              [class.barrow-gold]="row.barClass === 'barrow-gold'"
+              [class.barrow-blue]="row.barClass === 'barrow-blue'"
+              *ngFor="let row of categoryOverview"
+            >
+              <span>{{ row.label }}</span>
+              <div class="track"><i [style.width.%]="row.widthPct || 0"></i></div>
+              <b>{{ loadingPerformance ? '…' : row.count }}</b>
+            </div>
+          </div>
+          <ng-template #noCategoryBars>
+            <p class="muted count-line">No services loaded for this member.</p>
+          </ng-template>
+        </div>
+        <div class="card">
+          <h2 class="card-title">Quick Actions</h2>
+          <div class="quick">
+            <button type="button" (click)="quickAction('Assign Task')">Assign Task <b>＋</b></button>
+            <button type="button" (click)="quickAction('Room Cleaning Request')">Room Cleaning <b>▣</b></button>
+            <button type="button" (click)="quickAction('Amenities Request')">Amenities <b>♧</b></button>
+            <button type="button" (click)="quickAction('Laundry Request')">Laundry <b>▦</b></button>
+          </div>
+        </div>
+        <div class="card">
+          <h2 class="card-title">Escalation Summary</h2>
+          <div class="twocol">
+            <div><span class="muted">Level 1 · Supervisor</span><h2>{{ loadingPerformance ? '…' : escalationSummary.level1 }}</h2></div>
+            <div><span class="muted">Level 2 · Dept. Manager</span><h2>{{ loadingPerformance ? '…' : escalationSummary.level2 }}</h2></div>
+            <div><span class="muted">Level 3 · GM</span><h2>{{ loadingPerformance ? '…' : escalationSummary.level3 }}</h2></div>
+            <div><span class="muted">Avg. Resolution</span><h2>{{ loadingPerformance ? '…' : escalationSummary.avgResolutionMin }}</h2></div>
+          </div>
+        </div>
+        <div class="card wide">
+          <h2 class="card-title">Housekeeping Focus Areas</h2>
+          <div class="focus">
+            <div>Monitor room cleaning turnaround time</div>
+            <div>Respond to extra towel and iron box requests</div>
+            <div>Track laundry fulfilment and delays</div>
+            <div>Resolve unassigned tasks before escalation</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="hk-module" [class.active]="activeView === 'module'">
+    <div class="heading">
+      <div>
+        <h1>{{ activeModule }}</h1>
+        <p>{{ activeModule }} · Housekeeping department</p>
+      </div>
+      <button type="button" class="outline" (click)="goOverview()">← Back to Overview</button>
+    </div>
+    <div class="module-card">
+      <div class="panel-head">
+        <h2>{{ activeModule }}</h2>
+        <button type="button" class="outline" (click)="exportCsv()">Export CSV ↓</button>
+      </div>
+      <div class="summary" *ngIf="moduleSummary.length">
+        <div *ngFor="let s of moduleSummary">
+          <small>{{ s.label }}</small>
+          <b>{{ s.value }}</b>
+        </div>
+      </div>
+      <div class="toolbar">
+        <input [(ngModel)]="moduleSearch" [placeholder]="'Search ' + activeModule.toLowerCase() + '...'" />
+        <select><option>Today</option><option>Yesterday</option><option>This Week</option></select>
+        <select><option>All Staff</option><option *ngFor="let s of staffOptions">{{ s }}</option></select>
+      </div>
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr>
+              <th *ngFor="let h of moduleHeads">{{ h }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="!filteredModuleRows.length">
+              <td [attr.colspan]="moduleHeads.length || 1" class="empty-cell">No records available</td>
+            </tr>
+            <tr *ngFor="let row of filteredModuleRows">
+              <td *ngFor="let cell of row">{{ cell }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <div class="modal" [class.show]="showModal" (click)="onModalBackdropClick($event)">
+    <div class="modal-box">
+      <h3>{{ modalTitle }}</h3>
+      <p [innerHTML]="modalHtml"></p>
+      <div class="actions">
+        <button type="button" class="primary" (click)="closeModal()">Close</button>
+      </div>
+    </div>
+  </div>
+</div>

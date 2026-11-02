@@ -179,7 +179,7 @@ export class NotificationComponent {
 
   playNotificationSound() {
     try {
-      const audio = new Audio('/assets/images/guestezee/alarm.mp3');
+      const audio = new Audio('assets/images/guestezee/alarm.mp3');
       audio.volume = 1.0;
       audio.play().then(() => {
         // console.log('Notification sound played.');

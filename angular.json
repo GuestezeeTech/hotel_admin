@@ -29,7 +29,12 @@
               "src/assets",
               "src/favicon.ico",
               "src/firebase-messaging-sw.js",
-              "src/ngsw-config.json"
+              "src/ngsw-config.json",
+              {
+                "glob": ".htaccess",
+                "input": "src/deploy",
+                "output": "/"
+              }
             ],
             "styles": [
               "src/styles.scss",
@@ -41,6 +46,7 @@
           },
           "configurations": {
             "production": {
+              "baseHref": "/hotel-registration/",
               "budgets": [
                 {
                   "type": "initial",

@@ -121,7 +121,7 @@ export class CheckoutApiService {
         "user_id": hdfcData.user_id,
         "payload": {
           "payment": {
-            "order_id": String(hdfcData.oid),
+            "order_id": String(hdfcData.oid).split('-')[0],
             "customer_id": String(hdfcData.customer_id),
             "amount": Number(hdfcData.amount).toFixed(2),
             "gateway": "ccavenue"

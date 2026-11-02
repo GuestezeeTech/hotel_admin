@@ -25,6 +25,7 @@ import { HierarchyService } from '../hierarchy/hierarchy.service';
 import { Subscription } from 'rxjs';
 import { NavigationStart } from '@angular/router';
 import { SharedDataService } from '../shared/shared-data.service';
+import { PaymentHelperService } from '../services/payment-helper.service';
 
 export let browserRefresh = false;
 
@@ -120,6 +121,22 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
     }
     if (initParams['customer_id']) {
       this.customerIdFromUrl = initParams['customer_id'];
+      // Set hotelId synchronously so getCustomerById does not race the queryParams subscribe
+      const customerIdNum = Number(initParams['customer_id']);
+      if (!isNaN(customerIdNum) && customerIdNum > 0) {
+        this.hotelId = customerIdNum;
+      }
+    }
+
+    // Payment return URLs must stay on confirmation even if the session expired mid-payment
+    if (this.isPaymentRoute()) {
+      this.localService.remove('loggedOut');
+      this.isReadyToRender = true;
+      this.isVisible = this.router.url.includes('confirmation');
+      this.iscancelVisible = this.router.url.includes('cancellation');
+      if (this.isVisible) {
+        this.currentTab = 3;
+      }
     }
 
     // Newly added for payment route id initialization
@@ -127,12 +144,10 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
       const customerId = params['customer_id'];
       if (customerId) {
         this.hotelId = Number(customerId);
+        this.customerIdFromUrl = customerId;
       }
       if (params['id']) {
         this.orderIdFromUrl = params['id'];
-      }
-      if (params['customer_id']) {
-        this.customerIdFromUrl = params['customer_id'];
       }
     });
     this.route.paramMap.subscribe(params => {
@@ -146,16 +161,17 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
     this.route.queryParams.subscribe(params => {
       const tabIndex = +params['tab'];
       const validTabIndex = !isNaN(tabIndex) && tabIndex >= 0 && tabIndex <= 3;
-      if (validTabIndex) {
-        if (tabIndex === 3) {
-          this.hierarchyTab = true;
-        }
-        // Newly added for skip auto tab check
-        this.skipAutoTabCheck = true;
-        this.isReadyToRender = true; // show tabs immediately when opening via submenu
-        this.goToTab(tabIndex, true);
+      if (!validTabIndex) {
+        return;
       }
-      // Removes tab param from URL
+      if (tabIndex === 3) {
+        this.hierarchyTab = true;
+      }
+      // Newly added for skip auto tab check
+      this.skipAutoTabCheck = true;
+      this.isReadyToRender = true; // show tabs immediately when opening via submenu
+      this.goToTab(tabIndex, true);
+      // Removes tab param from URL only when it was present
       this.router.navigate([], {
         relativeTo: this.route,
         queryParams: { tab: null },
@@ -280,7 +296,8 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
     private hierarchyService: HierarchyService,
     private serviceDetails: ServiceDetailService,
     private loginService: LoginService,
-    private sharedDataService: SharedDataService
+    private sharedDataService: SharedDataService,
+    private paymentHelperService: PaymentHelperService
   ) {
     this.router.events.subscribe(event => {
       if (event instanceof NavigationEnd) {
@@ -952,13 +969,8 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
         this.isOrderExist = false;
         this.paymentDone = false;
         this.localService.set('paymentDone', false);
-        if (err.error.statusCode === 403) {
-          // this.alertsService.error('Session Time Ot! Please login Again', this.options);
+        if (err.error?.statusCode === 403 && !this.isPaymentRoute()) {
           this.router.navigate([`/login`], { skipLocationChange: false });
-        } else if (err.error.message) {
-          // this.alertsService.error(err.error.message, this.options);
-        } else {
-          // this.alertsService.error('Something  happened. Please try again!', this.options);
         }
         this.updatePaymentStatusInfo();
         this.checkNavigationAndActivateTab();
@@ -1100,8 +1112,21 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
           // End of newly commented for payment status check
 
           // Newly added for payment status check using synchronously cached query parameters
-          const orderIdFromUrl = this.orderIdFromUrl;
-          const customerIdFromUrl = this.customerIdFromUrl;
+          // Gateway may return only customer_id — fall back to the latest confirmed paid order
+          let orderIdFromUrl = this.orderIdFromUrl;
+          const customerIdFromUrl = this.customerIdFromUrl || this.hotelId;
+          if (this.router.url.includes('confirmation') && customerIdFromUrl && !orderIdFromUrl) {
+            const latestPaid = (resp.result.data || [])
+              .filter((order: any) =>
+                (order.status === 'Order Confirmed' || order.status === 'Confirmed') &&
+                String(order.payment_status || order.payment?.payment_status || '').toLowerCase() === 'paid'
+              )
+              .sort((a: any, b: any) => Number(b.id) - Number(a.id))[0];
+            if (latestPaid?.id) {
+              orderIdFromUrl = String(latestPaid.id);
+              this.orderIdFromUrl = orderIdFromUrl;
+            }
+          }
           if (
             this.router.url.includes('confirmation') &&
             orderIdFromUrl &&
@@ -1136,43 +1161,30 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
                 console.error('sessionStorage write failed', e);
               }
 
-              const allCycles: any[] = this.orderdata.payment_split || [];
-              let nextUnpaidCycleIndex = allCycles.findIndex(cycle =>
-                cycle.installments.some((inst: any) => inst.status === "Not Paid")
+              const paidOrder = (resp.result.data || []).find((order: any) =>
+                this.sameOrderId(order?.id, orderIdFromUrl)
               );
+              if (paidOrder) {
+                this.orderdata = paidOrder;
+              }
 
-              if (nextUnpaidCycleIndex !== -1) {
-                const nextCycle = allCycles[nextUnpaidCycleIndex];
-                const nextUnpaidIndex = nextCycle.installments.findIndex((inst: any) => inst.status === "Not Paid");
-                const nextInstallment = nextCycle.installments[nextUnpaidIndex];
-
-                // Mark installment as paid
-                nextInstallment.status = "Paid";
-                nextInstallment.paid_date_time = new Date().toISOString();
-                // Update subscription_end_date
-                this.orderdata.subscription_end_date = nextInstallment.subscription_end_date;
-
-                // Update order_review to the next unpaid installment, or current if none left
-                let nextUnpaidInstallment = nextCycle.installments.find((inst: any) => inst.status === "Not Paid");
-                if (!nextUnpaidInstallment) {
-                  const futureCycle = allCycles.slice(nextUnpaidCycleIndex + 1).find(c =>
-                    c.installments.some((inst: any) => inst.status === "Not Paid")
-                  );
-                  nextUnpaidInstallment = futureCycle?.installments.find((inst: any) => inst.status === "Not Paid") || nextInstallment;
-                }
-
-                this.orderdata.order_review.order_summary = {
-                  sub_total: Number(nextUnpaidInstallment.sub_total.toFixed(2)),
-                  tax: Number(nextUnpaidInstallment.tax.toFixed(2)),
-                  order_total_amount: Number(nextUnpaidInstallment.order_total_amount.toFixed(2))
-                };
-
+              const coveredInstallment = this.applyPaidAmountToSplit(this.orderdata);
+              if (coveredInstallment) {
+                // Keep first registration end date; later payments extend via RoomPricing per-day
+                await this.applyRoomPricingSubscriptionEnd(
+                  this.orderdata,
+                  (resp.result.data || []).filter((order: any) =>
+                    !this.sameOrderId(order?.id, this.orderdata?.id) &&
+                    (order.status === 'Order Confirmed' || order.status === 'Confirmed')
+                  )
+                );
+                coveredInstallment.subscription_end_date = this.orderdata.subscription_end_date;
                 shouldUpdateOrder = true;
                 isPaymentProcessed = true;
-                paymentProcessedInstallment = nextInstallment;
+                paymentProcessedInstallment = coveredInstallment;
               }
             }
-          } else {
+          } else if (!this.router.url.includes('confirmation')) {
             // Clear payment session keys on other registration/billing pages to allow new transactions
             try {
               const keysToRemove: string[] = [];
@@ -1496,6 +1508,298 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
   //   console.log('Pay Now Button:', buttonState);
   // }
 
+  private sameOrderId(orderId: any, urlId: any): boolean {
+    const left = String(orderId ?? '').split('-')[0];
+    const right = String(urlId ?? '').split('-')[0];
+    return !!left && left === right;
+  }
+
+  private toCents(value: any): number {
+    const amount = Number(value);
+    if (!Number.isFinite(amount)) {
+      return 0;
+    }
+    return Math.round((amount + Number.EPSILON) * 100);
+  }
+
+  private fromCents(cents: number): number {
+    return Number((cents / 100).toFixed(2));
+  }
+
+  private parseSubscriptionDate(value: string): Date | null {
+    const parts = String(value || '').split('-').map(Number);
+    if (parts.length !== 3 || parts.some(part => !Number.isFinite(part) || part <= 0)) {
+      return null;
+    }
+    return new Date(parts[2], parts[1] - 1, parts[0]);
+  }
+
+  private formatSubscriptionDate(date: Date): string {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    return `${day}-${month}-${date.getFullYear()}`;
+  }
+
+  private addMonths(date: Date, months: number): Date {
+    const next = new Date(date.getFullYear(), date.getMonth(), 1);
+    next.setMonth(next.getMonth() + months);
+    const lastDay = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate();
+    next.setDate(Math.min(date.getDate(), lastDay));
+    return next;
+  }
+
+  private addDays(date: Date, days: number): Date {
+    const next = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    next.setDate(next.getDate() + days);
+    return next;
+  }
+
+  private daysBetween(start: Date, end: Date): number {
+    const ms = Date.UTC(end.getFullYear(), end.getMonth(), end.getDate())
+      - Date.UTC(start.getFullYear(), start.getMonth(), start.getDate());
+    return Math.max(0, Math.round(ms / 86400000));
+  }
+
+  private cycleStep(name: string): { count: number; months: number } {
+    const key = (name || '').toLowerCase();
+    if (key.includes('half')) {
+      return { count: 2, months: 6 };
+    }
+    if (key === 'full' || key.includes('annual') || key.includes('yearly')) {
+      return { count: 1, months: 12 };
+    }
+    return { count: 4, months: 3 };
+  }
+
+  private findNextUnpaidInstallment(cycles: any[]): { cycle: any; cycleIndex: number; installment: any; index: number } | null {
+    for (let cycleIndex = 0; cycleIndex < cycles.length; cycleIndex++) {
+      const cycle = cycles[cycleIndex];
+      const installments = cycle?.installments || [];
+      const index = installments.findIndex((inst: any) => inst?.status === 'Not Paid');
+      if (index !== -1) {
+        return { cycle, cycleIndex, installment: installments[index], index };
+      }
+    }
+    return null;
+  }
+
+  private installmentPeriodStart(cycles: any[], cycleIndex: number, installmentIndex: number, periodEnd: Date | null): Date | null {
+    if (installmentIndex > 0) {
+      return this.parseSubscriptionDate(cycles[cycleIndex].installments[installmentIndex - 1]?.subscription_end_date);
+    }
+    for (let index = cycleIndex - 1; index >= 0; index--) {
+      const installments = cycles[index]?.installments || [];
+      if (installments.length) {
+        return this.parseSubscriptionDate(installments[installments.length - 1]?.subscription_end_date);
+      }
+    }
+    if (!periodEnd) {
+      return null;
+    }
+    return this.addMonths(periodEnd, -this.cycleStep(cycles[cycleIndex]?.name).months);
+  }
+
+  private fullInstallmentTemplate(cycles: any[]): { sub_total: number; tax: number; order_total_amount: number } | null {
+    const counts = new Map<number, { count: number; sub: number; tax: number }>();
+    const add = (total: any, sub: any, tax: any) => {
+      const cents = this.toCents(total);
+      if (cents <= 0) {
+        return;
+      }
+      const existing = counts.get(cents);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        counts.set(cents, { count: 1, sub: this.toCents(sub), tax: this.toCents(tax) });
+      }
+    };
+
+    cycles.forEach(cycle => {
+      const installments = cycle?.installments || [];
+      installments.forEach((inst: any, index: number) => {
+        add(inst?.order_total_amount, inst?.sub_total, inst?.tax);
+        const next = installments[index + 1];
+        if (!next) {
+          return;
+        }
+        const endA = this.parseSubscriptionDate(inst?.subscription_end_date);
+        const endB = this.parseSubscriptionDate(next?.subscription_end_date);
+        if (endA && endB && endB > endA) {
+          add(
+            Number(inst.order_total_amount) + Number(next.order_total_amount),
+            Number(inst.sub_total) + Number(next.sub_total),
+            Number(inst.tax) + Number(next.tax)
+          );
+        }
+      });
+    });
+
+    let best: { cents: number; count: number; sub: number; tax: number } | null = null;
+    counts.forEach((value, cents) => {
+      if (!best || value.count > best.count || (value.count === best.count && cents > best.cents)) {
+        best = { cents, count: value.count, sub: value.sub, tax: value.tax };
+      }
+    });
+    if (!best) {
+      return null;
+    }
+    const chosen = best as { cents: number; count: number; sub: number; tax: number };
+    return {
+      sub_total: this.fromCents(chosen.sub),
+      tax: this.fromCents(chosen.tax),
+      order_total_amount: this.fromCents(chosen.cents)
+    };
+  }
+
+  private appendNextYearCycle(cycles: any[]): boolean {
+    const lastCycle = cycles[cycles.length - 1];
+    const template = this.fullInstallmentTemplate(cycles);
+    const installments = lastCycle?.installments || [];
+    const anchor = this.parseSubscriptionDate(installments[installments.length - 1]?.subscription_end_date);
+    if (!lastCycle || !template || !anchor || template.order_total_amount <= 0) {
+      return false;
+    }
+    if (cycles.length >= 20) {
+      return false;
+    }
+    const step = this.cycleStep(lastCycle.name);
+    const nextInstallments = [];
+    for (let index = 1; index <= step.count; index++) {
+      nextInstallments.push({
+        status: 'Not Paid',
+        sub_total: template.sub_total,
+        tax: template.tax,
+        order_total_amount: template.order_total_amount,
+        subscription_end_date: this.formatSubscriptionDate(this.addMonths(anchor, step.months * index))
+      });
+    }
+    cycles.push({
+      name: lastCycle.name,
+      installments: nextInstallments
+    });
+    return true;
+  }
+
+  private splitPartialInstallment(cycles: any[], cycleIndex: number, installmentIndex: number, paidCents: number, paidAt: string): any {
+    const cycle = cycles[cycleIndex];
+    const installment = cycle.installments[installmentIndex];
+    const dueCents = this.toCents(installment.order_total_amount);
+    const subCents = this.toCents(installment.sub_total);
+    const periodEnd = this.parseSubscriptionDate(installment.subscription_end_date);
+    const periodStart = this.installmentPeriodStart(cycles, cycleIndex, installmentIndex, periodEnd);
+    const totalDays = Math.max(1, periodStart && periodEnd ? this.daysBetween(periodStart, periodEnd) : 1);
+    let coveredDays = Math.round((totalDays * paidCents) / dueCents);
+    if (coveredDays < 1) {
+      coveredDays = 1;
+    }
+    if (totalDays > 1 && coveredDays >= totalDays) {
+      coveredDays = totalDays - 1;
+    }
+    const validUntil = periodStart ? this.addDays(periodStart, coveredDays) : periodEnd;
+
+    let paidSubCents = Math.round((subCents * paidCents) / dueCents);
+    if (paidSubCents > paidCents) {
+      paidSubCents = paidCents;
+    }
+    const paidTaxCents = paidCents - paidSubCents;
+    const remainCents = dueCents - paidCents;
+    let remainSubCents = subCents - paidSubCents;
+    if (remainSubCents < 0) {
+      remainSubCents = 0;
+    }
+    if (remainSubCents > remainCents) {
+      remainSubCents = remainCents;
+    }
+
+    const paidSlice = {
+      status: 'Paid',
+      sub_total: this.fromCents(paidSubCents),
+      tax: this.fromCents(paidTaxCents),
+      order_total_amount: this.fromCents(paidCents),
+      subscription_end_date: validUntil ? this.formatSubscriptionDate(validUntil) : installment.subscription_end_date,
+      paid_date_time: paidAt
+    };
+    cycle.installments.splice(installmentIndex, 1, paidSlice, {
+      status: 'Not Paid',
+      sub_total: this.fromCents(remainSubCents),
+      tax: this.fromCents(remainCents - remainSubCents),
+      order_total_amount: this.fromCents(remainCents),
+      subscription_end_date: installment.subscription_end_date
+    });
+    return paidSlice;
+  }
+
+  private applyPaidAmountToSplit(order: any): any | null {
+    const paidAmount = Number(order?.order_review?.order_summary?.order_total_amount);
+    const cycles: any[] = order?.payment_split;
+    if (!cycles?.length || !Number.isFinite(paidAmount) || paidAmount <= 0) {
+      return null;
+    }
+
+    let remainingCents = this.toCents(paidAmount);
+    const paidAt = new Date().toISOString();
+    let lastPaid: any = null;
+    let guard = 0;
+
+    while (remainingCents > 0 && guard < 80) {
+      guard += 1;
+      const next = this.findNextUnpaidInstallment(cycles);
+      if (!next) {
+        if (!this.appendNextYearCycle(cycles)) {
+          break;
+        }
+        continue;
+      }
+      const dueCents = this.toCents(next.installment.order_total_amount);
+      if (dueCents <= 0) {
+        break;
+      }
+      if (remainingCents >= dueCents) {
+        next.installment.status = 'Paid';
+        next.installment.paid_date_time = paidAt;
+        lastPaid = next.installment;
+        remainingCents -= dueCents;
+        continue;
+      }
+      lastPaid = this.splitPartialInstallment(cycles, next.cycleIndex, next.index, remainingCents, paidAt);
+      remainingCents = 0;
+    }
+
+    if (!lastPaid) {
+      return null;
+    }
+
+    order.subscription_end_date = lastPaid.subscription_end_date;
+    return lastPaid;
+  }
+
+  /**
+   * First confirmed registration payment keeps its installment end date.
+   * Later payments extend coverage from the prior end date using RoomPricing per-day cost.
+   */
+  private async applyRoomPricingSubscriptionEnd(order: any, priorConfirmedOrders: any[]): Promise<void> {
+    if (!order || !priorConfirmedOrders?.length) {
+      return;
+    }
+    const priorSorted = [...priorConfirmedOrders].sort((a, b) => Number(a.id) - Number(b.id));
+    const baseEnd = priorSorted[priorSorted.length - 1]?.subscription_end_date || priorSorted[0]?.subscription_end_date;
+    if (!baseEnd) {
+      return;
+    }
+    try {
+      const roomPricing = await this.paymentHelperService.getRoomPricing();
+      const customer = this.customerdata || order.customer;
+      const perDay = this.paymentHelperService.getPerDayCost(customer, roomPricing);
+      const paidAmount = Number(order?.order_review?.order_summary?.order_total_amount || 0);
+      const extended = this.paymentHelperService.extendSubscriptionEndDate(baseEnd, paidAmount, perDay);
+      if (extended) {
+        order.subscription_end_date = extended;
+      }
+    } catch (err) {
+      console.error('RoomPricing subscription end calculation failed', err);
+    }
+  }
+
   async updateHeaderPayNowButton() {
     if (!this.orderdata || !this.orderdata.payment_split) {
       this.technicalInfoService.updatePayNowButton(false, false);
@@ -1567,8 +1871,11 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
     enableDate.setDate(enableDate.getDate() - payNowDays);
     // End of newly added & commented for dynamic days from super admin
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    subEndDate.setHours(0, 0, 0, 0);
     // console.log('enableDate due date', enableDate);
     const enabled = today >= enableDate;
+    const overdue = today > subEndDate;
     // console.log('Enable date', enabled);
     // Prepare button text
     let installmentText = 'Start New Payment Cycle';
@@ -1576,11 +1883,17 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
       const totalInstallments = allCycles[nextUnpaidCycleIndex].installments.length;
       const nextUnpaidIndex = allCycles[nextUnpaidCycleIndex].installments.findIndex((inst: any) => inst.status === "Not Paid");
       const cycleName = allCycles[nextUnpaidCycleIndex].name || 'Installment';
-      installmentText = `${this.capitalizeFirstLetter(cycleName)} - Installment ${nextUnpaidIndex + 1} of ${totalInstallments}`;
+      const nextUnpaid = allCycles[nextUnpaidCycleIndex].installments[nextUnpaidIndex];
+      const nextAmount = Number(nextUnpaid?.order_total_amount || 0);
+      installmentText = overdue
+        ? `Pay Now - Next ₹${nextAmount.toFixed(2)}`
+        : `${this.capitalizeFirstLetter(cycleName)} - Installment ${nextUnpaidIndex + 1} of ${totalInstallments}`;
+    } else if (overdue) {
+      installmentText = 'Pay Now - Subscription Expired';
     }
     const showButton = true;
-    this.localService.set('payNowButtonState', JSON.stringify({ show: showButton, enabled, installmentText }));
-    this.technicalInfoService.updatePayNowButton(showButton, enabled, installmentText);
+    this.localService.set('payNowButtonState', JSON.stringify({ show: showButton, enabled, installmentText, overdue }));
+    this.technicalInfoService.updatePayNowButton(showButton, enabled, installmentText, overdue);
     // console.log('Pay Now Button:', { showButton, enabled, installmentText });
   }
 
@@ -1602,81 +1915,67 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
     }
 
     const allCycles: any[] = this.orderdata.payment_split || [];
-    if (allCycles.length === 0) {
+    const orderPaymentStatus = String(
+      this.orderdata.payment_status || this.orderdata.payment?.payment_status || ''
+    ).toLowerCase();
+    const orderIsPaid = orderPaymentStatus === 'paid';
+
+    // Coverage end date: last Paid installment, else order.subscription_end_date when the order itself is paid
+    let coverageEndDate: string | null = null;
+    let hasPaidInstallment = false;
+    let hasUnpaidInstallment = false;
+
+    for (const cycle of allCycles) {
+      for (const inst of (cycle?.installments || [])) {
+        if (inst?.status === 'Paid') {
+          hasPaidInstallment = true;
+          coverageEndDate = inst.subscription_end_date || coverageEndDate;
+        } else if (inst?.status === 'Not Paid') {
+          hasUnpaidInstallment = true;
+        }
+      }
+    }
+
+    if (!coverageEndDate && (orderIsPaid || hasPaidInstallment)) {
+      coverageEndDate = this.orderdata.subscription_end_date || null;
+    }
+
+    // Confirmed order with a paid payment but installment rows not yet marked Paid:
+    // still use the order / first installment subscription_end_date for the badge.
+    if (!coverageEndDate && orderIsPaid) {
+      coverageEndDate =
+        this.orderdata.subscription_end_date ||
+        allCycles[0]?.installments?.[0]?.subscription_end_date ||
+        null;
+    }
+
+    if (!coverageEndDate) {
+      this.paymentStatusInfo = { text: 'Not Paid', isPaid: false };
+      return;
+    }
+
+    const expiryDate = this.parseSubscriptionDate(coverageEndDate);
+    if (!expiryDate) {
+      this.paymentStatusInfo = {
+        text: orderIsPaid || hasPaidInstallment ? 'Paid' : 'Not Paid',
+        isPaid: orderIsPaid || hasPaidInstallment
+      };
+      return;
+    }
+
+    const today = new Date();
+    expiryDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+
+    if (today <= expiryDate) {
       this.paymentStatusInfo = { text: 'Paid', isPaid: true };
       return;
     }
 
-    // Find the first cycle that contains any unpaid installment
-    let nextUnpaidCycleIndex = allCycles.findIndex(cycle =>
-      cycle.installments && cycle.installments.some((inst: any) => inst.status === "Not Paid")
-    );
-
-    if (nextUnpaidCycleIndex === -1) {
-      // All installments in all cycles are paid!
-      const lastCycle = allCycles[allCycles.length - 1];
-      const cycleName = lastCycle.name ? this.capitalizeFirstLetter(lastCycle.name) : '';
-      const text = cycleName && cycleName.toLowerCase() !== 'full' ? `Paid (${cycleName})` : 'Paid';
-      this.paymentStatusInfo = { text, isPaid: true };
-      return;
-    }
-
-    // There is an unpaid installment.
-    const nextCycle = allCycles[nextUnpaidCycleIndex];
-
-    // Find the last paid installment in the cycle(s) to see if the paid period has expired
-    let lastPaidInstallment: any = null;
-    for (let i = 0; i <= nextUnpaidCycleIndex; i++) {
-      for (const inst of (allCycles[i].installments || [])) {
-        if (inst.status === 'Paid') {
-          lastPaidInstallment = inst;
-        }
-      }
-    }
-
-    const cycleLabel = nextCycle.name ? this.capitalizeFirstLetter(nextCycle.name) : '';
-
-    if (!lastPaidInstallment) {
-      // Not even the first installment has been paid
-      const text = cycleLabel && cycleLabel.toLowerCase() !== 'full' ? `Not Paid (${cycleLabel})` : 'Not Paid';
-      this.paymentStatusInfo = { text, isPaid: false };
-      return;
-    }
-
-    // Parse last paid installment's subscription_end_date (format DD-MM-YYYY)
-    try {
-      const parts = lastPaidInstallment.subscription_end_date.split('-');
-      if (parts.length === 3) {
-        const day = Number(parts[0]);
-        const month = Number(parts[1]);
-        const year = Number(parts[2]);
-        const expiryDate = new Date(year, month - 1, day);
-        const today = new Date();
-
-        // Reset times to compare only dates
-        expiryDate.setHours(0, 0, 0, 0);
-        today.setHours(0, 0, 0, 0);
-
-        if (today > expiryDate) {
-          // Subscription has expired, and the next installment is unpaid (Overdue)
-          const text = cycleLabel && cycleLabel.toLowerCase() !== 'full' ? `Not Paid (${cycleLabel} - Overdue)` : 'Not Paid (Overdue)';
-          this.paymentStatusInfo = { text, isPaid: false };
-          return;
-        } else {
-          // Still in the paid period of the last installment, but future installments are pending
-          const text = cycleLabel && cycleLabel.toLowerCase() !== 'full' ? `Paid (${cycleLabel})` : 'Paid';
-          this.paymentStatusInfo = { text, isPaid: true };
-          return;
-        }
-      }
-    } catch (e) {
-      console.error('Error parsing subscription end date', e);
-    }
-
-    // Fallback if date parsing fails
-    const defaultCycleLabel = nextCycle.name ? this.capitalizeFirstLetter(nextCycle.name) : '';
-    const fallbackText = defaultCycleLabel && defaultCycleLabel.toLowerCase() !== 'full' ? `Paid (${defaultCycleLabel})` : 'Paid';
-    this.paymentStatusInfo = { text: fallbackText, isPaid: true };
+    this.paymentStatusInfo = {
+      text: hasUnpaidInstallment ? 'Not Paid (Overdue)' : 'Not Paid',
+      isPaid: false
+    };
   }
 
   getOrderByIdAsync(): Promise<boolean> {
@@ -1870,6 +2169,11 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
 
   async checkAndActivateInvalidTabOnLoad() {
     // console.log('Hierarchy Tab', this.hierarchyTab);
+    if (!this.getCustomerData) {
+      this.isReadyToRender = true;
+      this.cdr.detectChanges();
+      return;
+    }
     if (this.getCustomerData.is_office_details_exists == false || this.getCustomerData.is_office_details_exists == undefined) {
       this.currentTab = 0;
       //console.log("checj")
@@ -1920,71 +2224,117 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
 
   getCustomerById(): Promise<void> {
     this.memberId = this.localService.get('MemberId');
-    // console.log('Member id(getCustomerById):', this.memberId);
-    // let findObj = (this.iscancelVisible || this.isVisible)
+    // Prefer route param immediately (paramMap subscribe can race ngOnInit)
+    const routeId = this.route.snapshot.paramMap.get('id');
+    if (routeId && !isNaN(Number(routeId))) {
+      this.hotelId = Number(routeId);
+    }
+    const queryCustomerId = Number(
+      this.customerIdFromUrl || this.route.snapshot.queryParams['customer_id'] || this.hotelId || 0
+    );
+    if ((!this.hotelId || isNaN(Number(this.hotelId))) && queryCustomerId > 0) {
+      this.hotelId = queryCustomerId;
+    }
+
     let findObj = (this.isPaymentRoute() || (this.hotelId && !isNaN(Number(this.hotelId))))
       ? { id: Number(this.hotelId) }
       : { customer_member_id: this.memberId };
 
     return new Promise((resolve, reject) => {
+      if (!findObj.id && !(findObj as any).customer_member_id) {
+        this.isReadyToRender = true;
+        this.cdr.detectChanges();
+        reject(new Error('No customer id available'));
+        return;
+      }
       let requestBody = {
         domain_name: DOMAIN_NAME,
         user_id: USER_ID,
         extras: {
-          find:
-            // {
-            // Newly added for getting customer id for customer type
-            // id: this.hotelId
-            // customer_member_id: this.memberId
-            findObj
-          // }
+          find: findObj
         }
       };
       this.hotelenrollmentservice.getLoginCustomerById(requestBody).subscribe(
         resp => {
           this.loaderService.emitComplete();
-          if (resp) {
-            this.customerdata = resp.result.data[0];
-            this.getCustomerData = resp.result.data[0];
-            // this.hotelId = this.customerdata.id;
-            this.hotelId = resp.result.data[0].id;
-            this.localService.set('CustomerType', 'Customer');
-            this.localService.remove('loggedOut');
-            // Newly added for customer status(hint)
-            this.customerStatus = this.customerdata.status;
-            // Newly added for member id
-            this.memberId = this.customerdata.customer_member_id;
-            this.localService.set('MemberId', this.memberId);
-            // Newly added for refreshing after payment
-            if (this.isPaymentRoute()) {
-              this.localService.set('roleId', this.customerdata.role_id);
-            }
-            // End for refreshing after payment
+          const row = resp?.result?.data?.[0];
+          if (row) {
+            this.applyCustomerRow(row);
             resolve();
+          } else if (findObj.id && this.memberId) {
+            // Staff often lands with staff_id in the URL — retry by hotel member_id
+            const retryBody = {
+              domain_name: DOMAIN_NAME,
+              user_id: USER_ID,
+              extras: { find: { customer_member_id: this.memberId } }
+            };
+            this.hotelenrollmentservice.getLoginCustomerById(retryBody).subscribe({
+              next: (retryResp: any) => {
+                const retryRow = retryResp?.result?.data?.[0];
+                if (retryRow) {
+                  this.applyCustomerRow(retryRow);
+                  // Fix the address bar to the real hotel customer id
+                  if (!this.isPaymentRoute()) {
+                    this.router.navigate(['/edit-new-hotel', retryRow.id], { replaceUrl: true });
+                  }
+                  resolve();
+                } else {
+                  this.isReadyToRender = true;
+                  this.cdr.detectChanges();
+                  reject(new Error('No customer data found'));
+                }
+              },
+              error: () => {
+                this.isReadyToRender = true;
+                this.cdr.detectChanges();
+                reject(new Error('No customer data found'));
+              }
+            });
+          } else {
+            this.isReadyToRender = true;
+            this.cdr.detectChanges();
+            reject(new Error('No customer data found'));
           }
         },
         err => {
           this.loaderService.emitComplete();
-          if (err.error.statusCode === 403) {
+          this.isReadyToRender = true;
+          this.cdr.detectChanges();
+          // Never kick payment-return users off confirmation because of session expiry
+          if (err.error?.statusCode === 403 && !this.isPaymentRoute()) {
             this.alertService.error('Session Time Out! Please login Again', this.options);
             this.router.navigate([`/login`], { skipLocationChange: false });
-          } else if (err.error.message) {
+          } else if (err.error?.message && !this.isPaymentRoute()) {
             this.alertService.error(err.error.message, this.options);
-          } else {
+          } else if (!this.isPaymentRoute()) {
             this.alertService.error('Something bad happened. Please try again!', this.options);
           }
-          reject(err);  // Reject promise if there is an error
+          reject(err);
         }
       );
     });
   }
 
 
-  //  getCustomerDById(): Promise<void> {
-  //   return new Promise((resolve, reject) => {
-
-  //   });
-  // }
+  private applyCustomerRow(row: any): void {
+    this.customerdata = row;
+    this.getCustomerData = row;
+    this.hotelId = row.id;
+    // Do not force CustomerType — Staff must stay Staff or sidebar/auth breaks
+    const existingType = this.localService.get('CustomerType');
+    if (existingType !== 'Staff') {
+      this.localService.set('CustomerType', 'Customer');
+    }
+    this.localService.remove('loggedOut');
+    this.customerStatus = this.customerdata.status;
+    if (this.customerdata.customer_member_id) {
+      this.memberId = this.customerdata.customer_member_id;
+      this.localService.set('MemberId', this.memberId);
+    }
+    if (this.isPaymentRoute()) {
+      this.localService.set('roleId', this.customerdata.role_id);
+    }
+  }
 
   onContinue() {
     this.isVisible = false;

@@ -17,6 +17,37 @@ export class PaymentHelperService {
     private loaderService: LoaderService
   ) {}
 
+  getCustomerByMemberId(memberId: string): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const requestBody = {
+        domain_name: DOMAIN_NAME,
+        user_id: USER_ID,
+        extras: {
+          find: {
+            customer_member_id: memberId
+          }
+        }
+      };
+      this.hotelenrollmenttabviewService.getLoginCustomerById(requestBody).subscribe({
+        next: (resp: any) => {
+          const customer = resp?.result?.data?.[0] || null;
+          if (customer) {
+            resolve(customer);
+          } else {
+            reject('Customer not found');
+          }
+        },
+        error: (err: any) => reject(err)
+      });
+    });
+  }
+
+  async startPayment(memberId: string, customAmount?: number | null): Promise<boolean> {
+    const customerData = await this.getCustomerByMemberId(memberId);
+    const orderdata = await this.getLastestOrderOfCustomer(memberId);
+    return this.payNow(customerData, orderdata, null, customAmount);
+  }
+
   getLastestOrderOfCustomer(memberId: string): Promise<any> {
     return new Promise((resolve, reject) => {
       const req = {
@@ -86,7 +117,118 @@ export class PaymentHelperService {
     });
   }
 
-  async payNow(customerData: any, orderdata: any, selectedIndex: number | null): Promise<void> {
+  /** paymentsubscription filter: name === RoomPricing (fallback SingleRoomPricing / customer plan). */
+  getRoomPricing(): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const reqBody = {
+        domain_name: DOMAIN_NAME,
+        user_id: USER_ID,
+        extras: {
+          find: {},
+          pagination: true,
+          paginationDetails: { limit: 0, pageSize: 100 },
+          sorting: true,
+          sortingDetails: { name: 1 }
+        }
+      };
+      this.hotelenrollmenttabviewService.getAllSubscriptionDetails(reqBody).subscribe({
+        next: (resp: any) => {
+          const allSubs = resp?.result?.data || [];
+          const roomPricing =
+            allSubs.find((sub: any) => String(sub?.name || '') === 'RoomPricing') ||
+            allSubs.find((sub: any) => String(sub?.name || '') === 'SingleRoomPricing') ||
+            allSubs[0] ||
+            null;
+          resolve(roomPricing);
+        },
+        error: (err: any) => reject(err)
+      });
+    });
+  }
+
+  parseSubscriptionDate(value: string | null | undefined): Date | null {
+    const parts = String(value || '').split('-').map(Number);
+    if (parts.length !== 3 || parts.some(part => !Number.isFinite(part) || part <= 0)) {
+      return null;
+    }
+    return new Date(parts[2], parts[1] - 1, parts[0]);
+  }
+
+  formatSubscriptionDate(date: Date): string {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    return `${day}-${month}-${date.getFullYear()}`;
+  }
+
+  /**
+   * Yearly hotel cost (with 18% GST) / 365 = per-day rate from RoomPricing.
+   */
+  getPerDayCost(customerData: any, roomPricing: any): number {
+    const perRoomCost = Number(
+      roomPricing?.finalPrice ?? roomPricing?.perRoomCost ?? customerData?.subscription_detail?.finalPrice ?? 0
+    );
+    const discountType = String(roomPricing?.discountType || customerData?.subscription_detail?.discountType || '').toLowerCase();
+    const discountValue = Number(roomPricing?.discountValue ?? customerData?.subscription_detail?.discountValue ?? 0);
+    const numberOfRooms = Number(
+      customerData?.property_details?.property_address?.number_of_rooms ||
+      customerData?.customer?.number_of_rooms ||
+      0
+    );
+
+    let discountedCost = perRoomCost;
+    if (discountType === 'percentage') {
+      discountedCost = perRoomCost - (perRoomCost * discountValue / 100);
+    } else if (discountType === 'flat') {
+      discountedCost = perRoomCost - discountValue;
+    }
+    discountedCost = Math.max(0, Number(discountedCost.toFixed(2)));
+
+    const yearlyWithGst = Number((discountedCost * Math.max(numberOfRooms, 1) * 12 * 1.18).toFixed(2));
+    if (yearlyWithGst <= 0) {
+      return 0;
+    }
+    return Number((yearlyWithGst / 365).toFixed(4));
+  }
+
+  /** Days covered by a paid amount at the RoomPricing per-day rate. */
+  getDaysCoveredByAmount(amount: number, perDayCost: number): number {
+    if (!perDayCost || perDayCost <= 0 || !Number.isFinite(amount) || amount <= 0) {
+      return 0;
+    }
+    return Math.max(1, Math.floor(amount / perDayCost));
+  }
+
+  /**
+   * Extend coverage from baseEnd (or today if expired) by days covered by amount.
+   * First registration dates must not be recalculated by callers — only subsequent payments.
+   */
+  extendSubscriptionEndDate(baseEndDate: string | null, amount: number, perDayCost: number): string | null {
+    const days = this.getDaysCoveredByAmount(amount, perDayCost);
+    if (days <= 0) {
+      return baseEndDate;
+    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    let start = this.parseSubscriptionDate(baseEndDate);
+    if (!start || start < today) {
+      start = today;
+    }
+    const next = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+    next.setDate(next.getDate() + days);
+    return this.formatSubscriptionDate(next);
+  }
+
+  getNextSubscriptionAmount(customerData: any, roomPricing: any, installments = 4): number {
+    const perDay = this.getPerDayCost(customerData, roomPricing);
+    if (perDay <= 0) {
+      return 0;
+    }
+    // One quarterly period ≈ 365/4 days
+    const days = Math.round(365 / Math.max(installments, 1));
+    return Number((perDay * days).toFixed(2));
+  }
+
+  async payNow(customerData: any, orderdata: any, selectedIndex: number | null, customAmount?: number | null): Promise<boolean> {
     this.loaderService.emitLoading();
 
     let payment_split: any[] = [];
@@ -158,7 +300,7 @@ export class PaymentHelperService {
       );
       if (nextUnpaidCycleIndex === -1) {
         this.loaderService.emitComplete();
-        return;
+        return false;
       }
       paymentType = payment_split[nextUnpaidCycleIndex].name;
     }
@@ -171,16 +313,47 @@ export class PaymentHelperService {
 
     if (!nextUnpaid) {
       this.loaderService.emitComplete();
-      return;
+      return false;
+    }
+
+    const installmentTotal = Number(nextUnpaid.order_total_amount || 0);
+    const hasCustomAmount = customAmount !== null && customAmount !== undefined && !Number.isNaN(Number(customAmount)) && Number(customAmount) > 0;
+    const payableTotal = hasCustomAmount ? Number(Number(customAmount).toFixed(2)) : Number(installmentTotal.toFixed(2));
+    let payableSubTotal = Number(Number(nextUnpaid.sub_total || 0).toFixed(2));
+    let payableTax = Number(Number(nextUnpaid.tax || 0).toFixed(2));
+    if (hasCustomAmount && installmentTotal > 0) {
+      const ratio = payableTotal / installmentTotal;
+      payableSubTotal = Number((Number(nextUnpaid.sub_total || 0) * ratio).toFixed(2));
+      payableTax = Number((payableTotal - payableSubTotal).toFixed(2));
+    } else if (hasCustomAmount) {
+      payableSubTotal = payableTotal;
+      payableTax = 0;
     }
 
     const order_review = {
       order_summary: {
-        sub_total: Number(nextUnpaid.sub_total.toFixed(2)),
-        tax: Number(nextUnpaid.tax.toFixed(2)),
-        order_total_amount: Number(nextUnpaid.order_total_amount.toFixed(2))
+        sub_total: payableSubTotal,
+        tax: payableTax,
+        order_total_amount: payableTotal
       }
     };
+
+    // Scheduled quarterly/half-yearly installments keep their own end dates (old flow).
+    // Only custom free-amount payments extend coverage via RoomPricing per-day.
+    let subscriptionEndDate = nextUnpaid.subscription_end_date;
+    if (hasCustomAmount) {
+      try {
+        const roomPricing = await this.getRoomPricing();
+        const perDay = this.getPerDayCost(customerData, roomPricing);
+        const baseEnd = orderdata?.subscription_end_date || nextUnpaid.subscription_end_date;
+        const extended = this.extendSubscriptionEndDate(baseEnd, payableTotal, perDay);
+        if (extended) {
+          subscriptionEndDate = extended;
+        }
+      } catch (err) {
+        console.error('Failed to calculate RoomPricing-based subscription end date', err);
+      }
+    }
 
     const isIndia = customerData?.property_details?.property_address?.property_country === 'India';
     const taxInfo = isIndia
@@ -193,7 +366,7 @@ export class PaymentHelperService {
       status_id: "1",
       system_label: "Pending",
       orderConfirmDate: new Date(),
-      subscription_end_date: nextUnpaid.subscription_end_date,
+      subscription_end_date: subscriptionEndDate,
       customer: {
         customer_id: customerData?.id,
         customer_name: customerData?.first_name,
@@ -204,6 +377,7 @@ export class PaymentHelperService {
         brand: customerData?.property_details?.contact_details?.brand,
         hotel_name: customerData?.property_details?.contact_details?.hotel_name,
         property_size: customerData?.property_details?.property_address?.property_size,
+        number_of_rooms: customerData?.property_details?.property_address?.number_of_rooms,
         is_email_opt_in: false
       },
       "shipping": {
@@ -401,44 +575,59 @@ export class PaymentHelperService {
       extras: { find: { id: "" } }
     };
 
-    this.hotelenrollmenttabviewService.orderUpsert(requestData).subscribe({
-      next: (resp: any) => {
-        if (!resp.success) {
+    return new Promise((resolve) => {
+      this.hotelenrollmenttabviewService.orderUpsert(requestData).subscribe({
+        next: (resp: any) => {
+          if (!resp.success) {
+            this.loaderService.emitComplete();
+            console.error("Order creation failed");
+            resolve(false);
+            return;
+          }
+          const upsertData = resp.result.data;
+          const orderId = String(upsertData?.[0]?.id ?? '').split('-')[0];
+          const hdfcData = {
+            domain_name: DOMAIN_NAME,
+            user_id: USER_ID,
+            oid: orderId,
+            customer_id: customerData?.id,
+            amount: payableTotal
+          };
+          console.log('Order Id:', orderId);
+          this.checkoutApiService.getHDFClink(hdfcData).then(responseData3 => {
+            this.loaderService.emitComplete();
+            const respData3: any = responseData3;
+            console.log('Access Code:', respData3?.access_code);
+            console.log('Working Key:', respData3?.working_key || respData3?.workingKey);
+            console.log('Order Id:', orderId);
+            if (!respData3) {
+              console.error("Payment link generation failed");
+              resolve(false);
+              return;
+            }
+            const form = document.createElement("form");
+            form.method = "POST";
+            form.action = respData3.payment_url;
+            form.target = "_self";
+            const input1 = document.createElement("input");
+            input1.name = "encRequest";
+            input1.value = respData3.enc_request;
+            form.appendChild(input1);
+            const input2 = document.createElement("input");
+            input2.name = "access_code";
+            input2.value = respData3.access_code;
+            form.appendChild(input2);
+            document.body.appendChild(form);
+            form.submit();
+            resolve(true);
+          });
+        },
+        error: (err: any) => {
           this.loaderService.emitComplete();
-          return console.error("Order creation failed");
+          console.error("Order upsert failed:", err);
+          resolve(false);
         }
-        const upsertData = resp.result.data;
-        const hdfcData = {
-          domain_name: DOMAIN_NAME,
-          user_id: USER_ID,
-          oid: upsertData[0].id,
-          customer_id: customerData?.id,
-          amount: nextUnpaid.order_total_amount
-        };
-        this.checkoutApiService.getHDFClink(hdfcData).then(responseData3 => {
-          this.loaderService.emitComplete();
-          let respData3: any = responseData3;
-          if (!respData3) return console.error("Payment link generation failed");
-          const form = document.createElement("form");
-          form.method = "POST";
-          form.action = respData3.payment_url;
-          form.target = "_self";
-          const input1 = document.createElement("input");
-          input1.name = "encRequest";
-          input1.value = respData3.enc_request;
-          form.appendChild(input1);
-          const input2 = document.createElement("input");
-          input2.name = "access_code";
-          input2.value = respData3.access_code;
-          form.appendChild(input2);
-          document.body.appendChild(form);
-          form.submit();
-        });
-      },
-      error: (err: any) => {
-        this.loaderService.emitComplete();
-        console.error("Order upsert failed:", err);
-      }
+      });
     });
   }
 }
