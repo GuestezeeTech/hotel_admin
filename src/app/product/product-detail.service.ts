@@ -93,6 +93,12 @@ export class ProductDetailService {
     return this.http.post(ENDPOINTS.SEND_IMAGE, jsonObj, { headers: headers });
   }
 
+  bulkUploadProduct(formData: FormData): Observable<any> {
+    const headers = new HttpHeaders()
+      .set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken());
+    return this.http.post(ENDPOINTS.BULK_UPLOAD_PRODUCT, formData, { headers });
+  }
+
 //   orderUpsert(UpdateCustomerObj: any): Observable<any> {
 //     if(this.authTokenService.isTokenExpired()){
 //       this.router.navigate([`/login`], {skipLocationChange: false});

@@ -5,7 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { HttpHeaders } from '@angular/common/http';
 import { ProductDetailService } from './product-detail.service';
 import { LocalStorageService } from "../auth-services/local-storage.service";
-import { ENDPOINTS, DOMAIN_NAME, USER_ID } from '../app.config';
+import { ENDPOINTS, DOMAIN_NAME, USER_ID, API_URL1 } from '../app.config';
 // import { ENDPOINTS } from 'src/app/app.config';
 import { Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { AlertsService } from '../shared/alerts/alerts.service';
@@ -79,7 +79,9 @@ export class ProductDetailsComponent {
   // File uploading
   @ViewChild('fileInput') fileInput!: ElementRef;
   @ViewChild('reuploadInput') reuploadInput!: ElementRef;
+  @ViewChild('importProductInput') importProductInput!: ElementRef<HTMLInputElement>;
   isModalOpen1 = false;
+  isImportingProducts = false;
   memberId: any;
   isExitModalOpen: boolean = false;
   allProductsData: any = [];
@@ -1511,6 +1513,103 @@ export class ProductDetailsComponent {
 
   getVegStatus(product: any): string {
     return product.food_type;
+  }
+
+  triggerImportProducts(): void {
+    if (!this.canAddOutlets || this.isImportingProducts) return;
+    this.importProductInput?.nativeElement?.click();
+  }
+
+  onImportProductsSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input?.files?.[0];
+    if (!file) return;
+
+    const allowed = ['.xlsx', '.xls', '.csv'];
+    const lowerName = file.name.toLowerCase();
+    if (!allowed.some(ext => lowerName.endsWith(ext))) {
+      this.alertService.error('Please upload a valid Excel file (.xlsx, .xls, .csv).', this.options);
+      input.value = '';
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('user_id', String(USER_ID));
+    formData.append('domain_name', DOMAIN_NAME || API_URL1 || 'https://www.guestezee.com');
+    formData.append('customer_id', String(this.customerId || this.localService.get('UserId') || ''));
+    formData.append('member_id', String(this.memberId || this.localService.get('MemberId') || ''));
+    formData.append('outlet_id', String(this.getResolvedOutletId() || this.outlet_id || ''));
+
+    this.isImportingProducts = true;
+    this.loaderService.emitLoading();
+    this.productDetailService.bulkUploadProduct(formData).subscribe({
+      next: (resp: any) => {
+        this.isImportingProducts = false;
+        this.loaderService.emitComplete();
+        input.value = '';
+        if (resp?.success === 1 || resp?.status === 1 || resp?.success === true) {
+          this.alertService.success(resp?.message || 'Products imported successfully.', this.options);
+          this.getAllProducts();
+        } else {
+          this.alertService.error(resp?.message || 'Product import failed.', this.options);
+        }
+      },
+      error: (err) => {
+        this.isImportingProducts = false;
+        this.loaderService.emitComplete();
+        input.value = '';
+        this.alertService.error(err?.error?.message || 'Product import failed.', this.options);
+      }
+    });
+  }
+
+  downloadExcelFormat(): void {
+    const headers = [
+      'name',
+      'category',
+      'price',
+      'tax percentage',
+      'description',
+      'food type',
+      'Item Availability',
+      'member id',
+      'outlet_id id'
+    ];
+    const sampleRow = [
+      'Ginger Tea',
+      'Beverages',
+      '100',
+      '5',
+      'Hot ginger tea',
+      'Veg',
+      'true',
+      String(this.memberId || this.localService.get('MemberId') || ''),
+      String(this.getResolvedOutletId() || this.outlet_id || '')
+    ];
+
+    const escapeCsv = (value: string) => {
+      const text = value ?? '';
+      if (/[",\n]/.test(text)) {
+        return `"${text.replace(/"/g, '""')}"`;
+      }
+      return text;
+    };
+
+    const csvContent = [headers, sampleRow]
+      .map(row => row.map(col => escapeCsv(String(col))).join(','))
+      .join('\r\n');
+
+    // BOM helps Excel open UTF-8 correctly
+    const blob = new Blob(['\ufeff' + csvContent], {
+      type: 'application/vnd.ms-excel;charset=utf-8;'
+    });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'Product_Excel_Format.xls';
+    link.click();
+    window.URL.revokeObjectURL(url);
   }
 
 }

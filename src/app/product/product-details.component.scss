@@ -96,11 +96,66 @@ h3 {
 }
 
 .product-actions {
-  margin-right: -10%;
-
   i {
     font-size: 13px;
     color: #883a01;
+  }
+}
+
+.product-table-wrap {
+  border: 1px solid #dee2e6;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.product-list-table {
+  th {
+    background-color: #EBEBEE !important;
+    color: #800020 !important;
+    border-bottom: none !important;
+    font-size: 15px;
+    padding: 1%;
+  }
+
+  td {
+    background-color: white !important;
+    font-weight: 500;
+    font-size: 14px;
+    padding: 0.75% 1%;
+    border: none !important;
+    vertical-align: middle;
+
+    i {
+      color: #800020;
+      cursor: pointer;
+    }
+  }
+
+  .product-table-thumb {
+    width: 56px;
+    height: 56px;
+    object-fit: cover;
+    border-radius: 8px;
+  }
+
+  .product-name-cell {
+    font-weight: 600;
+    color: #181818;
+  }
+
+  .table-original-price {
+    text-decoration: line-through;
+    color: #8a8a8a;
+  }
+
+  .table-sale-price {
+    color: #883a01;
+    font-weight: 600;
+  }
+
+  .veg-dot-icon,
+  .nonveg-dot-icon {
+    margin-right: 0;
   }
 }
 
@@ -651,7 +706,10 @@ input:checked+.slider:before {
 
 .add-btn-section {
   display: flex;
-  justify-content: end;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
 
   .add-btn,
   .back-btn {
@@ -664,6 +722,34 @@ input:checked+.slider:before {
     border: none;
     font-size: 14px;
   }
+}
+
+.import-products-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+
+  .download-excel-link {
+    color: #883a01;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: underline;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .import-products-btn {
+    white-space: nowrap;
+  }
+}
+
+.list-action-btns {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
 }
 
 // Newly added

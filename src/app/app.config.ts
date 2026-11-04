@@ -66,6 +66,7 @@ export const ENDPOINTS = {
   NEWSGETALL: API_URL + ':6528/news/getall',
   CLEMEMBERSGETALL: API_URL1 + ':9422/product/getall',
   DELETE_PRODUCT: API_URL1 + ':9666/product/delete',
+  BULK_UPLOAD_PRODUCT: 'https://guestezee.com:5402/bulkupload/product',
   STANDARDEMAILTEMPLATEEDIT: API_URL + ':5411/emailtemplate/update',
   STANDARDEMAILTEMPLATEDELETE: API_URL + ':5411/emailtemplate/delete',
   STANDARDEMAILTEMPLATEGETALL: API_URL + ':9428/emailtemplate/getall',

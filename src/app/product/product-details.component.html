@@ -5,70 +5,93 @@
     <!-- List of products section -->
     <div class="section" *ngIf="this.newProduct">
       <div class="add-btn-section">
-        <button class="back-btn submit mr-2" (click)="navigateToList()">Back</button>
-        <button class="add-btn submit" (click)="canAddOutlets ? addProduct() : null" [disabled]="!canAddOutlets"
-          [style.cursor]="canAddOutlets ? 'pointer' : 'not-allowed'" [style.opacity]="canAddOutlets ? 1 : 0.4">Add
-          Menu</button>
+        <div class="import-products-actions">
+          <a href="javascript:void(0)" class="download-excel-link" (click)="downloadExcelFormat()">Download Excel Format</a>
+          <button type="button" class="add-btn submit import-products-btn"
+            (click)="canAddOutlets ? triggerImportProducts() : null"
+            [disabled]="!canAddOutlets || isImportingProducts"
+            [style.cursor]="canAddOutlets ? 'pointer' : 'not-allowed'"
+            [style.opacity]="canAddOutlets ? 1 : 0.4">
+            {{ isImportingProducts ? 'Importing...' : 'Import Products' }}
+          </button>
+          <input #importProductInput type="file" accept=".xlsx,.xls,.csv"
+            class="d-none" (change)="onImportProductsSelected($event)" />
+        </div>
+        <div class="list-action-btns">
+          <button class="back-btn submit" (click)="navigateToList()">Back</button>
+          <button class="add-btn submit" (click)="canAddOutlets ? addProduct() : null" [disabled]="!canAddOutlets"
+            [style.cursor]="canAddOutlets ? 'pointer' : 'not-allowed'" [style.opacity]="canAddOutlets ? 1 : 0.4">Add
+            Menu</button>
+        </div>
       </div>
       <div class="container mt-4">
-        <!-- <app-alerts></app-alerts> -->
-        <div class="row" *ngIf="!allProductsData?.length">
-          <div class="text-center mt-2" style="font-size: 13px;">
-            No Menu available.
+        <div class="table-responsive">
+          <div class="product-table-wrap">
+            <table class="table text-center align-middle mb-0 product-list-table">
+              <thead class="table-light">
+                <tr class="text-nowrap">
+                  <th class="text-start">Image</th>
+                  <th class="text-start">Name</th>
+                  <th>Type</th>
+                  <th>Original Price</th>
+                  <th>Sale Price</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let product of allProductsData">
+                  <td class="text-start">
+                    <img [src]="product.assets[0]?.image_source || defaultImageUrl"
+                      class="product-table-thumb" alt="{{ product.name }}" />
+                  </td>
+                  <td class="text-start product-name-cell">{{ product.name }}</td>
+                  <td>
+                    <span *ngIf="getVegStatus(product) === 'Veg'" class="veg-dot-icon" title="Vegetarian">
+                      <span class="dot"></span>
+                    </span>
+                    <span *ngIf="getVegStatus(product) === 'Non-Veg'" class="nonveg-dot-icon" title="Non-Vegetarian">
+                      <span class="dot"></span>
+                    </span>
+                    <span *ngIf="!getVegStatus(product)">—</span>
+                  </td>
+                  <td>
+                    <span class="table-original-price">₹{{ product.pricing?.raw?.price }}</span>
+                  </td>
+                  <td>
+                    <span class="table-sale-price">₹{{ product.pricing?.raw?.sale_price }}</span>
+                  </td>
+                  <td class="product-actions">
+                    <i class="fa fa-eye me-3 cursor-pointer view-icon"
+                      (click)="canReadOutlets ? viewProduct(product.id) : null"
+                      [style.opacity]="canReadOutlets ? 1 : 0.4"
+                      [style.cursor]="canReadOutlets ? 'pointer' : 'not-allowed'" title="View"></i>
+                    <i class="fa fa-edit me-3 cursor-pointer edit-icon"
+                      (click)="canEditOutlets ? editProduct(product.id) : null"
+                      [style.opacity]="canEditOutlets ? 1 : 0.4"
+                      [style.cursor]="canEditOutlets ? 'pointer' : 'not-allowed'" title="Edit"></i>
+                    <i class="fa fa-trash cursor-pointer delete-icon"
+                      (click)="canDeleteOutlets ? deleteProduct(product.id) : null"
+                      [style.opacity]="canDeleteOutlets ? 1 : 0.4"
+                      [style.cursor]="canDeleteOutlets ? 'pointer' : 'not-allowed'" title="Delete"></i>
+                  </td>
+                </tr>
+                <tr *ngIf="!allProductsData?.length">
+                  <td colspan="6" class="text-center">No Menu available.</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
-        <div class="row" *ngIf="allProductsData?.length > 0">
-          <div class="col-md-3 mb-4" *ngFor="let product of allProductsData; let i = index">
-            <div class="card h-100 shadow-sm product-card">
-              <div class="d-flex justify-content-between">
-                <div class="product-price">
-                  <span class="price original-price">₹{{ product.pricing?.raw?.price }}</span>
-                  <span class="price sale-price">₹{{ product.pricing?.raw?.sale_price }}</span>
-                </div>
-                <div class="product-actions">
-                  <i class="fa fa-eye me-3 cursor-pointer view-icon"
-                    (click)="canReadOutlets ? viewProduct(product.id) : null" [style.opacity]="canReadOutlets ? 1 : 0.4"
-                    [style.cursor]="canReadOutlets ? 'pointer' : 'not-allowed'" title="View"></i>
-                  <i class="fa fa-edit me-3 cursor-pointer edit-icon"
-                    (click)="canEditOutlets ? editProduct(product.id) : null" [style.opacity]="canEditOutlets ? 1 : 0.4"
-                    [style.cursor]="canEditOutlets ? 'pointer' : 'not-allowed'" title="Edit"></i>
-                  <i class="fa fa-trash cursor-pointer delete-icon"
-                    (click)="canDeleteOutlets ? deleteProduct(product.id) : null"
-                    [style.opacity]="canDeleteOutlets ? 1 : 0.4"
-                    [style.cursor]="canDeleteOutlets ? 'pointer' : 'not-allowed'" title="Delete"></i>
-                </div>
-              </div>
-              <div class="product-image mt-2">
-                <!-- Image -->
-                <img [src]="product.assets[0]?.image_source || this.defaultImageUrl" class="card-img product-image"
-                  alt="Product Image" />
-              </div>
-              <!-- Product Name -->
-              <div class="card-body text-center">
-                <h5 class="card-title product-name d-flex align-items-center justify-content-center">
-                  <span *ngIf="getVegStatus(product) === 'Veg'" class="veg-dot-icon" title="Vegetarian">
-                    <span class="dot"></span>
-                  </span>
-                  <span *ngIf="getVegStatus(product) === 'Non-Veg'" class="nonveg-dot-icon" title="Non-Vegetarian">
-                    <span class="dot"></span>
-                  </span>
-                  {{ product.name }}
-                </h5>
-              </div>
-            </div>
-          </div>
-          <!-- Pagination -->
-          <div class="pagination-container">
-            <button (click)="previousPage()" [disabled]="currentPage === 1" class="pagination-btn">
-              Previous
-            </button>
-            <input type="text" class="pagination-input" value={{currentPage}} readonly>
-            <button (click)="nextPage()" [disabled]="currentPage === totalPages" class="pagination-btn">
-              Next
-            </button>
-          </div>
+        <!-- Pagination -->
+        <div class="pagination-container" *ngIf="allProductsData?.length > 0">
+          <button (click)="previousPage()" [disabled]="currentPage === 1" class="pagination-btn">
+            Previous
+          </button>
+          <input type="text" class="pagination-input" value={{currentPage}} readonly>
+          <button (click)="nextPage()" [disabled]="currentPage === totalPages" class="pagination-btn">
+            Next
+          </button>
         </div>
-
       </div>
     </div>
     <div class="section" *ngIf="!this.newProduct">
