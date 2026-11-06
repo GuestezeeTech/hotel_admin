@@ -1,3 +1,46 @@
 @import './assets/scss/main';
 @import './assets/scss/btsp-themes';
 @import './assets/scss/themes/guestezee/fonts';
+@import './assets/scss/dashboard-shimmer';
+@import './assets/scss/dashboard-tables';
+
+:root {
+  --sidebar-width: 19%;
+  --app-font: 'Urbanist', Roboto, sans-serif;
+}
+
+html,
+body {
+  overflow-x: hidden;
+}
+
+html,
+body,
+button,
+input,
+select,
+textarea {
+  font-family: var(--app-font) !important;
+}
+
+body,
+.p-component,
+.ui-widget,
+.mat-typography,
+.mat-body,
+.cdk-overlay-container {
+  font-family: var(--app-font) !important;
+}
+
+/* Split / mid screens: icon-only drawer so labels don't crush */
+@media (max-width: 1280px) {
+  :root {
+    --sidebar-width: 72px;
+  }
+}
+
+.main,
+.header {
+  margin-left: var(--sidebar-width) !important;
+  transition: margin-left 0.2s ease;
+}

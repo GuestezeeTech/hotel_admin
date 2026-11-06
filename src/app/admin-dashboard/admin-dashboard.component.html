@@ -1,12 +1,30 @@
 <div class="main">
     <app-alerts></app-alerts>
     <div class="centered-container">
-        <div class="container">
+        <div class="admin-shimmer ds-loading-lock" *ngIf="pageLoading" aria-busy="true" aria-label="Loading Dashboard">
+          <div class="ds-block ds-title"></div>
+          <div class="ds-block ds-subtitle"></div>
+          <div class="admin-shimmer-kpis">
+            <div class="ds-kpi" *ngFor="let _ of [1,2,3,4]"></div>
+          </div>
+          <div class="admin-shimmer-row" *ngFor="let _ of [1,2,3,4]">
+            <div class="ds-panel">
+              <div class="ds-block ds-line medium"></div>
+              <div class="ds-block ds-line"></div>
+              <div class="ds-block ds-line short"></div>
+            </div>
+          </div>
+        </div>
+        <div class="container" *ngIf="!pageLoading">
             <div class="row mb-4">
                 <div class="col-md-8" style="padding-left: 0 !important;">
-                    <h5 class="fw-bolder mb-3">Guest Activity<span style="color: #9E9E9E; font-size: 15px"
-                            class="fw-medium">
-                        </span></h5>
+                    <h5 class="fw-bolder mb-3 d-flex align-items-center gap-2">
+                      Guest Activity
+                      <app-dashboard-refresh
+                        [refreshing]="refreshing"
+                        (refresh)="onDashboardRefresh($event)"
+                      ></app-dashboard-refresh>
+                    </h5>
                     <div class="row">
                         <div class="ms-3 d-flex justify-content-between category-section border rounded"
                             style="border-color: #9E9E9E; padding: 10px; width: 97%">
@@ -340,7 +358,7 @@
                                     <!-- <td>{{ service.assignee }}</td>
                                     <td> <i class="fa fa-ellipsis-h" style="color: #868686; cursor: pointer;"></i></td> -->
                                     <td>{{ service.order_date }}</td>
-                                    <td>{{ service.order_time }}</td>
+                                    <td>{{ formatDisplayTime(service.order_time) }}</td>
                                 </tr>
                             </tbody>
                         </table>

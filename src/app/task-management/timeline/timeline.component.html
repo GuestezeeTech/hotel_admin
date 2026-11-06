@@ -75,7 +75,7 @@
                 <!-- Timeline Tags -->
                 <div class="d-flex flex-column flex-grow-1 gap-2 dot-divider-left">
                     <div class="d-flex flex-wrap gap-2 justify-content-md-end">
-                        <div class="tag tag-green">Order Placed on: {{ timelineData.order_time }}</div>
+                        <div class="tag tag-green">Order Placed on: {{ formatDisplayTime(timelineData.order_time) }}</div>
                         <!-- Previous logic for Expected Delivery (using actual_time_to_close_the_task)
                         <div class="tag tag-gold">Expected Delivery: {{ getExpectedTime(timelineData.order_time,
                             timelineData.actual_time_to_close_the_task) }}</div>
@@ -86,7 +86,7 @@
                         *ngFor="let item of timelineData.time_line; let i = index">
                         <!-- <div class="tag tag-blue" *ngIf="item.status === 'Completed'">Delivered on: {{ timelineData.completed_time | date:'HH:mm:ss' }}
                         </div> -->
-                        <div class="tag tag-blue" *ngIf="item.status === 'Completed'">Delivered on: {{ item.time }}
+                        <div class="tag tag-blue" *ngIf="item.status === 'Completed'">Delivered on: {{ formatDisplayTime(item.time) }}
                         </div>
                     </div>
                 </div>
@@ -144,7 +144,7 @@
                                         <span class="fw-medium">Escalated to: </span>{{ item.escalated_to_name }}
                                     </span>
                                     <p class="mb-0" style="color: #444; font-size: 13px;">
-                                        ({{ item.date }} : {{ item.time }})
+                                        ({{ item.date }} : {{ formatDisplayTime(item.time) }})
                                     </p>
                                 </div>
                             </div>
@@ -202,7 +202,7 @@
                                         <span class="fw-medium">Escalated to: </span>{{ item.escalated_to_name }}
                                     </span>
                                     <p class="mb-0" style="color: #444; font-size: 13px;">
-                                        ({{ item.date }} : {{ item.time }})
+                                        ({{ item.date }} : {{ formatDisplayTime(item.time) }})
                                     </p>
                                 </div>
                             </div>

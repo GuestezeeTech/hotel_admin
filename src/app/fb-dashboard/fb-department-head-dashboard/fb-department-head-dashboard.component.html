@@ -1,192 +1,720 @@
-<section class="fnb-shell active">
+<section class="fnb-shell active" [class.ds-loading-lock]="pageLoading">
   <div class="fnb-main">
-    <div class="fnb-head">
-      <div>
-        <h2>F&amp;B Department Head</h2>
-        <p>Restaurant offers, payments, delays, escalations, delivery and cancellations</p>
+    <div class="fnb-shimmer" *ngIf="pageLoading" aria-busy="true" aria-label="Loading F&B Dashboard">
+      <div class="fnb-head">
+        <div>
+          <div class="ds-block ds-title"></div>
+          <div class="ds-block ds-subtitle"></div>
+        </div>
+        <div class="fnb-head-actions">
+          <div class="ds-block ds-chip"></div>
+          <div class="ds-block ds-chip"></div>
+        </div>
       </div>
-      <div class="fnb-head-actions">
-        <span class="fnb-live">● Live Updates</span>
-        <span class="fnb-clock">{{ liveClock }}　⟳</span>
+      <div class="fnb-kpis">
+        <div class="ds-kpi" *ngFor="let _ of [1,2,3,4,5,6]">
+          <div class="ds-block ds-icon"></div>
+          <div class="ds-block ds-line short"></div>
+          <div class="ds-block ds-value"></div>
+          <div class="ds-block ds-line"></div>
+        </div>
+      </div>
+      <div class="fnb-shimmer-row" *ngFor="let _ of [1,2,3,4]">
+        <div class="ds-panel" *ngFor="let __ of [1,2]">
+          <div class="ds-block ds-line medium"></div>
+          <div class="ds-block ds-line short"></div>
+          <div class="ds-block ds-line"></div>
+          <div class="ds-block ds-line medium"></div>
+        </div>
       </div>
     </div>
 
-    <div class="fnb-dashboard-home">
-      <div class="fnb-kpis">
-        <div class="fnb-kpi">
-          <div class="bubble">◇</div>
-          <h4>Restaurant Offer Report</h4>
-          <strong>{{ offerCountLoading ? '…' : offerCountLabel }}</strong><small>Total Offer Orders</small>
-        </div>
-        <div class="fnb-kpi">
-          <div class="bubble">▤</div>
-          <h4>Offer Payment Report</h4>
-          <strong>{{ offerPaymentLoading ? '…' : offerPaymentAmountLabel }}</strong>
-          <small>{{ offerPaymentOrderNote }}</small>
-        </div>
-        <div class="fnb-kpi">
-          <div class="bubble">◷</div>
-          <h4>Delayed Report</h4>
-          <strong>{{ loadingTasks ? '…' : (taskReportCounts.delayed | number) }}</strong>
-          <small>Delayed Orders</small>
-        </div>
-        <div class="fnb-kpi">
-          <div class="bubble">!</div>
-          <h4>Escalation Report</h4>
-          <strong>{{ loadingTasks ? '…' : (taskReportCounts.escalated | number) }}</strong>
-          <small>Total Escalations</small>
-        </div>
-        <div class="fnb-kpi">
-          <div class="bubble">▣</div>
-          <h4>Delivery Report</h4>
-          <strong>{{ loadingTasks ? '…' : (taskReportCounts.delivered | number) }}</strong>
-          <small>Delivered Orders</small>
-        </div>
-        <div class="fnb-kpi">
-          <div class="bubble">⊗</div>
-          <h4>Order Cancellation Report</h4>
-          <strong>48</strong><span class="change change-down">↓ 20%</span><small>Cancelled Orders</small>
+    <ng-container *ngIf="!pageLoading && activeView === 'kpi-list'">
+      <div class="fnb-head">
+        <div>
+          <button type="button" class="back-link" (click)="backToHome()">
+            <i class="bi bi-arrow-left" aria-hidden="true"></i> Back to F&amp;B Dashboard
+          </button>
+          <h2>{{ activeKpiLabel }}</h2>
+          <p>{{ activeReportCount }} record<span *ngIf="activeReportCount !== 1">s</span></p>
         </div>
       </div>
 
-      <div class="fnb-columns">
-        <div class="fnb-panel">
-          <div class="fnb-panel-head">
-            <h3>Live Tracking</h3>
-            <div class="fnb-filters">
-              <select class="fnb-filter" [(ngModel)]="restaurantFilter">
-                <option *ngFor="let r of restaurants" [value]="r">{{ r }}</option>
-              </select>
-              <select class="fnb-filter" [(ngModel)]="typeFilter" [disabled]="trackingMode === 'Escalations'">
-                <option *ngFor="let t of orderTypes" [value]="t">{{ t }}</option>
-              </select>
-              <span class="fnb-live">● Live</span>
-            </div>
-          </div>
-          <div class="fnb-tabs">
-            <button type="button" class="fnb-tab" [class.active]="trackingMode === 'Orders'" (click)="setTracking('Orders')">Orders</button>
-            <button type="button" class="fnb-tab" [class.active]="trackingMode === 'Escalations'" (click)="setTracking('Escalations')">Escalations</button>
-          </div>
-          <div class="table-wrap">
-            <table class="fnb-table">
-              <thead>
-                <tr>
-                  <th>Order #</th>
-                  <th>Restaurant</th>
-                  <th>Type</th>
-                  <th>Status</th>
-                  <th>Updated Time</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngIf="loadingTasks">
-                  <td colspan="6" class="table-empty">Loading Menu Ordering tasks…</td>
-                </tr>
-                <tr *ngIf="!loadingTasks && loadError">
-                  <td colspan="6" class="table-empty">{{ loadError }}</td>
-                </tr>
-                <tr *ngIf="!loadingTasks && !loadError && filteredTrackingRows.length === 0">
-                  <td colspan="6" class="table-empty">No Menu Ordering tasks for today.</td>
-                </tr>
-                <tr *ngFor="let o of filteredTrackingRows">
-                  <td>{{ trackingMode === 'Orders' ? '🔵 ' : '' }}{{ o.id }}</td>
-                  <td>{{ o.restaurant }}</td>
-                  <td><span class="fnb-status">{{ o.type }}</span></td>
-                  <td><span class="fnb-status" [ngClass]="statusClass(o.status)">{{ o.status }}</span></td>
-                  <td>{{ o.time }}</td>
-                  <td><button type="button" class="view" (click)="openDetail(o.id)">View　›</button></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="fnb-order-summary">
-            <div class="fnb-sum">
-              <small>◷　Total Active Orders</small>
-              <strong>{{ todayOrderSummary.totalActive }}</strong>
-              <small class="up">Today · {{ todayOrderSummary.dateLabel }}</small>
-            </div>
-            <div class="fnb-sum">
-              <small>◇　Preparing</small>
-              <strong>{{ todayOrderSummary.preparing }}</strong>
-              <small class="meta">Processing / ASAP</small>
-            </div>
-            <div class="fnb-sum">
-              <small>▣　Out for Delivery</small>
-              <strong>{{ todayOrderSummary.outForDelivery }}</strong>
-              <small class="meta">Assigned</small>
-            </div>
-            <div class="fnb-sum">
-              <small>✓　Completed Today</small>
-              <strong>{{ todayOrderSummary.completedToday }}</strong>
-              <small class="meta">Delivered / Completed</small>
-            </div>
+      <div class="fnb-tabs ird-tabs" *ngIf="activeKpiKey === 'offers' || activeKpiKey === 'offer-payments'">
+        <button type="button" class="fnb-tab" [class.active]="offerReportTab === 'offers'"
+          (click)="setOfferReportTab('offers')">Offers</button>
+        <button type="button" class="fnb-tab" [class.active]="offerReportTab === 'payments'"
+          (click)="setOfferReportTab('payments')">Offer Payments</button>
+      </div>
+
+      <div class="ird-toolbar" *ngIf="(activeKpiKey === 'offers' || activeKpiKey === 'offer-payments') && offerReportTab === 'payments'">
+        <select class="ird-filter" [(ngModel)]="offerPaymentStatus">
+          <option *ngFor="let s of offerPaymentStatusOptions" [value]="s">
+            {{ s === 'All Status' ? 'Payment Status' : s }}
+          </option>
+        </select>
+        <span class="ird-filter-note">Paid counted in KPIs · Failed list-only</span>
+      </div>
+
+      <div class="kpi-list-panel">
+        <div class="table-wrap ird-table-wrap">
+          <!-- IRD Order Report -->
+          <table class="ird-table" *ngIf="activeKpiKey === 'orders'">
+            <thead>
+              <tr>
+                <th>Date / Time</th>
+                <th>Guest Name</th>
+                <th>Room Number</th>
+                <th>Items Ordered</th>
+                <th>Special Instructions</th>
+                <th>Order Status</th>
+                <th>Subtotal</th>
+                <th>Tax</th>
+                <th>Service Charge</th>
+                <th>Total Amount</th>
+                <th>Staff</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngIf="irdOrderReportRows.length === 0">
+                <td colspan="11" class="table-empty">No IRD orders for this period</td>
+              </tr>
+              <tr *ngFor="let row of irdOrderReportRows" class="track-row--active"
+                (click)="openOrderReportTimeline(row)" title="Open live tracking">
+                <td>{{ row.datetime }}</td>
+                <td>{{ row.guestName }}</td>
+                <td>{{ row.roomNumber }}</td>
+                <td class="cell-wrap">{{ row.items }}</td>
+                <td class="cell-wrap">{{ row.specialInstructions }}</td>
+                <td><span class="fnb-status" [ngClass]="statusClass(row.orderStatus)">{{ row.orderStatus }}</span></td>
+                <td>{{ formatInr(row.subtotal) }}</td>
+                <td>{{ formatInr(row.taxes) }}</td>
+                <td>{{ formatInr(row.serviceCharge) }}</td>
+                <td><strong>{{ formatInr(row.totalAmount) }}</strong></td>
+                <td>{{ row.staffName }}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Restaurant Offer Report -->
+          <table class="ird-table"
+            *ngIf="(activeKpiKey === 'offers' || activeKpiKey === 'offer-payments') && offerReportTab === 'offers'">
+            <thead>
+              <tr>
+                <th>Offer ID</th>
+                <th>Name</th>
+                <th>Offer Type</th>
+                <th>Validity Period</th>
+                <th>Applicable Outlets</th>
+                <th>Guest Claimed</th>
+                <th>Revenue Generated</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngIf="offerReportRows.length === 0">
+                <td colspan="7" class="table-empty">No restaurant offers found</td>
+              </tr>
+              <tr *ngFor="let row of offerReportRows">
+                <td>{{ row.offerId }}</td>
+                <td>{{ row.name }}</td>
+                <td>{{ row.offerType }}</td>
+                <td class="cell-wrap">{{ row.validity }}</td>
+                <td>{{ row.outlets }}</td>
+                <td>{{ row.usageCount | number }}</td>
+                <td><strong>{{ formatInr(row.revenue) }}</strong></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Offer Payment Report -->
+          <table class="ird-table"
+            *ngIf="(activeKpiKey === 'offers' || activeKpiKey === 'offer-payments') && offerReportTab === 'payments'">
+            <thead>
+              <tr>
+                <th>Date / Time</th>
+                <th>Bill Number</th>
+                <th>Guest Name</th>
+                <th>Room Number</th>
+                <th>Promo / Offer Applied</th>
+                <th>Payment Status</th>
+                <th>Gross Amount</th>
+                <th>Discount Value</th>
+                <th>Net Amount Paid</th>
+                <th>Payment Gateway</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngIf="filteredOfferPaymentReportRows.length === 0">
+                <td colspan="10" class="table-empty">No offer payments to show (Paid / Failed).</td>
+              </tr>
+              <tr *ngFor="let row of filteredOfferPaymentReportRows" class="track-row--active"
+                (click)="openOrderReportTimeline(row)" title="Open live tracking">
+                <td>{{ row.datetime }}</td>
+                <td><span class="ird-bill-link">{{ row.billNumber }}</span></td>
+                <td>{{ row.guestName }}</td>
+                <td>{{ row.roomNumber }}</td>
+                <td>{{ row.offerApplied }}</td>
+                <td><span class="ird-pill" [ngClass]="paymentStatusClass(row.paymentStatus)">{{ row.paymentStatus
+                    }}</span></td>
+                <td>{{ formatInr(row.grossAmount) }}</td>
+                <td [class.ird-discount]="row.discountValue > 0">{{ formatDiscount(row.discountValue) }}</td>
+                <td><strong>{{ row.paymentStatus === 'Failed' ? '—' : formatInr(row.netAmount) }}</strong></td>
+                <td>{{ row.paymentGateway }}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Delayed Report -->
+          <table class="ird-table" *ngIf="activeKpiKey === 'delayed'">
+            <thead>
+              <tr>
+                <th>Guest Name</th>
+                <th>Room Number</th>
+                <th>Date / Time of Order</th>
+                <th>Actual Delivery Time</th>
+                <th>Taken / Allocated</th>
+                <th>Staff Assigned</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngIf="delayedReportRows.length === 0">
+                <td colspan="6" class="table-empty">No delayed orders for this period</td>
+              </tr>
+              <tr *ngFor="let row of delayedReportRows" class="track-row--active" (click)="openOrderReportTimeline(row)"
+                title="Open live tracking">
+                <td>{{ row.guestName }}</td>
+                <td>{{ row.roomNumber }}</td>
+                <td>{{ row.orderDatetime }}</td>
+                <td>{{ row.actualDeliveryTime }}</td>
+                <td>{{ row.delayMinutes }}</td>
+                <td>{{ row.staffAssigned }}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Escalation Report -->
+          <table class="ird-table" *ngIf="activeKpiKey === 'escalated'">
+            <thead>
+              <tr>
+                <th>Guest Name</th>
+                <th>Room Number</th>
+                <th>Date / Time of Order</th>
+                <th>Assigned Staff</th>
+                <th>Issue</th>
+                <th>Resolution</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngIf="escalationReportRows.length === 0">
+                <td colspan="6" class="table-empty">No escalations for this period</td>
+              </tr>
+              <tr *ngFor="let row of escalationReportRows" class="track-row--active"
+                (click)="openOrderReportTimeline(row)" title="Open live tracking">
+                <td>{{ row.guestName }}</td>
+                <td>{{ row.roomNumber }}</td>
+                <td>{{ row.orderDatetime }}</td>
+                <td>{{ row.assignedStaff }}</td>
+                <td>{{ row.issue }}</td>
+                <td><span class="ird-pill" [ngClass]="row.resolution === 'Resolved' ? 'paid' : 'awaiting'">{{
+                    row.resolution }}</span></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Delivery Report -->
+          <table class="ird-table" *ngIf="activeKpiKey === 'delivered'">
+            <thead>
+              <tr>
+                <th>Room No</th>
+                <th>Guest Name</th>
+                <th>Date / Time of Order</th>
+                <th>Delivery Staff</th>
+                <th>Dispatch Time</th>
+                <th>Arrival Time</th>
+                <th>Guest Acknowledgement</th>
+                <th>Delivery Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngIf="deliveryReportRows.length === 0">
+                <td colspan="8" class="table-empty">No delivered orders for this period</td>
+              </tr>
+              <tr *ngFor="let row of deliveryReportRows" class="track-row--active"
+                (click)="openOrderReportTimeline(row)" title="Open live tracking">
+                <td>{{ row.roomNumber }}</td>
+                <td>{{ row.guestName }}</td>
+                <td>{{ row.orderDatetime }}</td>
+                <td>{{ row.deliveryStaff }}</td>
+                <td>{{ row.dispatchTime }}</td>
+                <td>{{ row.arrivalTime }}</td>
+                <td>{{ row.guestAck }}</td>
+                <td><span class="fnb-status" [ngClass]="statusClass(row.deliveryStatus)">{{ row.deliveryStatus }}</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </ng-container>
+
+    <ng-container *ngIf="!pageLoading && activeView === 'ird-payments'">
+      <div class="fnb-head">
+        <div>
+          <button type="button" class="back-link" (click)="backToHome()">
+            <i class="bi bi-arrow-left" aria-hidden="true"></i> Back to F&amp;B Dashboard
+          </button>
+          <h2>IRD Payment Details</h2>
+        </div>
+      </div>
+
+      <div class="ird-toolbar">
+        <div class="ird-search">
+          <i class="bi bi-search" aria-hidden="true"></i>
+          <input type="search" placeholder="Search" [(ngModel)]="irdSearch" (ngModelChange)="onIrdFilterChange()" />
+        </div>
+        <select class="ird-filter" [(ngModel)]="irdDateRange" (ngModelChange)="onIrdDatePresetChange()">
+          <!-- <option value="All Dates">All Dates</option> -->
+          <option value="Today">Today</option>
+          <option value="This Week">This Week</option>
+          <option value="This Month">This Month</option>
+          <option value="For Date">For Date</option>
+          <option value="Date Range">Date Range</option>
+        </select>
+        <div class="ird-date-fields ird-date-fields--single" *ngIf="irdDateRange === 'For Date'">
+          <input
+            class="ird-filter ird-date-input"
+            type="date"
+            [(ngModel)]="irdCustomFrom"
+            (ngModelChange)="onIrdParticularDateChange()"
+            aria-label="For date"
+          />
+        </div>
+        <div class="ird-date-fields" *ngIf="irdDateRange === 'Date Range'">
+          <input
+            class="ird-filter ird-date-input"
+            type="date"
+            [(ngModel)]="irdCustomFrom"
+            (ngModelChange)="onIrdFromChange()"
+            aria-label="From date"
+          />
+          <span class="ird-date-sep">to</span>
+          <input
+            class="ird-filter ird-date-input"
+            type="date"
+            [(ngModel)]="irdCustomTo"
+            [min]="irdCustomFrom || null"
+            [disabled]="!irdCustomFrom"
+            (ngModelChange)="onIrdToChange()"
+            aria-label="To date"
+          />
+        </div>
+        <select class="ird-filter" [(ngModel)]="irdPaymentMethod" (ngModelChange)="onIrdFilterChange()">
+          <option *ngFor="let m of irdPaymentMethodOptions" [value]="m">
+            {{ m === 'All Methods' ? 'Payment Method' : m }}
+          </option>
+        </select>
+        <select class="ird-filter" [(ngModel)]="irdStatus" (ngModelChange)="onIrdFilterChange()">
+          <option *ngFor="let s of irdStatusOptions" [value]="s">
+            {{ s === 'All Status' ? 'Payment Status' : s }}
+          </option>
+        </select>
+        <select class="ird-filter" [(ngModel)]="irdRoom" (ngModelChange)="onIrdFilterChange()">
+          <option *ngFor="let r of irdRoomOptions" [value]="r">
+            {{ r === 'All Rooms' ? 'Room No.' : r }}
+          </option>
+        </select>
+        <button type="button" class="ird-export" (click)="exportIrdData()">
+          <i class="bi bi-download" aria-hidden="true"></i> Export Data
+        </button>
+      </div>
+
+      <div class="fnb-tabs ird-tabs">
+        <button type="button" class="fnb-tab" [class.active]="irdTab === 'Orders'"
+          (click)="setIrdTab('Orders')">Orders</button>
+        <button type="button" class="fnb-tab" [class.active]="irdTab === 'Escalations'"
+          (click)="setIrdTab('Escalations')">Escalations</button>
+      </div>
+
+      <div class="ird-card" *ngIf="irdTab === 'Orders'">
+        <div class="table-wrap ird-table-wrap">
+          <table class="ird-table">
+            <thead>
+              <tr>
+                <th>Date / Time</th>
+                <th>Bill Number</th>
+                <th>Guest Name</th>
+                <th>Room Number</th>
+                <th>Billed To</th>
+                <th>Payment Method</th>
+                <th>Payment Status</th>
+                <th>Subtotal</th>
+                <th>Taxes</th>
+                <th>Discounts</th>
+                <th>Final Charged Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngIf="pagedIrdPaymentRows.length === 0">
+                <td colspan="11" class="table-empty">No IRD payments to show (Paid / Failed only).</td>
+              </tr>
+              <tr *ngFor="let row of pagedIrdPaymentRows">
+                <td>{{ row.datetime }}</td>
+                <td>
+                  <button type="button" class="ird-bill-link" (click)="openIrdOrderTimeline(row)"
+                    [disabled]="!row.task?.id" [title]="row.task?.id ? 'Open live tracking' : 'No linked task'">{{
+                    row.billNumber }}</button>
+                </td>
+                <td>{{ row.guestName }}</td>
+                <td>{{ row.roomNumber }}</td>
+                <td>{{ row.billedTo }}</td>
+                <td>{{ row.paymentMethod }}</td>
+                <td><span class="ird-pill" [ngClass]="paymentStatusClass(row.paymentStatus)">{{ row.paymentStatus
+                    }}</span></td>
+                <td>{{ formatInr(row.subtotal) }}</td>
+                <td>{{ formatInr(row.taxes) }}</td>
+                <td [class.ird-discount]="row.discounts > 0">{{ formatDiscount(row.discounts) }}</td>
+                <td><strong>{{ row.paymentStatus === 'Failed' ? '—' : formatInr(row.finalAmount) }}</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="ird-footer">
+          <span>{{ irdShowingLabel }}</span>
+          <div class="ird-pager">
+            <button type="button" (click)="goIrdPage(irdPage - 1)" [disabled]="irdPage <= 1">Previous</button>
+            <button type="button" class="page-num" *ngFor="let p of irdPageNumbers" [class.active]="p === irdPage"
+              (click)="goIrdPage(p)">{{ p }}</button>
+            <button type="button" (click)="goIrdPage(irdPage + 1)" [disabled]="irdPage >= irdTotalPages">Next</button>
           </div>
         </div>
+      </div>
 
-        <div class="fnb-right-stack">
+      <div class="ird-card" *ngIf="irdTab === 'Escalations'">
+        <div class="table-wrap ird-table-wrap">
+          <table class="ird-table">
+            <thead>
+              <tr>
+                <th>Order / Bill</th>
+                <th>Guest Name</th>
+                <th>Room Number</th>
+                <th>Date / Time of Order</th>
+                <th>Assigned Staff</th>
+                <th>Issue</th>
+                <th>Escalated From</th>
+                <th>Escalated To</th>
+                <th>Resolution</th>
+                <th>Status</th>
+                <th>Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngIf="pagedIrdEscalationRows.length === 0">
+                <td colspan="11" class="table-empty">No escalated IRD orders.</td>
+              </tr>
+              <tr *ngFor="let row of pagedIrdEscalationRows" class="track-row--active"
+                (click)="openIrdOrderTimeline(row)" title="Open live tracking">
+                <td><span class="ird-bill-link">{{ row.billNumber }}</span></td>
+                <td>{{ row.guestName }}</td>
+                <td>{{ row.roomNumber }}</td>
+                <td>{{ row.orderDatetime }}</td>
+                <td>{{ row.assignedStaff }}</td>
+                <td>{{ row.issue }}</td>
+                <td>{{ row.escalatedFrom }}</td>
+                <td>{{ row.escalatedTo }}</td>
+                <td><span class="ird-pill" [ngClass]="row.resolution === 'Resolved' ? 'paid' : 'awaiting'">{{
+                    row.resolution }}</span></td>
+                <td><span class="fnb-status" [ngClass]="statusClass(row.status)">{{ row.status }}</span></td>
+                <td>{{ row.time }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="ird-footer">
+          <span>{{ irdShowingLabel }}</span>
+          <div class="ird-pager">
+            <button type="button" (click)="goIrdPage(irdPage - 1)" [disabled]="irdPage <= 1">Previous</button>
+            <button type="button" class="page-num" *ngFor="let p of irdPageNumbers" [class.active]="p === irdPage"
+              (click)="goIrdPage(p)">{{ p }}</button>
+            <button type="button" (click)="goIrdPage(irdPage + 1)" [disabled]="irdPage >= irdTotalPages">Next</button>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+
+    <ng-container *ngIf="!pageLoading && activeView === 'home'">
+      <div class="fnb-head">
+        <div>
+          <h2>F&amp;B Department Head</h2>
+          <p>Restaurant offers, payments, delays, escalations and delivery</p>
+        </div>
+        <div class="fnb-head-actions">
+          <app-dashboard-period-controls [(selectedPeriod)]="selectedPeriod" [(customFrom)]="customFrom"
+            [(customTo)]="customTo" [refreshing]="refreshing" (periodChange)="onPeriodChange()"
+            (customRangeChange)="onCustomRangeChange()"
+            (refresh)="onDashboardRefresh($event)"></app-dashboard-period-controls>
+        </div>
+      </div>
+
+      <div class="fnb-dashboard-home">
+        <div class="fnb-kpis">
+          <button type="button" class="fnb-kpi blue" (click)="openKpi('orders')">
+            <div class="kpi-top"><span class="kpi-icon"><i class="bi bi-receipt"></i></span>IRD Order Report</div>
+            <strong>{{ loadingTasks ? '…' : (taskReportCounts.orders | number) }}</strong>
+            <small>In-Room Dining Orders</small>
+          </button>
+          <button type="button" class="fnb-kpi pale" (click)="openKpi('offers')">
+            <div class="kpi-top"><span class="kpi-icon"><i class="bi bi-tag-fill"></i></span>Restaurant Offer Report
+            </div>
+            <strong>{{ offerCountLoading ? '…' : offerCountLabel }}</strong>
+            <small>{{ offerPaymentLoading ? '…' : offerPaymentAmountLabel }} · Offer payments</small>
+          </button>
+          <button type="button" class="fnb-kpi primary" (click)="openKpi('payments')">
+            <div class="kpi-top"><span class="kpi-icon"><i class="bi bi-cash-stack"></i></span>IRD Payment Details</div>
+            <strong>{{ loadingTasks ? '…' : (irdPaidOrderCount | number) }}</strong>
+            <small>{{ loadingTasks ? '…' : irdPaymentAmountLabel }} · Paid</small>
+          </button>
+          <button type="button" class="fnb-kpi orange" (click)="openKpi('delayed')">
+            <div class="kpi-top"><span class="kpi-icon"><i class="bi bi-clock-history"></i></span>Delayed Report</div>
+            <strong>{{ loadingTasks ? '…' : (taskReportCounts.delayed | number) }}</strong>
+            <small>Delayed Orders</small>
+          </button>
+          <button type="button" class="fnb-kpi red" (click)="openKpi('escalated')">
+            <div class="kpi-top"><span class="kpi-icon"><i class="bi bi-exclamation-triangle-fill"></i></span>Escalation
+              Report</div>
+            <strong>{{ loadingTasks ? '…' : (taskReportCounts.escalated | number) }}</strong>
+            <small>Total Escalations</small>
+          </button>
+          <button type="button" class="fnb-kpi green" (click)="openKpi('delivered')">
+            <div class="kpi-top"><span class="kpi-icon"><i class="bi bi-check-circle-fill"></i></span>Delivery Report
+            </div>
+            <strong>{{ loadingTasks ? '…' : (taskReportCounts.delivered | number) }}</strong>
+            <small>Delivered Orders</small>
+          </button>
+        </div>
+
+        <div class="fnb-columns">
           <div class="fnb-panel">
             <div class="fnb-panel-head">
-              <h3>Order &amp; Escalation Overview</h3>
-              <span class="fnb-legend-hint">🟢 Orders　🟣 Escalations</span>
-            </div>
-            <div class="fnb-donut-row">
-              <div class="fnb-donut">
-                <div class="fnb-donut-label">Total<br>Orders &amp; Escalations<b>437</b></div>
+              <h3 class="fnb-live-title">Live Tracking <span class="fnb-live-dot" aria-label="Live">●</span></h3>
+              <div class="fnb-filters">
+                <select class="fnb-filter" [(ngModel)]="restaurantFilter">
+                  <option *ngFor="let r of restaurants" [value]="r">{{ r }}</option>
+                </select>
+                <select class="fnb-filter" *ngIf="trackingMode === 'Orders'" [(ngModel)]="paymentFilter"
+                  aria-label="Payment method filter">
+                  <option>All Payments</option>
+                  <option>Online Payment</option>
+                  <option>Bill To Room</option>
+                </select>
+                <select class="fnb-filter" *ngIf="trackingMode === 'Escalations'" [(ngModel)]="typeFilter">
+                  <option *ngFor="let t of escalationTypeOptions" [value]="t">{{ t }}</option>
+                </select>
               </div>
-              <div class="fnb-legend">
-                <div><i class="dot dot-green"></i>Orders <strong>405</strong> 93%</div>
-                <div><i class="dot dot-purple"></i>Escalations <strong>32</strong> 7%</div>
-              </div>
             </div>
-            <div class="fnb-mini-title">
-              <h4>Recent Escalations</h4>
-              <button type="button" class="fnb-view-all" (click)="setTracking('Escalations')">View All</button>
+            <div class="fnb-tabs">
+              <button type="button" class="fnb-tab" [class.active]="trackingMode === 'Orders'"
+                (click)="setTracking('Orders')">Orders</button>
+              <button type="button" class="fnb-tab" [class.active]="trackingMode === 'Escalations'"
+                (click)="setTracking('Escalations')">Escalations</button>
             </div>
             <div class="table-wrap">
               <table class="fnb-table">
                 <thead>
                   <tr>
-                    <th>#</th><th>Order #</th><th>Issue Type</th><th>Restaurant</th><th>Time</th><th>Status</th>
+                    <th>Date / Time</th>
+                    <th>Order ID</th>
+                    <th>Restaurant</th>
+                    <th>{{ trackingMode === 'Orders' ? 'Payment' : 'Type' }}</th>
+                    <th>Status</th>
+                    <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr *ngIf="!loadingTasks && recentEscalations.length === 0">
-                    <td colspan="6" class="table-empty">No escalations.</td>
+                  <tr *ngIf="loadingTasks">
+                    <td colspan="6" class="table-empty">Loading IRD orders…</td>
                   </tr>
-                  <tr *ngFor="let e of recentEscalations">
-                    <td>{{ e.num }}</td>
-                    <td>{{ e.order }}</td>
-                    <td>{{ e.issue }}</td>
-                    <td>{{ e.restaurant }}</td>
-                    <td>{{ e.time }}</td>
-                    <td><span class="fnb-status" [ngClass]="statusClass(e.status)">{{ e.status }}</span></td>
+                  <tr *ngIf="!loadingTasks && loadError">
+                    <td colspan="6" class="table-empty">{{ loadError }}</td>
+                  </tr>
+                  <tr *ngIf="!loadingTasks && !loadError && filteredTrackingRows.length === 0">
+                    <td colspan="6" class="table-empty">
+                      {{ trackingMode === 'Orders' ? 'No confirmed IRD food orders.' : 'No escalated IRD orders.' }}
+                    </td>
+                  </tr>
+                  <tr *ngFor="let o of filteredTrackingRows"
+                    [class.track-row--active]="trackingMode === 'Escalations' && !!o.task?.id"
+                    (click)="openTrackingRow(o)"
+                    [attr.title]="trackingMode === 'Escalations' ? 'Open track order' : null">
+                    <td>{{ o.time }}</td>
+                    <td>{{ o.id }}</td>
+                    <td>{{ o.restaurant }}</td>
+                    <td><span class="fnb-status">{{ o.type }}</span></td>
+                    <td><span class="fnb-status" [ngClass]="statusClass(o.status)">{{ o.status }}</span></td>
+                    <td>
+                      <button type="button" class="view" (click)="openTrackingAction($event, o)">
+                        {{ trackingMode === 'Escalations' ? 'Track　›' : 'View　›' }}
+                      </button>
+                    </td>
                   </tr>
                 </tbody>
               </table>
             </div>
+            <div class="fnb-order-summary">
+              <div class="fnb-sum">
+                <small><i class="bi bi-bag-check-fill" aria-hidden="true"></i> Total Active Orders</small>
+                <strong>{{ todayOrderSummary.totalActive }}</strong>
+              </div>
+              <div class="fnb-sum">
+                <small><i class="bi bi-hourglass-split" aria-hidden="true"></i> ASAP / Processing</small>
+                <strong>{{ todayOrderSummary.preparing }}</strong>
+              </div>
+              <div class="fnb-sum">
+                <small><i class="bi bi-person-check-fill" aria-hidden="true"></i> Assigned</small>
+                <strong>{{ todayOrderSummary.outForDelivery }}</strong>
+              </div>
+              <div class="fnb-sum">
+                <small><i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i> Escalated</small>
+                <strong>{{ todayOrderSummary.escalated }}</strong>
+              </div>
+              <div class="fnb-sum">
+                <small><i class="bi bi-check-circle-fill" aria-hidden="true"></i> Completed Today</small>
+                <strong>{{ todayOrderSummary.completedToday }}</strong>
+              </div>
+            </div>
           </div>
 
-          <div class="fnb-panel">
-            <div class="fnb-mini-title">
-              <h4>Live Order Status</h4>
-              <button type="button" class="fnb-view-all" (click)="setTracking('Orders')">View All</button>
-            </div>
-            <div class="fnb-live-status">
-              <div class="fnb-live-row fnb-live-row-head">
-                <span>Status</span><span>Count</span><span>%</span><span></span>
+          <div class="fnb-right-stack">
+            <div class="fnb-panel">
+              <div class="fnb-panel-head">
+                <h3>Order &amp; Escalation Overview</h3>
+                <span class="fnb-legend-hint">Escalated is within total orders</span>
               </div>
-              <div class="fnb-live-row" *ngFor="let row of liveStatusRows">
-                <span>{{ row.label }}</span>
-                <b>{{ row.count }}</b>
-                <span>{{ row.pct }}%</span>
-                <div class="fnb-progress"><i [style.width.%]="row.pct" [style.background]="row.color"></i></div>
+              <div class="oe-metrics">
+                <div>
+                  <small>Total Orders</small>
+                  <strong>{{ orderEscalationOverview.orders }}</strong>
+                </div>
+                <div>
+                  <small>Escalated</small>
+                  <strong>{{ orderEscalationOverview.escalations }}</strong>
+                </div>
+                <div>
+                  <small>Rate</small>
+                  <strong>{{ orderEscalationOverview.escalationsPct }}%</strong>
+                </div>
+              </div>
+              <div class="oe-track"
+                [title]="orderEscalationOverview.escalations + ' escalated of ' + orderEscalationOverview.orders + ' orders'">
+                <div class="oe-track-fill" [style.width.%]="orderEscalationOverview.escalationsPct"></div>
+              </div>
+              <div class="fnb-donut-row">
+                <div class="fnb-donut-svg-wrap" (mouseleave)="onDonutLeave()">
+                  <svg class="fnb-donut-svg" viewBox="0 0 140 140" aria-label="Orders and escalations">
+                    <circle cx="70" cy="70" r="62" fill="#dce5ec" *ngIf="overviewDonutSlices.length === 0"></circle>
+                    <path *ngFor="let slice of overviewDonutSlices" [attr.d]="slice.d" [attr.fill]="slice.color"
+                      class="fnb-donut-slice"
+                      [class.is-dim]="hoveredChart === 'overview' && hoveredDonutLabel && hoveredDonutLabel !== slice.label"
+                      [class.is-hot]="hoveredChart === 'overview' && hoveredDonutLabel === slice.label"
+                      (mouseenter)="onDonutEnter('overview', slice)"
+                      [attr.title]="slice.label + ': ' + slice.value + ' · ' + slice.pct + '%'"></path>
+                  </svg>
+                  <div class="fnb-donut-label" [class.is-hidden]="hoveredChart === 'overview' && !!hoveredDonutLabel">
+                    Total Orders<b>{{ orderEscalationOverview.orders }}</b>
+                  </div>
+                  <div class="fnb-donut-hover-caption" *ngIf="hoveredChart === 'overview' && hoveredDonutLabel">
+                    {{ hoveredDonutLabel }}<b>{{ hoveredDonutValue }}</b>
+                  </div>
+                </div>
+                <div class="fnb-legend">
+                  <div>
+                    <i class="dot dot-green"></i>On time
+                    <strong>{{ orderEscalationOverview.onTrack }}</strong>
+                    {{ orderEscalationOverview.ordersPct }}%
+                  </div>
+                  <div>
+                    <i class="dot dot-purple"></i>Escalated
+                    <strong>{{ orderEscalationOverview.escalations }}</strong>
+                    {{ orderEscalationOverview.escalationsPct }}%
+                  </div>
+                  <p class="oe-note">Escalated orders can still be delivered</p>
+                </div>
+              </div>
+              <div class="fnb-mini-title">
+                <h4>Recent Escalations</h4>
+                <button type="button" class="fnb-view-all" (click)="openIrdPayments('Escalations')">View All</button>
+              </div>
+              <div class="table-wrap">
+                <table class="fnb-table recent-esc-table esc-history-table">
+                  <thead>
+                    <tr>
+                      <th>Order ID</th>
+                      <th>Date &amp; Time</th>
+                      <th>Department</th>
+                      <th>Details / Room</th>
+                      <th>Status</th>
+                      <th>ETA / Delay</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngIf="!loadingTasks && recentEscalations.length === 0">
+                      <td colspan="6" class="table-empty">No escalation history.</td>
+                    </tr>
+                    <tr *ngFor="let e of recentEscalations" class="track-row--active" (click)="openRecentEscalation(e)"
+                      title="Open track order">
+                      <td>{{ e.orderId }}</td>
+                      <td>{{ e.datetime }}</td>
+                      <td>{{ e.dept }}</td>
+                      <td>{{ e.details }}</td>
+                      <td><span class="fnb-status" [ngClass]="statusClass(e.status)">{{ e.status }}</span></td>
+                      <td>{{ e.eta }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="fnb-panel">
+              <div class="fnb-mini-title">
+                <h4>Live Order Status</h4>
+                <button type="button" class="fnb-view-all" (click)="openIrdPayments('Orders')">View All</button>
+              </div>
+              <div class="fnb-live-status-layout">
+                <div class="fnb-donut-svg-wrap fnb-donut-svg-wrap--sm" (mouseleave)="onDonutLeave()">
+                  <svg class="fnb-donut-svg" viewBox="0 0 140 140" aria-label="Live order status">
+                    <circle cx="70" cy="70" r="62" fill="#dce5ec" *ngIf="liveStatusDonutSlices.length === 0"></circle>
+                    <path *ngFor="let slice of liveStatusDonutSlices" [attr.d]="slice.d" [attr.fill]="slice.color"
+                      class="fnb-donut-slice"
+                      [class.is-dim]="hoveredChart === 'live' && hoveredDonutLabel && hoveredDonutLabel !== slice.label"
+                      [class.is-hot]="hoveredChart === 'live' && hoveredDonutLabel === slice.label"
+                      (mouseenter)="onDonutEnter('live', slice)"
+                      [attr.title]="slice.label + ': ' + slice.value + ' · ' + slice.pct + '%'"></path>
+                  </svg>
+                  <div class="fnb-donut-label" [class.is-hidden]="hoveredChart === 'live' && !!hoveredDonutLabel">
+                    Live<br>Status<b>{{ liveStatusTotal }}</b>
+                  </div>
+                  <div class="fnb-donut-hover-caption" *ngIf="hoveredChart === 'live' && hoveredDonutLabel">
+                    {{ hoveredDonutLabel }}<b>{{ hoveredDonutValue }}</b>
+                  </div>
+                </div>
+                <div class="fnb-live-status">
+                  <div class="fnb-live-row fnb-live-row-head">
+                    <span>Status</span><span>Count</span><span>%</span>
+                  </div>
+                  <div class="fnb-live-row" *ngIf="!loadingTasks && liveStatusRows.length === 0">
+                    <span>No live order status</span><b>0</b><span>0%</span>
+                  </div>
+                  <div class="fnb-live-row" *ngFor="let row of liveStatusRows">
+                    <span><i class="dot" [style.background]="row.color"></i>{{ row.label }}</span>
+                    <b>{{ row.count }}</b>
+                    <span>{{ row.pct }}%</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </ng-container>
   </div>
 </section>
 

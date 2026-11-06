@@ -27,6 +27,7 @@ export class MenuBarComponent implements OnInit {
 
   customerdata: any;
   hotelLogoUrl: string | null = null;
+  logoLoading = true;
   customerType: any;
   hotelId: number | null = null;
   navigationHotelId: number | null = null; // ID to use for Hotels menu navigation
@@ -36,6 +37,8 @@ export class MenuBarComponent implements OnInit {
   isHotelSubmenuOpen = false;
   isUserAccessSubmenuOpen = false;
   isSettingsSubmenuOpen = false;
+  /** Skip one route-driven submenu close after intentionally opening a parent flyout. */
+  private keepSubmenuOpenOnNextNav = false;
   roleModules: any[] = [];
   // Newlya dded for submenu active
   currentHotelTab: number = 0;
@@ -55,6 +58,29 @@ export class MenuBarComponent implements OnInit {
     private permissionService: PermissionService,
     private cdr: ChangeDetectorRef
   ) { }
+
+  goToPropertyLogoUpload(): void {
+    if (!this.isAdminRole()) {
+      this.alerts.error('Only admin can change the hotel logo.', {
+        autoClose: true,
+        keepAfterRouteChange: false
+      });
+      return;
+    }
+    // Property Details tab (index 1) + focus company logo upload section
+    const id = this.navigationHotelId || this.hotelId;
+    if (!id) {
+      this.alerts.error('Hotel details not available yet. Please try again.', {
+        autoClose: true,
+        keepAfterRouteChange: false
+      });
+      return;
+    }
+    this.setActiveMenu('hotel-1');
+    this.router.navigate(['/edit-new-hotel', id], {
+      queryParams: { tab: 1, focus: 'logo' }
+    });
+  }
 
   ngOnInit(): void {
     // console.log('menu bar init');
@@ -186,34 +212,32 @@ export class MenuBarComponent implements OnInit {
   }
 
   updateActiveMenu(url: string) {
-    // Newly added for highlighting profile
-    // Reset active menu to prevent stale highlights
+    // Highlight from route. Close flyouts on nav unless we just opened a parent menu.
     this.activeMenu = '';
-    // console.log('url', url);
-    // End of newly added for highlighting profile
-    // close all first (we'll open the relevant one)
-    this.resetAllSubmenus();
-    // console.log('Checking URL for highlight:', url);
+    if (this.keepSubmenuOpenOnNextNav) {
+      this.keepSubmenuOpenOnNextNav = false;
+    } else {
+      this.resetAllSubmenus();
+    }
+
+    const tabFromQuery = this.readHotelTabFromUrl(url);
+    if (tabFromQuery != null) {
+      this.currentHotelTab = tabFromQuery;
+    }
 
     // Order matters: check the more-specific module names first (role/user/staff)
     if (url.includes('/role')) {
-      // catches /role-list, /role-add, /role-edit, /role/..., etc.
       this.activeMenu = 'role';
-      this.isUserAccessSubmenuOpen = true;
-
     } else if (url.includes('/user')) {
-      // catches /user-list, /user-add, /user-edit, etc.
       this.activeMenu = 'user';
-      this.isUserAccessSubmenuOpen = true;
-
     } else if (url.includes('/staff')) {
       this.activeMenu = 'staff';
-      this.isUserAccessSubmenuOpen = true;
-      //  } else if (url.includes('/edit-new-hotel') || url.includes('/hotel')) {
-      //       // catches /edit-new-hotel/:id and generic hotel routes
-    } else if (url.includes('/edit-new-hotel') || url.includes('/hotel') || url.includes('cancellation') || url.includes('confirmation')) {
-      // catches /edit-new-hotel/:id, generic hotel routes, and payment status routes
-      // Newlya dded for submenu active
+    } else if (
+      url.includes('/edit-new-hotel') ||
+      url.includes('/hotel') ||
+      url.includes('cancellation') ||
+      url.includes('confirmation')
+    ) {
       if (this.isApproved()) {
         if (this.currentHotelTab === 0) {
           this.activeMenu = 'hotel-0';
@@ -227,78 +251,71 @@ export class MenuBarComponent implements OnInit {
       } else {
         this.activeMenu = 'hotel';
       }
-      // End for submenu active
-      this.isHotelSubmenuOpen = true;
-
     } else if (url.includes('/settings') || url.includes('/privacy-policy') || url.includes('/terms-conditions')) {
       this.activeMenu = 'settings-page';
-      this.isSettingsSubmenuOpen = true;
-
     } else if (url.includes('/bookings')) {
       this.activeMenu = 'bookings';
-
     } else if (url.includes('/guests-list')) {
       this.activeMenu = 'guests';
     } else if (url.includes('/payment-details')) {
       this.activeMenu = 'payment';
-
     } else if (url.includes('/fb/dashboard')) {
       this.activeMenu = 'fb-dashboard';
-
     } else if (url.includes('/fo/dashboard')) {
       this.activeMenu = 'fo-dashboard';
-
     } else if (url.includes('/hk/dashboard')) {
       this.activeMenu = 'hk-dashboard';
-
     } else if (url.includes('/overview-dashboard') || url.includes('/kot-dashboard')) {
       this.activeMenu = 'overview-dashboard';
-
     } else if (url.includes('/dashboard') || url.includes('report') || url.includes('/guest-reviews')) {
       this.activeMenu = 'dashboard';
-
     } else if (url.includes('/task-management')) {
       this.activeMenu = 'task';
-
-    }
-    else if (url.includes('/outlet-list') || url.includes('/outlet-creation') || url.includes('/create-outlet') || url.includes('/product') || url.includes('/add-product')) {
+    } else if (
+      url.includes('/outlet-list') ||
+      url.includes('/outlet-creation') ||
+      url.includes('/create-outlet') ||
+      url.includes('/product') ||
+      url.includes('/add-product')
+    ) {
       this.activeMenu = 'outlet';
-    }
-    // Newly added for dynamic department, service and hierarchy
-    else if (url.includes('/department')) {
+    } else if (url.includes('/department')) {
       this.activeMenu = 'department';
-      this.isSettingsSubmenuOpen = true;
-    }
-    else if (url.includes('/service-tab')) {
+    } else if (url.includes('/service-tab')) {
       this.activeMenu = 'service-tab';
-      this.isSettingsSubmenuOpen = true;
-    }
-    else if (url.includes('/service') || url.includes('/add-new-service') || url.includes('/edit-service') || url.includes('/view-service')) {
+    } else if (
+      url.includes('/service') ||
+      url.includes('/add-new-service') ||
+      url.includes('/edit-service') ||
+      url.includes('/view-service')
+    ) {
       this.activeMenu = 'service';
-      this.isSettingsSubmenuOpen = true;
-    }
-    else if (url.includes('/member-hierarchy') || url.includes('/create-new-hierarchy') || url.includes('/edit-hierarchy') || url.includes('/view-hierarchy')) {
+    } else if (
+      url.includes('/member-hierarchy') ||
+      url.includes('/create-new-hierarchy') ||
+      url.includes('/edit-hierarchy') ||
+      url.includes('/view-hierarchy')
+    ) {
       this.activeMenu = 'hierarchy';
-      this.isSettingsSubmenuOpen = true;
-    }
-    else if (url.includes('/features') || url.includes('/restaurants-list') || url.includes('/features-list') || url.includes('/feature-creation')) {
+    } else if (
+      url.includes('/features') ||
+      url.includes('/restaurants-list') ||
+      url.includes('/features-list') ||
+      url.includes('/feature-creation')
+    ) {
       this.activeMenu = 'features';
-    }
-    // Newly added for highlighting profile
-    else if (url.includes('/profile')) {
+    } else if (url.includes('/profile')) {
       this.activeMenu = '';
     }
-    // End of newly added for highlighting profile
+  }
 
-    //  else {
-    //   // Default: no recognizable route — highlight Hotels by default (as requested)
-    //   this.activeMenu = 'hotel';
-    //   this.isHotelSubmenuOpen = true;
-    // }
-    // console.log('Active Menu set to:', this.activeMenu,
-    //   'HotelOpen:', this.isHotelSubmenuOpen,
-    //   'UserAccessOpen:', this.isUserAccessSubmenuOpen,
-    //   'SettingsOpen:', this.isSettingsSubmenuOpen);
+  private readHotelTabFromUrl(url: string): number | null {
+    const match = /[?&]tab=(\d+)/.exec(url);
+    if (!match) {
+      return null;
+    }
+    const tab = Number(match[1]);
+    return Number.isFinite(tab) ? tab : null;
   }
 
   // Newly added for getting customer id for customer type
@@ -523,18 +540,65 @@ export class MenuBarComponent implements OnInit {
     this.router.navigate(['/edit-new-hotel', id], { queryParams: { tab: tabIndex } });
   }
 
+  /** Pick a Hotels leaf: navigate, keep selection highlight, hide the 3-item flyout. */
+  selectHotelTab(menuKey: string, tabIndex: number, event?: Event): void {
+    event?.stopPropagation();
+    this.activeMenu = menuKey;
+    this.currentHotelTab = tabIndex;
+    this.isHotelSubmenuOpen = false;
+    this.isUserAccessSubmenuOpen = false;
+    this.isSettingsSubmenuOpen = false;
+    this.navigateToHotelTab(tabIndex);
+  }
+
+  /** Pick User Access / Settings leaf: keep highlight, hide submenu. */
+  selectLeafMenu(menuKey: string, label: string, event?: Event): void {
+    event?.stopPropagation();
+    this.activeMenu = menuKey;
+    this.isHotelSubmenuOpen = false;
+    this.isUserAccessSubmenuOpen = false;
+    this.isSettingsSubmenuOpen = false;
+    this.sendValue(label);
+  }
+
+  isHotelMenuActive(): boolean {
+    return this.activeMenu === 'hotel' || this.activeMenu.startsWith('hotel-');
+  }
+
+  isUserAccessMenuActive(): boolean {
+    return this.activeMenu === 'user-access' || ['role', 'user', 'staff'].includes(this.activeMenu);
+  }
+
+  isSettingsMenuActive(): boolean {
+    return (
+      this.activeMenu === 'settings-main' ||
+      this.activeMenu.startsWith('settings') ||
+      ['department', 'service', 'hierarchy', 'service-tab'].includes(this.activeMenu)
+    );
+  }
+
   setActiveMenu(menu: string) {
     this.activeMenu = menu;
-    if (menu.startsWith('hotel')) {
-      this.isHotelSubmenuOpen = true;
+    if (menu.startsWith('hotel-')) {
+      // Leaf selected elsewhere — keep highlight, submenu stays closed
+      this.isHotelSubmenuOpen = false;
+      this.isUserAccessSubmenuOpen = false;
+      this.isSettingsSubmenuOpen = false;
+    } else if (menu === 'hotel') {
       this.isUserAccessSubmenuOpen = false;
       this.isSettingsSubmenuOpen = false;
     } else if (['role', 'user', 'staff'].includes(menu)) {
-      this.isUserAccessSubmenuOpen = true;
+      this.isUserAccessSubmenuOpen = false;
       this.isHotelSubmenuOpen = false;
       this.isSettingsSubmenuOpen = false;
-    } else if ((menu.startsWith('settings')) || (menu.startsWith('department')) || (menu.startsWith('service')) || (menu.startsWith('hierarchy')) || (menu.startsWith('service-tab'))) {
-      this.isSettingsSubmenuOpen = true;
+    } else if (
+      menu.startsWith('settings') ||
+      menu.startsWith('department') ||
+      menu.startsWith('service') ||
+      menu.startsWith('hierarchy') ||
+      menu.startsWith('service-tab')
+    ) {
+      this.isSettingsSubmenuOpen = false;
       this.isHotelSubmenuOpen = false;
       this.isUserAccessSubmenuOpen = false;
     } else {
@@ -543,31 +607,82 @@ export class MenuBarComponent implements OnInit {
     }
   }
 
-  toggleSubmenu(menu: string) {
+  private setSubmenuFlyoutTop(event?: Event): void {
+    const el = event?.currentTarget as HTMLElement | undefined;
+    if (!el || typeof window === 'undefined' || window.innerWidth > 1280) {
+      return;
+    }
+    const rectTop = Math.round(el.getBoundingClientRect().top);
+    // Keep flyout on-screen (leave room for ~3–5 items)
+    const maxTop = Math.max(8, window.innerHeight - 220);
+    const top = Math.min(Math.max(8, rectTop), maxTop);
+    document.documentElement.style.setProperty('--submenu-flyout-top', `${top}px`);
+  }
+
+  toggleSubmenu(menu: string, event?: Event) {
+    this.setSubmenuFlyoutTop(event);
     if (menu === 'Hotels') {
-      this.isHotelSubmenuOpen = !this.isHotelSubmenuOpen;
+      const opening = !this.isHotelSubmenuOpen;
+      this.isHotelSubmenuOpen = opening;
       this.isUserAccessSubmenuOpen = false;
       this.isSettingsSubmenuOpen = false;
-      // ensure highlight for Hotels (parent key)
-      this.activeMenu = 'hotel';
-      const id = this.getHotelsNavigationId();
-      if (id != null) {
-        this.router.navigate(['/edit-new-hotel', id]);
-      } else {
-        // Staff: resolve hotel id then navigate
-        this.resolveHotelAndNavigate();
+      // Keep chosen hotel tab highlight when reopening the flyout
+      if (!this.activeMenu.startsWith('hotel-')) {
+        this.activeMenu = 'hotel';
+      }
+      if (opening) {
+        this.armKeepSubmenuOpen();
+        const id = this.getHotelsNavigationId();
+        if (id != null) {
+          const tab =
+            this.activeMenu === 'hotel-0'
+              ? 0
+              : this.activeMenu === 'hotel-1'
+                ? 1
+                : this.activeMenu === 'hotel-4'
+                  ? 2
+                  : this.currentHotelTab;
+          this.router.navigate(['/edit-new-hotel', id], {
+            queryParams: tab != null ? { tab } : undefined
+          });
+        } else {
+          this.resolveHotelAndNavigate(this.currentHotelTab);
+        }
       }
     } else if (menu === 'User Access') {
-      this.isUserAccessSubmenuOpen = !this.isUserAccessSubmenuOpen;
+      const opening = !this.isUserAccessSubmenuOpen;
+      this.isUserAccessSubmenuOpen = opening;
       this.isHotelSubmenuOpen = false;
       this.isSettingsSubmenuOpen = false;
-      this.activeMenu = 'user-access';
+      if (!['role', 'user', 'staff'].includes(this.activeMenu)) {
+        this.activeMenu = 'user-access';
+      }
+      if (opening) {
+        this.armKeepSubmenuOpen();
+      }
     } else if (menu === 'Settings') {
-      this.isSettingsSubmenuOpen = !this.isSettingsSubmenuOpen;
+      const opening = !this.isSettingsSubmenuOpen;
+      this.isSettingsSubmenuOpen = opening;
       this.isHotelSubmenuOpen = false;
       this.isUserAccessSubmenuOpen = false;
-      this.activeMenu = 'settings-main';
+      if (
+        !this.activeMenu.startsWith('settings') &&
+        !['department', 'service', 'hierarchy', 'service-tab'].includes(this.activeMenu)
+      ) {
+        this.activeMenu = 'settings-main';
+      }
+      if (opening) {
+        this.armKeepSubmenuOpen();
+      }
     }
+  }
+
+  private armKeepSubmenuOpen(): void {
+    this.keepSubmenuOpenOnNextNav = true;
+    // Same-URL taps may not emit NavigationEnd — clear the guard shortly
+    setTimeout(() => {
+      this.keepSubmenuOpenOnNextNav = false;
+    }, 600);
   }
 
   resetAllSubmenus() {
@@ -715,8 +830,10 @@ export class MenuBarComponent implements OnInit {
 
   fetchHotelLogo() {
     const memberId = this.localService.get('MemberId');
+    this.logoLoading = true;
     if (!memberId) {
       this.hotelLogoUrl = null;
+      this.logoLoading = false;
       return;
     }
     const requestBody = {
@@ -735,14 +852,17 @@ export class MenuBarComponent implements OnInit {
       next: (response: any) => {
         if (response?.success && response.result?.data?.length > 0) {
           const customerData = response.result.data[0];
+          this.customerdata = this.customerdata || customerData;
           this.hotelLogoUrl = customerData.property_details?.hotel_logo || null;
         } else {
           this.hotelLogoUrl = null;
         }
+        this.logoLoading = false;
       },
       error: (err) => {
         console.error('Error fetching customer logo in menu bar:', err);
         this.hotelLogoUrl = null;
+        this.logoLoading = false;
       }
     });
   }

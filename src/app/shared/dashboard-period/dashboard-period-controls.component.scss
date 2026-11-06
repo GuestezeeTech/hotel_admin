@@ -1,0 +1,177 @@
+:host {
+  display: block;
+  min-width: 0;
+  flex: 0 0 auto;
+  max-width: 100%;
+}
+
+.ds-period-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.ds-period {
+  border: 1px solid #e2e7ea;
+  background-color: #fff;
+  padding: 10px 28px 10px 14px;
+  border-radius: 7px;
+  color: #173a5b;
+  font-size: 13px;
+  min-width: 148px;
+  max-width: 100%;
+  flex: 0 1 auto;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%233d5a73' d='M1.4 0.6L6 5.2 10.6 0.6 12 2 6 8 0 2z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 10px 7px;
+  cursor: pointer;
+  order: 1;
+}
+
+/* Date Range: full-width row under controls */
+.ds-period-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+  min-width: 0;
+  order: 4;
+  flex: 1 0 100%;
+  width: 100%;
+  box-sizing: border-box;
+
+  /* For Date: stay on same row as select + refresh */
+  &--single {
+    order: 2;
+    flex: 0 0 auto;
+    width: auto;
+    max-width: 100%;
+
+    .ds-period-date-field {
+      flex: 0 0 auto;
+      width: auto;
+      max-width: none;
+    }
+
+    .ds-period-date {
+      width: auto;
+      min-width: 148px;
+      max-width: 180px;
+    }
+  }
+}
+
+.ds-period-date-field {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  min-width: 0;
+  flex: 1 1 0;
+}
+
+.ds-period-date {
+  border: 1px solid #e2e7ea;
+  background: #fff;
+  padding: 9px 12px;
+  border-radius: 7px;
+  color: #173a5b;
+  font-size: 13px;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  cursor: pointer;
+  line-height: 1.2;
+  height: 38px;
+}
+
+.ds-period-sep {
+  font-size: 12px;
+  color: #788896;
+  flex: 0 0 auto;
+  line-height: 1;
+  padding: 0;
+}
+
+app-dashboard-refresh {
+  flex: 0 0 auto;
+  order: 3;
+  align-self: center;
+}
+
+@media (max-width: 760px) {
+  .ds-period-wrap {
+    width: 100%;
+    max-width: 100%;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .ds-period {
+    min-width: 0;
+    width: auto;
+    max-width: calc(100% - 52px);
+    flex: 1 1 auto;
+    font-size: 12px;
+    padding: 8px 26px 8px 10px;
+  }
+
+  /* For Date: wrap date under, right-aligned, not stretched full */
+  .ds-period-range--single {
+    order: 4;
+    flex: 1 0 100%;
+    width: 100%;
+    justify-content: flex-end;
+
+    .ds-period-date-field {
+      flex: 0 1 180px;
+      width: min(180px, 100%);
+      max-width: 180px;
+    }
+
+    .ds-period-date {
+      width: 100%;
+      min-width: 0;
+      max-width: 180px;
+      height: 36px;
+      font-size: 12px;
+      padding: 8px 10px;
+    }
+  }
+
+  /* Date Range: two equal columns */
+  .ds-period-range:not(.ds-period-range--single) {
+    order: 4;
+    flex: 1 0 100%;
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 6px;
+  }
+
+  .ds-period-date-field {
+    flex: none;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .ds-period-date {
+    font-size: 12px;
+    padding: 8px 8px;
+    height: 36px;
+  }
+
+  app-dashboard-refresh {
+    order: 2;
+    flex: 0 0 auto;
+  }
+}

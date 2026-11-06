@@ -15,17 +15,27 @@ import { FormsModule } from '@angular/forms';
 import { HostListener } from '@angular/core';
 import { LoaderService } from '../shared/loader/loader.service';
 import { reviewsForDashboard } from '../guest-reviews/guest-reviews.util';
-
+import { formatAmPmTime } from '../shared/time-format.util';
+import {
+  DashboardRefreshButtonComponent,
+  DashboardRefreshSource
+} from '../shared/dashboard-refresh/dashboard-refresh-button.component';
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [AlertsComponent, CommonModule, FormsModule],
+  imports: [AlertsComponent, CommonModule, FormsModule, DashboardRefreshButtonComponent],
   templateUrl: './admin-dashboard.component.html',
   styleUrl: './admin-dashboard.component.scss'
 })
 
 export class AdminDashboardComponent implements OnInit {
   pendingRequests: number = 0;
+  pageLoading = true;
+  refreshing = false;
+
+  formatDisplayTime(value: string | Date | null | undefined): string {
+    return formatAmPmTime(value) || '—';
+  }
 
   constructor(
     private route: ActivatedRoute,
@@ -41,8 +51,22 @@ export class AdminDashboardComponent implements OnInit {
   decrementPendingRequests() {
     this.pendingRequests--;
     if (this.pendingRequests <= 0) {
+      this.pageLoading = false;
+      this.refreshing = false;
       this.loaderService.emitComplete();
     }
+  }
+
+  onDashboardRefresh(_source: DashboardRefreshSource): void {
+    if (this.refreshing || this.pageLoading) {
+      return;
+    }
+    this.refreshing = true;
+    this.pendingRequests = 4;
+    this.guestActivity(this.selectedYear, this.selectedReviewYear);
+    this.getAllBookings();
+    this.getAllGuestReviews();
+    this.selectButton(this.selectedButton || 'asap', false);
   }
 
   summaryCards = [

@@ -1,0 +1,38 @@
+/* Dashboard report listings — center column labels + cell values everywhere. */
+.overview-shell,
+.hotel-overview,
+.fnb-shell,
+.fo-root,
+.hk-root {
+  table th,
+  table td {
+    text-align: center !important;
+    vertical-align: middle;
+  }
+
+  .ird-table th,
+  .ird-table td,
+  .fo-report-table th,
+  .fo-report-table td,
+  .esc-history-table th,
+  .esc-history-table td,
+  .upsell-sold-table th,
+  .upsell-sold-table td,
+  .fnb-table th,
+  .fnb-table td,
+  .staff-task-table th,
+  .staff-task-table td {
+    text-align: center !important;
+    vertical-align: middle;
+  }
+
+  .status-pill,
+  .ird-pill,
+  .fnb-status,
+  .pill,
+  .status {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+  }
+}

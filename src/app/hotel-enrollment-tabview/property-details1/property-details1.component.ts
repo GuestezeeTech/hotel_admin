@@ -122,6 +122,11 @@ export class PropertyDetails1Component {
   hotelLogo: File | null = null;
   hotelLogoUrl: string | null = null;
   logoUploading = false;
+
+  get canChangeLogo(): boolean {
+    const role = (this.localStorageService.get('roleName') || '').trim().toLowerCase();
+    return role === 'admin';
+  }
   // Selected property size
   // selectedPropertySize: string = '01-50 Rooms';
   // plans: any[] = [];
@@ -2195,6 +2200,14 @@ export class PropertyDetails1Component {
 
   // Newly added for company logo upload
   onLogoChange(event: Event) {
+    if (!this.canChangeLogo) {
+      this.alertService.error('Only admin can change the hotel logo.', this.options);
+      const input = event.target as HTMLInputElement;
+      if (input) {
+        input.value = '';
+      }
+      return;
+    }
     // console.log('File input changed', event);
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
@@ -2293,6 +2306,10 @@ export class PropertyDetails1Component {
   }
 
   removeLogo() {
+    if (!this.canChangeLogo) {
+      this.alertService.error('Only admin can change the hotel logo.', this.options);
+      return;
+    }
     if (this.hotelLogoUrl) {
       this.hotelLogo = null;
       this.hotelLogoUrl = null;

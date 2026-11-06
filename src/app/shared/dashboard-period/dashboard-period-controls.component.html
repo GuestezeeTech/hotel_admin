@@ -1,0 +1,64 @@
+<div class="ds-period-wrap">
+  <select
+    class="ds-period"
+    [ngModel]="selectedPeriod"
+    (ngModelChange)="onPeriodModelChange($event)"
+    [disabled]="disabled"
+    [attr.aria-label]="'Date filter ' + selectedPeriod"
+  >
+    <option>Today</option>
+    <option>This Week</option>
+    <option>This Month</option>
+    <option>For Date</option>
+    <option>Date Range</option>
+    <!-- <option>All Dates</option> -->
+  </select>
+
+  <ng-container *ngIf="selectedPeriod === 'For Date'">
+    <div class="ds-period-range ds-period-range--single">
+      <label class="ds-period-date-field">
+        <input
+          class="ds-period-date"
+          type="date"
+          [ngModel]="customFrom"
+          [disabled]="disabled"
+          (ngModelChange)="onParticularDateChange($event)"
+          aria-label="For date"
+        />
+      </label>
+    </div>
+  </ng-container>
+
+  <ng-container *ngIf="selectedPeriod === 'Date Range' || selectedPeriod === 'Custom Range'">
+    <div class="ds-period-range">
+      <label class="ds-period-date-field">
+        <input
+          class="ds-period-date"
+          type="date"
+          [ngModel]="draftFrom"
+          [disabled]="disabled || refreshing"
+          (ngModelChange)="onDraftFromChange($event)"
+          aria-label="From date"
+        />
+      </label>
+      <span class="ds-period-sep">to</span>
+      <label class="ds-period-date-field">
+        <input
+          class="ds-period-date"
+          type="date"
+          [ngModel]="draftTo"
+          [min]="draftFrom || null"
+          [disabled]="disabled || refreshing || !draftFrom"
+          (ngModelChange)="onDraftToChange($event)"
+          aria-label="To date"
+        />
+      </label>
+    </div>
+  </ng-container>
+
+  <app-dashboard-refresh
+    [refreshing]="refreshing"
+    [disabled]="disabled"
+    (refresh)="onRefresh($event)"
+  ></app-dashboard-refresh>
+</div>

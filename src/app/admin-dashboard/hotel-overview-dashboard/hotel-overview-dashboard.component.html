@@ -1,202 +1,309 @@
-<div class="overview-state" *ngIf="loading">
-  <p>Loading Hotel Overview…</p>
-</div>
-
-<div class="overview-state overview-state--error" *ngIf="!loading && loadError">
-  <h3>Unable to load overview</h3>
-  <p>{{ loadError }}</p>
-</div>
-
-<section class="hotel-overview" *ngIf="!loading && !loadError">
-  <div class="page-head">
-    <div>
-      <h2>Hotel Overview</h2>
-      <p>Operational performance and guest service summary</p>
-    </div>
-    <select class="period" [(ngModel)]="selectedPeriod">
-      <option>This Month</option>
-      <option>This Week</option>
-      <option>Today</option>
-      <option>Custom Range</option>
-    </select>
-  </div>
-
-  <div class="kpis">
-    <div class="kpi" *ngFor="let kpi of kpis" [ngClass]="kpi.cssClass">
-      <div class="kpi-top"><span class="kpi-icon">{{ kpi.icon }}</span>{{ kpi.label }}</div>
-      <strong>{{ kpi.value }}</strong>
-      <small>{{ kpi.note }}</small>
-    </div>
-  </div>
-
-  <div class="grid3">
-    <div class="panel">
-      <h3>Revenue Breakdown</h3>
-      <div class="panel-sub">Total ₹25.75 Lakh · {{ selectedPeriod }}</div>
-      <div class="revenue-layout">
-        <div class="donut">
-          <div class="donut-label">₹25.75 Lakh<small>Total Revenue</small></div>
-        </div>
-        <div class="legend">
-          <div class="legend-row" *ngFor="let row of revenueLegend">
-            <span class="legend-name"><i class="dot" [style.background]="row.color"></i>{{ row.name }}</span>
-            <b>{{ row.amount }}　{{ row.pct }}</b>
-          </div>
-        </div>
+<div class="overview-shell" [class.ds-loading-lock]="loading">
+  <div class="overview-shimmer" *ngIf="loading" aria-busy="true" aria-label="Loading Hotel Overview">
+    <div class="page-head page-head--home">
+      <div class="page-head-copy">
+        <div class="ds-block ds-title"></div>
+        <div class="ds-block ds-subtitle"></div>
+      </div>
+      <div class="page-head-period shimmer-head-actions">
+        <div class="ds-block ds-chip"></div>
+        <div class="ds-block ds-chip"></div>
       </div>
     </div>
+    <div class="kpis">
+      <div class="ds-kpi" *ngFor="let _ of [1,2,3,4,5,6]">
+        <div class="ds-block ds-icon"></div>
+        <div class="ds-block ds-line short"></div>
+        <div class="ds-block ds-value"></div>
+        <div class="ds-block ds-line"></div>
+      </div>
+    </div>
+    <div class="overview-shimmer-row" *ngFor="let _ of [1,2,3,4]">
+      <div class="ds-panel" *ngFor="let __ of [1,2]">
+        <div class="ds-block ds-line medium"></div>
+        <div class="ds-block ds-line short"></div>
+        <div class="ds-block ds-line"></div>
+        <div class="ds-block ds-line medium"></div>
+      </div>
+    </div>
+  </div>
 
-    <div class="panel">
-      <h3>Department Overview</h3>
-      <div class="panel-sub">Click a department card to open its dashboard</div>
-      <div class="dept-list">
-        <button type="button" class="dept-card" *ngFor="let dept of departments"
-          [style.--dept]="dept.accent" (click)="openDepartment(dept.name)">
-          <span class="dept-accent" aria-hidden="true"></span>
-          <div class="dept-body">
-            <div class="dept-title">
-              <span class="dept-emoji">{{ dept.emoji }}</span>
-              <span class="dept-name">{{ dept.name }}</span>
-              <span class="dept-chevron">›</span>
-            </div>
-            <div class="dept-number">{{ dept.total }}</div>
-            <small>{{ dept.totalLabel }}</small>
-            <div class="mini-stats">
-              <span class="stat-done">● Completed　{{ dept.completed }}</span>
-              <span class="stat-pending">● Pending　{{ dept.pending }}</span>
-              <span class="stat-esc">● Escalated　{{ dept.escalated }}</span>
-              <span class="dept-extra">{{ dept.extra }}</span>
-            </div>
-          </div>
+  <div class="overview-state overview-state--error" *ngIf="!loading && loadError">
+    <h3>Unable to load overview</h3>
+    <p>{{ loadError }}</p>
+  </div>
+
+  <section class="hotel-overview" *ngIf="!loading && !loadError && activeView === 'payment-details'">
+    <div class="page-head kpi-list-head">
+      <div>
+        <button type="button" class="back-link" (click)="backToOverview()">
+          <i class="bi bi-arrow-left" aria-hidden="true"></i> Back to Hotel Overview
         </button>
+        <h2>Payment Details</h2>
       </div>
     </div>
 
-    <div class="panel">
-      <h3>Upselling / Offers Performance</h3>
-      <div class="offers-kpis">
-        <div class="offer-box"><small>Total Offers</small><strong>25</strong><small>Active Offers　18</small></div>
-        <div class="offer-box"><small>Offers Sold</small><strong>325</strong><small>Conversion　18%</small></div>
+    <div class="ird-toolbar">
+      <div class="ird-search">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <input type="search" placeholder="Search" [(ngModel)]="hotelPaymentSearch"
+          (ngModelChange)="onHotelPaymentFilterChange()" />
       </div>
-      <div class="offer-revenue">₹2,10,000 <small>Revenue</small></div>
-      <div class="offer-list">
-        <div *ngFor="let item of offerItems"><span>{{ item.name }}</span><b>{{ item.amount }}</b></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="lower-grid">
-    <div class="panel status-panel">
-      <h3>F&amp;B Order Status</h3>
-      <div class="panel-sub">Today · {{ todayPanels.dateLabel }}</div>
-      <div class="status-content">
-        <div class="small-donut" [style.background]="todayPanels.fnb.donutStyle"><span>{{ todayPanels.fnb.total }}</span></div>
-        <div class="status-legend">
-          <span class="stat-done">● Completed　{{ todayPanels.fnb.completed }} ({{ todayPanels.fnb.completedPct }}%)</span><br>
-          <span class="stat-pending">● Pending　{{ todayPanels.fnb.pending }} ({{ todayPanels.fnb.pendingPct }}%)</span><br>
-          <span class="stat-esc">● {{ todayPanels.fnb.thirdLabel }}　{{ todayPanels.fnb.thirdCount }} ({{ todayPanels.fnb.thirdPct }}%)</span>
-        </div>
-      </div>
-      <h3 class="section-gap">Services today</h3>
-      <ng-container *ngIf="todayPanels.fnb.serviceBars.length; else fnbNoServices">
-        <div class="bars">
-          <div class="bar" *ngFor="let bar of todayPanels.fnb.serviceBars" [style.height.%]="bar.heightPct" [title]="bar.label + ': ' + bar.count"></div>
-        </div>
-        <div class="bar-labels bar-labels--services">
-          <span *ngFor="let bar of todayPanels.fnb.serviceBars">{{ bar.label }}</span>
-        </div>
-      </ng-container>
-      <ng-template #fnbNoServices><div class="panel-sub empty-chart">No F&amp;B services today</div></ng-template>
+      <select class="ird-filter" [(ngModel)]="hotelPaymentType" (ngModelChange)="onHotelPaymentFilterChange()">
+        <option value="All Types">Type</option>
+        <option value="Food">Food</option>
+        <option value="Offer">Offer</option>
+      </select>
+      <select class="ird-filter" [(ngModel)]="hotelPaymentMethod" (ngModelChange)="onHotelPaymentFilterChange()">
+        <option *ngFor="let m of hotelPaymentMethodOptions" [value]="m">
+          {{ m === 'All Methods' ? 'Payment Method' : m }}
+        </option>
+      </select>
+      <select class="ird-filter" [(ngModel)]="hotelPaymentStatus" (ngModelChange)="onHotelPaymentFilterChange()">
+        <option *ngFor="let s of hotelPaymentStatusOptions" [value]="s">
+          {{ s === 'All Status' ? 'Payment Status' : s }}
+        </option>
+      </select>
+      <select class="ird-filter" [(ngModel)]="hotelPaymentRoom" (ngModelChange)="onHotelPaymentFilterChange()">
+        <option *ngFor="let r of hotelPaymentRoomOptions" [value]="r">
+          {{ r === 'All Rooms' ? 'Room No.' : r }}
+        </option>
+      </select>
+      <button type="button" class="ird-export" (click)="exportHotelPaymentData()">
+        <i class="bi bi-download" aria-hidden="true"></i> Export Data
+      </button>
     </div>
 
-    <div class="panel status-panel">
-      <h3>Housekeeping Requests</h3>
-      <div class="panel-sub">Today · {{ todayPanels.dateLabel }}</div>
-      <div class="status-content">
-        <div class="small-donut" [style.background]="todayPanels.hk.donutStyle"><span>{{ todayPanels.hk.total }}</span></div>
-        <div class="status-legend">
-          <span class="stat-done">● Completed　{{ todayPanels.hk.completed }} ({{ todayPanels.hk.completedPct }}%)</span><br>
-          <span class="stat-pending">● Pending　{{ todayPanels.hk.pending }} ({{ todayPanels.hk.pendingPct }}%)</span><br>
-          <span class="stat-esc">● {{ todayPanels.hk.thirdLabel }}　{{ todayPanels.hk.thirdCount }} ({{ todayPanels.hk.thirdPct }}%)</span>
+    <div class="ird-card">
+      <div class="table-wrap ird-table-wrap">
+        <table class="ird-table">
+          <thead>
+            <tr>
+              <th>Date / Time</th>
+              <th>Type</th>
+              <th>Bill Number</th>
+              <th>Guest Name</th>
+              <th>Room Number</th>
+              <th>Offer</th>
+              <th>Billed To</th>
+              <th>Payment Method</th>
+              <th>Payment Status</th>
+              <th>Subtotal</th>
+              <th>Taxes</th>
+              <th>Discounts</th>
+              <th>Final Charged Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="pagedHotelPaymentRows.length === 0">
+              <td colspan="13" class="table-empty">No food or offer payments for this period.</td>
+            </tr>
+            <tr *ngFor="let row of pagedHotelPaymentRows">
+              <td>{{ row.datetime }}</td>
+              <td>{{ row.orderType }}</td>
+              <td>
+                <button type="button" class="ird-bill-link" (click)="openHotelPaymentTimeline(row)"
+                  [disabled]="!row.task?.id" [title]="row.task?.id ? 'Open live tracking' : 'No linked task'">{{
+                  row.billNumber }}</button>
+              </td>
+              <td>{{ row.guestName }}</td>
+              <td>{{ row.roomNumber }}</td>
+              <td>{{ row.offerApplied }}</td>
+              <td>{{ row.billedTo }}</td>
+              <td>{{ row.paymentMethod }}</td>
+              <td><span class="ird-pill" [ngClass]="paymentStatusClass(row.paymentStatus)">{{ row.paymentStatus
+                  }}</span></td>
+              <td>{{ formatInr(row.subtotal) }}</td>
+              <td>{{ formatInr(row.taxes) }}</td>
+              <td [class.ird-discount]="row.discounts > 0">{{ formatDiscount(row.discounts) }}</td>
+              <td><strong>{{ row.paymentStatus === 'Failed' ? '—' : formatInr(row.finalAmount) }}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="ird-footer">
+        <span>{{ hotelPaymentShowingLabel }}</span>
+        <div class="ird-pager">
+          <button type="button" (click)="goHotelPaymentPage(hotelPaymentPage - 1)"
+            [disabled]="hotelPaymentPage <= 1">Previous</button>
+          <button type="button" class="page-num" *ngFor="let p of hotelPaymentPageNumbers"
+            [class.active]="p === hotelPaymentPage" (click)="goHotelPaymentPage(p)">{{ p }}</button>
+          <button type="button" (click)="goHotelPaymentPage(hotelPaymentPage + 1)"
+            [disabled]="hotelPaymentPage >= hotelPaymentTotalPages">Next</button>
         </div>
       </div>
-      <h3 class="section-gap">Services today</h3>
-      <ng-container *ngIf="todayPanels.hk.serviceBars.length; else hkNoServices">
-        <div class="bars">
-          <div class="bar bar--hk" *ngFor="let bar of todayPanels.hk.serviceBars" [style.height.%]="bar.heightPct" [title]="bar.label + ': ' + bar.count"></div>
-        </div>
-        <div class="bar-labels bar-labels--services">
-          <span *ngFor="let bar of todayPanels.hk.serviceBars">{{ bar.label }}</span>
-        </div>
-      </ng-container>
-      <ng-template #hkNoServices><div class="panel-sub empty-chart">No housekeeping services today</div></ng-template>
     </div>
+  </section>
 
-    <div class="panel status-panel">
-      <h3>Front Office Service Requests</h3>
-      <div class="panel-sub">Today · {{ todayPanels.dateLabel }}</div>
-      <div class="status-content">
-        <div class="small-donut" [style.background]="todayPanels.fo.donutStyle"><span>{{ todayPanels.fo.total }}</span></div>
-        <div class="status-legend">
-          <span class="stat-done">● Completed　{{ todayPanels.fo.completed }} ({{ todayPanels.fo.completedPct }}%)</span><br>
-          <span class="stat-pending">● Pending　{{ todayPanels.fo.pending }} ({{ todayPanels.fo.pendingPct }}%)</span><br>
-          <span class="stat-esc">● {{ todayPanels.fo.thirdLabel }}　{{ todayPanels.fo.thirdCount }} ({{ todayPanels.fo.thirdPct }}%)</span>
-        </div>
+  <section class="hotel-overview" *ngIf="!loading && !loadError && activeView === 'kpi-list'">
+    <div class="page-head kpi-list-head">
+      <div>
+        <button type="button" class="back-link" (click)="backToOverview()">
+          <i class="bi bi-arrow-left" aria-hidden="true"></i> Back to Hotel Overview
+        </button>
+        <h2>{{ activeKpiLabel }}</h2>
+        <p>{{ kpiListRows.length }} record<span *ngIf="kpiListRows.length !== 1">s</span></p>
       </div>
-      <h3 class="section-gap">Services today</h3>
-      <ng-container *ngIf="todayPanels.fo.serviceBars.length; else foNoServices">
-        <div class="bars">
-          <div class="bar bar--fo" *ngFor="let bar of todayPanels.fo.serviceBars" [style.height.%]="bar.heightPct" [title]="bar.label + ': ' + bar.count"></div>
-        </div>
-        <div class="bar-labels bar-labels--services">
-          <span *ngFor="let bar of todayPanels.fo.serviceBars">{{ bar.label }}</span>
-        </div>
-      </ng-container>
-      <ng-template #foNoServices><div class="panel-sub empty-chart">No front office services today</div></ng-template>
     </div>
 
-    <div class="panel">
-      <h3>Revenue Trend</h3>
-      <div class="panel-sub">Monthly performance</div>
-      <svg class="trend" viewBox="0 0 260 150" preserveAspectRatio="none" aria-hidden="true">
-        <g stroke="#e5eaed" stroke-width="1">
-          <path d="M25 15H250M25 45H250M25 75H250M25 105H250M25 135H250"/>
-        </g>
-        <g fill="#1769aa">
-          <rect x="36" y="90" width="12" height="45"/><rect x="76" y="76" width="12" height="59"/>
-          <rect x="116" y="62" width="12" height="73"/><rect x="156" y="54" width="12" height="81"/>
-          <rect x="196" y="35" width="12" height="100"/><rect x="236" y="20" width="12" height="115"/>
-        </g>
-        <polyline points="42,82 82,66 122,51 162,46 202,27 242,9" fill="none" stroke="#174d8d" stroke-width="2"/>
-        <g fill="#174d8d">
-          <circle cx="42" cy="82" r="3"/><circle cx="82" cy="66" r="3"/><circle cx="122" cy="51" r="3"/>
-          <circle cx="162" cy="46" r="3"/><circle cx="202" cy="27" r="3"/><circle cx="242" cy="9" r="3"/>
-        </g>
-        <g fill="#758391" font-size="9">
-          <text x="29" y="147">1 Oct</text><text x="69" y="147">8 Oct</text><text x="108" y="147">15 Oct</text>
-          <text x="148" y="147">22 Oct</text><text x="225" y="147">31 Oct</text>
-        </g>
-      </svg>
-      <div class="click-hint">■ Room　■ F&amp;B　■ Upselling　— Total revenue</div>
-    </div>
-  </div>
-
-  <div class="bottom-grid">
-    <div class="panel">
-      <h3>Recent Escalations</h3>
+    <div class="panel kpi-list-panel">
       <div class="table-wrap">
         <table>
           <thead>
-            <tr><th>Date &amp; Time</th><th>Department</th><th>Request ID</th><th>Details</th><th>Status</th><th>ETA/Delay</th></tr>
+            <tr>
+              <th>Date &amp; Time</th>
+              <th>Department / Type</th>
+              <th>ID</th>
+              <th>Details</th>
+              <th>Status</th>
+              <th>Room No</th>
+            </tr>
           </thead>
           <tbody>
-            <tr *ngIf="escalations.length === 0">
-              <td colspan="6">No recent escalations</td>
+            <tr *ngIf="kpiListRows.length === 0">
+              <td colspan="6">No records for this view</td>
             </tr>
-            <tr *ngFor="let row of escalations">
+            <tr *ngFor="let row of kpiListRows" class="track-row" [class.track-row--active]="!!row.trackId"
+              (click)="openTrackOrder(row)" [attr.title]="row.trackId ? 'Open track order' : null">
               <td>{{ row.datetime }}</td>
               <td>{{ row.dept }}</td>
               <td>{{ row.id }}</td>
+              <td>{{ row.details }}</td>
+              <td><span class="status-pill" [ngClass]="row.statusClass">{{ row.status }}</span></td>
+              <td>{{ row.meta }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="hotel-overview" *ngIf="!loading && !loadError && activeView === 'upsells-sold'">
+    <div class="page-head kpi-list-head">
+      <div>
+        <button type="button" class="back-link" (click)="backToOverview()">
+          <i class="bi bi-arrow-left" aria-hidden="true"></i> Back to Hotel Overview
+        </button>
+        <h2>Upsells Sold</h2>
+        <p>{{ filteredUpsellSoldRows.length }} paid offer order<span
+            *ngIf="filteredUpsellSoldRows.length !== 1">s</span>
+          · {{ periodLabel }}</p>
+      </div>
+    </div>
+
+    <div class="panel kpi-list-panel">
+      <div class="upsell-filters">
+        <select class="period" [(ngModel)]="upsellPaymentFilter" aria-label="Upsell payment method filter">
+          <option>All Payments</option>
+          <option>Online Payment</option>
+          <option>Bill To Room</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table class="upsell-sold-table">
+          <thead>
+            <tr>
+              <th>Date &amp; Time</th>
+              <th>Offer Name</th>
+              <th>Guest</th>
+              <th>Room</th>
+              <th>Outlet</th>
+              <th>Payment</th>
+              <th>Status</th>
+              <th>Discount</th>
+              <th>Paid</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="filteredUpsellSoldRows.length === 0">
+              <td colspan="9">No upsell orders for this filter</td>
+            </tr>
+            <tr *ngFor="let row of filteredUpsellSoldRows">
+              <td>{{ row.datetime }}</td>
+              <td>{{ row.offerName }}</td>
+              <td>{{ row.guestName }}</td>
+              <td>{{ row.roomNumber }}</td>
+              <td>{{ row.outletName }}</td>
+              <td>{{ row.paymentMethod }}</td>
+              <td><span class="status-pill" [ngClass]="row.paymentStatus === 'Paid' ? 'info' : 'warn'">{{
+                  row.paymentStatus }}</span></td>
+              <td>{{ row.discount > 0 ? ('- ' + formatInr(row.discount)) : formatInr(0) }}</td>
+              <td>{{ formatInr(row.amount) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="hotel-overview" *ngIf="!loading && !loadError && activeView === 'revenue-year'">
+    <div class="page-head kpi-list-head">
+      <div>
+        <button type="button" class="back-link" (click)="backToOverview()">
+          <i class="bi bi-arrow-left" aria-hidden="true"></i> Back to Hotel Overview
+        </button>
+        <h2>Orders from Jan {{ revenueTrendYear }}</h2>
+        <!-- <p>Confirmed orders by month · created_on</p> -->
+      </div>
+    </div>
+    <div class="panel kpi-list-panel">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Month</th>
+              <th>Orders</th>
+              <th>Revenue</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="yearMonthRows.length === 0">
+              <td colspan="3">No orders for {{ revenueTrendYear }}</td>
+            </tr>
+            <tr *ngFor="let row of yearMonthRows">
+              <td>{{ row.label }}</td>
+              <td>{{ row.count | number }}</td>
+              <td>{{ formatInr(row.amount) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="hotel-overview" *ngIf="!loading && !loadError && activeView === 'escalations'">
+    <div class="page-head kpi-list-head">
+      <div>
+        <button type="button" class="back-link" (click)="backToOverview()">
+          <i class="bi bi-arrow-left" aria-hidden="true"></i> Back to Hotel Overview
+        </button>
+        <h2>Recent Escalations</h2>
+        <p>{{ escalations.length }} record<span *ngIf="escalations.length !== 1">s</span></p>
+      </div>
+    </div>
+
+    <div class="panel kpi-list-panel">
+      <div class="table-wrap">
+        <table class="esc-history-table">
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Date &amp; Time</th>
+              <th>Department</th>
+              <th>Details / Room</th>
+              <th>Status</th>
+              <th>ETA / Delay</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="pagedEscalations.length === 0">
+              <td colspan="6">No escalation history</td>
+            </tr>
+            <tr *ngFor="let row of pagedEscalations" class="track-row track-row--active"
+              (click)="openEscalationTrack(row)" title="Open track order">
+              <td>{{ row.orderId }}</td>
+              <td>{{ row.datetime }}</td>
+              <td>{{ row.dept }}</td>
               <td>{{ row.details }}</td>
               <td><span class="status-pill" [ngClass]="row.statusClass">{{ row.status }}</span></td>
               <td>{{ row.eta }}</td>
@@ -204,20 +311,754 @@
           </tbody>
         </table>
       </div>
-    </div>
-    <div class="panel">
-      <h3>Quick Actions / Insights</h3>
-      <div class="insight" *ngFor="let text of insights"><b>✦</b> {{ text }}</div>
-    </div>
-    <div class="panel">
-      <h3>Focus Areas for GM</h3>
-      <div class="focus">
-        <b>Priority actions</b><br>
-        1. Reduce F&amp;B escalations<br>
-        2. Improve upselling conversion<br>
-        3. Monitor housekeeping delays<br>
-        4. Improve guest communication
+      <div class="esc-footer">
+        <span>{{ escalationShowingLabel }}</span>
+        <div class="esc-pager">
+          <button type="button" (click)="goEscalationPage(escalationPage - 1)" [disabled]="escalationPage <= 1">
+            Previous
+          </button>
+          <button type="button" class="page-num" *ngFor="let p of escalationPageNumbers"
+            [class.active]="p === escalationPage" (click)="goEscalationPage(p)">{{ p }}</button>
+          <button type="button" (click)="goEscalationPage(escalationPage + 1)"
+            [disabled]="escalationPage >= escalationTotalPages">Next</button>
+        </div>
       </div>
     </div>
-  </div>
-</section>
+  </section>
+
+  <section class="hotel-overview" *ngIf="!loading && !loadError && activeView === 'guest-satisfaction'">
+    <div class="page-head kpi-list-head">
+      <div>
+        <button type="button" class="back-link" (click)="backToOverview()">
+          <i class="bi bi-arrow-left" aria-hidden="true"></i> Back to Hotel Overview
+        </button>
+        <h2>Guest Satisfaction Report</h2>
+        <p>{{ filteredGuestSatisfactionRows.length }} record<span
+            *ngIf="filteredGuestSatisfactionRows.length !== 1">s</span></p>
+      </div>
+    </div>
+
+    <div class="satisfaction-summary satisfaction-summary--ratings">
+      <div class="sat-kpi">
+        <small>Total Feedback</small>
+        <strong>{{ guestSatisfactionSummary.total | number }}</strong>
+      </div>
+      <div class="sat-kpi">
+        <small>Average Rating</small>
+        <strong>{{ guestSatisfactionSummary.averageRating | number:'1.0-1' }}</strong>
+      </div>
+      <div class="sat-kpi">
+        <small>Positive (4–5★)</small>
+        <strong>{{ guestSatisfactionSummary.positive | number }}</strong>
+        <span>{{ guestSatisfactionSummary.positivePct }}%</span>
+      </div>
+      <div class="sat-kpi">
+        <small>Low (1–2★)</small>
+        <strong>{{ guestSatisfactionSummary.negative | number }}</strong>
+      </div>
+    </div>
+
+    <div class="ird-card">
+      <div class="table-wrap ird-table-wrap">
+        <table class="ird-table">
+          <thead>
+            <tr>
+              <th>Date / Time</th>
+              <th>Room</th>
+              <th>Reservation</th>
+              <th>Guest</th>
+              <th>Rating</th>
+              <th>Feedback</th>
+              <th>Staff</th>
+              <th>Recommend</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="pagedGuestSatisfactionRows.length === 0">
+              <td colspan="8" class="table-empty">No checkout feedback for this period.</td>
+            </tr>
+            <tr *ngFor="let row of pagedGuestSatisfactionRows">
+              <td>{{ row.datetime }}</td>
+              <td>{{ row.roomNumber }}</td>
+              <td>{{ row.reserveNo }}</td>
+              <td>{{ row.guestName }}</td>
+              <td class="sat-stars">
+                <ng-container *ngFor="let star of starArray(row.rating)">
+                  <i *ngIf="star === 'full'" class="bi bi-star-fill" aria-hidden="true"></i>
+                  <i *ngIf="star === 'half'" class="bi bi-star-half" aria-hidden="true"></i>
+                  <i *ngIf="star === 'empty'" class="bi bi-star" aria-hidden="true"></i>
+                </ng-container>
+                <span>{{ row.rating || '—' }}</span>
+              </td>
+              <td class="sat-feedback">{{ row.feedback }}</td>
+              <td>{{ row.staffName }}</td>
+              <td>
+                <span class="status-pill" [ngClass]="row.wouldRecommend ? 'info' : 'warn'">
+                  {{ row.wouldRecommend ? 'Yes' : 'No' }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="ird-footer">
+        <span>{{ satisfactionShowingLabel }}</span>
+        <div class="ird-pager">
+          <button type="button" (click)="goSatisfactionPage(satisfactionPage - 1)"
+            [disabled]="satisfactionPage <= 1">Previous</button>
+          <button type="button" class="page-num" *ngFor="let p of satisfactionPageNumbers"
+            [class.active]="p === satisfactionPage" (click)="goSatisfactionPage(p)">{{ p }}</button>
+          <button type="button" (click)="goSatisfactionPage(satisfactionPage + 1)"
+            [disabled]="satisfactionPage >= satisfactionTotalPages">Next</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="hotel-overview" *ngIf="!loading && !loadError && activeView === 'staff-directory'">
+    <div class="page-head kpi-list-head">
+      <div>
+        <button type="button" class="back-link" (click)="backToOverview()">
+          <i class="bi bi-arrow-left" aria-hidden="true"></i> Back to Hotel Overview
+        </button>
+        <h2>Staff-Wise Performance</h2>
+        <p>{{ filteredStaffDirectory.length }} staff</p>
+      </div>
+    </div>
+    <div class="ird-toolbar">
+      <div class="ird-search">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <input type="search" placeholder="Search name or employee ID" [(ngModel)]="staffSearch" />
+      </div>
+    </div>
+    <div class="panel-sub empty-chart" *ngIf="filteredStaffDirectory.length === 0">No staff found for this hotel.</div>
+    <div class="staff-card-grid" *ngIf="filteredStaffDirectory.length">
+      <button type="button" class="staff-card" *ngFor="let row of filteredStaffDirectory"
+        (click)="openStaffPerformance(row)" title="Open staff report">
+        <span class="staff-avatar">
+          <img *ngIf="row.photoUrl" [src]="row.photoUrl" [alt]="row.name" (error)="onStaffPhotoError($event)" />
+          <span class="staff-avatar-fallback" [hidden]="!!row.photoUrl">{{ staffInitials(row.name) }}</span>
+        </span>
+        <span class="staff-card-body">
+          <strong>{{ row.name }}</strong>
+          <small>ID {{ row.employeeId }}</small>
+          <em>{{ row.department }}</em>
+        </span>
+      </button>
+    </div>
+  </section>
+
+  <section class="hotel-overview"
+    *ngIf="!loading && !loadError && activeView === 'staff-performance' && selectedStaff && staffPerformance">
+    <div class="page-head kpi-list-head">
+      <div>
+        <button type="button" class="back-link" (click)="backToStaffDirectory()">
+          <i class="bi bi-arrow-left" aria-hidden="true"></i> Back to Staff List
+        </button>
+        <div class="staff-detail-head">
+          <span class="staff-avatar staff-avatar--lg">
+            <img *ngIf="selectedStaff.photoUrl" [src]="selectedStaff.photoUrl" [alt]="selectedStaff.name"
+              (error)="onStaffPhotoError($event)" />
+            <span class="staff-avatar-fallback" [hidden]="!!selectedStaff.photoUrl">{{ staffInitials(selectedStaff.name)
+              }}</span>
+          </span>
+          <div>
+            <h2>{{ selectedStaff.name }}</h2>
+            <p>
+              Employee ID {{ selectedStaff.employeeId }}
+              <span *ngIf="selectedStaff.department && selectedStaff.department !== '—'"> · {{ selectedStaff.department
+                }}</span>
+              · {{ periodLabel }}
+            </p>
+            <p class="staff-detail-contact">
+              <span><i class="bi bi-envelope" aria-hidden="true"></i> {{ selectedStaff.email }}</span>
+              <span><i class="bi bi-telephone" aria-hidden="true"></i> {{ selectedStaff.phone }}</span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="satisfaction-summary staff-perf-summary">
+      <div class="sat-kpi">
+        <small>Assigned</small>
+        <strong>{{ staffPerformance.assignedCount | number }}</strong>
+      </div>
+      <div class="sat-kpi">
+        <small>Delivered</small>
+        <strong>{{ staffPerformance.deliveredCount | number }}</strong>
+      </div>
+      <div class="sat-kpi">
+        <small>On Time</small>
+        <strong>{{ staffPerformance.onTimeCount | number }}</strong>
+        <span>{{ staffPerformance.onTimePct }}%</span>
+      </div>
+      <div class="sat-kpi">
+        <small>Delayed</small>
+        <strong>{{ staffPerformance.delayedCount | number }}</strong>
+      </div>
+      <div class="sat-kpi">
+        <small>Escalated by them</small>
+        <strong>{{ staffPerformance.escalatedCount | number }}</strong>
+      </div>
+      <div class="sat-kpi">
+        <small>Not Accepted</small>
+        <strong>{{ staffPerformance.notAcceptedCount | number }}</strong>
+      </div>
+      <div class="sat-kpi">
+        <small>Avg Delivery</small>
+        <strong>{{ staffPerformance.averageDeliveryMinutes | number:'1.0-1' }}</strong>
+        <span>minutes</span>
+      </div>
+    </div>
+
+    <div class="fnb-tabs ird-tabs staff-perf-tabs">
+      <button type="button" class="fnb-tab" [class.active]="staffDetailTab === 'delivered'"
+        (click)="staffDetailTab = 'delivered'">Delivered ({{ staffPerformance.deliveredCount }})</button>
+      <button type="button" class="fnb-tab" [class.active]="staffDetailTab === 'onTime'"
+        (click)="staffDetailTab = 'onTime'">On Time ({{ staffPerformance.onTimeCount }})</button>
+      <button type="button" class="fnb-tab" [class.active]="staffDetailTab === 'delayed'"
+        (click)="staffDetailTab = 'delayed'">Delayed ({{ staffPerformance.delayedCount }})</button>
+      <button type="button" class="fnb-tab" [class.active]="staffDetailTab === 'escalated'"
+        (click)="staffDetailTab = 'escalated'">Escalated ({{ staffPerformance.escalatedCount }})</button>
+      <button type="button" class="fnb-tab" [class.active]="staffDetailTab === 'notAccepted'"
+        (click)="staffDetailTab = 'notAccepted'">Not Accepted ({{ staffPerformance.notAcceptedCount }})</button>
+      <button type="button" class="fnb-tab" [class.active]="staffDetailTab === 'assigned'"
+        (click)="staffDetailTab = 'assigned'">Assigned ({{ staffPerformance.assignedCount }})</button>
+    </div>
+
+    <div class="ird-card">
+      <div class="table-wrap ird-table-wrap">
+        <table class="ird-table ird-table--center staff-task-table">
+          <thead>
+            <tr>
+              <th>Date / Time</th>
+              <th>Room</th>
+              <th>Guest</th>
+              <th>Service</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="staffDetailTasks.length === 0">
+              <td colspan="5" class="table-empty">No tasks in this list for the selected period.</td>
+            </tr>
+            <tr *ngFor="let task of staffDetailTasks">
+              <td>{{ staffTaskDatetime(task) }}</td>
+              <td>{{ task.room_no || task.room_number || '—' }}</td>
+              <td>{{ task.guest_name || '—' }}</td>
+              <td>{{ staffTaskService(task) }}</td>
+              <td><span class="status-pill" [ngClass]="statusClass(staffTaskStatus(task))">{{ staffTaskStatus(task)
+                  }}</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="hotel-overview" *ngIf="!loading && !loadError && activeView === 'app-revenue'">
+    <div class="page-head kpi-list-head">
+      <div>
+        <button type="button" class="back-link" (click)="backToOverview()">
+          <i class="bi bi-arrow-left" aria-hidden="true"></i> Back to Hotel Overview
+        </button>
+        <h2>Revenue Report Through the App</h2>
+      </div>
+    </div>
+
+    <div class="satisfaction-summary">
+      <div class="sat-kpi">
+        <small>Orders</small>
+        <strong>{{ appRevenueReport.count | number }}</strong>
+      </div>
+      <div class="sat-kpi">
+        <small>Net Revenue</small>
+        <strong>{{ formatInrCompact(appRevenueReport.net) }}</strong>
+      </div>
+      <div class="sat-kpi">
+        <small>Discounts</small>
+        <strong>{{ formatInrCompact(appRevenueReport.discount) }}</strong>
+      </div>
+      <div class="sat-kpi">
+        <small>AOV</small>
+        <strong>{{ formatInrCompact(appRevenueReport.aov) }}</strong>
+      </div>
+    </div>
+
+    <div class="offer-list app-purpose-list" *ngIf="appRevenueReport.byPurpose.length">
+      <div *ngFor="let p of appRevenueReport.byPurpose">
+        <span>{{ p.label }} · {{ p.count | number }}</span>
+        <b>{{ formatInrCompact(p.amount) }}</b>
+      </div>
+    </div>
+
+    <div class="ird-toolbar">
+      <div class="ird-search">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <input type="search" placeholder="Search guest, room, bill" [(ngModel)]="appRevenueSearch"
+          (ngModelChange)="onAppRevenueFilterChange()" />
+      </div>
+      <select class="ird-filter" [(ngModel)]="appRevenuePurposeFilter" (ngModelChange)="onAppRevenueFilterChange()">
+        <option value="All Types">Type</option>
+        <option value="Food">Food</option>
+        <option value="Offer">Offer</option>
+        <option value="Late Checkout">Late Checkout</option>
+        <option value="Checkout">Checkout</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+
+    <div class="ird-card">
+      <div class="table-wrap ird-table-wrap">
+        <table class="ird-table">
+          <thead>
+            <tr>
+              <th>Date / Time</th>
+              <th>Type</th>
+              <th>Bill</th>
+              <th>Guest</th>
+              <th>Room</th>
+              <th>Payment</th>
+              <th>Discount</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="pagedAppRevenueRows.length === 0">
+              <td colspan="8" class="table-empty">No app orders for this period.</td>
+            </tr>
+            <tr *ngFor="let row of pagedAppRevenueRows">
+              <td>{{ row.datetime }}</td>
+              <td>{{ row.purpose }}</td>
+              <td>{{ row.id }}</td>
+              <td>{{ row.guestName }}</td>
+              <td>{{ row.roomNumber }}</td>
+              <td>{{ row.paymentMethod }}</td>
+              <td>{{ row.discount > 0 ? ('- ' + formatInr(row.discount)) : formatInr(0) }}</td>
+              <td><strong>{{ formatInr(row.amount) }}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="ird-footer">
+        <span>{{ appRevenueShowingLabel }}</span>
+        <div class="ird-pager">
+          <button type="button" (click)="goAppRevenuePage(appRevenuePage - 1)"
+            [disabled]="appRevenuePage <= 1">Previous</button>
+          <button type="button" class="page-num" [class.active]="appRevenuePage === 1" (click)="goAppRevenuePage(1)">{{
+            appRevenuePage }}</button>
+          <button type="button" (click)="goAppRevenuePage(appRevenuePage + 1)"
+            [disabled]="appRevenuePage >= appRevenueTotalPages">Next</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="hotel-overview" *ngIf="!loading && !loadError && activeView === 'home'">
+    <div class="page-head page-head--home">
+      <div class="page-head-copy">
+        <h2>Hotel Overview</h2>
+        <p>Operational performance and guest service summary</p>
+      </div>
+      <app-dashboard-period-controls class="page-head-period" [(selectedPeriod)]="selectedPeriod"
+        [(customFrom)]="customFrom" [(customTo)]="customTo" [refreshing]="refreshing" (periodChange)="onPeriodChange()"
+        (customRangeChange)="onCustomRangeChange()"
+        (refresh)="onDashboardRefresh($event)"></app-dashboard-period-controls>
+    </div>
+
+    <div class="kpis">
+      <button type="button" class="kpi kpi-tab" *ngFor="let kpi of kpis" [ngClass]="kpi.cssClass"
+        (click)="openKpi(kpi)">
+        <div class="kpi-top">
+          <span class="kpi-icon" aria-hidden="true"><i [class]="kpi.icon"></i></span>
+          {{ kpi.label }}
+        </div>
+        <strong>{{ kpi.value }}</strong>
+        <small>{{ kpi.note }}</small>
+      </button>
+    </div>
+
+    <div class="grid3">
+      <div class="panel">
+        <h3>Revenue Breakdown</h3>
+        <div class="panel-sub">Total {{ revenueTotalLabel }} · Order Confirmed · {{ periodLabel }}</div>
+        <div class="revenue-layout">
+          <div class="donut-svg-wrap" [class.is-hovering]="!!hoveredRevenueLabel" (mouseleave)="onRevenueDonutLeave()">
+            <svg class="donut-svg" viewBox="0 0 140 140" aria-label="Revenue breakdown">
+              <circle cx="70" cy="70" r="62" fill="#dce5ec" *ngIf="revenueDonutSlices.length === 0"></circle>
+              <path *ngFor="let slice of revenueDonutSlices" [attr.d]="slice.d" [attr.fill]="slice.color"
+                class="donut-slice" [class.is-dim]="hoveredRevenueLabel && hoveredRevenueLabel !== slice.label"
+                [class.is-hot]="hoveredRevenueLabel === slice.label" (mouseenter)="onRevenueDonutEnter(slice)"
+                [attr.title]="slice.label + ': ' + formatInr(slice.value) + ' · ' + slice.pct + '%'"></path>
+            </svg>
+            <div class="donut-label" [class.is-hidden]="!!hoveredRevenueLabel">
+              {{ revenueTotalLabel }}<small>Total Revenue</small>
+            </div>
+            <div class="donut-hover-caption" *ngIf="hoveredRevenueLabel">
+              {{ hoveredRevenueLabel }}<b>{{ hoveredRevenueValue }}</b>
+            </div>
+          </div>
+          <div class="legend">
+            <div class="legend-row" *ngFor="let row of revenueLegend">
+              <span class="legend-name"><i class="dot" [style.background]="row.color"></i>{{ row.name }}</span>
+              <b>{{ row.amount }}　{{ row.pct }}</b>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Department Overview</h3>
+        <div class="panel-sub">Click a department card to open its dashboard</div>
+        <div class="dept-list">
+          <button type="button" class="dept-card" *ngFor="let dept of departments" [style.--dept]="dept.accent"
+            (click)="openDepartment(dept.name)">
+            <span class="dept-accent" aria-hidden="true"></span>
+            <div class="dept-body">
+              <div class="dept-title">
+                <span class="dept-icon" aria-hidden="true"><i [class]="dept.icon"></i></span>
+                <span class="dept-name">{{ dept.name }}</span>
+                <span class="dept-chevron">›</span>
+              </div>
+              <div class="dept-number">{{ dept.total }}</div>
+              <small>{{ dept.totalLabel }}</small>
+              <div class="mini-stats">
+                <span class="stat-done">● Completed / Delivered　{{ dept.completed }}</span>
+                <span class="stat-pending">● Pending　{{ dept.pending }}</span>
+                <span class="stat-esc">● Escalated　{{ dept.escalated }}</span>
+                <span class="dept-extra">{{ dept.extra }}</span>
+              </div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Upselling / Offers Performance</h3>
+        <div class="panel-sub">Upsell sales and conversion</div>
+        <div class="offers-kpis">
+          <button type="button" class="offer-box offer-box--link" (click)="openFeaturesUpselling()"
+            title="Open Features (Upselling)">
+            <small class="offer-label">Total Upsells</small>
+            <strong>{{ offerPerf.totalOffers | number }}</strong>
+            <small>Catalog · Features (Upselling)</small>
+          </button>
+          <button type="button" class="offer-box offer-box--link" (click)="openUpsellsSold()" title="Open upsells sold">
+            <small class="offer-label">Upsells Sold</small>
+            <strong>{{ offerPerf.offersSold | number }}</strong>
+            <small>Conversion　{{ offerPerf.conversionPct }}%</small>
+          </button>
+        </div>
+        <div class="offer-revenue">
+          <small class="offer-label">Upsell Revenue</small>
+          <strong>{{ offerPerf.revenueLabel }}</strong>
+        </div>
+        <div class="offer-list" *ngIf="offerPerf.items.length; else noOfferItems">
+          <div *ngFor="let item of offerPerf.items"><span>{{ item.name }}</span><b>{{ item.amount }}</b></div>
+        </div>
+        <ng-template #noOfferItems>
+          <div class="panel-sub empty-chart">No confirmed upsell orders yet</div>
+        </ng-template>
+      </div>
+    </div>
+
+    <div class="lower-grid">
+      <div class="panel status-panel">
+        <h3>F&amp;B Order Status</h3>
+        <div class="panel-sub">{{ periodLabel }}</div>
+        <div class="status-content">
+          <div class="small-donut-wrap" [class.is-hovering]="hoveredStatusChart === 'fnb' && !!hoveredStatusLabel"
+            (mouseleave)="onStatusDonutLeave()">
+            <svg class="small-donut-svg" viewBox="0 0 140 140" aria-label="F&amp;B order status">
+              <circle cx="70" cy="70" r="58" fill="#dce5ec" *ngIf="fnbStatusDonutSlices.length === 0"></circle>
+              <path *ngFor="let slice of fnbStatusDonutSlices" [attr.d]="slice.d" [attr.fill]="slice.color"
+                class="donut-slice"
+                [class.is-dim]="hoveredStatusChart === 'fnb' && hoveredStatusLabel && hoveredStatusLabel !== slice.label"
+                [class.is-hot]="hoveredStatusChart === 'fnb' && hoveredStatusLabel === slice.label"
+                (mouseenter)="onStatusDonutEnter('fnb', slice)"
+                [attr.title]="slice.label + ': ' + slice.value + ' · ' + slice.pct + '%'"></path>
+            </svg>
+            <div class="small-donut-label" [class.is-hidden]="hoveredStatusChart === 'fnb' && !!hoveredStatusLabel">
+              {{ todayPanels.fnb.total }}<small>Total</small>
+            </div>
+            <div class="small-donut-center-hover" *ngIf="hoveredStatusChart === 'fnb' && hoveredStatusLabel">
+              <span>{{ hoveredStatusCount }}</span>
+              <small>{{ hoveredStatusLabel }}</small>
+            </div>
+          </div>
+          <div class="status-legend">
+            <span class="stat-done">● Completed　{{ todayPanels.fnb.completed }} ({{ todayPanels.fnb.completedPct
+              }}%)</span><br>
+            <span class="stat-pending">● Pending　{{ todayPanels.fnb.pending }} ({{ todayPanels.fnb.pendingPct
+              }}%)</span><br>
+            <span class="stat-esc">● {{ todayPanels.fnb.thirdLabel }}　{{ todayPanels.fnb.thirdCount }} ({{
+              todayPanels.fnb.thirdPct }}%)</span>
+          </div>
+        </div>
+        <h3 class="section-gap">Services · {{ periodLabel }}</h3>
+        <ng-container *ngIf="todayPanels.fnb.serviceBars.length; else fnbNoServices">
+          <div class="bars" (mouseleave)="clearServiceHover()">
+            <div class="bar-col" *ngFor="let bar of todayPanels.fnb.serviceBars"
+              [class.is-dim]="hoveredServiceKey && hoveredServiceKey !== ('fnb-' + bar.label)"
+              [class.is-hot]="hoveredServiceKey === 'fnb-' + bar.label" (mouseenter)="onServiceBarEnter('fnb', bar)">
+              <span class="bar-count" *ngIf="hoveredServiceKey === 'fnb-' + bar.label">{{ bar.count }}</span>
+              <div class="bar" [style.height.%]="bar.heightPct" [title]="bar.label + ': ' + bar.count"></div>
+            </div>
+          </div>
+          <div class="bar-labels bar-labels--services">
+            <span *ngFor="let bar of todayPanels.fnb.serviceBars">{{ bar.label }}</span>
+          </div>
+        </ng-container>
+        <ng-template #fnbNoServices>
+          <div class="panel-sub empty-chart">No F&amp;B services for {{ periodLabel }}</div>
+        </ng-template>
+      </div>
+
+      <div class="panel status-panel">
+        <h3>Housekeeping Requests</h3>
+        <div class="panel-sub">{{ periodLabel }}</div>
+        <div class="status-content">
+          <div class="small-donut-wrap" [class.is-hovering]="hoveredStatusChart === 'hk' && !!hoveredStatusLabel"
+            (mouseleave)="onStatusDonutLeave()">
+            <svg class="small-donut-svg" viewBox="0 0 140 140" aria-label="Housekeeping status">
+              <circle cx="70" cy="70" r="58" fill="#dce5ec" *ngIf="hkStatusDonutSlices.length === 0"></circle>
+              <path *ngFor="let slice of hkStatusDonutSlices" [attr.d]="slice.d" [attr.fill]="slice.color"
+                class="donut-slice"
+                [class.is-dim]="hoveredStatusChart === 'hk' && hoveredStatusLabel && hoveredStatusLabel !== slice.label"
+                [class.is-hot]="hoveredStatusChart === 'hk' && hoveredStatusLabel === slice.label"
+                (mouseenter)="onStatusDonutEnter('hk', slice)"
+                [attr.title]="slice.label + ': ' + slice.value + ' · ' + slice.pct + '%'"></path>
+            </svg>
+            <div class="small-donut-label" [class.is-hidden]="hoveredStatusChart === 'hk' && !!hoveredStatusLabel">
+              {{ todayPanels.hk.total }}<small>Total</small>
+            </div>
+            <div class="small-donut-center-hover" *ngIf="hoveredStatusChart === 'hk' && hoveredStatusLabel">
+              <span>{{ hoveredStatusCount }}</span>
+              <small>{{ hoveredStatusLabel }}</small>
+            </div>
+          </div>
+          <div class="status-legend">
+            <span class="stat-done">● Completed　{{ todayPanels.hk.completed }} ({{ todayPanels.hk.completedPct
+              }}%)</span><br>
+            <span class="stat-pending">● Pending　{{ todayPanels.hk.pending }} ({{ todayPanels.hk.pendingPct
+              }}%)</span><br>
+            <span class="stat-esc">● {{ todayPanels.hk.thirdLabel }}　{{ todayPanels.hk.thirdCount }} ({{
+              todayPanels.hk.thirdPct }}%)</span>
+          </div>
+        </div>
+        <h3 class="section-gap">Services · {{ periodLabel }}</h3>
+        <ng-container *ngIf="todayPanels.hk.serviceBars.length; else hkNoServices">
+          <div class="bars" (mouseleave)="clearServiceHover()">
+            <div class="bar-col" *ngFor="let bar of todayPanels.hk.serviceBars"
+              [class.is-dim]="hoveredServiceKey && hoveredServiceKey !== ('hk-' + bar.label)"
+              [class.is-hot]="hoveredServiceKey === 'hk-' + bar.label" (mouseenter)="onServiceBarEnter('hk', bar)">
+              <span class="bar-count" *ngIf="hoveredServiceKey === 'hk-' + bar.label">{{ bar.count }}</span>
+              <div class="bar bar--hk" [style.height.%]="bar.heightPct" [title]="bar.label + ': ' + bar.count"></div>
+            </div>
+          </div>
+          <div class="bar-labels bar-labels--services">
+            <span *ngFor="let bar of todayPanels.hk.serviceBars">{{ bar.label }}</span>
+          </div>
+        </ng-container>
+        <ng-template #hkNoServices>
+          <div class="panel-sub empty-chart">No housekeeping services for {{ periodLabel }}</div>
+        </ng-template>
+      </div>
+
+      <div class="panel status-panel">
+        <h3>Front Office Service Requests</h3>
+        <div class="panel-sub">{{ periodLabel }}</div>
+        <div class="status-content">
+          <div class="small-donut-wrap" [class.is-hovering]="hoveredStatusChart === 'fo' && !!hoveredStatusLabel"
+            (mouseleave)="onStatusDonutLeave()">
+            <svg class="small-donut-svg" viewBox="0 0 140 140" aria-label="Front Office status">
+              <circle cx="70" cy="70" r="58" fill="#dce5ec" *ngIf="foStatusDonutSlices.length === 0"></circle>
+              <path *ngFor="let slice of foStatusDonutSlices" [attr.d]="slice.d" [attr.fill]="slice.color"
+                class="donut-slice"
+                [class.is-dim]="hoveredStatusChart === 'fo' && hoveredStatusLabel && hoveredStatusLabel !== slice.label"
+                [class.is-hot]="hoveredStatusChart === 'fo' && hoveredStatusLabel === slice.label"
+                (mouseenter)="onStatusDonutEnter('fo', slice)"
+                [attr.title]="slice.label + ': ' + slice.value + ' · ' + slice.pct + '%'"></path>
+            </svg>
+            <div class="small-donut-label" [class.is-hidden]="hoveredStatusChart === 'fo' && !!hoveredStatusLabel">
+              {{ todayPanels.fo.total }}<small>Total</small>
+            </div>
+            <div class="small-donut-center-hover" *ngIf="hoveredStatusChart === 'fo' && hoveredStatusLabel">
+              <span>{{ hoveredStatusCount }}</span>
+              <small>{{ hoveredStatusLabel }}</small>
+            </div>
+          </div>
+          <div class="status-legend">
+            <span class="stat-done">● Completed　{{ todayPanels.fo.completed }} ({{ todayPanels.fo.completedPct
+              }}%)</span><br>
+            <span class="stat-pending">● Pending　{{ todayPanels.fo.pending }} ({{ todayPanels.fo.pendingPct
+              }}%)</span><br>
+            <span class="stat-esc">● {{ todayPanels.fo.thirdLabel }}　{{ todayPanels.fo.thirdCount }} ({{
+              todayPanels.fo.thirdPct }}%)</span>
+          </div>
+        </div>
+        <h3 class="section-gap">Key Services</h3>
+        <div class="fo-key-services">
+          <div class="fo-key-card" *ngFor="let row of foKeyServiceRows" [ngClass]="row.cssClass">
+            <span class="fo-key-icon" aria-hidden="true"><i [class]="row.icon"></i></span>
+            <span class="fo-key-label">{{ row.label }}</span>
+            <strong class="fo-key-value">{{ row.value }}</strong>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="pair-grid">
+      <div class="panel trend-panel">
+        <div class="fnb-mini-title" style="margin-top:0">
+          <div>
+            <h3 style="margin:0">Revenue Trend</h3>
+            <div class="panel-sub" style="margin:4px 0 0">Last 6 months · tap for {{ revenueTrendYear }} YTD</div>
+          </div>
+        </div>
+        <button type="button" class="trend-chart" (click)="openRevenueTrendYear()"
+          title="Open monthly orders from January">
+          <div class="trend-bars" *ngIf="revenueTrendMonths.length; else noTrend" (mouseleave)="hoveredTrendKey = null">
+            <div class="trend-col" *ngFor="let m of revenueTrendMonths"
+              [class.is-dim]="hoveredTrendKey && hoveredTrendKey !== m.key" [class.is-hot]="hoveredTrendKey === m.key"
+              (mouseenter)="hoveredTrendKey = m.key" [title]="m.label + ': ' + m.count + ' orders'">
+              <span class="trend-count">{{ m.count }}</span>
+              <div class="trend-bar" [style.height.%]="m.heightPct"></div>
+              <span class="trend-label">{{ m.label }}</span>
+            </div>
+          </div>
+          <ng-template #noTrend>
+            <div class="panel-sub empty-chart">No monthly order data</div>
+          </ng-template>
+        </button>
+        <div class="click-hint">Food + Upsell confirmed orders by created date</div>
+      </div>
+
+      <div class="panel">
+        <h3>App Revenue</h3>
+        <div class="offers-kpis">
+          <button type="button" class="offer-box offer-box--link" (click)="openAppRevenue()"
+            title="Open app revenue report">
+            <small class="offer-label">Net Revenue</small>
+            <strong>{{ formatInrCompact(appRevenueReport.net) }}</strong>
+            <small>{{ appRevenueReport.count | number }} orders</small>
+          </button>
+          <button type="button" class="offer-box offer-box--link" (click)="openAppRevenue()"
+            title="Open app revenue report">
+            <small class="offer-label">AOV</small>
+            <strong>{{ formatInrCompact(appRevenueReport.aov) }}</strong>
+            <small>Average order value</small>
+          </button>
+        </div>
+        <div class="offer-list" *ngIf="appRevenueReport.byPurpose.length; else noAppRevenue">
+          <div *ngFor="let p of appRevenueReport.byPurpose">
+            <span>{{ p.label }}</span><b>{{ formatInrCompact(p.amount) }}</b>
+          </div>
+        </div>
+        <ng-template #noAppRevenue>
+          <div class="panel-sub empty-chart">No app orders for this period</div>
+        </ng-template>
+        <button type="button" class="view-all-link" (click)="openAppRevenue()">View full report →</button>
+      </div>
+    </div>
+
+    <div class="pair-grid">
+      <div class="panel">
+        <div class="panel-title-row">
+          <h3>Recent Escalations</h3>
+          <button type="button" class="view-all-link" (click)="openAllEscalations()">View All</button>
+        </div>
+        <div class="table-wrap">
+          <table class="esc-history-table">
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Date &amp; Time</th>
+                <th>Department</th>
+                <th>Details / Room</th>
+                <th>Status</th>
+                <th>ETA / Delay</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngIf="recentEscalations.length === 0">
+                <td colspan="6">No escalation history</td>
+              </tr>
+              <tr *ngFor="let row of recentEscalations" class="track-row track-row--active"
+                (click)="openEscalationTrack(row)" title="Open track order">
+                <td>{{ row.orderId }}</td>
+                <td>{{ row.datetime }}</td>
+                <td>{{ row.dept }}</td>
+                <td>{{ row.details }}</td>
+                <td><span class="status-pill" [ngClass]="row.statusClass">{{ row.status }}</span></td>
+                <td>{{ row.eta }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>Staff Performance</h3>
+        <div class="staff-card-grid staff-card-grid--home">
+          <button type="button" class="staff-card staff-card--compact" *ngFor="let row of staffDirectory.slice(0, 6)"
+            (click)="openStaffPerformance(row)">
+            <span class="staff-avatar">
+              <img *ngIf="row.photoUrl" [src]="row.photoUrl" [alt]="row.name" (error)="onStaffPhotoError($event)" />
+              <span class="staff-avatar-fallback" [hidden]="!!row.photoUrl">{{ staffInitials(row.name) }}</span>
+            </span>
+            <span class="staff-card-body">
+              <strong>{{ row.name }}</strong>
+              <small>ID {{ row.employeeId }}</small>
+            </span>
+          </button>
+          <div class="panel-sub empty-chart" *ngIf="staffDirectory.length === 0">No staff loaded</div>
+        </div>
+        <button type="button" class="view-all-link" (click)="openStaffDirectory()">View all staff →</button>
+      </div>
+    </div>
+
+    <div class="bottom-grid">
+      <div class="panel">
+        <h3>Guest Satisfaction</h3>
+        <div class="offers-kpis">
+          <button type="button" class="offer-box offer-box--link" (click)="openGuestSatisfaction()"
+            title="Open guest satisfaction report">
+            <small class="offer-label">Average Rating</small>
+            <strong>{{ guestSatisfactionSummary.averageRating | number:'1.0-1' }} ★</strong>
+            <small>{{ guestSatisfactionSummary.total | number }} reviews</small>
+          </button>
+          <button type="button" class="offer-box offer-box--link" (click)="openGuestSatisfaction()"
+            title="Open guest satisfaction report">
+            <small class="offer-label">Positive Share</small>
+            <strong>{{ guestSatisfactionSummary.positivePct }}%</strong>
+            <small>{{ guestSatisfactionSummary.positive | number }} rated 4–5 ★</small>
+          </button>
+        </div>
+        <div class="offer-list" *ngIf="guestSatisfactionSummary.total; else noSatisfaction">
+          <div><span>Low ratings (1–2 ★)</span><b>{{ guestSatisfactionSummary.negative | number }}</b></div>
+        </div>
+        <ng-template #noSatisfaction>
+          <div class="panel-sub empty-chart">No checkout feedback for this period</div>
+        </ng-template>
+        <button type="button" class="view-all-link" (click)="openGuestSatisfaction()">View full report →</button>
+      </div>
+
+      <div class="panel">
+        <h3>Quick Actions / Insights</h3>
+        <div class="insight" *ngFor="let text of insights"><b>✦</b> {{ text }}</div>
+      </div>
+      <div class="panel">
+        <h3>Focus Areas for GM</h3>
+        <div class="focus">
+          <b>Priority actions</b><br>
+          1. Reduce F&amp;B escalations<br>
+          2. Improve upselling conversion<br>
+          3. Monitor housekeeping delays<br>
+          4. Improve guest communication
+        </div>
+      </div>
+    </div>
+  </section>
+</div>

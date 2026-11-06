@@ -1,0 +1,265 @@
+[
+    {
+      "domain_name": "demo.guest ezee.com",
+      "user_id": 12,
+      "payload": {
+        "mobile_key_report": {
+          "guest": {
+            "guest_id": 8801,
+            "guest_name": "Karthik Raj",
+            "guest_email": "karthik@example.com",
+            "guest_phone": "+919876540001",
+            "key_count": 1
+          },
+          "reservation": {
+            "reserve_no": "RSV-91001",
+            "total_guests": 1,
+            "check_in": "2026-11-03T14:00:00",
+            "check_out": "2026-11-05T12:00:00"
+          },
+          "hotel": {
+            "hotel_name": "GuestEzee Demo Hotel",
+            "member_id": "12345"
+          },
+          "room": {
+            "room_no": "401",
+            "room_type": "Premium Room"
+          },
+          "key": {
+            "lock_name": "dormakaba",
+            "sdk": "dormakaba",
+            "opened_status": "unused",
+            "endpoint_id": "LEGIC-910001",
+            "key_used_count": 0,
+            "unlock_attempts": []
+          },
+          "device": {
+            "device_brand": "Apple",
+            "device_name": "iPhone 15",
+            "device_model": "iPhone15,4",
+            "device_os": "ios",
+            "device_os_version": "27.2"
+          }
+        }
+      }
+    },
+    {
+      "domain_name": "demo.guest ezee.com",
+      "user_id": 12,
+      "payload": {
+        "mobile_key_report": {
+          "guest": {
+            "guest_id": 8802,
+            "guest_name": "Divya Krishnan",
+            "guest_email": "divya@example.com",
+            "guest_phone": "+919876540002",
+            "key_count": 2
+          },
+          "reservation": {
+            "reserve_no": "RSV-91002",
+            "total_guests": 2,
+            "check_in": "2026-11-02T11:00:00",
+            "check_out": "2026-11-06T12:00:00"
+          },
+          "hotel": {
+            "hotel_name": "GuestEzee Demo Hotel",
+            "member_id": "12345"
+          },
+          "room": {
+            "room_no": "502",
+            "room_type": "Deluxe Room"
+          },
+          "key": {
+            "lock_name": "dormakaba",
+            "sdk": "dormakaba",
+            "opened_status": "used",
+            "endpoint_id": "LEGIC-910002",
+            "key_used_count": 3,
+            "unlock_attempts": [
+              {
+                "attempt_time": "2026-11-02T11:15:00",
+                "status": "success"
+              },
+              {
+                "attempt_time": "2026-11-02T14:30:00",
+                "status": "success"
+              },
+              {
+                "attempt_time": "2026-11-03T08:45:00",
+                "status": "success"
+              }
+            ]
+          },
+          "device": {
+            "device_brand": "OnePlus",
+            "device_name": "OnePlus 12",
+            "device_model": "CPH2573",
+            "device_os": "android",
+            "device_os_version": "14"
+          }
+        }
+      }
+    },
+    {
+      "domain_name": "demo.guest ezee.com",
+      "user_id": 12,
+      "payload": {
+        "mobile_key_report": {
+          "guest": {
+            "guest_id": 8803,
+            "guest_name": "Arun Kumar",
+            "guest_email": "arun@example.com",
+            "guest_phone": "+919876540003",
+            "key_count": 1
+          },
+          "reservation": {
+            "reserve_no": "RSV-91003",
+            "total_guests": 1,
+            "check_in": "2026-11-04T16:00:00",
+            "check_out": "2026-11-07T11:00:00"
+          },
+          "hotel": {
+            "hotel_name": "GuestEzee Demo Hotel",
+            "member_id": "12345"
+          },
+          "room": {
+            "room_no": "703",
+            "room_type": "Executive Suite"
+          },
+          "key": {
+            "lock_name": "dormakaba",
+            "sdk": "dormakaba",
+            "opened_status": "failed",
+            "endpoint_id": "LEGIC-910003",
+            "key_used_count": 1,
+            "unlock_attempts": [
+              {
+                "attempt_time": "2026-11-04T16:20:00",
+                "status": "failed"
+              },
+              {
+                "attempt_time": "2026-11-04T16:25:00",
+                "status": "failed"
+              }
+            ]
+          },
+          "device": {
+            "device_brand": "Samsung",
+            "device_name": "Samsung Galaxy S24",
+            "device_model": "SM-S921B",
+            "device_os": "android",
+            "device_os_version": "15"
+          }
+        }
+      }
+    },
+    {
+      "domain_name": "demo.guest ezee.com",
+      "user_id": 12,
+      "payload": {
+        "mobile_key_report": {
+          "guest": {
+            "guest_id": 8804,
+            "guest_name": "Meera Nair",
+            "guest_email": "meera@example.com",
+            "guest_phone": "+919876540004",
+            "key_count": 1
+          },
+          "reservation": {
+            "reserve_no": "RSV-91004",
+            "total_guests": 3,
+            "check_in": "2026-11-01T12:00:00",
+            "check_out": "2026-11-09T12:00:00"
+          },
+          "hotel": {
+            "hotel_name": "GuestEzee Demo Hotel",
+            "member_id": "12345"
+          },
+          "room": {
+            "room_no": "1105",
+            "room_type": "Presidential Suite"
+          },
+          "key": {
+            "lock_name": "dormakaba",
+            "sdk": "dormakaba",
+            "opened_status": "used",
+            "endpoint_id": "LEGIC-910004",
+            "key_used_count": 5,
+            "unlock_attempts": [
+              {
+                "attempt_time": "2026-11-01T12:30:00",
+                "status": "success"
+              },
+              {
+                "attempt_time": "2026-11-02T09:00:00",
+                "status": "success"
+              },
+              {
+                "attempt_time": "2026-11-03T18:45:00",
+                "status": "success"
+              },
+              {
+                "attempt_time": "2026-11-04T10:15:00",
+                "status": "failed"
+              },
+              {
+                "attempt_time": "2026-11-05T08:30:00",
+                "status": "success"
+              }
+            ]
+          },
+          "device": {
+            "device_brand": "Apple",
+            "device_name": "iPhone 16 Pro",
+            "device_model": "iPhone17,1",
+            "device_os": "ios",
+            "device_os_version": "27.2"
+          }
+        }
+      }
+    },
+    {
+      "domain_name": "demo.guest ezee.com",
+      "user_id": 12,
+      "payload": {
+        "mobile_key_report": {
+          "guest": {
+            "guest_id": 8805,
+            "guest_name": "Vijay Prakash",
+            "guest_email": "vijay@example.com",
+            "guest_phone": "+919876540005",
+            "key_count": 2
+          },
+          "reservation": {
+            "reserve_no": "RSV-91005",
+            "total_guests": 2,
+            "check_in": "2026-11-05T13:00:00",
+            "check_out": "2026-11-10T11:00:00"
+          },
+          "hotel": {
+            "hotel_name": "GuestEzee Demo Hotel",
+            "member_id": "12345"
+          },
+          "room": {
+            "room_no": "902",
+            "room_type": "Twin Deluxe"
+          },
+          "key": {
+            "lock_name": "dormakaba",
+            "sdk": "dormakaba",
+            "opened_status": "unused",
+            "endpoint_id": "LEGIC-910005",
+            "key_used_count": 0,
+            "unlock_attempts": []
+          },
+          "device": {
+            "device_brand": "Google",
+            "device_name": "Pixel 9 Pro",
+            "device_model": "GEC77",
+            "device_os": "android",
+            "device_os_version": "16"
+          }
+        }
+      }
+    }
+  ]

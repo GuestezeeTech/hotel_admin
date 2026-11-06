@@ -7,10 +7,21 @@ body {
     min-height: 100vh;
     width: 98%;
     margin: 0 auto;
-    padding: 20px;
+    padding: 10px 12px 14px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     border-radius: 10px;
     margin-top: 1%;
+}
+
+.admin-shimmer-kpis {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin: 12px 0;
+}
+
+.admin-shimmer-row {
+    margin-top: 10px;
 }
 
 .chart-container {

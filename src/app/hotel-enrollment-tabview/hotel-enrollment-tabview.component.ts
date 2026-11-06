@@ -160,6 +160,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
     // Old: only handled tab == 3: if (!isNaN(tabIndex) && tabIndex == 3) { this.hierarchyTab = true; this.goToTab(tabIndex, true); }
     this.route.queryParams.subscribe(params => {
       const tabIndex = +params['tab'];
+      const focusLogo = params['focus'] === 'logo';
       const validTabIndex = !isNaN(tabIndex) && tabIndex >= 0 && tabIndex <= 3;
       if (!validTabIndex) {
         return;
@@ -171,10 +172,18 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
       this.skipAutoTabCheck = true;
       this.isReadyToRender = true; // show tabs immediately when opening via submenu
       this.goToTab(tabIndex, true);
-      // Removes tab param from URL only when it was present
+      if (focusLogo && tabIndex === 1) {
+        setTimeout(() => {
+          document.getElementById('company-logo-upload')?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          });
+        }, 450);
+      }
+      // Removes tab/focus params from URL only when present
       this.router.navigate([], {
         relativeTo: this.route,
-        queryParams: { tab: null },
+        queryParams: { tab: null, focus: null },
         queryParamsHandling: 'merge'
       });
     });

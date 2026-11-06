@@ -1,8 +1,23 @@
 <div class="sidenav">
 
-  <div class="logo-container">
-    <img [src]="hotelLogoUrl || 'https://guestezee.s3.ap-south-2.amazonaws.com/Guestezee/Brand/no+logo.png'"
-      alt="Hotel Logo" class="sidebar-logo" />
+  <div class="logo-container" [class.logo-container--loading]="logoLoading">
+    <div class="logo-loader" *ngIf="logoLoading" aria-busy="true" aria-label="Loading hotel logo">
+      <span class="logo-spinner"></span>
+    </div>
+    <ng-container *ngIf="!logoLoading">
+      <img [src]="hotelLogoUrl || 'https://guestezee.s3.ap-south-2.amazonaws.com/Guestezee/Brand/no+logo.png'"
+        alt="Hotel Logo" class="sidebar-logo" />
+      <button
+        *ngIf="isAdminRole()"
+        type="button"
+        class="logo-upload-stack"
+        (click)="goToPropertyLogoUpload()"
+        [attr.aria-label]="hotelLogoUrl ? 'Change hotel logo' : 'Upload hotel logo'"
+      >
+        <i class="bi bi-cloud-arrow-up" aria-hidden="true"></i>
+        <span>{{ hotelLogoUrl ? 'Change logo' : 'Upload logo' }}</span>
+      </button>
+    </ng-container>
   </div>
 
   <hr style="width: 80%;" class="center-hr" />
@@ -10,47 +25,47 @@
     <!-- Dashboard -->
     <li class="list_container" [class.active]="isActive('dashboard')"
       (click)="setActiveMenu('dashboard'); sendValue('Dashboard')" routerLink="/dashboard"
-      *ngIf="canShowMenu('DASHBOARD')">
-      <img src="assets/images/guestezee/layout.png" alt="Dashboard">
+      *ngIf="canShowMenu('DASHBOARD')" title="Dashboard">
+      <i class="bi bi-speedometer2 menu-icon" aria-hidden="true"></i>
       <span>Dashboard</span>
     </li>
     <li class="list_container" [class.active]="isActive('overview-dashboard')"
       (click)="setActiveMenu('overview-dashboard'); sendValue('Hotel Overview')" routerLink="/overview-dashboard"
-      *ngIf="canShowMenu('OVERVIEW')">
-      <img src="assets/images/guestezee/layout.png" alt="Hotel Overview">
+      *ngIf="canShowMenu('OVERVIEW')" title="Hotel Overview">
+      <i class="bi bi-building menu-icon" aria-hidden="true"></i>
       <span>Hotel Overview</span>
     </li>
     <li class="list_container" [class.active]="isActive('fb-dashboard')"
       (click)="setActiveMenu('fb-dashboard'); sendValue('F&B Dashboard')" routerLink="/fb/dashboard"
-      *ngIf="canShowMenu('F&B DASHBOARD')">
-      <img src="assets/images/guestezee/services.png" alt="F&amp;B Dashboard">
+      *ngIf="canShowMenu('F&B DASHBOARD')" title="F&B Dashboard">
+      <i class="bi bi-cup-hot menu-icon" aria-hidden="true"></i>
       <span>F&amp;B Dashboard</span>
     </li>
     <li class="list_container" [class.active]="isActive('fo-dashboard')"
       (click)="setActiveMenu('fo-dashboard'); sendValue('Front Office Dashboard')" routerLink="/fo/dashboard"
-      *ngIf="canShowMenu('FO DASHBOARD')">
-      <img src="assets/images/guestezee/bookings.png" alt="Front Office Dashboard">
+      *ngIf="canShowMenu('FO DASHBOARD')" title="Front Office Dashboard">
+      <i class="bi bi-pc-display menu-icon" aria-hidden="true"></i>
       <span>Front Office Dashboard</span>
     </li>
     <li class="list_container" [class.active]="isActive('hk-dashboard')"
       (click)="setActiveMenu('hk-dashboard'); sendValue('Housekeeping Dashboard')" routerLink="/hk/dashboard"
-      *ngIf="canShowMenu('HOUSEKEEPING DASHBOARD')">
-      <img src="assets/images/guestezee/settings.png" alt="Housekeeping Dashboard">
+      *ngIf="canShowMenu('HOUSEKEEPING DASHBOARD')" title="Housekeeping Dashboard">
+      <i class="bi bi-house-heart menu-icon" aria-hidden="true"></i>
       <span>Housekeeping Dashboard</span>
     </li>
     <!-- Task Management -->
     <li class="list_container" [class.active]="isActive('task')" [routerLink]="['/task-management']"
       (click)="setActiveMenu('task'); sendValue('Task Management')"
-      *ngIf="canShowMenu('TASK MANAGEMENT')">
-      <img src="assets/images/guestezee/taskManagement.png" alt="Task Management">
+      *ngIf="canShowMenu('TASK MANAGEMENT')" title="Task Management">
+      <i class="bi bi-list-task menu-icon" aria-hidden="true"></i>
       <span>Task Management</span>
     </li>
     <!-- Hotels -->
-    <li class="list_container" [class.active]="isActive('hotel')"
-      *ngIf="canShowMenu('HOTELS')" (click)="toggleSubmenu('Hotels')">
+    <li class="list_container" [class.active]="isHotelMenuActive()"
+      *ngIf="canShowMenu('HOTELS')" (click)="toggleSubmenu('Hotels', $event)" title="Hotels">
       <div class="list-content">
         <div class="left-content">
-          <img src="assets/images/guestezee/hotel (2).png" alt="Hotels">
+          <i class="bi bi-buildings menu-icon" aria-hidden="true"></i>
           <span>Hotels</span>
         </div>
         <i class="fas fa-chevron-down dropdown-icon" [ngClass]="{ 'rotate': isHotelSubmenuOpen }"
@@ -62,36 +77,36 @@
       *ngIf="isHotelSubmenuOpen && canShowMenu('HOTELS') && (customerType === 'Staff' || isApproved())">
       <div class="submenu">
         <span class="submenu-item" [class.active]="isActive('hotel-0')"
-          (click)="setActiveMenu('hotel-0'); navigateToHotelTab(0)">Office Details</span>
+          (click)="selectHotelTab('hotel-0', 0, $event)">Office Details</span>
         <span class="submenu-item" [class.active]="isActive('hotel-1')"
-          (click)="setActiveMenu('hotel-1'); navigateToHotelTab(1)">Property Details</span>
+          (click)="selectHotelTab('hotel-1', 1, $event)">Property Details</span>
         <span class="submenu-item" [class.active]="isActive('hotel-4')"
-          (click)="setActiveMenu('hotel-4'); navigateToHotelTab(2)">Technical Info</span>
+          (click)="selectHotelTab('hotel-4', 2, $event)">Technical Info</span>
       </div>
     </li>
     <!-- Bookings -->
     <li class="list_container" [class.active]="isActive('bookings')" [routerLink]="['/bookings']"
       (click)="setActiveMenu('bookings'); sendValue('Bookings')"
-      *ngIf="canShowMenu('BOOKINGS')">
-      <img src="assets/images/guestezee/bookings.png" alt="Bookings">
+      *ngIf="canShowMenu('BOOKINGS')" title="Bookings">
+      <i class="bi bi-calendar-check menu-icon" aria-hidden="true"></i>
       <span>Bookings</span>
     </li>
     <li class="list_container" [class.active]="isActive('guests')" [routerLink]="['/guests-list']"
       (click)="setActiveMenu('guests'); sendValue('Guests')"
-      *ngIf="canShowMenu('GUESTS')">
+      *ngIf="canShowMenu('GUESTS')" title="Guests">
       <div class="list-content">
         <div class="left-content">
-          <i class="fas fa-users" style="color: white; font-size: 16px; margin-right: 2px;"></i>
+          <i class="bi bi-people menu-icon" aria-hidden="true"></i>
           <span>Guests</span>
         </div>
       </div>
     </li>
     <!-- User Access -->
-    <li class="list_container" [class.active]="isActive('user-access')" (click)="toggleSubmenu('User Access')"
-      *ngIf="canShowMenu('USER ACCESS')">
+    <li class="list_container" [class.active]="isUserAccessMenuActive()" (click)="toggleSubmenu('User Access', $event)"
+      *ngIf="canShowMenu('USER ACCESS')" title="User Access">
       <div class="list-content">
         <div class="left-content">
-          <img src="assets/images/guestezee/secure-access (1).png" alt="User Access" />
+          <i class="bi bi-shield-lock menu-icon" aria-hidden="true"></i>
           <a>User Access</a>
         </div>
         <i class="fas fa-chevron-down dropdown-icon" [ngClass]="{ 'rotate': isUserAccessSubmenuOpen }"></i>
@@ -102,19 +117,19 @@
       *ngIf="isUserAccessSubmenuOpen && canShowMenu('USER ACCESS')">
       <div class="submenu">
         <a class="submenu-item" routerLink="/role-list" [class.active]="isActive('role')"
-          (click)="setActiveMenu('role'); sendValue('Roles')">Roles</a>
+          (click)="selectLeafMenu('role', 'Roles', $event)">Roles</a>
         <a class="submenu-item" routerLink="/user-list" [class.active]="isActive('user')"
-          (click)="setActiveMenu('user'); sendValue('Users')">Users</a>
+          (click)="selectLeafMenu('user', 'Users', $event)">Users</a>
         <a class="submenu-item" routerLink="/staff-list" [class.active]="isActive('staff')"
-          (click)="setActiveMenu('staff'); sendValue('Staff')">Staff</a>
+          (click)="selectLeafMenu('staff', 'Staff', $event)">Staff</a>
       </div>
     </li>
     <!-- Settings -->
-    <li class="list_container" [class.active]="isActive('settings-main')" (click)="toggleSubmenu('Settings')"
-      *ngIf="canShowMenu('SYSTEM SETTINGS')">
+    <li class="list_container" [class.active]="isSettingsMenuActive()" (click)="toggleSubmenu('Settings', $event)"
+      *ngIf="canShowMenu('SYSTEM SETTINGS')" title="System Settings">
       <div class="list-content">
         <div class="left-content">
-          <img src="assets/images/guestezee/setting.png" alt="Settings" />
+          <i class="bi bi-gear menu-icon" aria-hidden="true"></i>
           <a>System Settings</a>
         </div>
         <i class="fas fa-chevron-down dropdown-icon" [ngClass]="{ 'rotate': isSettingsSubmenuOpen }"></i>
@@ -124,44 +139,43 @@
       *ngIf="isSettingsSubmenuOpen && canShowMenu('SYSTEM SETTINGS')">
       <div class="submenu">
         <a class="submenu-item" routerLink="/settings" [class.active]="isActive('settings-page')"
-          (click)="setActiveMenu('settings-page'); sendValue('Settings')">Settings</a>
+          (click)="selectLeafMenu('settings-page', 'Settings', $event)">Settings</a>
         <a class="submenu-item" routerLink="/department-list" [class.active]="isActive('department')"
-          (click)="setActiveMenu('department'); sendValue('Department')"
+          (click)="selectLeafMenu('department', 'Department', $event)"
           *ngIf="customerType === 'Customer' && isApproved()">Department</a>
         <a class="submenu-item" routerLink="/service-tab-list" [class.active]="isActive('service-tab')"
-          (click)="setActiveMenu('service-tab'); sendValue('Service Tab')"
+          (click)="selectLeafMenu('service-tab', 'Service Tab', $event)"
           *ngIf="customerType === 'Customer' && isApproved()">Service
           Tab</a>
         <a class="submenu-item" routerLink="/service-list" [class.active]="isActive('service')"
-          (click)="setActiveMenu('service'); sendValue('Service')"
+          (click)="selectLeafMenu('service', 'Service', $event)"
           *ngIf="customerType === 'Customer' && isApproved()">Service</a>
         <a class="submenu-item" routerLink="/member-hierarchy" [class.active]="isActive('hierarchy')"
-          (click)="setActiveMenu('hierarchy'); sendValue('Hierarchy')"
+          (click)="selectLeafMenu('hierarchy', 'Hierarchy', $event)"
           *ngIf="customerType === 'Customer' && isApproved()">Hierarchy</a>
       </div>
     </li>
     <!-- Features -->
     <li class="list_container" [class.active]="isActive('features')" [routerLink]="['/features']"
       (click)="setActiveMenu('features'); sendValue('Features')"
-      *ngIf="canShowMenu('FEATURES')">
-      <img src="https://guestezee.s3.ap-south-2.amazonaws.com/GuestEzee/undefined/feature1.png"
-        alt="Features">
+      *ngIf="canShowMenu('FEATURES')" title="Features (Upselling)">
+      <i class="bi bi-stars menu-icon" aria-hidden="true"></i>
       <span>Features (Upselling)</span>
     </li>
     <!-- Payment -->
     <li class="list_container" [class.active]="isActive('payment')" [routerLink]="['/payment-details']"
       (click)="setActiveMenu('payment'); sendValue('Payment')"
-      *ngIf="canShowMenu('PAYMENT')">
-      <img src="assets/images/guestezee/check.png" alt="Payment">
+      *ngIf="canShowMenu('PAYMENT')" title="Payment">
+      <i class="bi bi-credit-card menu-icon" aria-hidden="true"></i>
       <span>Payment</span>
     </li>
     <!-- Outlet -->
     <li class="list_container" [class.active]="isActive('outlet')" [routerLink]="['/outlet-list']"
       (click)="setActiveMenu('outlet'); sendValue('Outlet')"
-      *ngIf="canShowMenu('OUTLETS')">
+      *ngIf="canShowMenu('OUTLETS')" title="Outlets">
       <div class="list-content">
         <div class="left-content">
-          <i class="fas fa-store" style="color: white;"></i>
+          <i class="bi bi-shop menu-icon" aria-hidden="true"></i>
           <span>Outlets</span>
         </div>
       </div>

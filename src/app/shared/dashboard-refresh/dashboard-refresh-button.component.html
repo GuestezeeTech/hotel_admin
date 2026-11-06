@@ -1,0 +1,11 @@
+<button
+  type="button"
+  class="ds-refresh-btn"
+  [class.is-spinning]="spinning || refreshing"
+  [disabled]="disabled || refreshing"
+  (click)="onClick($event)"
+  [attr.title]="title"
+  [attr.aria-label]="title"
+>
+  <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+</button>

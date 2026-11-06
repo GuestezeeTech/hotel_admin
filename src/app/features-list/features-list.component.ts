@@ -939,6 +939,10 @@ export class FeaturesListComponent implements OnInit, OnDestroy {
       image_url: this.offerForm.imageUrl,
       hotel_code: this.selectedOfferOutlet?.Hotel_Code,
       outlet_id: this.getOutletIdentifier(this.selectedOfferOutlet),
+      outlet_name:
+        this.selectedOfferOutlet?.name ||
+        this.selectedOfferOutlet?.outlet_name ||
+        '',
       // outlet_type was previously missing — added to support server-side filtering
       outlet_type: this.passedOutletType,
       consider_base_amount: this.offerForm.considerBaseAmount

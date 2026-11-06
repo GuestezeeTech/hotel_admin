@@ -449,7 +449,7 @@
     </div>
   </div>
   <!-- Newly added for company logo upload -->
-  <div class="section pt-0">
+  <div class="section pt-0" id="company-logo-upload">
     <h3 style="font-size: 20px; font-weight: 600;">
       Company Logo
       <span style="font-size: 13px; color: #A0A0A0;">
@@ -457,6 +457,9 @@
         submitting)
       </span>
     </h3>
+    <p class="logo-guest-reflect-note">
+      <span style="color: red;">*</span> This will reflect in guest app and in guest notification
+    </p>
     <div class="row align-items-center mt-3">
       <!-- Upload Area -->
       <div class="col-md-6">
@@ -473,12 +476,16 @@
                 }}
               </button> -->
               <!-- Newly updated code: type="button" added to prevent enter key form submission -->
-              <button type="button" class="btn btn-maroon upload-btn mt-2 w-50" (click)="logoInput.click()"
-                [disabled]="logoUploading || status == 'approved'"> {{ hotelLogoUrl ?
-                'Replace Logo'
-                : 'Upload Logo'
-                }}
+              <button
+                *ngIf="canChangeLogo"
+                type="button"
+                class="btn btn-maroon upload-btn mt-2 w-50"
+                (click)="logoInput.click()"
+                [disabled]="logoUploading || status == 'approved'"
+              >
+                {{ hotelLogoUrl ? 'Replace Logo' : 'Upload Logo' }}
               </button>
+              <p *ngIf="!canChangeLogo" class="text-muted small mt-2 mb-0">Only admin can change the hotel logo.</p>
             </div>
             <p class="text-muted small mt-1">Allowed formats: JPG, JPEG, PNG • Max size: 2MB • Recommended dimensions:
               200 × 200 pixels</p>
@@ -510,8 +517,12 @@
             <!-- Actions row placed cleanly below -->
             <div class="d-flex align-items-center gap-3" style="gap: 16px; margin-top: 4px;">
               <i class="bi bi-eye cursor-pointer" (click)="previewLogo()"></i>
-              <i class="bi bi-trash3 cursor-pointer" (click)="removeLogo()"
-                [class.disabled-icon]="this.status == 'approved'"></i>
+              <i
+                *ngIf="canChangeLogo"
+                class="bi bi-trash3 cursor-pointer"
+                (click)="removeLogo()"
+                [class.disabled-icon]="this.status == 'approved'"
+              ></i>
               <span class="badge text-white" [ngClass]="hotelLogoUrl ? 'bg-success' : 'bg-secondary'">
                 {{ hotelLogoUrl ? 'Uploaded' : 'No Logo Uploaded' }}
               </span>
