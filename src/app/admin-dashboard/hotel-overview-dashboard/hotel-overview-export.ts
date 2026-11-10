@@ -1,16 +1,41 @@
 import { DepartmentCard, EscalationRow, TodayDepartmentPanels } from './hotel-overview-dashboard.service';
 
+/** Everything the Hotel Overview home view shows, in plain values. */
 export type OverviewExportData = {
-  selectedPeriod: string;
+  periodLabel: string;
   kpis: { label: string; value: string; note: string }[];
   revenueTotal: string;
   revenueLegend: { name: string; amount: string; pct: string }[];
   departments: DepartmentCard[];
-  offerSummary: { totalOffers: number; activeOffers: number; offersSold: number; conversion: string; revenue: string };
-  offerItems: { name: string; amount: string }[];
+  upsell: {
+    totalOffers: number;
+    offersSold: number;
+    conversionPct: number;
+    revenueLabel: string;
+    items: { name: string; amount: string; count: number }[];
+  };
   todayPanels: TodayDepartmentPanels;
-  revenueTrend: { subtitle: string; dates: string[]; legend: string[] };
+  foKeyServices: { label: string; value: number }[];
+  revenueTrend: { label: string; count: number; amount: number }[];
+  appRevenue: {
+    count: number;
+    gross: number;
+    discount: number;
+    net: number;
+    aov: number;
+    byPurpose: { label: string; count: number; amount: number }[];
+  };
   escalations: EscalationRow[];
+  staff: { name: string; employeeId: string; department: string }[];
+  guestSatisfaction: {
+    total: number;
+    averageRating: number;
+    positive: number;
+    positivePct: number;
+    negative: number;
+    withEscalation: number;
+    withDelay: number;
+  };
   insights: string[];
   focusAreas: string[];
 };
@@ -45,6 +70,15 @@ function addHeader(sheet: any, headers: string[]): void {
   });
 }
 
+/** Adds rows, or a single "none" row when the list is empty. */
+function addRows(sheet: any, rows: any[][], empty: string): void {
+  if (rows.length) {
+    rows.forEach((row) => sheet.addRow(row));
+  } else {
+    sheet.addRow([empty]);
+  }
+}
+
 /** Column widths from the table cells; the long title row is left out. */
 function fitColumns(sheet: any): void {
   sheet.columns.forEach((column: any) => {
@@ -58,33 +92,43 @@ function fitColumns(sheet: any): void {
   });
 }
 
+function inr(row: any, ...columns: number[]): void {
+  columns.forEach((c) => (row.getCell(c).numFmt = INR_FORMAT));
+}
+
+function pct(row: any, ...columns: number[]): void {
+  columns.forEach((c) => (row.getCell(c).numFmt = '0%'));
+}
+
 /** One sheet per dashboard section. Takes the ExcelJS module, so it runs outside the browser too. */
 export function buildOverviewWorkbook(ExcelJS: any, data: OverviewExportData): any {
   const workbook = new ExcelJS.Workbook();
+  const period = data.periodLabel || '';
 
-  const summary = addSheet(workbook, 'Summary', 'Hotel Overview');
+  // Summary
+  const summary = addSheet(workbook, 'Summary', `Hotel Overview - ${period}`);
   addHeader(summary, ['Metric', 'Value', 'Details']);
   data.kpis.forEach((kpi) => {
     const row = summary.addRow([kpi.label, amountOf(kpi.value), kpi.note]);
-    if (kpi.value.includes('₹')) {
-      row.getCell(2).numFmt = INR_FORMAT;
+    if (String(kpi.value).includes('₹')) {
+      inr(row, 2);
     }
   });
   fitColumns(summary);
 
-  const revenue = addSheet(
-    workbook, 'Revenue Breakdown', `Revenue Breakdown - Total ${data.revenueTotal} - ${data.selectedPeriod}`
-  );
+  // Revenue Breakdown
+  const revenue = addSheet(workbook, 'Revenue Breakdown', `Revenue Breakdown - Total ${data.revenueTotal} - Order Confirmed - ${period}`);
   addHeader(revenue, ['Source', 'Amount', 'Share']);
   data.revenueLegend.forEach((item) => {
     const row = revenue.addRow([item.name, amountOf(item.amount), percentOf(item.pct)]);
-    row.getCell(2).numFmt = INR_FORMAT;
-    row.getCell(3).numFmt = '0%';
+    inr(row, 2);
+    pct(row, 3);
   });
   fitColumns(revenue);
 
+  // Department Overview
   const departments = addSheet(workbook, 'Department Overview', 'Department Overview');
-  addHeader(departments, ['Department', 'Total', 'Measure', 'Completed', 'Pending', 'Escalated', 'Timing']);
+  addHeader(departments, ['Department', 'Total', 'Measure', 'Completed / Delivered', 'Pending', 'Escalated', 'Timing']);
   data.departments.forEach((dept) => {
     departments.addRow([
       dept.name, dept.total, dept.totalLabel, dept.completed, dept.pending, dept.escalated,
@@ -93,64 +137,100 @@ export function buildOverviewWorkbook(ExcelJS: any, data: OverviewExportData): a
   });
   fitColumns(departments);
 
-  const offers = addSheet(workbook, 'Upselling & Offers', 'Upselling / Offers Performance');
-  addHeader(offers, ['Metric', 'Value']);
-  offers.addRow(['Total Offers', data.offerSummary.totalOffers]);
-  offers.addRow(['Active Offers', data.offerSummary.activeOffers]);
-  offers.addRow(['Offers Sold', data.offerSummary.offersSold]);
-  offers.addRow(['Conversion', percentOf(data.offerSummary.conversion)]).getCell(2).numFmt = '0%';
-  offers.addRow(['Revenue', amountOf(data.offerSummary.revenue)]).getCell(2).numFmt = INR_FORMAT;
-  offers.addRow([]);
-  addHeader(offers, ['Offer', 'Revenue']);
-  data.offerItems.forEach((item) => {
-    offers.addRow([item.name, amountOf(item.amount)]).getCell(2).numFmt = INR_FORMAT;
+  // Upselling / Offers Performance
+  const upsell = addSheet(workbook, 'Upselling', `Upselling / Offers Performance - ${period}`);
+  addHeader(upsell, ['Metric', 'Value']);
+  upsell.addRow(['Total Upsells (catalog)', data.upsell.totalOffers]);
+  upsell.addRow(['Upsells Sold', data.upsell.offersSold]);
+  pct(upsell.addRow(['Conversion', (Number(data.upsell.conversionPct) || 0) / 100]), 2);
+  inr(upsell.addRow(['Upsell Revenue', amountOf(data.upsell.revenueLabel)]), 2);
+  upsell.addRow([]);
+  addHeader(upsell, ['Upsell', 'Orders', 'Revenue']);
+  addRows(upsell, data.upsell.items.map((item) => [item.name, item.count, amountOf(item.amount)]), 'No confirmed upsell orders');
+  upsell.eachRow((row: any, n: number) => {
+    if (n > 9 && typeof row.getCell(3).value === 'number') {
+      inr(row, 3);
+    }
   });
-  fitColumns(offers);
+  fitColumns(upsell);
 
+  // Department status (F&B, Housekeeping, Front Office)
   const panels = [
     { name: 'F&B', panel: data.todayPanels.fnb },
     { name: 'Housekeeping', panel: data.todayPanels.hk },
     { name: 'Front Office', panel: data.todayPanels.fo }
   ];
-  const today = addSheet(workbook, 'Today Status', `Today - ${data.todayPanels.dateLabel}`);
-  addHeader(today, ['Department', 'Total', 'Completed', 'Completed %', 'Pending', 'Pending %', 'Cancelled / Escalated', 'Type', 'Cancelled / Escalated %']);
+  const status = addSheet(workbook, 'Department Status', `Department Status - ${period}`);
+  addHeader(status, ['Department', 'Total', 'Completed', 'Completed %', 'Pending', 'Pending %', 'Cancelled / Escalated', 'Type', 'Cancelled / Escalated %']);
   panels.forEach(({ name, panel }) => {
-    const row = today.addRow([
+    pct(status.addRow([
       name, panel.total, panel.completed, panel.completedPct / 100, panel.pending, panel.pendingPct / 100,
       panel.thirdCount, panel.thirdLabel, panel.thirdPct / 100
-    ]);
-    [4, 6, 9].forEach((column) => row.getCell(column).numFmt = '0%');
+    ]), 4, 6, 9);
   });
-  today.addRow([]);
-  addHeader(today, ['Department', 'Service', 'Requests today']);
-  const serviceRows = panels.flatMap(({ name, panel }) =>
-    panel.serviceBars.map((bar) => [name, bar.label, bar.count]));
-  if (serviceRows.length) {
-    serviceRows.forEach((row) => today.addRow(row));
-  } else {
-    today.addRow(['No services today']);
-  }
-  fitColumns(today);
+  status.addRow([]);
+  addHeader(status, ['Department', 'Service', 'Requests']);
+  addRows(status, panels.flatMap(({ name, panel }) => panel.serviceBars.map((bar) => [name, bar.label, bar.count])), 'No services for this period');
+  status.addRow([]);
+  addHeader(status, ['Front Office Key Service', 'Count']);
+  addRows(status, data.foKeyServices.map((s) => [s.label, s.value]), 'No key services');
+  fitColumns(status);
 
-  const trend = addSheet(workbook, 'Revenue Trend', `Revenue Trend - ${data.revenueTrend.subtitle}`);
-  addHeader(trend, ['Chart dates']);
-  data.revenueTrend.dates.forEach((date) => trend.addRow([date]));
-  trend.addRow([]);
-  addHeader(trend, ['Chart series']);
-  data.revenueTrend.legend.forEach((name) => trend.addRow([name]));
+  // Revenue Trend
+  const trend = addSheet(workbook, 'Revenue Trend', 'Revenue Trend - last 6 months (Food + Upsell confirmed orders)');
+  addHeader(trend, ['Month', 'Orders', 'Amount']);
+  addRows(trend, data.revenueTrend.map((m) => [m.label, m.count, m.amount]), 'No monthly order data');
+  trend.eachRow((row: any, n: number) => {
+    if (n > 3 && typeof row.getCell(3).value === 'number') {
+      inr(row, 3);
+    }
+  });
   fitColumns(trend);
 
-  const escalations = addSheet(workbook, 'Recent Escalations', 'Recent Escalations');
-  addHeader(escalations, ['Date & Time', 'Department', 'Request ID', 'Details', 'Status', 'ETA/Delay']);
-  if (data.escalations.length) {
-    data.escalations.forEach((row) => {
-      escalations.addRow([row.datetime, row.dept, row.id, row.details, row.status, row.eta]);
-    });
-  } else {
-    escalations.addRow(['No recent escalations']);
-  }
+  // App Revenue
+  const app = addSheet(workbook, 'App Revenue', `App Revenue - ${period}`);
+  addHeader(app, ['Metric', 'Value']);
+  app.addRow(['Orders', data.appRevenue.count]);
+  inr(app.addRow(['Gross Revenue', data.appRevenue.gross]), 2);
+  inr(app.addRow(['Discount', data.appRevenue.discount]), 2);
+  inr(app.addRow(['Net Revenue', data.appRevenue.net]), 2);
+  inr(app.addRow(['Average Order Value', data.appRevenue.aov]), 2);
+  app.addRow([]);
+  addHeader(app, ['Purpose', 'Orders', 'Amount']);
+  addRows(app, data.appRevenue.byPurpose.map((p) => [p.label, p.count, p.amount]), 'No app orders for this period');
+  app.eachRow((row: any, n: number) => {
+    if (n > 10 && typeof row.getCell(3).value === 'number') {
+      inr(row, 3);
+    }
+  });
+  fitColumns(app);
+
+  // Escalations
+  const escalations = addSheet(workbook, 'Escalations', 'Escalations');
+  addHeader(escalations, ['Order ID', 'Date & Time', 'Department', 'Details / Room', 'Status', 'ETA / Delay']);
+  addRows(escalations, data.escalations.map((r) => [r.orderId, r.datetime, r.dept, r.details, r.status, r.eta]), 'No escalation history');
   fitColumns(escalations);
 
+  // Staff
+  const staff = addSheet(workbook, 'Staff', 'Staff');
+  addHeader(staff, ['Name', 'Employee ID', 'Department']);
+  addRows(staff, data.staff.map((s) => [s.name, s.employeeId, s.department]), 'No staff loaded');
+  fitColumns(staff);
+
+  // Guest Satisfaction
+  const gs = data.guestSatisfaction;
+  const satisfaction = addSheet(workbook, 'Guest Satisfaction', `Guest Satisfaction - ${period}`);
+  addHeader(satisfaction, ['Metric', 'Value']);
+  satisfaction.addRow(['Reviews', gs.total]);
+  satisfaction.addRow(['Average Rating (out of 5)', Number((Number(gs.averageRating) || 0).toFixed(1))]);
+  satisfaction.addRow(['Positive (4-5 stars)', gs.positive]);
+  pct(satisfaction.addRow(['Positive Share', (Number(gs.positivePct) || 0) / 100]), 2);
+  satisfaction.addRow(['Low Ratings (1-2 stars)', gs.negative]);
+  satisfaction.addRow(['With Escalation', gs.withEscalation]);
+  satisfaction.addRow(['With Delay', gs.withDelay]);
+  fitColumns(satisfaction);
+
+  // Insights & Focus
   const insights = addSheet(workbook, 'Insights & Focus', 'Quick Actions / Insights');
   addHeader(insights, ['Insight']);
   data.insights.forEach((text) => insights.addRow([text]));

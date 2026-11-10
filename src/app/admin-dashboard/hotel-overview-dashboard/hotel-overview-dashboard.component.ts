@@ -26,6 +26,8 @@ import { DashboardRefreshSource } from '../../shared/dashboard-refresh/dashboard
 import { DashboardPeriodControlsComponent } from '../../shared/dashboard-period/dashboard-period-controls.component';
 import { DashboardPeriodStateService } from '../../shared/dashboard-period/dashboard-period-state.service';
 import { scrollAppToTop } from '../../shared/scroll-to-top.util';
+import { AlertsService } from '../../shared/alerts/alerts.service';
+import { downloadOverviewWorkbook } from './hotel-overview-export';
 
 export type KpiFilterKey =
   | 'revenue'
@@ -67,6 +69,8 @@ export class HotelOverviewDashboardComponent implements OnInit {
   customFrom = '';
   customTo = '';
   periodLabel = 'Today';
+  /** Excel download of the home view is in progress */
+  isDownloading = false;
   loading = true;
   refreshing = false;
   loadError = '';
@@ -354,11 +358,19 @@ export class HotelOverviewDashboardComponent implements OnInit {
     'Front Office has 2 escalations – review late checkout requests.'
   ];
 
+  focusAreas = [
+    'Reduce F&B escalations',
+    'Improve upselling conversion',
+    'Monitor housekeeping delays',
+    'Improve guest communication'
+  ];
+
   constructor(
     private router: Router,
     private overviewService: HotelOverviewDashboardService,
     private fbDashboardService: FbDashboardService,
-    private periodState: DashboardPeriodStateService
+    private periodState: DashboardPeriodStateService,
+    private alertService: AlertsService
   ) {
     this.periodState.hydrate(this);
     this.todayPanels = this.createEmptyTodayPanels();
@@ -1427,6 +1439,46 @@ export class HotelOverviewDashboardComponent implements OnInit {
     if (kpi) {
       kpi.value = value;
       kpi.note = note;
+    }
+  }
+
+  /** Downloads every section of the home view, for the selected period, as an .xlsx file. */
+  async downloadExcel(): Promise<void> {
+    if (this.isDownloading) {
+      return;
+    }
+    this.isDownloading = true;
+    try {
+      const report = this.appRevenueReport;
+      await downloadOverviewWorkbook({
+        periodLabel: this.periodLabel,
+        kpis: this.kpis,
+        revenueTotal: this.revenueTotalLabel,
+        revenueLegend: this.revenueLegend,
+        departments: this.departments,
+        upsell: this.offerPerf,
+        todayPanels: this.todayPanels,
+        foKeyServices: this.foKeyServiceRows,
+        revenueTrend: this.revenueTrendMonths,
+        appRevenue: {
+          count: report.count,
+          gross: report.gross,
+          discount: report.discount,
+          net: report.net,
+          aov: report.aov,
+          byPurpose: report.byPurpose
+        },
+        escalations: this.escalations,
+        staff: this.staffDirectory.map((s) => ({ name: s.name, employeeId: s.employeeId, department: s.department })),
+        guestSatisfaction: this.guestSatisfactionSummary,
+        insights: this.insights,
+        focusAreas: this.focusAreas
+      });
+    } catch (err) {
+      console.error('Excel download failed', err);
+      this.alertService.error('Unable to download the Excel file. Please try again.', { autoClose: true, keepAfterRouteChange: false });
+    } finally {
+      this.isDownloading = false;
     }
   }
 

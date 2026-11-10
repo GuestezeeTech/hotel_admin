@@ -665,6 +665,11 @@
         [(customFrom)]="customFrom" [(customTo)]="customTo" [refreshing]="refreshing" (periodChange)="onPeriodChange()"
         (customRangeChange)="onCustomRangeChange()"
         (refresh)="onDashboardRefresh($event)"></app-dashboard-period-controls>
+      <button type="button" class="download-excel" [disabled]="isDownloading || refreshing" (click)="downloadExcel()"
+        title="Download every section for the selected period">
+        <i class="bi bi-file-earmark-spreadsheet" aria-hidden="true"></i>
+        {{ isDownloading ? 'Downloading…' : 'Download Excel' }}
+      </button>
     </div>
 
     <div class="kpis">
@@ -1053,10 +1058,7 @@
         <h3>Focus Areas for GM</h3>
         <div class="focus">
           <b>Priority actions</b><br>
-          1. Reduce F&amp;B escalations<br>
-          2. Improve upselling conversion<br>
-          3. Monitor housekeeping delays<br>
-          4. Improve guest communication
+          <ng-container *ngFor="let area of focusAreas; let i = index">{{ i + 1 }}. {{ area }}<br></ng-container>
         </div>
       </div>
     </div>
