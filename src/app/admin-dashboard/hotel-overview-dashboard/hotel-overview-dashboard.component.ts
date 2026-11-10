@@ -27,6 +27,7 @@ import { DashboardPeriodControlsComponent } from '../../shared/dashboard-period/
 import { DashboardPeriodStateService } from '../../shared/dashboard-period/dashboard-period-state.service';
 import { scrollAppToTop } from '../../shared/scroll-to-top.util';
 import { AlertsService } from '../../shared/alerts/alerts.service';
+import { DashboardExportComponent } from '../../shared/dashboard-export/dashboard-export.component';
 import { downloadOverviewWorkbook } from './hotel-overview-export';
 
 export type KpiFilterKey =
@@ -60,7 +61,7 @@ type KpiListRow = {
 @Component({
   selector: 'app-hotel-overview-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, DashboardPeriodControlsComponent],
+  imports: [CommonModule, FormsModule, DashboardPeriodControlsComponent, DashboardExportComponent],
   templateUrl: './hotel-overview-dashboard.component.html',
   styleUrl: './hotel-overview-dashboard.component.scss'
 })

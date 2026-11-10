@@ -37,6 +37,7 @@
         (customRangeChange)="onCustomRangeChange()"
         (refresh)="onDashboardRefresh($event)"
       ></app-dashboard-period-controls>
+      <app-dashboard-export class="heading-export" title="Housekeeping Dashboard"></app-dashboard-export>
     </div>
 
     <!-- <div class="section-label">Housekeeping performance</div> -->
@@ -223,7 +224,7 @@
         <h2>{{ moduleHeading }}</h2>
         <p>{{ moduleRecordCount }} record<span *ngIf="moduleRecordCount !== 1">s</span></p>
       </div>
-      <button type="button" class="outline heading-export" (click)="exportCsv()">Export CSV ↓</button>
+      <app-dashboard-export class="heading-export" title="Housekeeping Dashboard - {{ moduleHeading }}"></app-dashboard-export>
     </div>
     <div class="module-card kpi-list-panel">
       <div class="summary" *ngIf="moduleSummary.length">

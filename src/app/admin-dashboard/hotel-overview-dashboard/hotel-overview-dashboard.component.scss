@@ -103,13 +103,18 @@
 
   &.kpi-list-head {
     justify-content: flex-start;
-    align-items: flex-start;
+    align-items: flex-end;
     flex-wrap: wrap;
 
     > div {
-      width: 100%;
+      flex: 1 1 260px;
+      min-width: 0;
       text-align: left;
     }
+  }
+
+  > app-dashboard-export {
+    margin-left: auto;
   }
 
   h2 {
@@ -238,27 +243,6 @@
   color: var(--muted);
   flex: 0 0 auto;
   padding-bottom: 10px;
-}
-
-.download-excel {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: none;
-  border-radius: 8px;
-  background: #800020;
-  color: #fff;
-  padding: 8px 14px;
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
-  cursor: pointer;
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
 }
 
 .kpis {

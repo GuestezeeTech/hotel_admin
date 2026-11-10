@@ -36,6 +36,7 @@
               (click)="openReport('mobile-keys-unused')">Not Used</button>
           </div>
         </div>
+        <app-dashboard-export title="Front Office Dashboard - {{ activeKpiLabel }}"></app-dashboard-export>
       </div>
 
       <div class="report-summary" *ngIf="activeReportKey === 'mobile-keys'">
@@ -353,6 +354,7 @@
           (customRangeChange)="onCustomRangeChange()"
           (refresh)="onDashboardRefresh($event)"
         ></app-dashboard-period-controls>
+        <app-dashboard-export title="Front Office Dashboard"></app-dashboard-export>
       </div>
 
       <div class="kpi-metrics-row">

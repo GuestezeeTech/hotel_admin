@@ -25,6 +25,7 @@ import { formatInr as formatInrSafe } from '../../shared/inr-format.util';
 import { buildDonutSlices, DonutSliceView } from '../../shared/donut-slices.util';
 import { DashboardRefreshSource } from '../../shared/dashboard-refresh/dashboard-refresh-button.component';
 import { DashboardPeriodControlsComponent } from '../../shared/dashboard-period/dashboard-period-controls.component';
+import { DashboardExportComponent } from '../../shared/dashboard-export/dashboard-export.component';
 import { DashboardPeriodStateService } from '../../shared/dashboard-period/dashboard-period-state.service';
 import { scrollAppToTop } from '../../shared/scroll-to-top.util';
 import { HotelOverviewDashboardService } from '../../admin-dashboard/hotel-overview-dashboard/hotel-overview-dashboard.service';
@@ -36,7 +37,7 @@ type OfferReportTab = 'offers' | 'payments';
 @Component({
   selector: 'app-fb-department-head-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, DashboardPeriodControlsComponent],
+  imports: [CommonModule, FormsModule, DashboardPeriodControlsComponent, DashboardExportComponent],
   templateUrl: './fb-department-head-dashboard.component.html',
   styleUrl: './fb-department-head-dashboard.component.scss'
 })

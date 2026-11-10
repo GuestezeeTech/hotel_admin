@@ -41,6 +41,7 @@
         </button>
         <h2>Payment Details</h2>
       </div>
+      <app-dashboard-export title="Hotel Overview - Payment Details"></app-dashboard-export>
     </div>
 
     <div class="ird-toolbar">
@@ -144,6 +145,7 @@
         <h2>{{ activeKpiLabel }}</h2>
         <p>{{ kpiListRows.length }} record<span *ngIf="kpiListRows.length !== 1">s</span></p>
       </div>
+      <app-dashboard-export title="Hotel Overview - {{ activeKpiLabel }}"></app-dashboard-export>
     </div>
 
     <div class="panel kpi-list-panel">
@@ -189,6 +191,7 @@
             *ngIf="filteredUpsellSoldRows.length !== 1">s</span>
           · {{ periodLabel }}</p>
       </div>
+      <app-dashboard-export title="Hotel Overview - Upsells Sold"></app-dashboard-export>
     </div>
 
     <div class="panel kpi-list-panel">
@@ -245,6 +248,7 @@
         <h2>Orders from Jan {{ revenueTrendYear }}</h2>
         <!-- <p>Confirmed orders by month · created_on</p> -->
       </div>
+      <app-dashboard-export title="Hotel Overview - Orders from Jan {{ revenueTrendYear }}"></app-dashboard-export>
     </div>
     <div class="panel kpi-list-panel">
       <div class="table-wrap">
@@ -280,6 +284,7 @@
         <h2>Recent Escalations</h2>
         <p>{{ escalations.length }} record<span *ngIf="escalations.length !== 1">s</span></p>
       </div>
+      <app-dashboard-export title="Hotel Overview - Recent Escalations"></app-dashboard-export>
     </div>
 
     <div class="panel kpi-list-panel">
@@ -336,6 +341,7 @@
         <p>{{ filteredGuestSatisfactionRows.length }} record<span
             *ngIf="filteredGuestSatisfactionRows.length !== 1">s</span></p>
       </div>
+      <app-dashboard-export title="Hotel Overview - Guest Satisfaction Report"></app-dashboard-export>
     </div>
 
     <div class="satisfaction-summary satisfaction-summary--ratings">
@@ -424,6 +430,7 @@
         <h2>Staff-Wise Performance</h2>
         <p>{{ filteredStaffDirectory.length }} staff</p>
       </div>
+      <app-dashboard-export title="Hotel Overview - Staff-Wise Performance"></app-dashboard-export>
     </div>
     <div class="ird-toolbar">
       <div class="ird-search">
@@ -477,6 +484,7 @@
           </div>
         </div>
       </div>
+      <app-dashboard-export title="Hotel Overview - {{ selectedStaff.name }}"></app-dashboard-export>
     </div>
 
     <div class="satisfaction-summary staff-perf-summary">
@@ -565,6 +573,7 @@
         </button>
         <h2>Revenue Report Through the App</h2>
       </div>
+      <app-dashboard-export title="Hotel Overview - Revenue Report Through the App"></app-dashboard-export>
     </div>
 
     <div class="satisfaction-summary">
@@ -665,11 +674,8 @@
         [(customFrom)]="customFrom" [(customTo)]="customTo" [refreshing]="refreshing" (periodChange)="onPeriodChange()"
         (customRangeChange)="onCustomRangeChange()"
         (refresh)="onDashboardRefresh($event)"></app-dashboard-period-controls>
-      <button type="button" class="download-excel" [disabled]="isDownloading || refreshing" (click)="downloadExcel()"
-        title="Download every section for the selected period">
-        <i class="bi bi-file-earmark-spreadsheet" aria-hidden="true"></i>
-        {{ isDownloading ? 'Downloading…' : 'Download Excel' }}
-      </button>
+      <app-dashboard-export title="Hotel Overview" [customExcel]="true" [excelBusy]="isDownloading"
+        [disabled]="refreshing" (excel)="downloadExcel()"></app-dashboard-export>
     </div>
 
     <div class="kpis">

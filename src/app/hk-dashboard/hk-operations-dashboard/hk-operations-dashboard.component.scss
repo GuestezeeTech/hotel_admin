@@ -63,6 +63,10 @@
     max-width: 100%;
   }
 
+  .heading-period + .heading-export {
+    margin-left: 0;
+  }
+
   &.heading--module {
     align-items: flex-start;
 

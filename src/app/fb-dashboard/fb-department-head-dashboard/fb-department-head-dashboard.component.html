@@ -1,5 +1,5 @@
 <section class="fnb-shell active" [class.ds-loading-lock]="pageLoading">
-  <div class="fnb-main">
+  <div class="fnb-main" data-export-root>
     <div class="fnb-shimmer" *ngIf="pageLoading" aria-busy="true" aria-label="Loading F&B Dashboard">
       <div class="fnb-head">
         <div>
@@ -38,6 +38,7 @@
           <h2>{{ activeKpiLabel }}</h2>
           <p>{{ activeReportCount }} record<span *ngIf="activeReportCount !== 1">s</span></p>
         </div>
+        <app-dashboard-export title="F&amp;B Dashboard - {{ activeKpiLabel }}"></app-dashboard-export>
       </div>
 
       <div class="fnb-tabs ird-tabs" *ngIf="activeKpiKey === 'offers' || activeKpiKey === 'offer-payments'">
@@ -265,6 +266,7 @@
           </button>
           <h2>IRD Payment Details</h2>
         </div>
+        <app-dashboard-export title="F&amp;B Dashboard - IRD Payment Details"></app-dashboard-export>
       </div>
 
       <div class="ird-toolbar">
@@ -452,6 +454,7 @@
             [(customTo)]="customTo" [refreshing]="refreshing" (periodChange)="onPeriodChange()"
             (customRangeChange)="onCustomRangeChange()"
             (refresh)="onDashboardRefresh($event)"></app-dashboard-period-controls>
+          <app-dashboard-export title="F&amp;B Dashboard"></app-dashboard-export>
         </div>
       </div>
 

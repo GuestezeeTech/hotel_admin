@@ -129,6 +129,15 @@
   overflow-x: auto;
 }
 
+.page-heading > app-dashboard-export {
+  margin-left: auto;
+}
+
+.heading-actions + app-dashboard-export,
+.heading-period + app-dashboard-export {
+  margin-left: 0;
+}
+
 .heading-actions {
   margin-left: auto;
   display: flex;

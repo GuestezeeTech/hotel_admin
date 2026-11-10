@@ -15,8 +15,11 @@
             </div>
           </div>
         </div>
-        <div class="container" *ngIf="!pageLoading">
-            <app-setup-progress></app-setup-progress>
+        <div class="container" *ngIf="!pageLoading" data-export-root>
+            <div class="dashboard-export-row">
+                <app-dashboard-export title="Dashboard"></app-dashboard-export>
+            </div>
+            <app-setup-progress data-export-ignore></app-setup-progress>
             <div class="row mb-4">
                 <div class="col-md-8" style="padding-left: 0 !important;">
                     <h5 class="fw-bolder mb-3 d-flex align-items-center gap-2">

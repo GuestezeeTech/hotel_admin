@@ -6,6 +6,7 @@ import { catchError, finalize } from 'rxjs/operators';
 import { HotelOverviewDashboardService } from '../../admin-dashboard/hotel-overview-dashboard/hotel-overview-dashboard.service';
 import { DashboardRefreshSource } from '../../shared/dashboard-refresh/dashboard-refresh-button.component';
 import { DashboardPeriodControlsComponent } from '../../shared/dashboard-period/dashboard-period-controls.component';
+import { DashboardExportComponent } from '../../shared/dashboard-export/dashboard-export.component';
 import { DashboardPeriodStateService } from '../../shared/dashboard-period/dashboard-period-state.service';
 import { buildDonutSlices, DonutSliceView } from '../../shared/donut-slices.util';
 import { scrollAppToTop } from '../../shared/scroll-to-top.util';
@@ -36,7 +37,7 @@ type FoReportKey =
 @Component({
   selector: 'app-fo-operations-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, DashboardPeriodControlsComponent],
+  imports: [CommonModule, FormsModule, DashboardPeriodControlsComponent, DashboardExportComponent],
   templateUrl: './fo-operations-dashboard.component.html',
   styleUrl: './fo-operations-dashboard.component.scss'
 })

@@ -24,6 +24,7 @@ import {
 
 import { DashboardRefreshSource } from '../../shared/dashboard-refresh/dashboard-refresh-button.component';
 import { DashboardPeriodControlsComponent } from '../../shared/dashboard-period/dashboard-period-controls.component';
+import { DashboardExportComponent } from '../../shared/dashboard-export/dashboard-export.component';
 import { DashboardPeriodStateService } from '../../shared/dashboard-period/dashboard-period-state.service';
 import { scrollAppToTop } from '../../shared/scroll-to-top.util';
 import { HotelOverviewDashboardService } from '../../admin-dashboard/hotel-overview-dashboard/hotel-overview-dashboard.service';
@@ -68,7 +69,7 @@ type SummaryTile = { label: string; value: string | number };
 
   standalone: true,
 
-  imports: [CommonModule, FormsModule, DashboardPeriodControlsComponent],
+  imports: [CommonModule, FormsModule, DashboardPeriodControlsComponent, DashboardExportComponent],
 
   templateUrl: './hk-operations-dashboard.component.html',
 

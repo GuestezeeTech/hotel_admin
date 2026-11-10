@@ -11,6 +11,7 @@ import { LocalStorageService } from '../auth-services/local-storage.service';
 import Chart from 'chart.js/auto';
 import { Router } from '@angular/router';
 import html2pdf from 'html2pdf.js';
+import { DashboardExportComponent } from '../shared/dashboard-export/dashboard-export.component';
 import { DOMAIN_NAME, USER_ID } from '../app.config';
 import { FormsModule } from '@angular/forms';
 import { HostListener } from '@angular/core';
@@ -24,7 +25,7 @@ import {
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [AlertsComponent, CommonModule, FormsModule, DashboardRefreshButtonComponent, SetupProgressComponent],
+  imports: [AlertsComponent, CommonModule, FormsModule, DashboardRefreshButtonComponent, SetupProgressComponent, DashboardExportComponent],
   templateUrl: './admin-dashboard.component.html',
   styleUrl: './admin-dashboard.component.scss'
 })
