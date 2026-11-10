@@ -21,6 +21,7 @@ import { DOMAIN_NAME } from '../../app.config';
 import { NgForm } from '@angular/forms';
 import { OnChanges, SimpleChanges } from '@angular/core';
 import { COUNTRY_CODES, COUNTRY_STATES, CountryState } from '../../shared/constants/countries';
+import { CountryListService } from '../../shared/constants/country-list.service';
 
 @Component({
   selector: 'app-office-details',
@@ -82,8 +83,21 @@ export class OfficeDetailsComponent implements OnInit, OnChanges {
     private taskManagementService: TaskManagementService,
     private pushService: PushService,
     private staffService: StaffService,
-    private userAccessService: UserAccessService
+    private userAccessService: UserAccessService,
+    public countryList: CountryListService
   ) { }
+
+  /** States for the country already in the form, after the API list loads; keeps the chosen state. */
+  private refreshStatesForSelectedCountry(): void {
+    const selected = COUNTRY_STATES.find(c => c.country === this.customerForm.get('country')?.value);
+    if (!selected) {
+      return;
+    }
+    this.statesDropdownList = selected.states.map(s => ({ state: s, code: '', flag: '' }));
+    if (!this.customerForm.disabled && this.customerStatus !== 'approved') {
+      this.customerForm.get('state')?.enable({ emitEvent: false });
+    }
+  }
 
   ngOnInit(): void {
     this.customerType = this.localService.get('CustomerType');
@@ -430,6 +444,8 @@ export class OfficeDetailsComponent implements OnInit, OnChanges {
 
     // Disable state initially
     this.customerForm.get('state')?.disable();
+    // Countries come from the API; rebuild the state list once they arrive
+    this.countryList.load().then(() => this.refreshStatesForSelectedCountry());
 
     // Listen to changes on the country select dropdown
     this.customerForm.get('country')?.valueChanges.subscribe((selectedCountryName) => {
@@ -839,17 +855,33 @@ export class OfficeDetailsComponent implements OnInit, OnChanges {
     const isFirstTime = !this.customerdata.is_office_details_exists;
     const loginEmail = isFirstTime ? (this.localService.get('UserEmail') || '') : '';
 
-    const country = this.customerdata.registered_address?.country || '';
-    const state = this.customerdata.registered_address?.state || '';
+    const propertyContact = this.customerdata?.property_details?.contact_details || {};
+    const propertyAddress = this.customerdata?.property_details?.property_address || {};
+    const registered = this.customerdata?.registered_address || {};
+
+    const country =
+      registered.country ||
+      propertyAddress.property_country ||
+      '';
+    const state =
+      registered.state ||
+      propertyAddress.property_state ||
+      '';
     this.onCountryOrStateChange(country, state, this.isInitialLoad);
 
     const patchData: any = {
       first_name: this.customerdata.first_name,
       last_name: this.customerdata.last_name,
       designation: this.customerdata.designation,
-      primary_contact_countycode: this.customerdata.primary_contact_countycode || this.customerdata.country_code || '+91',
-      phone_number: this.customerdata.phone_number,
-      email: isFirstTime ? loginEmail : this.customerdata.primary_email,
+      primary_contact_countycode:
+        this.customerdata.primary_contact_countycode ||
+        this.customerdata.country_code ||
+        propertyContact.country_code ||
+        '+91',
+      phone_number: this.customerdata.phone_number || propertyContact.primary_phone_number,
+      email: isFirstTime
+        ? (loginEmail || propertyContact.email || '')
+        : this.customerdata.primary_email,
       gender: this.customerdata.gender,
 
       sec_first_name: this.customerdata.sec_first_name,
@@ -859,24 +891,24 @@ export class OfficeDetailsComponent implements OnInit, OnChanges {
       sec_phone_number: this.customerdata.sec_phone_number,
       sec_email: isFirstTime ? loginEmail : this.customerdata.sec_email,
       sec_gender: this.customerdata.sec_gender,
-      company_name: this.customerdata.registered_address?.company_name,
-      door_no: this.customerdata.registered_address?.door_no,
-      address: this.customerdata.registered_address?.address,
-      city: this.customerdata.registered_address?.city,
-      state: this.customerdata.registered_address?.state,
-      country: this.customerdata.registered_address?.country,
-      pincode: this.customerdata.registered_address?.pincode
+      company_name: registered.company_name || propertyContact.hotel_name || this.customerdata.name,
+      door_no: registered.door_no || propertyAddress.property_doorno,
+      address: registered.address || propertyAddress.property_address,
+      city: registered.city || propertyAddress.property_city,
+      state,
+      country,
+      pincode: registered.pincode || propertyAddress.property_pincode
     };
 
     if (this.taxField1Key) {
       patchData[this.taxField1Key] = this.taxField1Key === 'pan_no'
-        ? this.customerdata.registered_address?.pan_no
-        : this.customerdata.registered_address?.vat_no;
+        ? (registered.pan_no || propertyAddress.property_pan)
+        : (registered.vat_no || propertyAddress.property_vat);
     }
     if (this.taxField2Key) {
       patchData[this.taxField2Key] = this.taxField2Key === 'gst_no'
-        ? this.customerdata.registered_address?.gst_no
-        : this.customerdata.registered_address?.tin_no;
+        ? (registered.gst_no || propertyAddress.property_gst)
+        : (registered.tin_no || propertyAddress.property_tin);
     }
 
     this.customerForm.patchValue(patchData);

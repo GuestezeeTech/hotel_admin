@@ -21,6 +21,24 @@ export class ServiceSettingsService {
    sendImage(jsonObj: any, headers: any): Observable<any> {
       return this.http.post(ENDPOINTS.SEND_IMAGE, jsonObj, { headers: headers });
     }
+    getServiceImages(Obj: any): Observable<any> {
+      if(this.authTokenService.isTokenExpired()){
+        this.router.navigate([`/login`], {skipLocationChange: false});
+        return new Observable();
+      }
+      else{
+      return this.http.post(ENDPOINTS.GET_SERVICE_IMAGES, Obj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken())});
+      }
+    }
+    createServiceImage(Obj: any): Observable<any> {
+      if(this.authTokenService.isTokenExpired()){
+        this.router.navigate([`/login`], {skipLocationChange: false});
+        return new Observable();
+      }
+      else{
+      return this.http.post(ENDPOINTS.CREATE_SERVICE_IMAGE, Obj, { headers: new HttpHeaders().set('Content-Type', 'application/json').set('authorization', 'Bearer ' + this.authTokenService.getAccessAPIToken())});
+      }
+    }
     createService(AddServiceObj: any): Observable<any> {
       if(this.authTokenService.isTokenExpired()){
         this.router.navigate([`/login`], {skipLocationChange: false});

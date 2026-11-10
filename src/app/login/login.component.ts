@@ -21,6 +21,7 @@ import { ProfileService } from '../profile/profile.service';
 // Newly added 
 import { HotelListService } from '../hotel-list/hotel-list.service';
 import { COUNTRY_CODES } from '../shared/constants/countries';
+import { CountryListService } from '../shared/constants/country-list.service';
 import { HotelEnrollmentTabviewService } from '../hotel-enrollment-tabview/hotel-enrollment-tabview.service';
 import { LoginService } from './login.service';
 import { ServiceDetailService } from '../hotel-enrollment-tabview/service-details/service-details.service';
@@ -103,6 +104,7 @@ export class LoginComponent implements OnInit {
   // End of newly added for is_active check purpose
 
   constructor(private fb: FormBuilder, private alertService: AlertsService,
+    public countryList: CountryListService,
     private appService: LoginService,
     private authService: AuthTokenService,
     public localService: LocalStorageService,
@@ -146,6 +148,8 @@ export class LoginComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // Signup dial codes come from the countries-states API (retries if the app-start load failed)
+    this.countryList.load();
 
     //    if (this.authService.isLoggedIn()) {
     //   this.router.navigate(['/dashboard']);
@@ -873,6 +877,14 @@ export class LoginComponent implements OnInit {
                   this.localService.set('Password', String(this.loginForm.value.password));
                   this.localService.set('Name', userData.first_name);
                   this.localService.set('Status', userData.status);
+                  // Subscription (payment_plan) expired → sidebar shows only HOTELS; the
+                  // enrollment page opens the payment popup so the customer can pay again
+                  this.localService.set(
+                    'SubscriptionExpired',
+                    userData.staff_employee_number === undefined && this.paymentHelperService.isSubscriptionExpired(userData)
+                      ? 'true' : 'false'
+                  );
+                  this.paymentHelperService.syncFreePlanAccess(userData);
                   this.dbSchema = userData.db_schema;
                   this.localService.set('domainName', DOMAIN_NAME);
                   // console.log('Domain name:', this.localService.get('domainName'));

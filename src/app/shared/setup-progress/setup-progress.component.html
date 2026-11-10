@@ -1,0 +1,57 @@
+<section class="setup-progress" *ngIf="visible" [class.is-complete]="complete" aria-labelledby="setupProgressTitle">
+  <div class="sp-head">
+    <!-- Ring with the percentage -->
+    <div class="sp-ring" [style.--p]="loading || failed ? 0 : percent" aria-hidden="true">
+      <span *ngIf="!loading && !failed">{{ percent }}<small>%</small></span>
+      <span *ngIf="loading" class="sp-ring-muted">…</span>
+      <i *ngIf="!loading && failed" class="fa fa-triangle-exclamation sp-ring-muted"></i>
+    </div>
+
+    <div class="sp-title">
+      <h5 id="setupProgressTitle">
+        <i *ngIf="complete" class="fa fa-circle-check sp-title-icon" aria-hidden="true"></i>
+        {{ complete ? 'Setup complete' : 'Complete your hotel setup' }}
+      </h5>
+      <p *ngIf="loading">Checking your setup…</p>
+      <p *ngIf="!loading && failed">Could not check your setup.
+        <button type="button" class="sp-link-btn" (click)="refresh()">Try again</button>
+      </p>
+      <p *ngIf="!loading && !failed">
+        {{ complete ? 'Everything is in place. Your hotel is ready to go.' : doneCount + ' of ' + steps.length + ' steps done' }}
+      </p>
+    </div>
+
+    <button *ngIf="!loading && !failed" type="button" class="sp-toggle" (click)="expanded = !expanded"
+      [attr.aria-expanded]="expanded" [attr.aria-label]="expanded ? 'Hide setup steps' : 'Show setup steps'">
+      <span>{{ expanded ? 'Hide' : 'Details' }}</span>
+      <i class="fa fa-chevron-down" [class.open]="expanded" aria-hidden="true"></i>
+    </button>
+  </div>
+
+  <!-- One segment per step -->
+  <div class="sp-segments" role="progressbar" [attr.aria-valuenow]="loading ? null : percent" aria-valuemin="0"
+    aria-valuemax="100" [attr.aria-label]="'Setup ' + percent + '% complete'">
+    <ng-container *ngIf="!loading && !failed; else emptyBar">
+      <span *ngFor="let step of steps" class="sp-seg" [class.done]="step.done === true" [title]="step.label"></span>
+    </ng-container>
+    <ng-template #emptyBar><span class="sp-seg sp-seg-loading"></span></ng-template>
+  </div>
+
+  <ul class="sp-steps" *ngIf="expanded && !loading && !failed">
+    <li *ngFor="let step of steps; let i = index" class="sp-step" [class.done]="step.done === true"
+      [class.unknown]="step.done === null">
+      <span class="sp-badge" aria-hidden="true">
+        <i *ngIf="step.done === true" class="fa fa-check"></i>
+        <i *ngIf="step.done === null" class="fa fa-question"></i>
+        <ng-container *ngIf="step.done === false">{{ i + 1 }}</ng-container>
+      </span>
+      <span class="sp-text">
+        <span class="sp-label">{{ step.label }}</span>
+        <span class="sp-detail">{{ step.detail }}</span>
+      </span>
+      <a class="sp-action" *ngIf="step.done !== true" [routerLink]="step.route">
+        Set up <i class="fa fa-arrow-right" aria-hidden="true"></i>
+      </a>
+    </li>
+  </ul>
+</section>

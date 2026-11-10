@@ -16,6 +16,7 @@ import { ENDPOINTS, DOMAIN_NAME, USER_ID } from './app.config';
 import { PaymentHelperService } from './services/payment-helper.service';
 import { StaffService } from './user-access/staff/staff.service';
 import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
+import { CountryListService } from './shared/constants/country-list.service';
 import { filter } from 'rxjs/operators';
 
 @Component({
@@ -223,7 +224,8 @@ export class AppComponent implements OnInit, OnDestroy {
     private paymentHelperService: PaymentHelperService,
     private staffService: StaffService,
     private cdr: ChangeDetectorRef,
-    private swUpdate: SwUpdate
+    private swUpdate: SwUpdate,
+    private countryListService: CountryListService
   ) {
     // Auto-detect and activate new deployments so users don't stay stuck on a
     // stale cached build after a release.
@@ -443,6 +445,8 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    // Countries and states managed in superadmin; signup and enrollment dropdowns read them
+    this.countryListService.load();
     document.addEventListener('keydown', this.handleGlobalKeydown, true);
     document.addEventListener('input', this.handleGlobalInput, true);
 
@@ -1930,7 +1934,7 @@ export class AppComponent implements OnInit, OnDestroy {
     if (customerType === 'Customer') {
       if (this.doesPathRequireApproval(cleanUrl)) {
         const status = (this.localservice.get('Status') || '').toLowerCase();
-        if (status !== 'approved') {
+        if (status !== 'approved' && !this.paymentHelperService.hasFreePlanAccess()) {
           this.isRouteAuthorized = false;
           this.isPendingApproval = true;
           // console.log('[AuthCheck] Customer is not approved. Denied access to:', cleanUrl);
@@ -2080,7 +2084,7 @@ export class AppComponent implements OnInit, OnDestroy {
         }
       } else if (customerType === 'Customer') {
         const status = (localStorage.getItem('Status') || '').toLowerCase();
-        if (status === 'approved') {
+        if (status === 'approved' || this.paymentHelperService.hasFreePlanAccess()) {
           this.router.navigate(['/dashboard']);
         } else {
           this.router.navigate(['/profile']);

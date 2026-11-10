@@ -25,8 +25,7 @@ import { PermissionService, ModulePermission } from '../../services/permission.s
 })
 
 export class ServiceComponent implements OnInit {
-  @ViewChild('imageInput') imageInput!: ElementRef<HTMLInputElement>;
-  @ViewChild('iconInput') iconInput!: ElementRef<HTMLInputElement>;
+  @ViewChild('galleryAddImageInput') galleryAddImageInput!: ElementRef<HTMLInputElement>;
 
   departments: any = [];
   serviceTabs: any = [];
@@ -36,10 +35,7 @@ export class ServiceComponent implements OnInit {
   quantityEnabled: boolean = false;
   timeBoundEnabled: boolean = true; // Mandatory by default
   showHoursBefore: boolean = false;
-  previewImgUrl: string | null = null;
-  imageName: string = '';
   enableEdit: boolean = true;
-  imgFile: File | null = null;
   logo_image: string = '';
   service_id: number = 0;
   service_image: string = '';
@@ -68,6 +64,15 @@ export class ServiceComponent implements OnInit {
   isLoadingDepartments: boolean = false;
   isLoadingServiceTabs: boolean = false;
   from: string | null = null;
+  // Service icon/image gallery state
+  isGalleryOpen: boolean = false;
+  galleryMode: 'icon' | 'image' = 'icon';
+  galleryLoading: boolean = false;
+  galleryLoadFailed: boolean = false;
+  isAddingGalleryImage: boolean = false;
+  galleryImages: any[] = [];
+  filteredGalleryImages: any[] = [];
+  gallerySearch: string = '';
 
   constructor(
     private loaderService: LoaderService,
@@ -550,172 +555,164 @@ export class ServiceComponent implements OnInit {
     }
   }
 
-  logoupload(event: any): void {
-    let dragEvent = false
-    let file_data = { name: "", size: 0 }
-    if (event.target && event.target.files && event.target.files[0]) {
-      file_data = event.target.files[0]
-    }
-    else {
-      file_data = event.dataTransfer.files[0]
-      dragEvent = true
-    }
-    this.imageName = file_data.name
-    let splitFileName = this.imageName.split(".")
-    const maxBytes = 2 * 1024 * 1024; // 2 MB
-    if (file_data.size > maxBytes) {
-      this.serviceForm.get('icon')?.setErrors({ sizeHigh: true });
-      this.serviceForm.get('icon')?.setValue(null);
-      this.alertService.error('Icon size should not exceed 2 MB.', this.options);
+  // -------------
+  // Service icon/image gallery
+  // -------------
+  openGallery(mode: 'icon' | 'image') {
+    const canModify = this.service_id ? this.canEditSystemSettings : this.canAddSystemSettings;
+    if (this.isViewMode || !canModify) {
       return;
     }
-    if (Math.round((file_data.size / 1000)) > 2000) {
-      this.serviceForm.controls['icon'].setErrors({ 'sizehigh': true });
-      this.alertService.error('Icon size is too large.', this.options);
-      return
-    }
-    //CHECKING FILE TYPE (only jpg, jpeg, png)
-    if (!["jpg", "jpeg", "png", "JPG", "JPEG", "PNG"].includes(splitFileName[splitFileName.length - 1])) {
-      this.serviceForm.controls['icon'].setErrors({ 'type': true });
-      this.alertService.error('Invalid icon format. Allowed types: JPG, JPEG, PNG.', this.options);
-      return
-    }
-    // Dimension check: 150x150
-    const iconImg = new Image();
-    const iconUrl = URL.createObjectURL(file_data as any);
-    iconImg.onload = () => {
-      const validSize = iconImg.width === 150 && iconImg.height === 150;
-      URL.revokeObjectURL(iconUrl);
-      if (!validSize) {
-        this.serviceForm.controls['icon'].setErrors({ invalidDimensions: true });
-        this.alertService.error('Icon must be exactly 150x150 pixels.', this.options);
-        return;
-      }
-      // Passed all checks, proceed with preview + upload
-      this.imgFile = file_data as any;
-      this.previewImgUrl = iconUrl;
-      this.serviceForm.controls['icon'].setValue('');
+    this.galleryMode = mode;
+    this.gallerySearch = '';
+    this.isGalleryOpen = true;
+    this.loadGalleryImages();
+  }
 
-      let headers = new HttpHeaders().set("source", "Brand").set("domain_name", DOMAIN_NAME)
-      let formData_imageCate = new FormData();
-      if (this.imgFile !== null) {
-        formData_imageCate.append('upload', this.imgFile)
+  closeGallery() {
+    this.isGalleryOpen = false;
+  }
+
+  loadGalleryImages() {
+    this.galleryLoading = true;
+    this.galleryLoadFailed = false;
+    const requestBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: {
+        find: {}
       }
-      this.serviceSettingsService.sendImage(formData_imageCate, headers).subscribe(
-        resp => {
-          if (resp && resp.success === 1 && resp.status_code === 200) {
-            const imgVariable = resp.result.data[0];
-            if (this.imgFile !== null) {
-              this.logo_image = imgVariable.location;
-            }
-            // If editing existing service, remind user to save to persist change
-            if (this.service_id) {
-              this.alertService.success(
-                'Icon uploaded successfully. Please save the service to apply this change.',
-                this.alertOptions
-              );
-            } else {
-              this.alertService.success('Icon uploaded successfully.', this.alertOptions);
-            }
-          } else {
-            this.alertService.error(resp?.message || 'Failed to upload icon.', this.options);
-          }
-        },
-        () => {
-          this.alertService.error('Failed to upload icon. Please try again.', this.options);
+    };
+    this.serviceSettingsService.getServiceImages(requestBody).subscribe({
+      next: (resp: any) => {
+        this.galleryLoading = false;
+        const images = resp?.result?.data || [];
+        // is_icon: true belongs to the icon gallery; everything else to the image gallery
+        const wantIcons = this.galleryMode === 'icon';
+        this.galleryImages = images.filter((img: any) =>
+          img?.image_source && img?.is_deleted !== true && (img?.is_icon === true) === wantIcons
+        );
+        this.filterGalleryImages();
+      },
+      error: () => {
+        this.galleryLoading = false;
+        this.galleryLoadFailed = true;
+        this.galleryImages = [];
+        this.filteredGalleryImages = [];
+      }
+    });
+  }
+
+  onGallerySearchInput(event: Event) {
+    this.gallerySearch = (event.target as HTMLInputElement).value;
+    this.filterGalleryImages();
+  }
+
+  filterGalleryImages() {
+    const tokens = this.gallerySearch.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    this.filteredGalleryImages = this.galleryImages.filter((img: any) => {
+      const searchable = this.getGalleryImageDisplayName(img).toLowerCase();
+      return tokens.every(token => searchable.includes(token));
+    });
+  }
+
+  /** Readable label for a gallery image, e.g. clean_my_room_icon.png -> clean my room icon */
+  getGalleryImageDisplayName(image: any): string {
+    return String(image?.image_name || '')
+      .replace(/\.[a-z0-9]+$/i, '')
+      .replace(/_/g, ' ')
+      .trim();
+  }
+
+  selectGalleryImage(image: any) {
+    const isIcon = this.galleryMode === 'icon';
+    if (isIcon) {
+      this.logo_image = image.image_source;
+    } else {
+      this.service_image = image.image_source;
+    }
+    const label = isIcon ? 'Icon' : 'Image';
+    // If editing existing service, remind user to save to persist change
+    this.alertService.success(
+      this.service_id ? `${label} selected. Please save the service to apply this change.` : `${label} selected.`,
+      this.alertOptions
+    );
+    this.closeGallery();
+  }
+
+  triggerAddGalleryImage() {
+    if (this.isAddingGalleryImage || this.galleryLoading) return;
+    this.galleryAddImageInput?.nativeElement?.click();
+  }
+
+  onAddGalleryImageSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input?.files?.[0];
+    if (!file) return;
+    // Clear now so the same file can be picked again after a failure
+    input.value = '';
+
+    const allowedExtensions = ['jpeg', 'jpg', 'png', 'webp', 'gif'];
+    const fileExtension = file.name.split('.').pop()?.toLowerCase();
+    if (!fileExtension || !allowedExtensions.includes(fileExtension)) {
+      this.alertService.error('Invalid file type! Only JPEG, JPG, PNG, WEBP, and GIF files are allowed.', this.options);
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      this.alertService.error('File size exceeds 5MB. Please select a smaller file.', this.options);
+      return;
+    }
+
+    this.isAddingGalleryImage = true;
+    // Fixed at upload start: the gallery can be closed and reopened in the other mode meanwhile
+    const isIcon = this.galleryMode === 'icon';
+    const formData = new FormData();
+    formData.append('upload', file);
+    // The source header selects the S3 folder: GuestEzee/ServiceIconsandImages/
+    const headers = new HttpHeaders()
+      .set('source', 'ServiceIconsandImages')
+      .set('domain_name', DOMAIN_NAME);
+
+    this.serviceSettingsService.sendImage(formData, headers).subscribe({
+      next: (uploadResp: any) => {
+        const awsUrl = uploadResp?.result?.data?.[0]?.location;
+        if (!(uploadResp?.success === 1 && awsUrl)) {
+          this.isAddingGalleryImage = false;
+          this.alertService.error(uploadResp?.message || 'Image upload to AWS failed.', this.options);
+          return;
         }
-      );
-    };
-    iconImg.onerror = () => {
-      URL.revokeObjectURL(iconUrl);
-      this.alertService.error('Unable to read icon image.', this.options);
-    };
-    iconImg.src = iconUrl;
-  }
-
-  openImagefile() {
-    this.imageInput.nativeElement.click();
-  }
-
-  openLogofile() {
-    this.iconInput.nativeElement.click();
-  }
-
-  imageupload(event: any): void {
-    let dragEvent = false
-    let file_data = { name: "", size: 0 }
-    //CHECKING DRAG EVENT OR UPLOAD EVENT
-    if (event.target && event.target.files && event.target.files[0]) {
-      file_data = event.target.files[0]
-    }
-    else {
-      file_data = event.dataTransfer.files[0]
-      dragEvent = true
-    }
-    // this.validateImage = true;
-    this.imageName = file_data.name
-    let splitFileName = this.imageName.split(".")
-    if (Math.round((file_data.size / 1000)) > 2000) {
-      this.serviceForm.controls['image'].setErrors({ 'sizehigh': true });
-      this.alertService.error('Image size is too large. Maximum allowed is 2 MB.', this.options);
-      return
-    }
-    //CHECKING FILE TYPE (only jpg, jpeg, png)
-    if (!["jpg", "jpeg", "png", "JPG", "JPEG", "PNG"].includes(splitFileName[splitFileName.length - 1])) {
-      this.serviceForm.controls['image'].setErrors({ 'type': true });
-      this.alertService.error('Invalid image format. Allowed types: JPG, JPEG, PNG.', this.options);
-      return
-    }
-    // Dimension check: 1280x720
-    const mainImg = new Image();
-    const mainUrl = URL.createObjectURL(file_data as any);
-    mainImg.onload = () => {
-      const validSize = mainImg.width === 1280 && mainImg.height === 720;
-      URL.revokeObjectURL(mainUrl);
-      if (!validSize) {
-        this.serviceForm.controls['image'].setErrors({ invalidDimensions: true });
-        this.alertService.error('Image must be exactly 1280x720 pixels.', this.options);
-        return;
-      }
-      // Passed all checks, proceed with preview + upload
-      this.imgFile = file_data as any;
-      this.previewImgUrl = mainUrl;
-
-      let headers = new HttpHeaders().set("source", "Brand").set("domain_name", DOMAIN_NAME)
-      let formData_imageCate = new FormData();
-      if (this.imgFile !== null) {
-        formData_imageCate.append('upload', this.imgFile)
-      }
-      this.serviceSettingsService.sendImage(formData_imageCate, headers).subscribe(
-        resp => {
-          if (resp && resp.success === 1 && resp.status_code === 200) {
-            const imgVariable = resp.result.data[0];
-            if (this.imgFile !== null) {
-              this.service_image = imgVariable.location;
+        const createBody = {
+          user_id: String(USER_ID),
+          domain_name: DOMAIN_NAME,
+          payload: {
+            productimage_creation: {
+              image_name: file.name,
+              image_source: awsUrl,
+              is_icon: isIcon
             }
-            // If editing existing service, remind user to save to persist change
-            if (this.service_id) {
-              this.alertService.success(
-                'Image uploaded successfully. Please save the service to apply this change.',
-                this.alertOptions
-              );
-            } else {
-              this.alertService.success('Image uploaded successfully.', this.alertOptions);
-            }
-          } else {
-            this.alertService.error(resp?.message || 'Failed to upload image.', this.options);
           }
-        },
-        () => {
-          this.alertService.error('Failed to upload image. Please try again.', this.options);
-        }
-      );
-    };
-    mainImg.onerror = () => {
-      URL.revokeObjectURL(mainUrl);
-      this.alertService.error('Unable to read image.', this.options);
-    };
-    mainImg.src = mainUrl;
+        };
+        this.serviceSettingsService.createServiceImage(createBody).subscribe({
+          next: (createResp: any) => {
+            this.isAddingGalleryImage = false;
+            if (createResp?.success === 1) {
+              this.alertService.success(createResp?.message || 'Image added successfully.', this.options);
+              this.loadGalleryImages();
+            } else {
+              this.alertService.error(createResp?.message || 'Failed to save image.', this.options);
+            }
+          },
+          error: (err) => {
+            this.isAddingGalleryImage = false;
+            this.alertService.error(err?.error?.message || 'Failed to save image.', this.options);
+          }
+        });
+      },
+      error: (err) => {
+        this.isAddingGalleryImage = false;
+        this.alertService.error(err?.error?.message || 'Image upload to AWS failed.', this.options);
+      }
+    });
   }
 
   addNewService() {

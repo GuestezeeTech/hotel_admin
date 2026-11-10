@@ -12,6 +12,10 @@ import { catchError } from 'rxjs/operators';
 
 import { HotelOverviewDashboardService, EscalationRow, DepartmentCard, TodayDepartmentPanels } from './hotel-overview-dashboard.service';
 
+import { downloadOverviewWorkbook } from './hotel-overview-export';
+
+import { AlertsService } from '../../shared/alerts/alerts.service';
+
 
 
 type KpiItem = {
@@ -52,6 +56,8 @@ export class HotelOverviewDashboardComponent implements OnInit {
 
   loadError = '';
 
+  isDownloading = false;
+
 
 
   kpis: KpiItem[] = [
@@ -71,6 +77,8 @@ export class HotelOverviewDashboardComponent implements OnInit {
   ];
 
 
+
+  revenueTotal = '₹25.75 Lakh';
 
   revenueLegend = [
 
@@ -128,6 +136,15 @@ export class HotelOverviewDashboardComponent implements OnInit {
 
 
 
+  offerSummary = { totalOffers: 25, activeOffers: 18, offersSold: 325, conversion: '18%', revenue: '₹2,10,000' };
+
+  /** The chart itself is a fixed SVG in the template; keep these in step with it. */
+  revenueTrend = {
+    subtitle: 'Monthly performance',
+    dates: ['1 Oct', '8 Oct', '15 Oct', '22 Oct', '31 Oct'],
+    legend: ['Room', 'F&B', 'Upselling', 'Total revenue']
+  };
+
   offerItems = [
 
     { name: 'Spa Package', amount: '₹1,12,500' },
@@ -161,13 +178,27 @@ export class HotelOverviewDashboardComponent implements OnInit {
 
   ];
 
+  focusAreas = [
+
+    'Reduce F&B escalations',
+
+    'Improve upselling conversion',
+
+    'Monitor housekeeping delays',
+
+    'Improve guest communication'
+
+  ];
+
 
 
   constructor(
 
     private router: Router,
 
-    private overviewService: HotelOverviewDashboardService
+    private overviewService: HotelOverviewDashboardService,
+
+    private alertService: AlertsService
 
   ) {
     this.todayPanels = this.createEmptyTodayPanels();
@@ -343,6 +374,34 @@ export class HotelOverviewDashboardComponent implements OnInit {
   }
 
 
+
+  async downloadExcel(): Promise<void> {
+    if (this.isDownloading) {
+      return;
+    }
+    this.isDownloading = true;
+    try {
+      await downloadOverviewWorkbook({
+        selectedPeriod: this.selectedPeriod,
+        kpis: this.kpis,
+        revenueTotal: this.revenueTotal,
+        revenueLegend: this.revenueLegend,
+        departments: this.departments,
+        offerSummary: this.offerSummary,
+        offerItems: this.offerItems,
+        todayPanels: this.todayPanels,
+        revenueTrend: this.revenueTrend,
+        escalations: this.escalations,
+        insights: this.insights,
+        focusAreas: this.focusAreas
+      });
+    } catch (err) {
+      console.error('Excel download failed', err);
+      this.alertService.error('Unable to download the Excel file. Please try again.', { autoClose: true, keepAfterRouteChange: false });
+    } finally {
+      this.isDownloading = false;
+    }
+  }
 
   openDepartment(name: string) {
     if (name === 'F&B') {

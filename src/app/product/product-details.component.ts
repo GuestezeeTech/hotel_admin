@@ -60,9 +60,7 @@ export class ProductDetailsComponent {
   gallerySearch = '';
   galleryTargetIndex: number | null = null;
   uploadedFiles = [
-    { name: "Image 1", fileName: "", fileUrl: "", fileSelected: null },
-    { name: "Image 2", fileName: "", fileUrl: "", fileSelected: null },
-    { name: "Image 3", fileName: "", fileUrl: "", fileSelected: null }
+    { name: "Image 1", fileName: "", fileUrl: "", fileSelected: null }
   ];
   allCategories: any = [];
   allProducts: any = [];
@@ -80,8 +78,10 @@ export class ProductDetailsComponent {
   @ViewChild('fileInput') fileInput!: ElementRef;
   @ViewChild('reuploadInput') reuploadInput!: ElementRef;
   @ViewChild('importProductInput') importProductInput!: ElementRef<HTMLInputElement>;
+  @ViewChild('galleryAddImageInput') galleryAddImageInput!: ElementRef<HTMLInputElement>;
   isModalOpen1 = false;
   isImportingProducts = false;
+  isAddingGalleryImage = false;
   memberId: any;
   isExitModalOpen: boolean = false;
   allProductsData: any = [];
@@ -197,9 +197,7 @@ export class ProductDetailsComponent {
     });
     // this.uploadedFiles = [];
     this.uploadedFiles = [
-      { name: "Image 1", fileName: "", fileUrl: "", fileSelected: null },
-      { name: "Image 2", fileName: "", fileUrl: "", fileSelected: null },
-      { name: "Image 3", fileName: "", fileUrl: "", fileSelected: null }
+      { name: "Image 1", fileName: "", fileUrl: "", fileSelected: null }
     ];
     this.isAvailable = false;
     this.newProduct = true;
@@ -262,38 +260,39 @@ export class ProductDetailsComponent {
       });
       // Toggle button
       this.setAvailabilityToggle(product);
-      // Category
+      // Category: by id, else by name within this outlet. Excel imports can store a
+      // same-named category of another outlet (e.g. "Beverages" id 58 instead of 60).
       const category = product?.categories?.[0];
-      const matchedCategory = this.categories.find(c => c.id === category?.id);
+      const categoryName = String(category?.categories ?? category?.name ?? '').trim().toLowerCase();
+      const matchedCategory =
+        this.categories.find(c => c.id === category?.id) ||
+        (categoryName ? this.categories.find(c => String(c?.name ?? '').trim().toLowerCase() === categoryName) : undefined);
       this.categoryForm.patchValue({
         selectedCategory: matchedCategory || null
       });
-      // Set uploaded image files - ensure we always have 3 slots
+      // Set uploaded image files - single image slot only
       const assetsArray = product.assets || [];
       this.uploadedFiles = [];
-      for (let i = 0; i < 3; i++) {
-        if (i < assetsArray.length && assetsArray[i]) {
-          const img = assetsArray[i];
-          const decodedSource = img.image_source ? decodeURIComponent(img.image_source) : '';
-          const fullName = decodedSource.split('/').pop() || '';
-          const match = fullName.match(/^\d+\s*-\s*(.+)$/);
-          const namePart = match ? match[1] : (fullName || `Image ${i + 1}`);
-          const hasImage = img.image_source && img.image_source.trim() !== '';
-          this.uploadedFiles.push({
-            name: `Image ${i + 1}`,
-            fileName: hasImage ? namePart : '',
-            fileUrl: hasImage ? img.image_source : '',
-            fileSelected: null
-          });
-        } else {
-          // Empty slot
-          this.uploadedFiles.push({
-            name: `Image ${i + 1}`,
-            fileName: '',
-            fileUrl: '',
-            fileSelected: null
-          });
-        }
+      const img = assetsArray[0];
+      if (img) {
+        const decodedSource = img.image_source ? decodeURIComponent(img.image_source) : '';
+        const fullName = decodedSource.split('/').pop() || '';
+        const match = fullName.match(/^\d+\s*-\s*(.+)$/);
+        const namePart = match ? match[1] : (fullName || 'Image 1');
+        const hasImage = img.image_source && img.image_source.trim() !== '';
+        this.uploadedFiles.push({
+          name: 'Image 1',
+          fileName: hasImage ? namePart : '',
+          fileUrl: hasImage ? img.image_source : '',
+          fileSelected: null
+        });
+      } else {
+        this.uploadedFiles.push({
+          name: 'Image 1',
+          fileName: '',
+          fileUrl: '',
+          fileSelected: null
+        });
       }
     }
   }
@@ -516,6 +515,18 @@ export class ProductDetailsComponent {
     if (this.isViewMode || this.isUploading) {
       return;
     }
+    // A filled slot must be deleted before a new image can be uploaded into it
+    if (index !== undefined && index !== null && this.isSlotFilled(index)) {
+      this.replaceSlotIndex = index;
+      this.showReplaceConfirm = true;
+      return;
+    }
+    if ((index === undefined || index === null) && this.allFilesUploaded()) {
+      // Single slot: offer to delete it; several slots: ask the user to delete one first
+      this.replaceSlotIndex = this.uploadedFiles.length === 1 ? 0 : null;
+      this.showReplaceConfirm = true;
+      return;
+    }
     this.galleryTargetIndex = index ?? null;
     this.gallerySearch = '';
     this.isImageGalleryOpen = true;
@@ -525,6 +536,32 @@ export class ProductDetailsComponent {
   closeImageGallery() {
     this.isImageGalleryOpen = false;
     this.galleryTargetIndex = null;
+  }
+
+  // ---- Replace-image prompt (slot already has an image) ----
+  showReplaceConfirm = false;
+  /** Slot to delete; null when every slot is filled and the user must pick one to delete */
+  replaceSlotIndex: number | null = null;
+
+  isSlotFilled(index: number): boolean {
+    const url = this.uploadedFiles[index]?.fileUrl;
+    return !!url && String(url).trim() !== '';
+  }
+
+  cancelReplace() {
+    this.showReplaceConfirm = false;
+    this.replaceSlotIndex = null;
+  }
+
+  /** Deletes the existing image in the slot, then opens the gallery for that slot. */
+  confirmReplace() {
+    const index = this.replaceSlotIndex;
+    this.cancelReplace();
+    if (index === null || this.isViewMode) {
+      return;
+    }
+    this.removeFile(index);
+    this.openImageGallery(index);
   }
 
   loadProductImages() {
@@ -602,6 +639,88 @@ export class ProductDetailsComponent {
     } catch {
       return String(value || '');
     }
+  }
+
+  triggerAddGalleryImage(): void {
+    if (this.isAddingGalleryImage || this.galleryLoading) return;
+    this.galleryAddImageInput?.nativeElement?.click();
+  }
+
+  onAddGalleryImageSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input?.files?.[0];
+    if (!file) return;
+
+    const allowedExtensions = ['jpeg', 'jpg', 'png', 'webp', 'gif'];
+    const fileExtension = file.name.split('.').pop()?.toLowerCase();
+    if (!fileExtension || !allowedExtensions.includes(fileExtension)) {
+      this.alertService.error('Invalid file type! Only JPEG, JPG, PNG, WEBP, and GIF files are allowed.', this.options);
+      input.value = '';
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      this.alertService.error('File size exceeds 5MB. Please select a smaller file.', this.options);
+      input.value = '';
+      return;
+    }
+
+    this.isAddingGalleryImage = true;
+    this.loaderService.emitLoading();
+    const formData = new FormData();
+    formData.append('upload', file);
+    const headers = new HttpHeaders()
+      .set('source', 'Product')
+      .set('domain_name', DOMAIN_NAME);
+
+    this.productDetailService.sendImage(formData, headers).subscribe({
+      next: (uploadResp: any) => {
+        const awsUrl = uploadResp?.result?.data?.[0]?.location;
+        if (!(uploadResp?.success === 1 && awsUrl)) {
+          this.isAddingGalleryImage = false;
+          this.loaderService.emitComplete();
+          input.value = '';
+          this.alertService.error(uploadResp?.message || 'Image upload to AWS failed.', this.options);
+          return;
+        }
+
+        const createBody = {
+          user_id: String(USER_ID),
+          domain_name: DOMAIN_NAME,
+          payload: {
+            productimage_creation: {
+              image_name: file.name,
+              image_source: awsUrl
+            }
+          }
+        };
+
+        this.productDetailService.postApiCall(createBody, ENDPOINTS.CREATE_PRODUCT_IMAGE).subscribe({
+          next: (createResp: any) => {
+            this.isAddingGalleryImage = false;
+            this.loaderService.emitComplete();
+            input.value = '';
+            if (createResp?.success === 1 || createResp?.status === 1 || createResp?.success === true) {
+              this.alertService.success(createResp?.message || 'Image added successfully.', this.options);
+              this.loadProductImages();
+            } else {
+              this.alertService.error(createResp?.message || 'Failed to save product image.', this.options);
+            }
+          },
+          error: (err) => {
+            this.isAddingGalleryImage = false;
+            this.loaderService.emitComplete();
+            input.value = '';
+            this.alertService.error(err?.error?.message || 'Failed to save product image.', this.options);
+          }
+        });
+      },
+      error: (err) => {
+        this.isAddingGalleryImage = false;
+        this.loaderService.emitComplete();
+        input.value = '';
+        this.alertService.error(err?.error?.message || 'Image upload to AWS failed.', this.options);
+      }
+    });
   }
 
   selectGalleryImage(image: any) {
@@ -998,7 +1117,9 @@ export class ProductDetailsComponent {
   }
 
   setAvailabilityToggle(product: any): void {
-    this.isAvailable = product?.stock_status === 'Available' ? true : false;
+    // Saved as "Available" / "Out of Stock"; Excel imports store the cell text ("true", "yes", "1")
+    const status = String(product?.stock_status ?? '').trim().toLowerCase();
+    this.isAvailable = ['available', 'true', 'yes', '1', 'in stock'].includes(status);
     // console.log('Available status:', this.isAvailable);
   }
 
@@ -1161,9 +1282,7 @@ export class ProductDetailsComponent {
                 food_type: 'Veg'
               });
               this.uploadedFiles = [
-                { name: "Image 1", fileName: "", fileUrl: "", fileSelected: null },
-                { name: "Image 2", fileName: "", fileUrl: "", fileSelected: null },
-                { name: "Image 3", fileName: "", fileUrl: "", fileSelected: null }
+                { name: "Image 1", fileName: "", fileUrl: "", fileSelected: null }
               ];
               this.isAvailable = false;
               this.router.navigate([`/product-list`, Number(this.localService.get('outlet_id'))]);
@@ -1206,9 +1325,7 @@ export class ProductDetailsComponent {
                 food_type: 'Veg'
               });
               this.uploadedFiles = [
-                { name: "Image 1", fileName: "", fileUrl: "", fileSelected: null },
-                { name: "Image 2", fileName: "", fileUrl: "", fileSelected: null },
-                { name: "Image 3", fileName: "", fileUrl: "", fileSelected: null }
+                { name: "Image 1", fileName: "", fileUrl: "", fileSelected: null }
               ];
               this.isAvailable = false;
               this.router.navigate([`/product-list`, Number(this.localService.get('outlet_id'))]);

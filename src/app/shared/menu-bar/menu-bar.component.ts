@@ -13,6 +13,7 @@ import { AlertsService } from '../alerts/alerts.service';
 import { RoleListingService } from '../../user-access/role-listing/role-listing.service';
 import { HotelListService } from '../../hotel-list/hotel-list.service';
 import { PermissionService } from '../../services/permission.service';
+import { PaymentHelperService } from '../../services/payment-helper.service';
 
 @Component({
   selector: 'app-menu-bar',
@@ -53,6 +54,7 @@ export class MenuBarComponent implements OnInit {
     private roleListingService: RoleListingService,
     private hotelListService: HotelListService,
     private permissionService: PermissionService,
+    private paymentHelperService: PaymentHelperService,
     private cdr: ChangeDetectorRef
   ) { }
 
@@ -73,7 +75,7 @@ export class MenuBarComponent implements OnInit {
       this.currentHotelTab = tabIndex;
       const currentUrl = this.router.url;
       if (currentUrl.includes('/edit-new-hotel') || currentUrl.includes('/hotel') || currentUrl.includes('cancellation') || currentUrl.includes('confirmation')) {
-        if (this.isApproved()) {
+        if (this.hasMenuAccess()) {
           if (tabIndex === 0) {
             this.activeMenu = 'hotel-0';
           } else if (tabIndex === 1) {
@@ -214,7 +216,7 @@ export class MenuBarComponent implements OnInit {
     } else if (url.includes('/edit-new-hotel') || url.includes('/hotel') || url.includes('cancellation') || url.includes('confirmation')) {
       // catches /edit-new-hotel/:id, generic hotel routes, and payment status routes
       // Newlya dded for submenu active
-      if (this.isApproved()) {
+      if (this.hasMenuAccess()) {
         if (this.currentHotelTab === 0) {
           this.activeMenu = 'hotel-0';
         } else if (this.currentHotelTab === 1) {
@@ -342,6 +344,7 @@ export class MenuBarComponent implements OnInit {
           if (resp) {
             this.customerdata = resp.result.data[0];
             this.localService.set('Status', this.customerdata?.status);
+            this.paymentHelperService.syncFreePlanAccess(this.customerdata);
             resolve();
           } else {
             reject('No customer data found');
@@ -437,6 +440,7 @@ export class MenuBarComponent implements OnInit {
             this.customerType = this.customerdata.staff_employee_number == undefined ? 'Customer' : 'Staff';
             this.localService.set('CustomerType', this.customerType);
             this.localService.set('Status', this.customerdata?.status);
+            this.paymentHelperService.syncFreePlanAccess(this.customerdata);
             resolve(); //newly added
           } else {
             resolve();//newly added
@@ -460,10 +464,16 @@ export class MenuBarComponent implements OnInit {
     return status === 'approved';
   }
 
+  /** Approved by the superadmin, or running an activated Free plan. */
+  hasMenuAccess(): boolean {
+    return this.isApproved() || this.paymentHelperService.hasFreePlanAccess();
+  }
+
   /**
    * Show a sidebar item when the role has any permission for that module.
    * Staff: permission alone is enough.
-   * Customer: must be approved (except HOTELS, which stays available during enrollment).
+   * Customer: must be approved or on an active Free plan (except HOTELS, which stays
+   * available during enrollment).
    * If customer type is not yet resolved, still show when permission exists.
    */
   canShowMenu(moduleName: string): boolean {
@@ -482,7 +492,11 @@ export class MenuBarComponent implements OnInit {
       if ((moduleName || '').toUpperCase() === 'HOTELS') {
         return true;
       }
-      return this.isApproved();
+      // Subscription (payment_plan) expired: only HOTELS until the customer pays again
+      if (this.localService.get('SubscriptionExpired') === 'true') {
+        return false;
+      }
+      return this.hasMenuAccess();
     }
     return true;
   }

@@ -1,0 +1,201 @@
+<div class="reg-popup-overlay" *ngIf="visible">
+  <div class="reg-popup-dialog" role="dialog" aria-modal="true" aria-labelledby="regPopupTitle">
+    <div class="reg-popup-header">
+      <h3 id="regPopupTitle">Property Registration Details</h3>
+      <p>Fill these details to start registration. Your account will be reviewed before Registered Office Details unlocks.</p>
+    </div>
+
+    <form class="reg-popup-body" [formGroup]="form" (ngSubmit)="onSubmit()">
+      <p class="err" *ngIf="countryListService.unavailable">
+        Countries could not be loaded, so Country Code, Country and State are empty. Please refresh the page or try
+        again later.
+      </p>
+      <h4>Property Address</h4>
+      <div class="reg-grid">
+        <div class="form-group">
+          <label>Hotel Name <span class="req">*</span></label>
+          <input type="text" formControlName="hotel_name" />
+          <span class="err" *ngIf="form.get('hotel_name')?.touched && form.get('hotel_name')?.invalid">Hotel name is required.</span>
+        </div>
+        <div class="form-group">
+          <label>Country Code <span class="req">*</span></label>
+          <select formControlName="country_code">
+            <option *ngFor="let item of countryCodeList" [value]="item.code">{{ item.country }} ({{ item.code }})</option>
+          </select>
+          <span class="err" *ngIf="form.get('country_code')?.touched && form.get('country_code')?.invalid">Country code is required.</span>
+        </div>
+        <div class="form-group">
+          <label>Phone Number <span class="req">*</span></label>
+          <input type="text" formControlName="primary_phone_number" />
+          <span class="err" *ngIf="form.get('primary_phone_number')?.touched && form.get('primary_phone_number')?.invalid">Valid phone is required.</span>
+        </div>
+        <div class="form-group">
+          <label>Email Id <span class="req">*</span></label>
+          <input type="email" formControlName="email" />
+          <span class="err" *ngIf="form.get('email')?.touched && form.get('email')?.invalid">Valid email is required.</span>
+        </div>
+        <div class="form-group">
+          <label>Door No <span class="req">*</span></label>
+          <input type="text" formControlName="property_doorno" />
+          <span class="err" *ngIf="form.get('property_doorno')?.touched && form.get('property_doorno')?.invalid">Door no is required.</span>
+        </div>
+        <div class="form-group">
+          <label>Address <span class="req">*</span></label>
+          <input type="text" formControlName="property_address" />
+          <span class="err" *ngIf="form.get('property_address')?.touched && form.get('property_address')?.invalid">Address is required.</span>
+        </div>
+        <div class="form-group">
+          <label>Country <span class="req">*</span></label>
+          <select formControlName="property_country" (change)="onCountryChange()">
+            <option *ngFor="let c of countryDropdownList" [value]="c.country">{{ c.country }}</option>
+          </select>
+          <span class="err" *ngIf="form.get('property_country')?.touched && form.get('property_country')?.invalid">Country is required.</span>
+        </div>
+        <div class="form-group">
+          <label>State <span class="req">*</span></label>
+          <select formControlName="property_state">
+            <option value="" disabled>Select state</option>
+            <option *ngFor="let s of statesDropdownList" [value]="s">{{ s }}</option>
+          </select>
+          <span class="err" *ngIf="form.get('property_state')?.touched && form.get('property_state')?.invalid">State is required.</span>
+        </div>
+        <div class="form-group">
+          <label>City <span class="req">*</span></label>
+          <input type="text" formControlName="property_city" />
+          <span class="err" *ngIf="form.get('property_city')?.touched && form.get('property_city')?.invalid">City is required.</span>
+        </div>
+        <div class="form-group">
+          <label>Pincode <span class="req">*</span></label>
+          <input type="text" formControlName="property_pincode" />
+          <span class="err" *ngIf="form.get('property_pincode')?.touched && form.get('property_pincode')?.invalid">Valid pincode is required.</span>
+        </div>
+      </div>
+
+      <h4>{{ isIndia ? 'PAN &amp; GST Details' : 'Property Size' }}</h4>
+      <div class="reg-grid">
+        <div class="form-group" *ngIf="isIndia">
+          <label>PAN Number <span class="req">*</span></label>
+          <input type="text" formControlName="property_pan" style="text-transform: uppercase" />
+          <span class="err" *ngIf="form.get('property_pan')?.touched && form.get('property_pan')?.invalid">Valid PAN is required.</span>
+        </div>
+        <div class="form-group" *ngIf="isIndia">
+          <label>GST <span class="req">*</span></label>
+          <input type="text" formControlName="property_gst" style="text-transform: uppercase" />
+          <span class="err" *ngIf="form.get('property_gst')?.touched && form.get('property_gst')?.invalid">Valid GST is required.</span>
+        </div>
+        <div class="form-group">
+          <label>Number of Rooms <span class="req">*</span></label>
+          <input type="number" min="1" formControlName="number_of_rooms" />
+          <span class="err" *ngIf="form.get('number_of_rooms')?.touched && form.get('number_of_rooms')?.invalid">Number of rooms is required.</span>
+        </div>
+      </div>
+
+      <h4>Property Systems</h4>
+      <div class="reg-grid">
+        <div class="form-group">
+          <label for="registerPmsType">PMS Type <span class="req">*</span></label>
+          <input id="registerPmsType" type="text" formControlName="register_pms_type" maxlength="100"
+            placeholder="e.g. Opera, Mews" autocomplete="off" />
+          <span class="err" *ngIf="form.get('register_pms_type')?.touched && form.get('register_pms_type')?.invalid">PMS type is required.</span>
+        </div>
+        <div class="form-group">
+          <label for="registerDoorLockType">Door Lock Type <span class="req">*</span></label>
+          <input id="registerDoorLockType" type="text" formControlName="register_door_lock_type" maxlength="100"
+            placeholder="e.g. ASSA ABLOY, Salto" autocomplete="off" />
+          <span class="err" *ngIf="form.get('register_door_lock_type')?.touched && form.get('register_door_lock_type')?.invalid">Door lock type is required.</span>
+        </div>
+      </div>
+
+      <h4>Company Status (KYC) <span class="req">*</span></h4>
+      <div class="kyc-options">
+        <label *ngFor="let status of companyStatusOptions">
+          <input type="radio" formControlName="company_status" [value]="status" />
+          <span>{{ status }}</span>
+        </label>
+      </div>
+
+      <!-- KYC document upload: list changes with the selected company status (same as Property Details tab) -->
+      <ng-container *ngIf="form.get('company_status')?.value as status">
+        <h4>Upload Document <span class="req">*</span></h4>
+        <small class="doc-note"><span class="req">*</span>We require the following mandatory documents</small>
+        <ul class="doc-requirements" *ngIf="status === 'Private Limited / Public Limited Company'">
+          <li>Copy of Company PAN card (Entity Pan card).</li>
+          <li>Copy of Signing authority PAN card and Aadhar card.</li>
+          <li>Copy of 1st three and last three pages of Memorandum of Association along with the Certificate of Incorporation.</li>
+          <li>Office Address proof (In Company’s Name): Copy of your Landline Telephone Bill (or) Bank Account Statement.</li>
+          <li>GST Certificate.</li>
+          <li>Cancelled cheque.</li>
+        </ul>
+        <ul class="doc-requirements" *ngIf="status === 'Sole Proprietor'">
+          <li>Copy of Signing authority PAN card and Aadhaar card copy (Scan Copy)</li>
+          <li>Office Address proof (In Company’s Name): Copy of your Landline Telephone Bill (or) Bank Account Statement (Scan Copy)</li>
+          <li>Shop and Establishment certificate OR Any other Govt. issued registration proof. (Scan Copy)</li>
+          <li>GST Certificate (Scan Copy) (If merchant is not eligible for GST, this won’t be applicable).</li>
+          <li>Cancelled cheque copy (Scan Copy)</li>
+        </ul>
+        <ul class="doc-requirements" *ngIf="status === 'Partnership Firm / LLP'">
+          <li>Copy of PAN card (Entity Pan card) (Scan Copy)</li>
+          <li>Copy of Signing authority PAN card and Aadhar card.</li>
+          <li>Copy Partnership Deed / LLP Agreement (Scan Copy)</li>
+          <li>Office Address proof (In Company’s Name): Copy of your Landline Telephone Bill (or) Bank Account Statement (Scan Copy)</li>
+          <li>GST Certificate. (Scan Copy)</li>
+          <li>Cancelled cheque. (Scan Copy)</li>
+        </ul>
+        <ul class="doc-requirements" *ngIf="status === 'Individual'">
+          <li>Copy of Signing authority PAN card and Aadhar card.</li>
+          <li>Cancelled cheque.</li>
+        </ul>
+        <ul class="doc-requirements" *ngIf="status === 'NGO or Other (Business Filing Status)'">
+          <li>Copy of PAN card (Entity Pan card) (Scan Copy)</li>
+          <li>Copy of Signing authority PAN card and Aadhar card.</li>
+          <li>Cancelled cheque copy. (Scan Copy)</li>
+          <li>Trust Deed (Scan Copy)</li>
+        </ul>
+
+        <div class="doc-upload-row">
+          <div class="upload-box">
+            <i class="bi bi-upload upload-icon"></i>
+            <input type="file" #fileInput class="d-none" (change)="onFileChange($event)" accept=".pdf,.jpg,.jpeg" />
+            <button type="button" class="btn-maroon" (click)="fileInput.click()"
+              [disabled]="!nextPendingDocument || !!uploadingDoc">
+              {{ uploadingDoc ? 'Uploading ' + uploadingDoc + '…' : (nextPendingDocument ? 'Upload ' + nextPendingDocument : 'All Documents Uploaded') }}
+            </button>
+            <p class="muted">Maximum file size 2MB</p>
+          </div>
+
+          <div class="doc-list">
+            <div class="doc-item" *ngFor="let docName of selectedDocumentList">
+              <input type="file" #rowFileInput class="d-none" (change)="onFileChange($event)" accept=".pdf,.jpg,.jpeg" />
+              <div class="doc-info">
+                <img src="assets/images/guestezee/pdf.png" alt="PDF" width="22" />
+                <div>
+                  <div class="doc-name">{{ docName }}</div>
+                  <div class="doc-size">Maximum File size • 2MB</div>
+                </div>
+              </div>
+              <div class="doc-actions">
+                <i class="bi bi-trash3" title="Remove" [class.disabled-icon]="!documentUrls[docName]"
+                  (click)="removeDocument(docName)"></i>
+                <i class="bi bi-eye" title="Preview" (click)="previewDocument(docName)"></i>
+                <i class="bi bi-upload" title="Upload" *ngIf="!documentUrls[docName] && uploadingDoc !== docName"
+                  [class.disabled-icon]="!!uploadingDoc" (click)="triggerUpload(docName, rowFileInput)"></i>
+                <span class="badge-uploading" *ngIf="uploadingDoc === docName">Uploading…</span>
+                <span class="badge-uploaded" *ngIf="documentUrls[docName]">Uploaded</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <span class="err" *ngIf="uploadError">{{ uploadError }}</span>
+        <span class="err" *ngIf="docsTouched && !isAllDocumentsUploaded()">
+          Please upload all mandatory documents before submitting the form.
+        </span>
+      </ng-container>
+
+      <div class="reg-popup-actions">
+        <button type="submit" class="btn-primary" [disabled]="submitting">
+          {{ submitting ? 'Submitting…' : 'Submit &amp; Await Approval' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

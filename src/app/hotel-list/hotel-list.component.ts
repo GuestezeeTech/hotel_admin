@@ -317,6 +317,13 @@ export class HotelListComponent implements OnInit {
 
     //console.log(this.customerdata, "this.customerdata")
     this.customerdata.status = status;
+    // Unlock Registered Office Details after approval (enrollment registration gate)
+    const normalized = String(status || '').toLowerCase();
+    if (normalized === 'approved') {
+      this.customerdata.register_status = true;
+    } else if (normalized === 'pending' || normalized === 'unapproved') {
+      this.customerdata.register_status = false;
+    }
 
     let requestBody = {
       domain_name: DOMAIN_NAME,

@@ -192,6 +192,9 @@
           <option *ngFor="let country of countryDropdownList" [value]="country.country">{{country.country}}</option>
 
         </select>
+        <span *ngIf="countryList.unavailable" style="color: red; font-size: 12px;">
+          Countries could not be loaded. Please refresh the page or try again later.
+        </span>
         <span
           *ngIf="customerProprtyDetailsForm.controls['property_country'].invalid && customerProprtyDetailsForm.controls['property_country'].touched">
           Country is required.
@@ -327,60 +330,7 @@
       </div>
     </div>
   </div> -->
-  <div class="section">
-    <h3 style="font-size: 20px;font-weight: 600;">
-      Property Size
-      <a style="font-size: 13px;color: #A0A0A0;">
-        <!-- Newly commented & added for single room pricing -->
-        <!-- – Each room is charged ₹{{ singleRoomFinalPrice }} per month - All fields are re -->
-        <a *ngIf="selectedPropertySize && propertyPricingMap[selectedPropertySize]">– Each room is charged ₹{{
-          propertyPricingMap[selectedPropertySize] }} per month </a>- All fields are required
-        <!-- End of newly commented & added for single room pricing -->
-      </a>
-    </h3>
-    <div style="display: grid;grid-template-columns: repeat(4, 1fr);row-gap: 3%;">
-      <div class="form-group form2_div">
-        <div class="form-check">
-          <input type="radio" class="form-check-input" id="radio1" name="property_size" value="01-50 Rooms"
-            formControlName="property_size" [checked]="selectedPropertySize === '01-50 Rooms'"
-            (change)="onPropertySizeChange('01-50 Rooms')">
-          <small style="white-space: nowrap;">01-50 Rooms (Rs. {{ getTotalCostForOption('01-50 Rooms') | number:'1.0-0'
-            }})</small>
-          <label class="form-check-label" for="radio1"></label>
-        </div>
-      </div>
-      <div class="form-group form2_div">
-        <div class="form-check">
-          <input type="radio" class="form-check-input" id="radio2" name="property_size" value="51-100 Rooms"
-            formControlName="property_size" [checked]="selectedPropertySize === '51-100 Rooms'"
-            (change)="onPropertySizeChange('51-100 Rooms')">
-          <small style="white-space: nowrap;">51-100 Rooms (Rs. {{ getTotalCostForOption('51-100 Rooms') |
-            number:'1.0-0' }})</small>
-          <label class="form-check-label" for="radio2"></label>
-        </div>
-      </div>
-      <div class="form-group form2_div">
-        <div class="form-check">
-          <input type="radio" class="form-check-input" id="radio3" name="property_size" value="101-150 Rooms"
-            formControlName="property_size" [checked]="selectedPropertySize === '101-150 Rooms'"
-            (change)="onPropertySizeChange('101-150 Rooms')">
-          <small style="white-space: nowrap;">101-150 Rooms (Rs. {{ getTotalCostForOption('101-150 Rooms') |
-            number:'1.0-0' }})</small>
-          <label class="form-check-label" for="radio3"></label>
-        </div>
-      </div>
-      <div class="form-group form2_div">
-        <div class="form-check">
-          <input type="radio" class="form-check-input" id="radio4" name="property_size" value="150 and above Rooms"
-            formControlName="property_size" [checked]="selectedPropertySize === '150 and above Rooms'"
-            (change)="onPropertySizeChange('150 and above Rooms')">
-          <small style="white-space: nowrap;">150 and above Rooms (Rs. {{ getTotalCostForOption('150 and above Rooms') |
-            number:'1.0-0' }})</small>
-          <label class="form-check-label" for="radio4"></label>
-        </div>
-      </div>
-    </div>
-  </div>
+  <!-- Property Size removed from the UI: property_size is now derived from Number of Rooms -->
 
   <!-- ADD THIS NEW SECTION FOR THE DISCOUNT NOTE -->
   <!-- <div class="section pt-0 pb-0" *ngIf="customerdata?.subscription_detail?.discountValue && customerdata?.subscription_detail?.discountValue > 0">

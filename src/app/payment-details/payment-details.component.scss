@@ -123,6 +123,20 @@ body {
   font-weight: 600;
 }
 
+.paid-badge {
+  color: #30A75F;
+  background-color: #d5efdb;
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.invoice-icon {
+  color: #800020;
+  cursor: pointer;
+}
+
 .pay-button-overdue {
   background-color: #ff0000 !important;
   font-weight: 700;

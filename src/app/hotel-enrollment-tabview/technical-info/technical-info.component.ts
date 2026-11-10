@@ -8,6 +8,7 @@ import { ProfileService } from '../../profile/profile.service';
 import { LoaderService } from '../../shared/loader/loader.service';
 import { HotelEnrollmentTabviewService } from '../hotel-enrollment-tabview.service';
 import { CheckoutApiService } from '../checkout.service';
+import { PaymentHelperService } from '../../services/payment-helper.service';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormArray, FormControl, AbstractControl, Validators } from '@angular/forms';
 import { AlertsComponent } from '../../shared/alerts/alerts.component';
 // Newly added
@@ -79,6 +80,7 @@ export class TechnicalInfoComponent implements OnInit {
   @ViewChild('paymentModal') paymentModal!: ElementRef;
   modalInstance: any;
   isPaymentModalOpen: boolean = false;
+  isActivatingFreePlan: boolean = false;
   customerStatus: any;
   // Ecom Integration Settings 
   @ViewChild('ecomIntegrationModal') ecomIntegrationModal!: ElementRef;
@@ -111,6 +113,7 @@ export class TechnicalInfoComponent implements OnInit {
     private activatedRoute: ActivatedRoute,
     private checkoutApiService: CheckoutApiService,
     private technicalInfoService: TechnicalInfoService,
+    private paymentHelperService: PaymentHelperService,
     private fb: FormBuilder) {
     // Ecom Integration Settings 
     // Initialize Ecom Integration forms
@@ -2118,7 +2121,38 @@ export class TechnicalInfoComponent implements OnInit {
     });
   }
 
-  openModal() {
+  /**
+   * Free plan chosen by the superadmin: skips the payment during its free period.
+   * Returns true when the Payment Type modal must not open.
+   */
+  private async handleFreePlan(): Promise<boolean> {
+    try {
+      await this.getCustomerById();
+    } catch (err) {
+      console.error('Unable to refresh customer before payment', err);
+    }
+    if (!this.paymentHelperService.isFreePeriodActive(this.customerdata)) {
+      return false;
+    }
+    if (this.isActivatingFreePlan) {
+      return true;
+    }
+    this.isActivatingFreePlan = true;
+    const activated = await this.paymentHelperService.activateFreePlan(this.customerdata);
+    if (activated) {
+      // Same page a successful gateway payment returns to
+      window.location.assign(new URL(`confirmation?customer_id=${this.customerdata.id}`, document.baseURI).href);
+    } else {
+      this.isActivatingFreePlan = false;
+      this.alertsService.error('Unable to activate the Free plan. Please try again.', this.options);
+    }
+    return true;
+  }
+
+  async openModal() {
+    if (await this.handleFreePlan()) {
+      return;
+    }
     this.isPaymentModalOpen = true;
     window.history.pushState(null, '', window.location.href);
     // Lazy‑create the Bootstrap modal instance when first opened

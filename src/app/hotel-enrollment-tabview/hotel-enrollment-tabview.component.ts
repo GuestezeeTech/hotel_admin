@@ -26,13 +26,16 @@ import { Subscription } from 'rxjs';
 import { NavigationStart } from '@angular/router';
 import { SharedDataService } from '../shared/shared-data.service';
 import { PaymentHelperService } from '../services/payment-helper.service';
+import { RegistrationPropertyPopupComponent } from './registration-property-popup/registration-property-popup.component';
+import { SubscriptionPaymentPopupComponent } from './subscription-payment-popup/subscription-payment-popup.component';
+import { SetupProgressComponent } from '../shared/setup-progress/setup-progress.component';
 
 export let browserRefresh = false;
 
 @Component({
   selector: 'app-hotel-enrollment-tabview',
   standalone: true,
-  imports: [HeaderComponent, MenuBarComponent, OfficeDetailsComponent, PropertyDetails1Component, CommonModule, ServiceDetailsComponent, HierarchyDetailsComponent, TechnicalInfoComponent],
+  imports: [HeaderComponent, MenuBarComponent, OfficeDetailsComponent, PropertyDetails1Component, CommonModule, ServiceDetailsComponent, HierarchyDetailsComponent, TechnicalInfoComponent, RegistrationPropertyPopupComponent, SubscriptionPaymentPopupComponent, SetupProgressComponent],
   templateUrl: './hotel-enrollment-tabview.component.html',
   styleUrl: './hotel-enrollment-tabview.component.scss'
 })
@@ -108,6 +111,29 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
   paymentStatusInfo = { text: 'Not Paid', isPaid: false };
   isFirstPayment: boolean = true;
   lastGeneratedInvoiceOrderId: number | null = null;
+  /** Post-signup popup: collect property_details before enrollment starts */
+  showRegistrationPopup = false;
+  /** Popup submitted; waiting for admin approval (register_status) */
+  awaitingRegistrationApproval = false;
+  registrationPopupSubmitting = false;
+  /** True when register_status is true (or legacy approved / office already filled) */
+  canAccessRegistrationTabs = false;
+  /** Subscription payment popup (after approval with no confirmed order, or after payment_plan expiry) */
+  showSubscriptionPopup = false;
+  subscriptionRenewal = false;
+  /** True once the order check has finished, so tabs never flash before the popup decision */
+  subscriptionGateResolved = false;
+  private subscriptionCheckInFlight = false;
+
+  /**
+   * Tabs (Registered Office → Property → Technical Info → Status) unlock only after
+   * approval AND a paid subscription. The usual one-by-one tab rules then apply.
+   */
+  get canFillRegistrationTabs(): boolean {
+    if (!this.canAccessRegistrationTabs) return false;
+    if (this.isPaymentRoute()) return true;
+    return this.subscriptionGateResolved && !this.showSubscriptionPopup;
+  }
 
 
 
@@ -257,6 +283,8 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
     // }
     this.getCustomerById()
       .then(() => {
+        this.evaluateRegistrationGate();
+        this.checkSubscriptionPayment();
         // First function succeeded
         this.getOrderById(); // Call second function return this.getOrderById(); // Return the promise so it can be chained
       })
@@ -456,6 +484,173 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
 
 
 
+  /** Whether enrollment tabs (Registered Office onwards) are unlocked */
+  private hasRegisterStatus(customer: any): boolean {
+    if (!customer) return false;
+    // Explicit registration approval flag set by admin after popup submit
+    if (customer.register_status === true || customer.register_status === 'true' || customer.register_status === 1) {
+      return true;
+    }
+    // Legacy only: already completed Registered Office (started enrollment before this gate)
+    if (customer.is_office_details_exists === true) {
+      return true;
+    }
+    return false;
+  }
+
+  private hasSubmittedRegistrationForm(customer: any): boolean {
+    if (!customer) return false;
+    if (customer.is_registration_form_submitted === true || customer.is_registration_form_submitted === 1) {
+      return true;
+    }
+    return false;
+  }
+
+  refreshRegistrationStatus(): void {
+    this.getCustomerById()
+      .then(() => {
+        this.evaluateRegistrationGate();
+        this.checkSubscriptionPayment();
+      })
+      .catch(() => this.evaluateRegistrationGate());
+  }
+
+  /**
+   * After approval (register_status = true): if the customer has no "Order Confirmed"
+   * order, or payment_plan.payment_subscription_end_date has passed, show the
+   * subscription payment popup.
+   */
+  async checkSubscriptionPayment(): Promise<void> {
+    const customer = this.customerdata || this.getCustomerData;
+    if (this.subscriptionCheckInFlight) {
+      return;
+    }
+    if (this.isPaymentRoute() || !customer?.id || !this.hasRegisterStatus(customer)) {
+      this.showSubscriptionPopup = false;
+      this.subscriptionGateResolved = true;
+      return;
+    }
+    // Free plan: nothing to pay until the free period ends
+    if (this.paymentHelperService.isFreePeriodActive(customer)) {
+      this.showSubscriptionPopup = false;
+      this.localService.set('SubscriptionExpired', 'false');
+      this.subscriptionGateResolved = true;
+      this.cdr.detectChanges();
+      return;
+    }
+    this.subscriptionCheckInFlight = true;
+    try {
+      const expired = this.paymentHelperService.isSubscriptionExpired(customer);
+      let noConfirmedOrder = false;
+      if (!expired) {
+        const orders = await this.paymentHelperService.getConfirmedOrders(customer.id);
+        noConfirmedOrder = orders.length === 0;
+      }
+      this.subscriptionRenewal = expired;
+      this.showSubscriptionPopup = expired || noConfirmedOrder;
+      // Read by the sidebar to hide other modules until the customer pays again
+      this.localService.set('SubscriptionExpired', expired ? 'true' : 'false');
+      this.cdr.detectChanges();
+    } catch (err) {
+      console.error('Subscription payment check failed', err);
+    } finally {
+      this.subscriptionCheckInFlight = false;
+      this.subscriptionGateResolved = true;
+      this.cdr.detectChanges();
+    }
+  }
+
+  evaluateRegistrationGate(): void {
+    if (this.isPaymentRoute()) {
+      this.showRegistrationPopup = false;
+      this.awaitingRegistrationApproval = false;
+      this.canAccessRegistrationTabs = true;
+      return;
+    }
+    const customer = this.customerdata || this.getCustomerData;
+    if (!customer) {
+      return;
+    }
+    const registered = this.hasRegisterStatus(customer);
+    const formSubmitted = this.hasSubmittedRegistrationForm(customer);
+
+    this.canAccessRegistrationTabs = registered;
+    this.showRegistrationPopup = !registered && !formSubmitted;
+    this.awaitingRegistrationApproval = !registered && formSubmitted;
+    this.isReadyToRender = true;
+    this.cdr.detectChanges();
+  }
+
+  onRegistrationPopupSubmit(payload: {
+    property_details: any;
+    name: string;
+    register_pms_type: string;
+    register_door_lock_type: string;
+  }): void {
+    if (!this.customerdata) {
+      this.customerdata = {};
+    }
+    this.registrationPopupSubmitting = true;
+    this.loaderService.emitLoading();
+
+    const updatePayload = {
+      ...this.customerdata,
+      name: payload.name,
+      property_details: payload.property_details,
+      register_pms_type: payload.register_pms_type,
+      register_door_lock_type: payload.register_door_lock_type,
+      is_registration_form_submitted: true,
+      register_status: false,
+      // Do not mark property tab complete — logo/docs still collected there after approval
+      is_property_details_exists: false
+    };
+    delete updatePayload._id;
+    delete updatePayload.password;
+
+    const requestBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      payload: {
+        customer_update: updatePayload
+      },
+      extras: {
+        find: this.memberId
+          ? { customer_member_id: this.memberId }
+          : { id: Number(this.hotelId || this.customerdata.id) }
+      }
+    };
+
+    this.hotelenrollmentservice.updateCustomer(requestBody).subscribe({
+      next: (resp: any) => {
+        this.registrationPopupSubmitting = false;
+        this.loaderService.emitComplete();
+        if (resp?.success === 1 && resp?.status_code === 200) {
+          this.customerdata = {
+            ...this.customerdata,
+            ...updatePayload
+          };
+          this.getCustomerData = this.customerdata;
+          this.evaluateRegistrationGate();
+          this.alertService.success(
+            resp.message || 'Details submitted. Please wait for approval to continue registration.',
+            this.options
+          );
+          setTimeout(() => this.propertyDetailsComp?.refreshData?.(), 150);
+        } else {
+          this.alertService.error(resp?.message || 'Unable to save registration details.', this.options);
+        }
+      },
+      error: (err: any) => {
+        this.registrationPopupSubmitting = false;
+        this.loaderService.emitComplete();
+        this.alertService.error(
+          err?.error?.message || 'Unable to save registration details. Please try again.',
+          this.options
+        );
+      }
+    });
+  }
+
   async goToTab(index: number, force: boolean = false) {
     // Newly added for back navigation - skipAutoTabCheck
     // console.log('Index:', index, 'Force:', force);
@@ -467,12 +662,33 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
     }
     this.memberId = this.localService.get('MemberId');
     // console.log('Member id(goToTab):', this.memberId);
+    // Approved but subscription not paid yet (or expired): keep tabs locked behind the payment popup
+    if (this.canAccessRegistrationTabs && !this.canFillRegistrationTabs) {
+      return;
+    }
     if (force) {
+      // Still respect registration popup / approval gate
+      if (this.customerdata) {
+        this.evaluateRegistrationGate();
+      }
+      if (!this.canAccessRegistrationTabs) {
+        return;
+      }
       this.currentTab = index;
       // console.log(`Force-navigated to tab ${index}`);
       return; // Skips validations
     }
     else {
+      if (!this.canAccessRegistrationTabs && !this.hasRegisterStatus(this.customerdata)) {
+        this.evaluateRegistrationGate();
+        this.alertService.error(
+          this.awaitingRegistrationApproval
+            ? 'Your registration is pending approval. Registered Office Details will unlock after approval.'
+            : 'Please complete the property registration form first.',
+          this.options
+        );
+        return;
+      }
       let requestBody = {
         domain_name: DOMAIN_NAME,
         user_id: USER_ID,
@@ -488,6 +704,14 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
           if (resp) {
             this.customerdata = resp.result.data[0];
             this.getCustomerData = resp.result.data[0];
+            this.evaluateRegistrationGate();
+            if (!this.canAccessRegistrationTabs) {
+              this.alertService.error(
+                'Your registration is pending approval. Registered Office Details will unlock after approval.',
+                this.options
+              );
+              return;
+            }
             //console.log(this.customerdata, "RESPDATA");
             //console.log(Array.isArray(this.customerdata));
             // //console.log(index, "index", this.getCustomerData.is_property_details_exists)
@@ -1170,8 +1394,9 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
 
               const coveredInstallment = this.applyPaidAmountToSplit(this.orderdata);
               if (coveredInstallment) {
-                // Keep first registration end date; later payments extend via RoomPricing per-day
-                await this.applyRoomPricingSubscriptionEnd(
+                // Keep first registration end date; later payments extend via RoomPricing per-day.
+                // Subscription-popup orders (payment_plan) already carry their own end date.
+                if (!this.orderdata?.payment_plan) await this.applyRoomPricingSubscriptionEnd(
                   this.orderdata,
                   (resp.result.data || []).filter((order: any) =>
                     !this.sameOrderId(order?.id, this.orderdata?.id) &&
@@ -1236,7 +1461,8 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
                       payload: {
                         customer_update: {
                           payment_split: paymentSplitSnapshot,
-                          subscription_end_date: paymentProcessedInstallment.subscription_end_date
+                          subscription_end_date: paymentProcessedInstallment.subscription_end_date,
+                          ...this.buildPaidPaymentPlan(paymentProcessedInstallment.subscription_end_date)
                         }
                       }
                     };
@@ -1729,6 +1955,40 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
     return paidSlice;
   }
 
+  /**
+   * After a subscription-popup payment is confirmed, turn the pending values into
+   * the active payment_plan with payment_subscription_end_date.
+   * Returns {} for orders that did not come from the subscription popup.
+   */
+  private buildPaidPaymentPlan(endDate: string): { payment_plan?: any } {
+    const pending = this.orderdata?.payment_plan || this.customerdata?.payment_plan;
+    const fromPopup = !!this.orderdata?.payment_plan ||
+      (!!pending?.pending_plan && this.orderdata?.payment_type === pending.pending_plan);
+    if (!fromPopup) {
+      return {};
+    }
+    const {
+      pending_plan, pending_amount, pending_covered_days, pending_start_date,
+      pending_subscription_end_date, pending_remaining_amount, ...base
+    } = pending;
+    const paidAmount = Number(this.orderdata?.order_review?.order_summary?.order_total_amount ?? pending_amount ?? 0);
+    this.localService.set('SubscriptionExpired', 'false');
+    return {
+      payment_plan: {
+        ...base,
+        selected_plan: pending_plan,
+        paid_amount: paidAmount,
+        covered_days: pending_covered_days || 0,
+        payment_start_date: pending_start_date,
+        payment_subscription_end_date: endDate || pending_subscription_end_date,
+        remaining_amount: pending_remaining_amount ?? Math.max(0, Number(base.annual_amount || 0) - paidAmount),
+        last_order_id: this.orderdata?.id,
+        status: 'Paid',
+        paid_on: new Date().toISOString()
+      }
+    };
+  }
+
   private applyPaidAmountToSplit(order: any): any | null {
     const paidAmount = Number(order?.order_review?.order_summary?.order_total_amount);
     const cycles: any[] = order?.payment_split;
@@ -2169,6 +2429,12 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
 
   async checkAndActivateInvalidTabOnLoad() {
     // console.log('Hierarchy Tab', this.hierarchyTab);
+    this.evaluateRegistrationGate();
+    if (!this.canAccessRegistrationTabs) {
+      this.isReadyToRender = true;
+      this.cdr.detectChanges();
+      return;
+    }
     if (!this.getCustomerData) {
       this.isReadyToRender = true;
       this.cdr.detectChanges();
@@ -2334,6 +2600,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
     if (this.isPaymentRoute()) {
       this.localService.set('roleId', this.customerdata.role_id);
     }
+    this.evaluateRegistrationGate();
   }
 
   onContinue() {

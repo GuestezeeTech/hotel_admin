@@ -1,0 +1,99 @@
+<div *ngIf="visible" class="sub-modal-backdrop">
+  <div class="sub-modal" role="dialog" aria-modal="true" aria-labelledby="subPopupTitle">
+    <div class="sub-modal-header">
+      <h2 id="subPopupTitle">{{ isRenewal ? 'Subscription expired – renew to continue' : 'Choose your subscription' }}</h2>
+      <button type="button" class="btn-close-x" *ngIf="closable" aria-label="Close" [disabled]="paying" (click)="close()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div class="sub-modal-body">
+      <p class="muted" *ngIf="isRenewal && customerdata?.payment_plan?.payment_subscription_end_date">
+        Your subscription ended on <strong>{{ customerdata.payment_plan.payment_subscription_end_date }}</strong>.
+      </p>
+
+      <div class="state" *ngIf="loading">Loading plans…</div>
+      <div class="err" *ngIf="!loading && loadError">{{ loadError }}</div>
+
+      <ng-container *ngIf="!loading && plan && !loadError">
+        <p class="pricing-basis" *ngIf="plan.subscription_name">
+          Subscription plan: <strong>{{ plan.subscription_name }}</strong>
+        </p>
+        <p class="pricing-basis">
+          {{ plan.number_of_rooms }} rooms × {{ plan.per_room_final_price | currency:'INR' }} per room / month × 12 months
+          (incl. {{ plan.gst_percent }}% GST) = <strong>{{ plan.annual_amount | currency:'INR' }}</strong> per year
+        </p>
+
+        <div class="plan-cards" role="radiogroup" aria-label="Subscription plan">
+          <button type="button" class="plan-card" *ngFor="let key of planKeys"
+            role="radio" [attr.aria-checked]="selectedPlan === key"
+            [class.selected]="selectedPlan === key" [disabled]="paying" (click)="selectPlan(key)">
+            <span class="plan-name">{{ plan.plans[key].label }}</span>
+            <span class="plan-amount">{{ plan.plans[key].amount | currency:'INR' }}</span>
+            <span class="plan-sub">
+              {{ plan.plans[key].installments > 1 ? 'every ' + plan.plans[key].months + ' months' : 'once a year' }}
+            </span>
+          </button>
+        </div>
+
+        <p class="payable-text">Next due: <strong>{{ nextDue | currency:'INR' }}</strong></p>
+
+        <table class="split-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Status</th>
+              <th>Amount</th>
+              <th>End Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of installments; let first = first" [class.split-next]="first">
+              <td>{{ row.installmentNo }}</td>
+              <td>{{ row.status }}</td>
+              <td>{{ row.order_total_amount | currency:'INR' }}</td>
+              <td>{{ row.subscription_end_date }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="custom-section">
+          <h3>Custom payment</h3>
+          <p class="muted">
+            Enter any amount you want to pay. Coverage is worked out at the per-day rate
+            (≈ {{ plan.per_day_cost | currency:'INR' }}/day) from {{ startDate | date:'dd-MM-yyyy' }}.
+          </p>
+          <label for="subCustomAmount">Amount</label>
+          <input id="subCustomAmount" type="number" min="0" step="0.01" placeholder="Enter amount"
+            [ngModel]="customAmount" (ngModelChange)="onCustomAmountChange($event)"
+            (keydown)="blockInvalidAmountKeys($event)" [disabled]="paying" />
+          <p class="err" *ngIf="customError">{{ customError }}</p>
+
+          <div class="coverage" *ngIf="coverage && coverage.covered_days > 0">
+            <div><span>Covers</span><strong>{{ coverage.covered_days }} days</strong></div>
+            <div><span>Subscription ends on</span><strong>{{ coverage.end_date }}</strong></div>
+            <div>
+              <span>Matches plan</span>
+              <strong>{{ coverage.matched_plan ? planLabel(coverage.matched_plan) : 'Less than Quarterly' }}</strong>
+            </div>
+            <div><span>Remaining for the year</span><strong>{{ coverage.remaining_amount | currency:'INR' }}</strong></div>
+          </div>
+
+          <button type="button" class="btn-custom" [disabled]="paying || !canPayCustom" (click)="payCustom()">
+            {{ paying ? 'Processing…' : 'Pay Custom Amount' }}
+          </button>
+        </div>
+      </ng-container>
+
+      <p class="err" *ngIf="payError">{{ payError }}</p>
+    </div>
+
+    <div class="sub-modal-footer">
+      <button type="button" class="btn-close-footer" *ngIf="closable" [disabled]="paying" (click)="close()">Close</button>
+      <button type="button" class="btn-pay" (click)="payPlan()"
+        [disabled]="paying || loading || !plan || !!loadError || hasCustomAmount || nextDue <= 0">
+        {{ paying ? 'Processing…' : 'Pay Now' }}
+      </button>
+    </div>
+  </div>
+</div>

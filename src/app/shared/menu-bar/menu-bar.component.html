@@ -54,12 +54,12 @@
           <span>Hotels</span>
         </div>
         <i class="fas fa-chevron-down dropdown-icon" [ngClass]="{ 'rotate': isHotelSubmenuOpen }"
-          *ngIf="canShowMenu('HOTELS') && (customerType === 'Staff' || isApproved())"></i>
+          *ngIf="canShowMenu('HOTELS') && (customerType === 'Staff' || hasMenuAccess())"></i>
       </div>
     </li>
     <!-- Hotel submenu -->
     <li class="sub-menu"
-      *ngIf="isHotelSubmenuOpen && canShowMenu('HOTELS') && (customerType === 'Staff' || isApproved())">
+      *ngIf="isHotelSubmenuOpen && canShowMenu('HOTELS') && (customerType === 'Staff' || hasMenuAccess())">
       <div class="submenu">
         <span class="submenu-item" [class.active]="isActive('hotel-0')"
           (click)="setActiveMenu('hotel-0'); navigateToHotelTab(0)">Office Details</span>
@@ -69,21 +69,35 @@
           (click)="setActiveMenu('hotel-4'); navigateToHotelTab(2)">Technical Info</span>
       </div>
     </li>
-    <!-- Bookings -->
-    <li class="list_container" [class.active]="isActive('bookings')" [routerLink]="['/bookings']"
-      (click)="setActiveMenu('bookings'); sendValue('Bookings')"
-      *ngIf="canShowMenu('BOOKINGS')">
-      <img src="assets/images/guestezee/bookings.png" alt="Bookings">
-      <span>Bookings</span>
-    </li>
-    <li class="list_container" [class.active]="isActive('guests')" [routerLink]="['/guests-list']"
-      (click)="setActiveMenu('guests'); sendValue('Guests')"
-      *ngIf="canShowMenu('GUESTS')">
+    <!-- Settings -->
+    <li class="list_container" [class.active]="isActive('settings-main')" (click)="toggleSubmenu('Settings')"
+      *ngIf="canShowMenu('SYSTEM SETTINGS')">
       <div class="list-content">
         <div class="left-content">
-          <i class="fas fa-users" style="color: white; font-size: 16px; margin-right: 2px;"></i>
-          <span>Guests</span>
+          <img src="assets/images/guestezee/setting.png" alt="Settings" />
+          <a>System Setting</a>
         </div>
+        <i class="fas fa-chevron-down dropdown-icon" [ngClass]="{ 'rotate': isSettingsSubmenuOpen }"></i>
+      </div>
+    </li>
+    <li class="sub-menu"
+      *ngIf="isSettingsSubmenuOpen && canShowMenu('SYSTEM SETTINGS')">
+      <div class="submenu">
+        <a class="submenu-item" routerLink="/settings" [class.active]="isActive('settings-page')"
+          (click)="setActiveMenu('settings-page'); sendValue('Settings')">Settings</a>
+        <a class="submenu-item" routerLink="/department-list" [class.active]="isActive('department')"
+          (click)="setActiveMenu('department'); sendValue('Department')"
+          *ngIf="customerType === 'Customer' && hasMenuAccess()">Department</a>
+        <a class="submenu-item" routerLink="/service-tab-list" [class.active]="isActive('service-tab')"
+          (click)="setActiveMenu('service-tab'); sendValue('Service Tab')"
+          *ngIf="customerType === 'Customer' && hasMenuAccess()">Service
+          Tab</a>
+        <a class="submenu-item" routerLink="/service-list" [class.active]="isActive('service')"
+          (click)="setActiveMenu('service'); sendValue('Service')"
+          *ngIf="customerType === 'Customer' && hasMenuAccess()">Service</a>
+        <a class="submenu-item" routerLink="/member-hierarchy" [class.active]="isActive('hierarchy')"
+          (click)="setActiveMenu('hierarchy'); sendValue('Hierarchy')"
+          *ngIf="customerType === 'Customer' && hasMenuAccess()">Hierarchy</a>
       </div>
     </li>
     <!-- User Access -->
@@ -109,35 +123,15 @@
           (click)="setActiveMenu('staff'); sendValue('Staff')">Staff</a>
       </div>
     </li>
-    <!-- Settings -->
-    <li class="list_container" [class.active]="isActive('settings-main')" (click)="toggleSubmenu('Settings')"
-      *ngIf="canShowMenu('SYSTEM SETTINGS')">
+    <!-- Outlet -->
+    <li class="list_container" [class.active]="isActive('outlet')" [routerLink]="['/outlet-list']"
+      (click)="setActiveMenu('outlet'); sendValue('Outlet')"
+      *ngIf="canShowMenu('OUTLETS')">
       <div class="list-content">
         <div class="left-content">
-          <img src="assets/images/guestezee/setting.png" alt="Settings" />
-          <a>System Settings</a>
+          <i class="fas fa-store" style="color: white;"></i>
+          <span>Outlet</span>
         </div>
-        <i class="fas fa-chevron-down dropdown-icon" [ngClass]="{ 'rotate': isSettingsSubmenuOpen }"></i>
-      </div>
-    </li>
-    <li class="sub-menu"
-      *ngIf="isSettingsSubmenuOpen && canShowMenu('SYSTEM SETTINGS')">
-      <div class="submenu">
-        <a class="submenu-item" routerLink="/settings" [class.active]="isActive('settings-page')"
-          (click)="setActiveMenu('settings-page'); sendValue('Settings')">Settings</a>
-        <a class="submenu-item" routerLink="/department-list" [class.active]="isActive('department')"
-          (click)="setActiveMenu('department'); sendValue('Department')"
-          *ngIf="customerType === 'Customer' && isApproved()">Department</a>
-        <a class="submenu-item" routerLink="/service-tab-list" [class.active]="isActive('service-tab')"
-          (click)="setActiveMenu('service-tab'); sendValue('Service Tab')"
-          *ngIf="customerType === 'Customer' && isApproved()">Service
-          Tab</a>
-        <a class="submenu-item" routerLink="/service-list" [class.active]="isActive('service')"
-          (click)="setActiveMenu('service'); sendValue('Service')"
-          *ngIf="customerType === 'Customer' && isApproved()">Service</a>
-        <a class="submenu-item" routerLink="/member-hierarchy" [class.active]="isActive('hierarchy')"
-          (click)="setActiveMenu('hierarchy'); sendValue('Hierarchy')"
-          *ngIf="customerType === 'Customer' && isApproved()">Hierarchy</a>
       </div>
     </li>
     <!-- Features -->
@@ -146,7 +140,24 @@
       *ngIf="canShowMenu('FEATURES')">
       <img src="https://guestezee.s3.ap-south-2.amazonaws.com/GuestEzee/undefined/feature1.png"
         alt="Features">
-      <span>Features (Upselling)</span>
+      <span>Upselling</span>
+    </li>
+    <!-- Bookings -->
+    <li class="list_container" [class.active]="isActive('bookings')" [routerLink]="['/bookings']"
+      (click)="setActiveMenu('bookings'); sendValue('Bookings')"
+      *ngIf="canShowMenu('BOOKINGS')">
+      <img src="assets/images/guestezee/bookings.png" alt="Bookings">
+      <span>Booking</span>
+    </li>
+    <li class="list_container" [class.active]="isActive('guests')" [routerLink]="['/guests-list']"
+      (click)="setActiveMenu('guests'); sendValue('Guests')"
+      *ngIf="canShowMenu('GUESTS')">
+      <div class="list-content">
+        <div class="left-content">
+          <i class="fas fa-users" style="color: white; font-size: 16px; margin-right: 2px;"></i>
+          <span>Guest</span>
+        </div>
+      </div>
     </li>
     <!-- Payment -->
     <li class="list_container" [class.active]="isActive('payment')" [routerLink]="['/payment-details']"
@@ -154,17 +165,6 @@
       *ngIf="canShowMenu('PAYMENT')">
       <img src="assets/images/guestezee/check.png" alt="Payment">
       <span>Payment</span>
-    </li>
-    <!-- Outlet -->
-    <li class="list_container" [class.active]="isActive('outlet')" [routerLink]="['/outlet-list']"
-      (click)="setActiveMenu('outlet'); sendValue('Outlet')"
-      *ngIf="canShowMenu('OUTLETS')">
-      <div class="list-content">
-        <div class="left-content">
-          <i class="fas fa-store" style="color: white;"></i>
-          <span>Outlets</span>
-        </div>
-      </div>
     </li>
   </ul>
 </div>

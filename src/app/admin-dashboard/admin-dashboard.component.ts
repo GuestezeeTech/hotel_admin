@@ -5,6 +5,7 @@ import { Component, ElementRef, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { AlertsComponent } from '../shared/alerts/alerts.component';
+import { SetupProgressComponent } from '../shared/setup-progress/setup-progress.component';
 import { AlertsService } from '../shared/alerts/alerts.service';
 import { LocalStorageService } from '../auth-services/local-storage.service';
 import Chart from 'chart.js/auto';
@@ -19,7 +20,7 @@ import { reviewsForDashboard } from '../guest-reviews/guest-reviews.util';
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [AlertsComponent, CommonModule, FormsModule],
+  imports: [AlertsComponent, CommonModule, FormsModule, SetupProgressComponent],
   templateUrl: './admin-dashboard.component.html',
   styleUrl: './admin-dashboard.component.scss'
 })

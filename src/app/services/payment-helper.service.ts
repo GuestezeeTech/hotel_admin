@@ -5,6 +5,52 @@ import { CheckoutApiService } from '../hotel-enrollment-tabview/checkout.service
 import { LocalStorageService } from '../auth-services/local-storage.service';
 import { LoaderService } from '../shared/loader/loader.service';
 
+export type PlanKey = 'quarterly' | 'half_yearly' | 'annual';
+
+export interface PlanOption {
+  key: PlanKey;
+  label: string;
+  installments: number;
+  months: number;
+  sub_total: number;
+  tax: number;
+  amount: number;
+}
+
+export interface PaymentPlan {
+  plan_basis: 'monthly_per_room';
+  subscription_name: string;
+  number_of_rooms: number;
+  per_room_cost: number;
+  discount_type: string;
+  discount_value: number;
+  gst_percent: number;
+  per_room_final_price: number;
+  annual_sub_total: number;
+  annual_tax: number;
+  annual_amount: number;
+  per_day_cost: number;
+  plans: Record<PlanKey, PlanOption>;
+  payment_subscription_end_date: string;
+}
+
+interface OrderOptions {
+  paymentType: string;
+  payment_split: any[];
+  order_review: any;
+  subscriptionEndDate: string;
+  payableTotal: number;
+  extra?: any;
+}
+
+export interface CustomCoverage {
+  amount: number;
+  covered_days: number;
+  end_date: string;
+  matched_plan: PlanKey | null;
+  remaining_amount: number;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -82,7 +128,8 @@ export class PaymentHelperService {
       try {
         const propertySize = customerData?.property_details?.property_address?.property_size;
         const customerSub = customerData?.subscription_detail;
-        if (customerSub) {
+        // Free has no paid price: once it ends, charge the plan for the property size
+        if (customerSub && customerSub.name !== 'Free') {
           return resolve(customerSub);
         }
         const reqBody = {
@@ -229,6 +276,9 @@ export class PaymentHelperService {
   }
 
   async payNow(customerData: any, orderdata: any, selectedIndex: number | null, customAmount?: number | null): Promise<boolean> {
+    if (this.isFreePeriodActive(customerData)) {
+      return false;
+    }
     this.loaderService.emitLoading();
 
     let payment_split: any[] = [];
@@ -355,12 +405,400 @@ export class PaymentHelperService {
       }
     }
 
+    return this.createOrderAndRedirect(customerData, {
+      paymentType,
+      payment_split,
+      order_review,
+      subscriptionEndDate,
+      payableTotal
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Subscription payment plan (registration popup flow)
+  // Annual price = per-room monthly final price (incl. GST) x number_of_rooms x 12.
+  // Quarterly = annual / 4, Half-yearly = annual / 2.
+  // ---------------------------------------------------------------------------
+
+  /** Orders with status "Order Confirmed" for this customer (:9475/order/getbyid). */
+  getConfirmedOrders(customerId: number): Promise<any[]> {
+    const req = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: {
+        find: {
+          customer_id: Number(customerId),
+          status: 'Order Confirmed'
+        }
+      },
+      pagination: false,
+      sorting: true,
+      sortingDetails: { sortfield: '', sortorder: -1 }
+    };
+    return new Promise((resolve, reject) => {
+      this.hotelenrollmenttabviewService.orderDetailsGetById(req).subscribe({
+        next: (res: any) => resolve(res?.result?.data || []),
+        error: (err: any) => reject(err)
+      });
+    });
+  }
+
+  /** True while the free period set by the superadmin (Free plan) is running; payment is off. */
+  isFreePeriodActive(customerData: any): boolean {
+    const end = this.parseSubscriptionDate(customerData?.payment_plan?.free_period?.end_date);
+    if (!end) {
+      return false;
+    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return end >= today;
+  }
+
+  /**
+   * Remembers the end date of an activated Free plan, next to the stored Status, for the
+   * sidebar and route checks. Call it wherever the customer is loaded.
+   */
+  syncFreePlanAccess(customerData: any): void {
+    if (customerData?.payment_plan?.selected_plan === 'free' && this.isFreePeriodActive(customerData)) {
+      this.localService.set('FreePlanEnd', customerData.payment_plan.free_period.end_date);
+    } else {
+      this.localService.remove('FreePlanEnd');
+    }
+  }
+
+  /** True while an activated Free plan is running: the full menu opens without approval. */
+  hasFreePlanAccess(): boolean {
+    const end = this.parseSubscriptionDate(this.localService.get('FreePlanEnd'));
+    if (!end) {
+      return false;
+    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return end >= today;
+  }
+
+  /** True when payment_plan.payment_subscription_end_date is before today. */
+  isSubscriptionExpired(customerData: any): boolean {
+    if (this.isFreePeriodActive(customerData)) {
+      return false;
+    }
+    const end = this.parseSubscriptionDate(customerData?.payment_plan?.payment_subscription_end_date);
+    if (!end) {
+      return false;
+    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return end < today;
+  }
+
+  private round2(value: number): number {
+    return Number((Number(value) || 0).toFixed(2));
+  }
+
+  private addMonths(date: Date, months: number): Date {
+    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    d.setMonth(d.getMonth() + months);
+    return d;
+  }
+
+  /** Start date for a new payment: the current end date if still running, otherwise today. */
+  getPlanStartDate(customerData: any): Date {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const currentEnd = this.parseSubscriptionDate(customerData?.payment_plan?.payment_subscription_end_date);
+    return currentEnd && currentEnd >= today ? currentEnd : today;
+  }
+
+  /** Builds the payment_plan object from subscription_detail and number_of_rooms. */
+  async calculatePaymentPlan(customerData: any): Promise<PaymentPlan> {
+    const sub = await this.getActiveSubscription(customerData);
+    const rooms = Math.max(Number(customerData?.property_details?.property_address?.number_of_rooms || 0), 1);
+    const gstPercent = 18;
+
+    const perRoomCost = Number(sub?.perRoomCost ?? sub?.price ?? 0);
+    const discountType = String(sub?.discountType || '').toLowerCase();
+    const discountValue = Number(sub?.discountValue || 0);
+
+    let discountedPerRoom: number;
+    if (perRoomCost > 0) {
+      discountedPerRoom = perRoomCost;
+      if (discountType === 'percentage') {
+        discountedPerRoom = perRoomCost - (perRoomCost * discountValue / 100);
+      } else if (discountType === 'flat') {
+        discountedPerRoom = perRoomCost - discountValue;
+      }
+    } else {
+      // Only finalPrice (incl. GST) is known
+      discountedPerRoom = Number(sub?.finalPrice || 0) / (1 + gstPercent / 100);
+    }
+    discountedPerRoom = Math.max(0, this.round2(discountedPerRoom));
+    const perRoomGst = this.round2(discountedPerRoom * gstPercent / 100);
+    const perRoomFinal = this.round2(discountedPerRoom + perRoomGst);
+
+    const annualSubTotal = this.round2(discountedPerRoom * rooms * 12);
+    const annualTax = this.round2(annualSubTotal * gstPercent / 100);
+    const annualAmount = this.round2(annualSubTotal + annualTax);
+
+    // years = length of the plan; installments = payments spread over that length
+    const option = (key: PlanKey, label: string, installments: number, years = 1): PlanOption => ({
+      key,
+      label,
+      installments,
+      months: (12 * years) / installments,
+      sub_total: this.round2((annualSubTotal * years) / installments),
+      tax: this.round2((annualTax * years) / installments),
+      amount: this.round2((annualAmount * years) / installments)
+    });
+
+    return {
+      plan_basis: 'monthly_per_room',
+      subscription_name: sub?.name || '',
+      number_of_rooms: rooms,
+      per_room_cost: perRoomCost,
+      discount_type: discountType,
+      discount_value: discountValue,
+      gst_percent: gstPercent,
+      per_room_final_price: perRoomFinal,
+      annual_sub_total: annualSubTotal,
+      annual_tax: annualTax,
+      annual_amount: annualAmount,
+      per_day_cost: annualAmount > 0 ? Number((annualAmount / 365).toFixed(4)) : 0,
+      plans: {
+        quarterly: option('quarterly', 'Quarterly', 4),
+        half_yearly: option('half_yearly', 'Half-yearly', 2),
+        annual: option('annual', 'Annual', 1)
+      },
+      payment_subscription_end_date: customerData?.payment_plan?.payment_subscription_end_date || ''
+    };
+  }
+
+  /** Installment rows (amount + end date) for a plan, starting from startDate. */
+  getPlanInstallments(plan: PaymentPlan, key: PlanKey, startDate: Date): any[] {
+    const opt = plan.plans[key];
+    const rows = [];
+    for (let i = 0; i < opt.installments; i++) {
+      rows.push({
+        installmentNo: i + 1,
+        status: 'Not Paid',
+        sub_total: opt.sub_total,
+        tax: opt.tax,
+        order_total_amount: opt.amount,
+        subscription_end_date: this.formatSubscriptionDate(this.addMonths(startDate, opt.months * (i + 1)))
+      });
+    }
+    return rows;
+  }
+
+  /**
+   * Custom amount → days covered at the per-day rate, the resulting end date,
+   * the biggest plan the amount reaches, and the remaining amount up to the annual price.
+   */
+  getCustomCoverage(plan: PaymentPlan, amount: number, startDate: Date): CustomCoverage {
+    const paid = this.round2(amount);
+    const days = this.getDaysCoveredByAmount(paid, plan.per_day_cost);
+    const end = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+    end.setDate(end.getDate() + days);
+
+    let matchedPlan: PlanKey | null = null;
+    if (paid >= plan.plans.annual.amount) matchedPlan = 'annual';
+    else if (paid >= plan.plans.half_yearly.amount) matchedPlan = 'half_yearly';
+    else if (paid >= plan.plans.quarterly.amount) matchedPlan = 'quarterly';
+
+    return {
+      amount: paid,
+      covered_days: days,
+      end_date: days > 0 ? this.formatSubscriptionDate(end) : '',
+      matched_plan: matchedPlan,
+      remaining_amount: Math.max(0, this.round2(plan.annual_amount - paid))
+    };
+  }
+
+  /**
+   * Saves the pending choice on the customer (payment_plan), creates the order
+   * and redirects to the payment gateway. The confirmation page promotes the
+   * pending values once payment succeeds.
+   */
+  async payForPlan(customerData: any, plan: PaymentPlan, selection: { plan: PlanKey } | { customAmount: number }): Promise<boolean> {
+    if (this.isFreePeriodActive(customerData)) {
+      return false;
+    }
+    const startDate = this.getPlanStartDate(customerData);
+    let paymentType: string;
+    let installments: any[];
+    let paidAmount: number;
+    let endDate: string;
+    let coveredDays = 0;
+
+    if ('plan' in selection) {
+      paymentType = selection.plan;
+      installments = this.getPlanInstallments(plan, selection.plan, startDate);
+      paidAmount = installments[0].order_total_amount;
+      endDate = installments[0].subscription_end_date;
+    } else {
+      const coverage = this.getCustomCoverage(plan, selection.customAmount, startDate);
+      if (coverage.covered_days <= 0) {
+        return false;
+      }
+      paymentType = 'custom';
+      paidAmount = coverage.amount;
+      endDate = coverage.end_date;
+      coveredDays = coverage.covered_days;
+      const subTotal = this.round2(paidAmount / (1 + plan.gst_percent / 100));
+      installments = [{
+        installmentNo: 1,
+        status: 'Not Paid',
+        sub_total: subTotal,
+        tax: this.round2(paidAmount - subTotal),
+        order_total_amount: paidAmount,
+        subscription_end_date: endDate
+      }];
+    }
+    installments = installments.map(({ installmentNo, ...rest }) => rest);
+
+    const paymentPlan = {
+      ...(customerData?.payment_plan || {}),
+      ...plan,
+      // Keep the current (still valid or expired) end date until payment is confirmed
+      payment_subscription_end_date: customerData?.payment_plan?.payment_subscription_end_date || '',
+      pending_plan: paymentType,
+      pending_amount: paidAmount,
+      pending_covered_days: coveredDays,
+      pending_start_date: this.formatSubscriptionDate(startDate),
+      pending_subscription_end_date: endDate,
+      pending_remaining_amount: Math.max(0, this.round2(plan.annual_amount - paidAmount)),
+      status: 'Awaiting Payment',
+      updated_on: new Date().toISOString()
+    };
+
+    this.loaderService.emitLoading();
+    const saved = await new Promise<boolean>((resolve) => {
+      this.hotelenrollmenttabviewService.updateCustomerFcm({
+        domain_name: DOMAIN_NAME,
+        user_id: USER_ID,
+        extras: { find: { id: customerData?.id } },
+        payload: { customer_update: { payment_plan: paymentPlan } }
+      }).subscribe({
+        next: (resp: any) => resolve(resp?.success === 1),
+        error: () => resolve(false)
+      });
+    });
+    if (!saved) {
+      this.loaderService.emitComplete();
+      return false;
+    }
+
+    return this.createOrderAndRedirect(customerData, {
+      paymentType,
+      payment_split: [{ name: paymentType, installments }],
+      order_review: {
+        order_summary: {
+          sub_total: installments[0].sub_total,
+          tax: installments[0].tax,
+          order_total_amount: paidAmount
+        }
+      },
+      subscriptionEndDate: endDate,
+      payableTotal: paidAmount,
+      // choosen_plan_type: quarterly | half_yearly | annual | custom
+      extra: { payment_plan: paymentPlan, choosen_plan_type: paymentType, order_type: 'subscription' }
+    });
+  }
+
+  /**
+   * Free plan: no gateway. Records the free period on the customer and creates a ₹0
+   * confirmed order, so the rest of the app treats registration as complete and the
+   * payment popup returns when the period ends. The caller shows the confirmation page.
+   */
+  async activateFreePlan(customerData: any): Promise<boolean> {
+    if (!this.isFreePeriodActive(customerData)) {
+      return false;
+    }
+    const { start_date, end_date } = customerData.payment_plan.free_period;
+    const paidAt = new Date().toISOString();
+
+    this.loaderService.emitLoading();
+    const saved = await new Promise<boolean>((resolve) => {
+      this.hotelenrollmenttabviewService.updateCustomerFcm({
+        domain_name: DOMAIN_NAME,
+        user_id: USER_ID,
+        extras: { find: { id: customerData.id } },
+        payload: {
+          customer_update: {
+            subscription_end_date: end_date,
+            payment_plan: {
+              ...customerData.payment_plan,
+              selected_plan: 'free',
+              paid_amount: 0,
+              payment_start_date: start_date,
+              payment_subscription_end_date: end_date,
+              status: 'Free'
+            }
+          }
+        }
+      }).subscribe({
+        next: (resp: any) => resolve(resp?.success === 1),
+        error: () => resolve(false)
+      });
+    });
+    if (!saved) {
+      this.loaderService.emitComplete();
+      return false;
+    }
+
+    const base = this.buildOrderData(customerData, {
+      paymentType: 'free',
+      payment_split: [{
+        name: 'free',
+        installments: [{
+          status: 'Paid',
+          sub_total: 0,
+          tax: 0,
+          order_total_amount: 0,
+          subscription_end_date: end_date,
+          paid_date_time: paidAt
+        }]
+      }],
+      order_review: { order_summary: { sub_total: 0, tax: 0, order_total_amount: 0 } },
+      subscriptionEndDate: end_date,
+      payableTotal: 0,
+      extra: { choosen_plan_type: 'free', order_type: 'subscription' }
+    });
+    const orderData = {
+      ...base,
+      status: 'Order Confirmed',
+      status_id: '3',
+      system_label: 'Confirmed',
+      payment_status: 'Paid',
+      payment: { ...base.payment, payment_date: paidAt, payment_status: 'Paid' }
+    };
+
+    const created = await new Promise<boolean>((resolve) => {
+      this.hotelenrollmenttabviewService.orderUpsert({
+        domain_name: DOMAIN_NAME,
+        user_id: USER_ID,
+        payload: { order_creation: orderData },
+        extras: { find: { id: '' } }
+      }).subscribe({
+        next: (resp: any) => resolve(!!resp?.success),
+        error: () => resolve(false)
+      });
+    });
+    this.loaderService.emitComplete();
+    if (created) {
+      this.localService.set('FreePlanEnd', end_date);
+    }
+    return created;
+  }
+
+  /** Order document shared by paid and free orders. */
+  private buildOrderData(customerData: any, opts: OrderOptions): any {
+    const { paymentType, payment_split, order_review, subscriptionEndDate } = opts;
     const isIndia = customerData?.property_details?.property_address?.property_country === 'India';
     const taxInfo = isIndia
       ? { gst_number: customerData?.property_details?.property_address?.property_gst || "" }
       : { vat_number: customerData?.property_details?.property_address?.property_vat || "" };
 
-    const orderData = {
+    return {
       customer_id: customerData?.id,
       status: "Awaiting Payment",
       status_id: "1",
@@ -565,8 +1003,15 @@ export class PaymentHelperService {
       is_active: true,
       modified_by: 16,
       is_registration: true,
-      send_sms: true
+      send_sms: true,
+      ...(opts.extra || {})
     };
+  }
+
+  /** Creates the order and posts the HDFC/CCAvenue form. Shared by payNow and payForPlan. */
+  private createOrderAndRedirect(customerData: any, opts: OrderOptions): Promise<boolean> {
+    const { payableTotal } = opts;
+    const orderData = this.buildOrderData(customerData, opts);
 
     const requestData = {
       domain_name: DOMAIN_NAME,

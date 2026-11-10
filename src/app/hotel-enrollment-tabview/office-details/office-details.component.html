@@ -253,6 +253,9 @@
             {{country.country}}
           </option>
         </select>
+        <span *ngIf="countryList.unavailable" style="color: red; font-size: 12px;">
+          Countries could not be loaded. Please refresh the page or try again later.
+        </span>
         <span *ngIf="customerForm.controls['country'].invalid && customerForm.controls['country'].touched">
           Country is required.
         </span>

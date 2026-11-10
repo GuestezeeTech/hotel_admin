@@ -162,6 +162,30 @@
           </div>
         </div>
       </div>
+      <!-- Slot already filled: ask the user to delete the existing image before uploading again -->
+      <div class="modal-overlay" *ngIf="showReplaceConfirm" (click)="cancelReplace()">
+        <div class="replace-confirm" role="dialog" aria-modal="true" aria-labelledby="replaceConfirmTitle"
+          (click)="$event.stopPropagation()">
+          <h4 id="replaceConfirmTitle">Image already uploaded</h4>
+          <p *ngIf="replaceSlotIndex !== null">
+            {{ uploadedFiles[replaceSlotIndex]?.name }} already has
+            <strong>{{ uploadedFiles[replaceSlotIndex]?.fileName || 'an image' }}</strong>.
+            Delete it to upload a new image?
+          </p>
+          <p *ngIf="replaceSlotIndex === null">
+            All image slots are filled. Delete an existing image using the
+            <i class="fa fa-trash" aria-hidden="true"></i> icon, then upload the new one.
+          </p>
+          <div class="replace-confirm-actions">
+            <button type="button" class="replace-cancel" (click)="cancelReplace()">
+              {{ replaceSlotIndex === null ? 'OK' : 'Cancel' }}
+            </button>
+            <button type="button" class="replace-delete" *ngIf="replaceSlotIndex !== null" (click)="confirmReplace()">
+              Delete &amp; Upload
+            </button>
+          </div>
+        </div>
+      </div>
       <div class="modal-overlay" *ngIf="isModalOpen">
         <div class="modal-content" (click)="$event.stopPropagation()">
           <button (click)="closeModal()" class="close-btn"><i class="fa fa-times"></i></button>
@@ -193,6 +217,13 @@
             </div>
           </div>
           <div class="image-gallery-footer">
+            <button type="button" class="gallery-add-image-btn"
+              (click)="triggerAddGalleryImage()"
+              [disabled]="isAddingGalleryImage || galleryLoading">
+              {{ isAddingGalleryImage ? 'Uploading...' : 'Add Image' }}
+            </button>
+            <input #galleryAddImageInput type="file" accept="image/*,.webp,.png,.jpg,.jpeg,.gif"
+              class="d-none" (change)="onAddGalleryImageSelected($event)" />
             <button type="button" class="gallery-close-btn" (click)="closeImageGallery()">Close</button>
           </div>
         </div>

@@ -127,14 +127,12 @@
         <!-- ICON Upload -->
         <div class="form-group form1_div">
           <div class="custom-file-upload" [ngClass]="{ 'disabled-upload': isViewMode }">
-            <input type="file" #iconInput formControlName="icon" accept="image/*" (change)="logoupload($event)"
-              [disabled]="isViewMode || (!service_id && !canAddSystemSettings) || (!!service_id && !canEditSystemSettings)" />
             <label class="upload-label">
               <div class="file-preview">
                 <div class="icon-tag">ICON</div>
                 <div>
-                  <div class="file-name" *ngIf="!logo_image" [class.disabled-text]="isViewMode">Choose file...</div>
-                  <div class="file-name" *ngIf="logo_image" [class.disabled-text]="isViewMode">Uploaded</div>
+                  <div class="file-name" *ngIf="!logo_image" [class.disabled-text]="isViewMode">Choose from gallery...</div>
+                  <div class="file-name" *ngIf="logo_image" [class.disabled-text]="isViewMode">Selected</div>
                 </div>
               </div>
               <div class="upload-actions">
@@ -144,28 +142,24 @@
                 <!-- Show preview icon only when icon image exists -->
                 <i class="fas fa-eye" *ngIf="logo_image" (click)="openImagePreview('icon')">
                 </i>
-                <i class="fas fa-upload" [class.disabled-icon]="isViewMode" (click)="!isViewMode && openLogofile()"></i>
+                <i class="fas fa-upload" [class.disabled-icon]="isViewMode" (click)="!isViewMode && openGallery('icon')"></i>
               </div>
             </label>
-            <!-- <p *ngIf="!logo_image && !isViewMode" style="font-size: 12px; color: #666; font-style: italic; margin-bottom: 0;">Icon size
-              should exactly be 150x 150 pixels</p> -->
             <p *ngIf="!logo_image && !isViewMode"
               style="font-size: 11px; color: #666; font-style: italic; margin-bottom: 0;">
-              * Allowed formats: JPG, JPEG, PNG. Max size: 2MB. Dimensions: 150 x 150 pixels.
+              * Choose an icon from the gallery, or add a new one there. Formats: JPG, PNG, WEBP, GIF. Max size: 5MB.
             </p>
           </div>
         </div>
         <!-- IMAGE Upload -->
         <div class="form-group form1_div">
           <div class="custom-file-upload" [ngClass]="{ 'disabled-upload': isViewMode }">
-            <input type="file" #imageInput formControlName="image" accept="image/*" (change)="imageupload($event)"
-              [disabled]="isViewMode || (!service_id && !canAddSystemSettings) || (!!service_id && !canEditSystemSettings)" />
             <label class="upload-label">
               <div class="file-preview">
                 <div class="icon-tag">IMAGE</div>
                 <div>
-                  <div class="file-name" *ngIf="!service_image" [class.disabled-text]="isViewMode">Choose file...</div>
-                  <div class="file-name" *ngIf="service_image" [class.disabled-text]="isViewMode">Uploaded</div>
+                  <div class="file-name" *ngIf="!service_image" [class.disabled-text]="isViewMode">Choose from gallery...</div>
+                  <div class="file-name" *ngIf="service_image" [class.disabled-text]="isViewMode">Selected</div>
                 </div>
               </div>
               <div class="upload-actions">
@@ -176,14 +170,12 @@
                 <i class="fas fa-eye" *ngIf="service_image" (click)="openImagePreview('image')">
                 </i>
                 <i class="fas fa-upload" [class.disabled-icon]="isViewMode"
-                  (click)="!isViewMode && openImagefile()"></i>
+                  (click)="!isViewMode && openGallery('image')"></i>
               </div>
             </label>
-            <!-- <p *ngIf="!service_image && !isViewMode" style="font-size: 12px; color: #666; font-style: italic; margin-bottom: 0;">Image
-              size should exactly be 1280 x 720 pixels</p> -->
             <p *ngIf="!service_image && !isViewMode"
               style="font-size: 11px; color: #666; font-style: italic; margin-bottom: 0;">
-              * Allowed formats: JPG, JPEG, PNG. Max size: 2MB. Dimensions: 1280 x 720 pixels.
+              * Choose an image from the gallery, or add a new one there. Formats: JPG, PNG, WEBP, GIF. Max size: 5MB.
             </p>
           </div>
         </div>
@@ -299,6 +291,45 @@
           (click)="navigateBack()">
           Exit
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Service Icon / Image Gallery -->
+  <div class="gallery-overlay" *ngIf="isGalleryOpen" (click)="closeGallery()">
+    <div class="image-gallery-modal" (click)="$event.stopPropagation()">
+      <div class="image-gallery-header">
+        <h3>{{ galleryMode === 'icon' ? 'Service Icons' : 'Service Images' }}</h3>
+        <input type="text" class="image-gallery-search"
+          [placeholder]="galleryMode === 'icon' ? 'Search by icon name' : 'Search by image name'" [value]="gallerySearch"
+          (input)="onGallerySearchInput($event)">
+        <button type="button" class="gallery-close" (click)="closeGallery()" aria-label="Close">
+          <i class="fa fa-times"></i>
+        </button>
+      </div>
+      <div class="image-gallery-body">
+        <p *ngIf="galleryLoading" class="gallery-status">Loading images...</p>
+        <div *ngIf="!galleryLoading && galleryLoadFailed" class="gallery-status">
+          <p>Unable to load images. The image service may be unavailable.</p>
+          <button type="button" class="gallery-close-btn" (click)="loadGalleryImages()">Retry</button>
+        </div>
+        <p *ngIf="!galleryLoading && !galleryLoadFailed && filteredGalleryImages.length === 0" class="gallery-status">No images found</p>
+        <div class="image-gallery-grid" *ngIf="!galleryLoading">
+          <button type="button" class="gallery-card" *ngFor="let image of filteredGalleryImages"
+            (click)="selectGalleryImage(image)">
+            <img [src]="image.image_source" [alt]="image.image_name" loading="lazy">
+            <span [title]="getGalleryImageDisplayName(image)">{{ getGalleryImageDisplayName(image) }}</span>
+          </button>
+        </div>
+      </div>
+      <div class="image-gallery-footer">
+        <button type="button" class="gallery-add-image-btn" (click)="triggerAddGalleryImage()"
+          [disabled]="isAddingGalleryImage || galleryLoading">
+          {{ isAddingGalleryImage ? 'Uploading...' : 'Add Image' }}
+        </button>
+        <input #galleryAddImageInput type="file" accept=".webp,.png,.jpg,.jpeg,.gif" class="d-none"
+          (change)="onAddGalleryImageSelected($event)" />
+        <button type="button" class="gallery-close-btn" (click)="closeGallery()">Close</button>
       </div>
     </div>
   </div>

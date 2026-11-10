@@ -18,6 +18,7 @@ import { HttpHeaders } from '@angular/common/http';
 import { ProfileService } from '../../profile/profile.service';
 import { HierarchyService } from '../../hierarchy/hierarchy.service';
 import { COUNTRY_CODES, COUNTRY_STATES, CountryState } from '../../shared/constants/countries';
+import { CountryListService } from '../../shared/constants/country-list.service';
 import { SharedDataService } from '../../shared/shared-data.service';
 
 @Component({
@@ -181,7 +182,8 @@ export class PropertyDetails1Component {
     private profileService: ProfileService,
     // Newly added fo hierarchy member_id update
     private hierarchyService: HierarchyService,
-    private sharedDataService: SharedDataService
+    private sharedDataService: SharedDataService,
+    public countryList: CountryListService
   ) {
     this.router.events.subscribe(event => {
       if (event instanceof NavigationEnd) {
@@ -197,6 +199,18 @@ export class PropertyDetails1Component {
         }
       }
     });
+  }
+
+  /** States for the country already in the form, after the API list loads; keeps the chosen state. */
+  private refreshStatesForSelectedCountry(): void {
+    const selected = COUNTRY_STATES.find(c => c.country === this.customerProprtyDetailsForm.get('property_country')?.value);
+    if (!selected) {
+      return;
+    }
+    this.statesDropdownList = selected.states.map(s => ({ state: s, code: '', flag: '' }));
+    if (!this.customerProprtyDetailsForm.disabled && this.customerStatus !== 'approved') {
+      this.customerProprtyDetailsForm.get('property_state')?.enable({ emitEvent: false });
+    }
   }
 
   ngOnInit(): void {
@@ -229,7 +243,8 @@ export class PropertyDetails1Component {
       property_location: new FormControl('', [Validators.required, CustomValidators.noWhitespaceValidator]),
       property_country: new FormControl('', Validators.required),
       property_pincode: new FormControl('', [Validators.required, CustomValidators.dynamicPincodeValidator()]),
-      property_size: new FormControl('', Validators.required),
+      // Property Size is no longer shown or required; it is derived from number_of_rooms
+      property_size: new FormControl(''),
       // Newly added
       company_status: new FormControl('', Validators.required),
       // other_brand_name: new FormControl('', Validators.required),
@@ -274,6 +289,8 @@ export class PropertyDetails1Component {
 
     // Disable state initially
     this.customerProprtyDetailsForm.get('property_state')?.disable();
+    // Countries come from the API; rebuild the state list once they arrive
+    this.countryList.load().then(() => this.refreshStatesForSelectedCountry());
 
     // Listen to changes on the country select dropdown
     this.customerProprtyDetailsForm.get('property_country')?.valueChanges.subscribe((selectedCountryName) => {
@@ -1488,6 +1505,8 @@ export class PropertyDetails1Component {
       if (savedSize) {
         this.selectedPropertySize = savedSize;
       }
+      // Property Size field is hidden: keep it in step with the saved number of rooms
+      this.syncPropertySizeFromRooms(this.customerdata.property_details?.property_address?.number_of_rooms);
       // Newly added for documents upload
       //  this.uploadedDocumentsApi = this.customerdata.property_details?.kyc_documents?.uploaded_documents;
       this.originalUploadedDocuments = this.customerdata.property_details?.kyc_documents?.uploaded_documents || [];
@@ -2546,9 +2565,35 @@ export class PropertyDetails1Component {
   //   control?.setErrors(Object.keys(errors).length > 0 ? errors : null);
   // }
 
+  /** Property size band for a room count (the Property Size field is no longer shown). */
+  private sizeForRooms(rooms: number): string | null {
+    const count = Number(rooms);
+    if (!Number.isFinite(count) || count < 1) return null;
+    const match = Object.keys(this.propertySizeRanges).find(size => {
+      const range = this.propertySizeRanges[size];
+      return count >= range.min && count <= range.max;
+    });
+    return match || null;
+  }
+
+  /** Sets selectedPropertySize and the hidden property_size control from the room count. */
+  private syncPropertySizeFromRooms(rooms: any): void {
+    const size = this.sizeForRooms(rooms);
+    if (!size) return;
+    this.selectedPropertySize = size;
+    const sizeControl = this.customerProprtyDetailsForm.get('property_size');
+    if (sizeControl && sizeControl.value !== size) {
+      sizeControl.setValue(size, { emitEvent: false });
+    }
+  }
+
   updatePricingAndValidation(numberOfRooms?: number, selectedSize?: string) {
     const control = this.customerProprtyDetailsForm.get('number_of_rooms');
     const rooms = numberOfRooms ?? control?.value ?? 0;
+    // Property Size is derived from the room count, so the range check below always matches
+    if (!selectedSize) {
+      this.syncPropertySizeFromRooms(rooms);
+    }
     const propertySize = selectedSize ?? this.selectedPropertySize;
 
     // --- Determine price per room and update cost display

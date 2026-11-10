@@ -15,7 +15,37 @@
 
 
 
-    <div class="container" *ngIf="isReadyToRender">
+    <app-registration-property-popup
+      [visible]="showRegistrationPopup"
+      [customerdata]="customerdata"
+      [submitting]="registrationPopupSubmitting"
+      (submitted)="onRegistrationPopupSubmit($event)">
+    </app-registration-property-popup>
+
+    <app-subscription-payment-popup
+      [visible]="showSubscriptionPopup && !showRegistrationPopup"
+      [customerdata]="customerdata"
+      [isRenewal]="subscriptionRenewal">
+    </app-subscription-payment-popup>
+
+    <div class="container" *ngIf="isReadyToRender && awaitingRegistrationApproval && !showRegistrationPopup">
+      <div class="registration-pending-card">
+        <h3>Registration pending approval</h3>
+        <p>
+          Your property details have been submitted. Once an administrator approves your account,
+          you can continue with Registered Office Details. Property Details will be prefilled from
+          the form you just submitted.
+        </p>
+        <p class="status-line">Account status: <strong>{{ customerdata?.status || 'pending' }}</strong></p>
+        <button type="button" class="btn btn-outline-secondary" (click)="refreshRegistrationStatus()">
+          Refresh status
+        </button>
+      </div>
+    </div>
+
+    <!-- Tabs unlock after approval + subscription payment; then filled one by one -->
+    <div class="container" *ngIf="isReadyToRender && canFillRegistrationTabs">
+      <app-setup-progress></app-setup-progress>
       <!-- Newly added for customer status(hint) -->
       <div *ngIf="this.customerStatus !== 'approved'" class="save-hint-wrapper">
         <div class="save-hint mb-2">
