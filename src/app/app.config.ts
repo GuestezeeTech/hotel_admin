@@ -512,6 +512,8 @@ export const ENDPOINTS = {
   CREATE_TECHNICAL_INFO: API_URL + ':3567/ecomintegrationsettings/create',
   UPDATE_TECHNICAL_INFO: API_URL + ':3567/ecomintegrationsettings/update',
   GET_ALL_TASK: API_URL + ':3411/task/getall',
+  /** Guest app mobile key analytics (create:1000 / getall:1001). */
+  MOBILE_KEY_GETALL: API_URL + ':1001/key/getall',
   CREATE_TASK: API_URL + ':3410/task/create',
   UPDATE_TASK: API_URL + ':3410/task/update',
   GET_ALL_BOOKINGS: API_URL + ':4676/reservation/getall',

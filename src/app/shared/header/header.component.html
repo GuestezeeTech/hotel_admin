@@ -1,32 +1,50 @@
 <header class="header">
   <div class="menu-name">
-    <h1 style="color:black; font-size: 20px;">
-      <!--newly commented and added-->
-      <!-- <img src="assets/images/guestezee/menu.png" alt="Menu Icon">&nbsp;&nbsp;{{selectedMenu }} --> 
-      <img src="assets/images/guestezee/menu.png" alt="Menu Icon">&nbsp;&nbsp;{{activeMenu}}
+    <h1>
+      <img src="assets/images/guestezee/menu.png" alt="Menu Icon" />
+      <span>{{ activeMenu }}</span>
     </h1>
   </div>
   <!-- User Info Section -->
-  <div class="user-info d-flex align-items-center">
-    <img class="notification-icon" src="assets/images/guestezee/notify.png" alt="Notification"
-      (click)="toggleNotification()" *ngIf="(this.customerType=='Staff')">
-    <div #accountToggle (click)="toggleLogout($event)" style="cursor: pointer;">
-      <img [src]="profile_image" alt="Profile" class="profile-icon border mr-2"
-        style="width: 35px; height: 35px; object-fit: contain; background-color: #ffffff; border-radius: 4px;">
-      <span class="username d-none d-md-inline">{{profile_name}}</span>
-        <i class="bi bi-chevron-down" style="color:black; font-size: 12px; margin-left:3px;"></i>
-      <!-- Display username only on medium screens and larger -->
-    </div>
-  </div>
-  <div #accountDropdown *ngIf="showAccount" class="position-absolute profile-settings border rounded-3 shadow-sm  mt-2"
-    style="top: 70%; right: 1.5%; width: 10%; background-color: #fff;    z-index: 1000;">
-    <button class="btn d-flex align-items-center shadow-none border-0 pt-2 ps-2 pe-3" (click)="navigateToProfile()">
-      <i class="fas fa-user-circle me-2" style="color: #800020; font-size: 15px;"></i>
-      <span style="font-size: 15px; font-weight: 600;">Profile</span>
+  <div class="user-info">
+    <img
+      class="notification-icon"
+      src="assets/images/guestezee/notify.png"
+      alt="Notification"
+      (click)="toggleNotification()"
+      *ngIf="customerType == 'Staff'"
+    />
+    <button
+      #accountToggle
+      type="button"
+      class="account-toggle"
+      (click)="toggleLogout($event)"
+      [attr.aria-expanded]="showAccount"
+      aria-haspopup="menu"
+      aria-label="Account menu"
+    >
+      <img
+        [src]="profile_image"
+        alt=""
+        class="profile-icon"
+      />
+      <span class="username">{{ profile_name }}</span>
+      <i class="bi bi-chevron-down account-chevron" aria-hidden="true"></i>
     </button>
-    <button class="btn d-flex align-items-center shadow-none border-0  ps-2 pe-3" (click)="logout()">
-      <i class="fas fa-power-off me-2" style="color: #800020; font-size: 14px;"></i>
-      <span style="font-size: 15px; font-weight: 600;">Logout</span>
+  </div>
+  <div
+    #accountDropdown
+    *ngIf="showAccount"
+    class="profile-settings"
+    role="menu"
+  >
+    <button type="button" class="profile-menu-item" role="menuitem" (click)="navigateToProfile()">
+      <i class="fas fa-user-circle" aria-hidden="true"></i>
+      <span>Profile</span>
+    </button>
+    <button type="button" class="profile-menu-item" role="menuitem" (click)="logout()">
+      <i class="fas fa-power-off" aria-hidden="true"></i>
+      <span>Logout</span>
     </button>
   </div>
 </header>

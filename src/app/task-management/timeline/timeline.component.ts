@@ -10,6 +10,7 @@ import { TaskManagementService } from '../task-management.service';
 import { AlertsService } from '../../shared/alerts/alerts.service';
 import { LoaderService } from '../../shared/loader/loader.service';
 import { HotelEnrollmentTabviewService } from '../../hotel-enrollment-tabview/hotel-enrollment-tabview.service';
+import { formatAmPmTime } from '../../shared/time-format.util';
 
 @Component({
   selector: 'app-timeline',
@@ -252,16 +253,23 @@ export class TimelineComponent {
     );
   }
 
+  formatDisplayTime(value: string | Date | null | undefined): string {
+    return formatAmPmTime(value) || '—';
+  }
+
   getExpectedTime(orderTime: string, minutesToAdd: number): string {
     if (!orderTime || isNaN(minutesToAdd)) return '';
-    const [hours, minutes, seconds] = orderTime.split(':').map(Number);
+    const clock = String(orderTime).trim().match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+    if (!clock) {
+      return formatAmPmTime(orderTime) || '';
+    }
+    const hours = Number(clock[1]);
+    const minutes = Number(clock[2]);
+    const seconds = clock[3] != null ? Number(clock[3]) : 0;
     const now = new Date();
     const baseDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, seconds);
     const resultDate = new Date(baseDate.getTime() + minutesToAdd * 60000);
-    const hh = String(resultDate.getHours()).padStart(2, '0');
-    const mm = String(resultDate.getMinutes()).padStart(2, '0');
-    const ss = String(resultDate.getSeconds()).padStart(2, '0');
-    return `${hh}:${mm}:${ss}`;
+    return formatAmPmTime(resultDate) || '';
   }
 
 
@@ -288,6 +296,23 @@ export class TimelineComponent {
   }
 
   navigateToCart() {
+    const from = this.route.snapshot.queryParamMap.get('from');
+    if (from === 'hotel-overview') {
+      this.router.navigate(['/overview-dashboard']);
+      return;
+    }
+    if (from === 'fb-dashboard') {
+      this.router.navigate(['/fb/dashboard']);
+      return;
+    }
+    if (from === 'hk-dashboard') {
+      this.router.navigate(['/hk/dashboard']);
+      return;
+    }
+    if (from === 'fo-dashboard') {
+      this.router.navigate(['/fo/dashboard']);
+      return;
+    }
     this.router.navigate(['/task-management']);
   }
 

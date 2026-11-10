@@ -1,0 +1,120 @@
+/* Shared shimmer tokens/styles only — each dashboard builds its own skeleton markup. */
+.ds-block {
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    #f4f7f9 0%,
+    #fbfcfd 42%,
+    #eef3f6 58%,
+    #f4f7f9 100%
+  );
+  background-size: 200% 100%;
+  animation: ds-shimmer-move 1.4s ease-in-out infinite;
+}
+
+.ds-title {
+  width: 160px;
+  height: 16px;
+  margin-bottom: 6px;
+}
+
+.ds-subtitle {
+  width: 240px;
+  height: 10px;
+}
+
+.ds-chip {
+  width: 110px;
+  height: 28px;
+  border-radius: 7px;
+}
+
+.ds-line {
+  height: 9px;
+  width: 76%;
+
+  &.short {
+    width: 46%;
+  }
+
+  &.medium {
+    width: 58%;
+  }
+}
+
+.ds-value {
+  width: 40%;
+  height: 18px;
+  margin: 8px 0 6px;
+}
+
+.ds-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  flex-shrink: 0;
+}
+
+.ds-circle {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ds-panel {
+  background: #fff;
+  border: 1px solid #eef2f4;
+  border-radius: 9px;
+  padding: 12px;
+  min-height: 120px;
+}
+
+.ds-kpi {
+  border-radius: 9px;
+  padding: 12px;
+  min-height: 96px;
+  border: 1px solid #eef2f4;
+  background: #f7fafb;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+
+  &.tone-primary {
+    background: #3f7eab;
+    border-color: transparent;
+
+    .ds-block {
+      background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.14) 0%,
+        rgba(255, 255, 255, 0.26) 42%,
+        rgba(255, 255, 255, 0.12) 58%,
+        rgba(255, 255, 255, 0.14) 100%
+      );
+      background-size: 200% 100%;
+      animation: ds-shimmer-move 1.4s ease-in-out infinite;
+    }
+  }
+
+  &.tone-blue { background: #f3f8fb; }
+  &.tone-green { background: #f3faf6; }
+  &.tone-orange { background: #fffaf3; }
+  &.tone-red { background: #fdf6f5; }
+  &.tone-pale { background: #f4f8fd; }
+}
+
+.ds-loading-lock {
+  overflow: hidden !important;
+  max-height: calc(100vh - 90px);
+}
+
+@keyframes ds-shimmer-move {
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
+}

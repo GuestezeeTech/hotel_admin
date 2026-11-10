@@ -22,7 +22,7 @@ $heading-color : #333;
 $help-text-color: #b0b1b3;
 
 // FONT FAMILY
-$theme-font: 'Urbanist';
+$theme-font: 'Urbanist', Roboto, sans-serif;
 
 // LOGO
 $theme-logo: url("../../../images/guestezee/logo.png");
@@ -37,7 +37,7 @@ $logo-height:110px;
 
 
 .main {
-    margin-left: 19%;
+    margin-left: var(--sidebar-width, 19%);
 }
 
 /* Prevent page scroll when a fullscreen modal is open */

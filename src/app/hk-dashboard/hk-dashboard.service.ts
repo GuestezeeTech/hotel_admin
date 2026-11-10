@@ -12,6 +12,8 @@ import { ServiceDetailService } from '../hotel-enrollment-tabview/service-detail
 
 import { TaskManagementService } from '../task-management/task-management.service';
 
+import { formatAmPmTime } from '../shared/time-format.util';
+
 
 
 export type HkPerformanceCounts = {
@@ -178,7 +180,7 @@ export class HkDashboardService {
 
       services: this.fetchMemberServices(memberId),
 
-      tasksResp: this.overviewService.fetchAllTasks(),
+      tasksResp: this.overviewService.fetchAllTasks(memberId),
 
       staff: this.fetchMemberStaff(memberId)
 
@@ -434,48 +436,13 @@ export class HkDashboardService {
 
 
 
-  private filterTasksByAllowedServices(tasks: any[], allowedServices: any[]): any[] {
-
-    const list = tasks || [];
-
-    if (!allowedServices.length) {
-
-      return list.filter((task) => this.isHousekeepingTask(task));
-
-    }
-
-    const allowedIds = new Set(
-
-      allowedServices
-
-        .map((s) => Number(s?.id))
-
-        .filter((id) => Number.isFinite(id) && id > 0)
-
-    );
-
-    const allowedKeys = new Set(allowedServices.map((s) => this.serviceMatchKey(s)));
-
-    return list.filter((task) => {
-
-      if (this.isExcludedTaskService(task)) {
-
-        return false;
-
-      }
-
-      const serviceId = Number(task?.service?.service_id);
-
-      if (Number.isFinite(serviceId) && serviceId > 0 && allowedIds.has(serviceId)) {
-
-        return true;
-
-      }
-
-      return allowedKeys.has(this.taskServiceMatchKey(task));
-
-    });
-
+  /**
+   * HK board tasks: same belongs_to rule as Overview —
+   * keep everything that is not Menu Ordering / Checkout / Late checkout
+   * (includes Help Service even when Assigned Department is empty).
+   */
+  private filterTasksByAllowedServices(tasks: any[], _allowedServices: any[]): any[] {
+    return (tasks || []).filter((task) => this.isHousekeepingTask(task));
   }
 
 
@@ -977,45 +944,51 @@ export class HkDashboardService {
 
 
   isDelayedTask(task: any): boolean {
-
-    if (this.hasStatus(task, 'Cancelled', 'Rejected')) {
-
+    // Delayed list: Delivered / Completed only (SLA overrun)
+    if (!this.hasStatus(task, 'Delivered', 'Completed')) {
       return false;
-
     }
-
-    const value = task?.timely_delivered;
-
-    if (value === false) {
-
-      return true;
-
-    }
-
-    if (typeof value === 'string') {
-
-      return value.trim().toLowerCase() === 'false';
-
-    }
-
-    if (value === 0) {
-
-      return true;
-
-    }
-
     const target = Number(task?.service?.time_bound_value ?? 0);
-
-    const actual = Number(task?.actual_time_to_close_the_task ?? 0);
-
-    if (target > 0 && actual > target) {
-
-      return true;
-
+    if (!(target > 0)) {
+      return false;
     }
+    const start = this.taskOrderStartMs(task);
+    const end = this.taskCloseEndMs(task);
+    if (start == null || end == null || end < start) {
+      return false;
+    }
+    return Math.round((end - start) / 60000) > target;
+  }
 
-    return false;
+  private taskOrderStartMs(task: any): number | null {
+    const combined = `${task?.order_date || ''} ${task?.order_time || ''}`.trim();
+    if (combined) {
+      const d = new Date(combined);
+      if (!Number.isNaN(d.getTime())) {
+        return d.getTime();
+      }
+    }
+    const created = String(task?.created_on ?? '').trim();
+    if (!created) {
+      return null;
+    }
+    const d = new Date(created);
+    return Number.isNaN(d.getTime()) ? null : d.getTime();
+  }
 
+  private taskCloseEndMs(task: any): number | null {
+    // Prefer completed_time (staff) over delivered_time (guest ack can lag)
+    for (const raw of [task?.completed_time, task?.delivered_time]) {
+      const s = String(raw ?? '').trim();
+      if (!s) {
+        continue;
+      }
+      const d = new Date(s);
+      if (!Number.isNaN(d.getTime())) {
+        return d.getTime();
+      }
+    }
+    return null;
   }
 
 
@@ -1036,7 +1009,7 @@ export class HkDashboardService {
 
     return {
 
-      id: `HK-${task?.id ?? task?._id ?? ''}`,
+      id: String(task?.id ?? task?._id ?? '—'),
 
       apiStatus,
 
@@ -1206,7 +1179,7 @@ export class HkDashboardService {
 
     const dateRaw = task?.order_date;
 
-    const time = String(task?.order_time ?? '').trim();
+    const time = formatAmPmTime(task?.order_time);
 
     if (!dateRaw) {
 
@@ -1218,7 +1191,7 @@ export class HkDashboardService {
 
     if (!d) {
 
-      return `${dateRaw} ${time}`.trim();
+      return `${dateRaw} ${time}`.trim() || '—';
 
     }
 
@@ -1463,6 +1436,166 @@ export class HkDashboardService {
   }
 
 
+
+  /**
+   * Paid vs Free + charge for Guest Services Availed report.
+   * Uses task/service amount fields when present; otherwise Free.
+   */
+  resolveServiceCharge(task: any): { type: 'Paid' | 'Free'; amount: number; label: string } {
+    const service = task?.service || {};
+    const candidates = [
+      task?.service_charge,
+      task?.service_amount,
+      task?.amount,
+      task?.price,
+      task?.charge,
+      service?.service_charge,
+      service?.amount,
+      service?.price,
+      service?.service_price,
+      service?.cost
+    ];
+    let amount = 0;
+    for (const raw of candidates) {
+      const n = Number(raw);
+      if (Number.isFinite(n) && n > 0) {
+        amount = n;
+        break;
+      }
+    }
+    const typeFlag = String(
+      task?.service_type ?? service?.service_type ?? service?.pricing_type ?? service?.payment_type ?? ''
+    )
+      .trim()
+      .toLowerCase();
+    const explicitPaid =
+      typeFlag.includes('paid') ||
+      typeFlag.includes('charge') ||
+      task?.is_paid === true ||
+      service?.is_paid === true ||
+      service?.is_chargeable === true;
+    const explicitFree =
+      typeFlag.includes('free') ||
+      task?.is_free === true ||
+      service?.is_free === true ||
+      service?.is_chargeable === false;
+
+    if (amount > 0 || (explicitPaid && !explicitFree)) {
+      return {
+        type: 'Paid',
+        amount,
+        label: amount > 0 ? this.formatInr(amount) : 'Paid'
+      };
+    }
+    return { type: 'Free', amount: 0, label: 'Free' };
+  }
+
+  formatInr(amount: number | null | undefined): string {
+    if (amount == null || !Number.isFinite(Number(amount))) {
+      return '—';
+    }
+    return `₹${Number(amount).toLocaleString('en-IN', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2
+    })}`;
+  }
+
+  /** Word-doc report helpers — timeline / delay / escalation labels. */
+  timelineStatusLabel(task: any, status: string): string {
+    const timeline = Array.isArray(task?.time_line) ? task.time_line : [];
+    const entry = [...timeline]
+      .reverse()
+      .find((e: any) => String(e?.status ?? '').trim() === status);
+    if (!entry) {
+      return '—';
+    }
+    const time = formatAmPmTime(entry?.time) || String(entry?.time ?? '').trim();
+    const date = String(entry?.date ?? task?.order_date ?? '').trim();
+    if (date && time) {
+      return `${date} · ${time}`;
+    }
+    return time || date || '—';
+  }
+
+  delayVarianceMinutes(task: any): number | null {
+    const target = Number(task?.service?.time_bound_value ?? 0);
+    const actual = Number(task?.actual_time_to_close_the_task ?? 0);
+    if (!(target > 0 && actual > target)) {
+      return null;
+    }
+    return Math.round(actual - target);
+  }
+
+  delayVarianceLabel(task: any): string {
+    const mins = this.delayVarianceMinutes(task);
+    return mins == null ? '—' : `+${mins} min`;
+  }
+
+  escalationLevelDocLabel(task: any): string {
+    const depth = Math.max(1, this.escalationDepth(task) || 1);
+    if (depth >= 3) {
+      return 'Level 3 · GM';
+    }
+    if (depth === 2) {
+      return 'Level 2 · Dept. Manager';
+    }
+    return 'Level 1 · Supervisor';
+  }
+
+  escalationTriggerReason(task: any): string {
+    const reason = String(
+      task?.escalation_reason ?? task?.delay_reason ?? task?.remarks ?? ''
+    ).trim();
+    if (reason) {
+      return reason;
+    }
+    const staff = String(task?.assigned_staff_name ?? '').trim();
+    if (!staff) {
+      return 'Unassigned Staff';
+    }
+    return 'System Auto-Escalation';
+  }
+
+  escalationResolutionLabel(task: any): string {
+    if (this.hasStatus(task, 'Completed', 'Delivered')) {
+      return this.timelineStatusLabel(task, 'Completed') !== '—'
+        ? this.timelineStatusLabel(task, 'Completed')
+        : this.timelineStatusLabel(task, 'Delivered');
+    }
+    return 'Open';
+  }
+
+  cancellationElapsedLabel(task: any): string {
+    const timeline = Array.isArray(task?.time_line) ? task.time_line : [];
+    const cancel = [...timeline]
+      .reverse()
+      .find((e: any) =>
+        ['Cancelled', 'Rejected'].includes(String(e?.status ?? '').trim())
+      );
+    const start = this.timelineTimestamp(task?.order_date, task?.order_time);
+    const end = cancel
+      ? this.timelineTimestamp(cancel?.date || task?.order_date, cancel?.time)
+      : null;
+    if (start == null || end == null || end < start) {
+      return '—';
+    }
+    return `${Math.max(1, Math.round((end - start) / 60000))} min`;
+  }
+
+  cancellationInitiator(task: any): string {
+    const raw = String(
+      task?.cancelled_by ?? task?.canceled_by ?? task?.cancellation_by ?? ''
+    )
+      .trim()
+      .toLowerCase();
+    if (raw.includes('guest')) {
+      return 'Guest';
+    }
+    if (raw.includes('staff') || raw.includes('desk') || raw.includes('admin')) {
+      return 'Staff';
+    }
+    return raw ? String(task?.cancelled_by ?? task?.canceled_by).trim() : '—';
+  }
 
   private isMenuOrderingTask(task: any): boolean {
 

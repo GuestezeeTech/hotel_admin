@@ -1,236 +1,576 @@
-<div class="fo-root">
+<div class="fo-root" [class.ds-loading-lock]="loading">
   <div class="fo-main">
-      <section class="fo-overview">
-        <div class="page-heading">
-          <div>
-            <h1>Front Office Operations Dashboard</h1>
-            <p>Real-time FO data · Guest service and arrival operations</p>
-          </div>
-          <div class="live-label">● Live Updates　 <span class="clock-muted">{{ liveClock }}　⟳</span></div>
+    <div class="fo-shimmer" *ngIf="loading" aria-busy="true" aria-label="Loading Front Office Dashboard">
+      <div class="page-heading">
+        <div>
+          <div class="ds-block ds-title"></div>
+          <div class="ds-block ds-subtitle"></div>
         </div>
+        <div class="ds-block ds-chip"></div>
+      </div>
+      <div class="kpi-metrics-row">
+        <div class="ds-kpi" *ngFor="let _ of [1,2,3,4,5]"></div>
+      </div>
+      <div class="fo-shimmer-row" *ngFor="let _ of [1,2,3,4]">
+        <div class="ds-panel" *ngFor="let __ of [1,2]">
+          <div class="ds-block ds-line medium"></div>
+          <div class="ds-block ds-line"></div>
+          <div class="ds-block ds-line short"></div>
+        </div>
+      </div>
+    </div>
+    <section class="fo-overview" *ngIf="!loading && activeView === 'report'">
+      <div class="page-heading page-heading--module">
+        <div class="heading-copy">
+          <button type="button" class="back-link" (click)="backToHome()">
+            <i class="bi bi-arrow-left" aria-hidden="true"></i> Back to Front Office Dashboard
+          </button>
+          <h2>{{ activeKpiLabel }}</h2>
+          <p>{{ activeReportCount }} record<span *ngIf="activeReportCount !== 1">s</span></p>
+        </div>
+        <div class="heading-actions" *ngIf="activeReportKey === 'mobile-keys' || activeReportKey === 'mobile-keys-unused'">
+          <div class="fo-tabs">
+            <button type="button" class="fo-tab" [class.active]="activeReportKey === 'mobile-keys'"
+              (click)="openReport('mobile-keys')">Generated</button>
+            <button type="button" class="fo-tab" [class.active]="activeReportKey === 'mobile-keys-unused'"
+              (click)="openReport('mobile-keys-unused')">Not Used</button>
+          </div>
+        </div>
+      </div>
 
-        <div class="section-label">Real-time FO data</div>
-        <div class="kpi-metrics-row">
-          <div class="card kpi">
-            <div class="kpi-top">
-              Total FO Requests <span class="kpi-icon kpi-icon-gold">⋮</span>
-            </div>
-            <div class="kpi-value">95 <span class="trend-up">↑</span></div>
-            <div class="kpi-foot"><span class="trend-up">+10%</span> vs. last week</div>
-          </div>
-          <div class="card kpi complete">
-            <div class="kpi-top">
-              Completed <span class="kpi-icon kpi-icon-green">✓</span>
-            </div>
-            <div class="kpi-value">88</div>
-            <div class="kpi-foot"><span class="text-green">93%</span> completion</div>
-          </div>
-          <div class="card kpi pending">
-            <div class="kpi-top">
-              Pending <span class="kpi-icon kpi-icon-orange">!</span>
-            </div>
-            <div class="kpi-value">5</div>
-            <div class="kpi-foot"><span class="text-orange">5%</span> pending</div>
-          </div>
-          <div class="card kpi escalated">
-            <div class="kpi-top">
-              Escalated <span class="kpi-icon kpi-icon-red">!</span>
-            </div>
-            <div class="kpi-value">2</div>
-            <div class="kpi-foot"><span class="text-red">2%</span> escalated</div>
-          </div>
-        </div>
-        <div class="kpi-charts-row">
-          <div class="card kpi kpi-activities">
-            <div class="kpi-top">
-              Front Office Activities (24 Hours) <span class="muted-icon">⋮</span>
-            </div>
-            <div class="activity-layout">
-              <div class="donut">
-                <div class="donut-center">Activities<b>100%</b></div>
-              </div>
-              <div class="legend">
-                <div class="legend-row"><i class="dot dot-blue"></i>Regular Check-in <b>40%</b></div>
-                <div class="legend-row"><i class="dot dot-teal"></i>Group Check-in <b>15%</b></div>
-                <div class="legend-row"><i class="dot dot-gold"></i>Express Check-out <b>10%</b></div>
-                <div class="legend-row"><i class="dot dot-coral"></i>Late Check-out Request <b>10%</b></div>
-                <div class="legend-row"><i class="dot dot-purple"></i>Mobile Key Activation <b>10%</b></div>
-                <div class="legend-row"><i class="dot dot-amber"></i>General Inquiry <b>15%</b></div>
-              </div>
-            </div>
-          </div>
-          <div class="card kpi kpi-delayed">
-            <div class="kpi-top">
-              Delayed Arrivals <span class="muted-icon">⋮</span>
-            </div>
-            <div class="kpi-value kpi-value-sm">9 requests</div>
-            <div class="delayed-list">
-              <div><i class="dot dot-blue"></i>Regular Check-in</div>
-              <div><i class="dot dot-teal"></i>Group Check-in</div>
-              <div><i class="dot dot-gold"></i>Express Check-out</div>
-              <div><i class="dot dot-coral"></i>Late Check-out Request</div>
-              <div><i class="dot dot-purple"></i>Mobile Key Activation</div>
-              <div><i class="dot dot-amber"></i>General Inquiry</div>
-            </div>
-            <div class="bar-mini">
-              <i style="height: 70%"></i><i style="height: 90%"></i><i style="height: 45%"></i
-              ><i style="height: 60%"></i><i class="bar-accent" style="height: 100%"></i
-              ><i style="height: 76%"></i><i style="height: 24%"></i><i style="height: 40%"></i
-              ><i style="height: 33%"></i>
-            </div>
-          </div>
-        </div>
+      <div class="report-summary" *ngIf="activeReportKey === 'mobile-keys'">
+        <div>Total Mobile Keys Generated<b>{{ filteredMobileKeyRows.length }}</b></div>
+        <div>Unused Keys<b>{{ filteredUnusedMobileKeyRows.length }}</b></div>
+      </div>
+      <div class="report-summary" *ngIf="activeReportKey === 'mobile-keys-unused'">
+        <div>Total Unused Mobile Keys<b>{{ filteredUnusedMobileKeyRows.length }}</b></div>
+      </div>
+      <div class="report-summary" *ngIf="activeReportKey === 'late-revenue'">
+        <div>Total Revenue Generated<b>{{ formatInr(lateRevenueSummary.totalRevenue) }}</b></div>
+        <div>Average per Late Check-Out<b>{{ formatInr(lateRevenueSummary.averageRevenue) }}</b></div>
+        <div>Charged Requests<b>{{ lateRevenueSummary.count }}</b></div>
+      </div>
+      <div class="report-summary" *ngIf="activeReportKey === 'checkout-requests'">
+        <div>Total Check-Out Requests<b>{{ checkoutRequestRows.length }}</b></div>
+      </div>
+      <div class="report-summary" *ngIf="activeReportKey === 'device-os'">
+        <div>Total App Active Guests<b>{{ deviceOsSummary.total }}</b></div>
+        <div>iOS Users<b>{{ deviceOsSummary.ios }} · {{ deviceOsSummary.iosPct }}%</b></div>
+        <div>Android Users<b>{{ deviceOsSummary.android }} · {{ deviceOsSummary.androidPct }}%</b></div>
+      </div>
+      <div class="report-summary" *ngIf="activeReportKey === 'guest-service'">
+        <div>Total Requests Received<b>{{ guestServiceRows.length }}</b></div>
+      </div>
 
-        <div class="middle-grid">
-          <div class="card report-card">
-            <div class="card-heading">
-              <h2>Detailed FO Service Report</h2>
+      <div class="filters report-filters"
+        *ngIf="activeReportKey === 'mobile-keys' || activeReportKey === 'mobile-keys-unused' || activeReportKey === 'device-os'">
+        <select [(ngModel)]="mkRoomFilter">
+          <option value="">Room</option>
+          <option *ngFor="let room of mkRoomOptions" [value]="room">{{ room }}</option>
+        </select>
+        <input [(ngModel)]="mkGuestFilter" placeholder="Guest name" />
+        <select [(ngModel)]="mkOpenedFilter"
+          *ngIf="activeReportKey === 'mobile-keys' || activeReportKey === 'mobile-keys-unused'">
+          <option value="">Opened Status</option>
+          <option *ngFor="let st of mkOpenedOptions" [value]="st">{{ st }}</option>
+        </select>
+        <select [(ngModel)]="mkInHouseFilter"
+          *ngIf="activeReportKey === 'mobile-keys' || activeReportKey === 'mobile-keys-unused'">
+          <option value="">In-House Status</option>
+          <option value="Checked-In">Checked-In</option>
+          <option value="Checked-Out">Checked-Out</option>
+          <option value="Upcoming">Upcoming</option>
+        </select>
+        <select [(ngModel)]="deviceGuestStatusFilter" *ngIf="activeReportKey === 'device-os'">
+          <option value="All">All Guest Status</option>
+          <option value="Checked-In">Checked-In</option>
+          <option value="Checked-Out">Checked-Out</option>
+        </select>
+        <button type="button" class="outline-btn" (click)="resetMobileKeyFilters()">Clear</button>
+      </div>
+
+      <div class="kpi-list-panel table-wrap">
+        <!-- KPI subset -->
+        <table *ngIf="activeReportKey === 'kpi'">
+          <thead>
+            <tr>
+              <th>Date / Time</th>
+              <th>Task ID</th>
+              <th>Room</th>
+              <th>Guest</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th>ETA</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="kpiListRows.length === 0">
+              <td colspan="7">No records for this view</td>
+            </tr>
+            <tr *ngFor="let row of kpiListRows" class="track-row--active" (click)="viewRequest(row)">
+              <td>{{ row.date }} {{ row.time }}</td>
+              <td>{{ row.id }}</td>
+              <td>{{ row.room }}</td>
+              <td>{{ row.guest }}</td>
+              <td>{{ row.type }}</td>
+              <td>{{ row.status }}</td>
+              <td>{{ row.eta }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Mobile Key Generated -->
+        <table class="fo-report-table" *ngIf="activeReportKey === 'mobile-keys'">
+          <thead>
+            <tr>
+              <th>Date / Time</th>
+              <th>Guest Name</th>
+              <th>Room No</th>
+              <th>Check In</th>
+              <th>Check Out</th>
+              <th>Key Count</th>
+              <th>Lock Name</th>
+              <th>Opened Status</th>
+              <th>Key Used</th>
+              <th>Device Brand</th>
+              <th>Device Name</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="filteredMobileKeyRows.length === 0">
+              <td colspan="11">No mobile keys for this hotel / filter</td>
+            </tr>
+            <tr *ngFor="let row of filteredMobileKeyRows" class="track-row--active" (click)="viewMobileKey(row)">
+              <td>{{ row.checkIn }}</td>
+              <td>{{ row.guestName }}</td>
+              <td>{{ row.roomNo }}</td>
+              <td>{{ row.checkIn }}</td>
+              <td>{{ row.checkOut }}</td>
+              <td>{{ row.keyCount }}</td>
+              <td>{{ row.lockName }}</td>
+              <td>{{ row.openedStatus }}</td>
+              <td>{{ row.keyUsedCount }}</td>
+              <td>{{ row.deviceBrand }}</td>
+              <td>{{ row.deviceName }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Mobile Key Unused -->
+        <table class="fo-report-table" *ngIf="activeReportKey === 'mobile-keys-unused'">
+          <thead>
+            <tr>
+              <th>Date / Time</th>
+              <th>Guest Name</th>
+              <th>Room No</th>
+              <th>Check In</th>
+              <th>Idle Time</th>
+              <th>Lock Name</th>
+              <th>In-House Status</th>
+              <th>Opened Status</th>
+              <th>Device Brand</th>
+              <th>Device Name</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="filteredUnusedMobileKeyRows.length === 0">
+              <td colspan="10">No unused mobile keys for this hotel / filter</td>
+            </tr>
+            <tr *ngFor="let row of filteredUnusedMobileKeyRows" class="track-row--active" (click)="viewMobileKey(row)">
+              <td>{{ row.checkIn }}</td>
+              <td>{{ row.guestName }}</td>
+              <td>{{ row.roomNo }}</td>
+              <td>{{ row.checkIn }}</td>
+              <td>{{ row.idleHoursLabel }}</td>
+              <td>{{ row.lockName }}</td>
+              <td>{{ row.inHouseStatus }}</td>
+              <td>{{ row.openedStatus }}</td>
+              <td>{{ row.deviceBrand }}</td>
+              <td>{{ row.deviceName }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Late Check-Out Revenue -->
+        <table class="fo-report-table" *ngIf="activeReportKey === 'late-revenue'">
+          <thead>
+            <tr>
+              <th>Guest</th>
+              <th>Room</th>
+              <th>Date / Time</th>
+              <th>Standard</th>
+              <th>Requested</th>
+              <th>Extra Hours</th>
+              <th>Billed To</th>
+              <th>Fee</th>
+              <th>Tax</th>
+              <th>Total</th>
+              <th>Status</th>
+              <th>Approved By</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="lateRevenueRows.length === 0">
+              <td colspan="12">No late check-out revenue for this period</td>
+            </tr>
+            <tr *ngFor="let row of lateRevenueRows" class="track-row--active" (click)="viewLateRevenue(row)">
+              <td>{{ row.guestName }}</td>
+              <td>{{ row.room }}</td>
+              <td>{{ row.datetime }}</td>
+              <td>{{ row.standardCheckout }}</td>
+              <td>{{ row.requestedCheckout }}</td>
+              <td>{{ row.additionalHours }}</td>
+              <td>{{ row.billedTo }}</td>
+              <td>{{ formatInr(row.feeAmount) }}</td>
+              <td>{{ formatInr(row.taxes) }}</td>
+              <td><strong>{{ formatInr(row.totalCharged) }}</strong></td>
+              <td><span class="status" [ngClass]="statusClass(row.paymentStatus)">{{ row.paymentStatus }}</span></td>
+              <td>{{ row.approvedBy }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Check-Out Request -->
+        <table class="fo-report-table" *ngIf="activeReportKey === 'checkout-requests'">
+          <thead>
+            <tr>
+              <th>Task ID</th>
+              <th>Date / Time</th>
+              <th>Guest</th>
+              <th>Room</th>
+              <th>Channel</th>
+              <th>Scheduled Departure</th>
+              <th>Requested Departure</th>
+              <th>Status</th>
+              <th>Staff</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="checkoutRequestRows.length === 0">
+              <td colspan="9">No check-out requests for this period</td>
+            </tr>
+            <tr *ngFor="let row of checkoutRequestRows" class="track-row--active" (click)="viewCheckoutRequest(row)">
+              <td>{{ row.id }}</td>
+              <td>{{ row.datetime }}</td>
+              <td>{{ row.guestName }}</td>
+              <td>{{ row.room }}</td>
+              <td>{{ row.channel }}</td>
+              <td>{{ row.scheduledDeparture }}</td>
+              <td>{{ row.requestedDeparture }}</td>
+              <td><span class="status" [ngClass]="statusClass(row.status)">{{ row.status }}</span></td>
+              <td>{{ row.staff }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Guest Device & OS -->
+        <table class="fo-report-table" *ngIf="activeReportKey === 'device-os'">
+          <thead>
+            <tr>
+              <th>Date / Time</th>
+              <th>Guest Name</th>
+              <th>Room No</th>
+              <th>Check In</th>
+              <th>Check Out</th>
+              <th>Nights</th>
+              <th>Device Brand</th>
+              <th>Device Name</th>
+              <th>Guest Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="filteredDeviceOsRows.length === 0">
+              <td colspan="9">No guest device records for this filter</td>
+            </tr>
+            <tr *ngFor="let row of filteredDeviceOsRows" class="track-row--active" (click)="viewDeviceOs(row)">
+              <td>{{ row.checkIn }}</td>
+              <td>{{ row.guestName }}</td>
+              <td>{{ row.roomNo }}</td>
+              <td>{{ row.checkIn }}</td>
+              <td>{{ row.checkOut }}</td>
+              <td>{{ row.nights }}</td>
+              <td>{{ row.deviceBrand }}</td>
+              <td>{{ row.deviceName }}</td>
+              <td>{{ row.guestStatus }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Guest Service Request Detailed -->
+        <table class="fo-report-table" *ngIf="activeReportKey === 'guest-service'">
+          <thead>
+            <tr>
+              <th>Date / Time</th>
+              <th>Department</th>
+              <th>Guest / Room</th>
+              <th>Category / Service</th>
+              <th>Status</th>
+              <th>Special Instructions</th>
+              <th>Staff</th>
+              <th>Response</th>
+              <th>Escalation</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="guestServiceRows.length === 0">
+              <td colspan="9">No FO service requests for this period</td>
+            </tr>
+            <tr *ngFor="let row of guestServiceRows" class="track-row--active" (click)="viewGuestService(row)">
+              <td>{{ row.datetime }}</td>
+              <td>{{ row.department }}</td>
+              <td>
+                <div>{{ row.guestName }}</div>
+                <div class="muted-sub">Room {{ row.room }}</div>
+              </td>
+              <td>
+                <div>{{ row.category }}</div>
+                <div class="muted-sub">{{ row.serviceName }}</div>
+              </td>
+              <td><span class="status" [ngClass]="statusClass(row.status)">{{ row.status }}</span></td>
+              <td class="cell-wrap">{{ row.specialInstructions }}</td>
+              <td>{{ row.staff }}</td>
+              <td>{{ row.responseTime }}</td>
+              <td>{{ row.escalationLevel }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="fo-overview" *ngIf="!loading && activeView === 'home'">
+      <div class="page-heading page-heading--home">
+        <div class="heading-copy">
+          <h2>Front Office Operations Dashboard</h2>
+          <p>Real-time FO data · Guest service and arrival operations</p>
+        </div>
+        <app-dashboard-period-controls
+          class="heading-period"
+          [(selectedPeriod)]="selectedPeriod"
+          [(customFrom)]="customFrom"
+          [(customTo)]="customTo"
+          [refreshing]="refreshing"
+          (periodChange)="onPeriodChange()"
+          (customRangeChange)="onCustomRangeChange()"
+          (refresh)="onDashboardRefresh($event)"
+        ></app-dashboard-period-controls>
+      </div>
+
+      <div class="kpi-metrics-row">
+        <button type="button" class="card kpi fo-kpi blue" (click)="openKpi('all')">
+          <div class="kpi-top"><span class="kpi-icon"><i class="bi bi-grid-3x3-gap-fill"></i></span>Total FO Requests
+          </div>
+          <div class="kpi-value">{{ kpis.total }}</div>
+          <div class="kpi-foot">Checkout + Late checkout</div>
+        </button>
+        <button type="button" class="card kpi fo-kpi green" (click)="openKpi('completed')">
+          <div class="kpi-top"><span class="kpi-icon"><i class="bi bi-check-circle-fill"></i></span>Completed</div>
+          <div class="kpi-value">{{ kpis.completed }}</div>
+          <div class="kpi-foot">{{ kpis.completedPct }}% completion</div>
+        </button>
+        <button type="button" class="card kpi fo-kpi orange" (click)="openKpi('pending')">
+          <div class="kpi-top"><span class="kpi-icon"><i class="bi bi-hourglass-split"></i></span>Pending</div>
+          <div class="kpi-value">{{ kpis.pending }}</div>
+          <div class="kpi-foot">{{ kpis.pendingPct }}% pending</div>
+        </button>
+        <button type="button" class="card kpi fo-kpi red" (click)="openKpi('escalated')">
+          <div class="kpi-top"><span class="kpi-icon"><i class="bi bi-exclamation-triangle-fill"></i></span>Escalated
+          </div>
+          <div class="kpi-value">{{ kpis.escalated }}</div>
+          <div class="kpi-foot">{{ kpis.escalatedPct }}% escalated</div>
+        </button>
+      </div>
+      <div class="kpi-charts-row">
+        <div class="card kpi kpi-activities">
+          <div class="kpi-top">
+            Overall Contribution <span class="muted-icon">⋮</span>
+          </div>
+          <div class="activity-layout">
+            <div class="fo-donut-wrap" (mouseleave)="onContributionDonutLeave()">
+              <svg class="fo-donut-svg" viewBox="0 0 140 140" aria-label="Overall contribution">
+                <circle cx="70" cy="70" r="62" fill="#dce5ec" *ngIf="contributionDonutSlices.length === 0"></circle>
+                <path
+                  *ngFor="let slice of contributionDonutSlices"
+                  [attr.d]="slice.d"
+                  [attr.fill]="slice.color"
+                  class="fo-donut-slice"
+                  [class.is-dim]="hoveredContributionLabel && hoveredContributionLabel !== slice.label"
+                  [class.is-hot]="hoveredContributionLabel === slice.label"
+                  (mouseenter)="onContributionDonutEnter(slice)"
+                  [attr.title]="slice.label + ': ' + slice.value + ' · ' + slice.pct + '%'"
+                ></path>
+              </svg>
+              <div class="fo-donut-label" [class.is-hidden]="!!hoveredContributionLabel">
+                FO Tasks<b>{{ kpis.total || 0 }}</b>
+              </div>
+              <div class="fo-donut-hover-caption" *ngIf="hoveredContributionLabel">
+                {{ hoveredContributionLabel }}<b>{{ hoveredContributionValue }} · {{ hoveredContributionPct }}%</b>
+              </div>
+            </div>
+            <div class="legend">
+              <div class="legend-row" *ngIf="contributionRows.length === 0">
+                No Checkout / Late checkout tasks in this period
+              </div>
+              <div class="legend-row" *ngFor="let row of contributionRows">
+                <i class="dot" [style.background]="row.color"></i>{{ row.label }}
+                <b>{{ row.count }} · {{ row.pct }}%</b>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card kpi kpi-delayed">
+          <div class="kpi-top">
+            Late checkout pipeline <span class="muted-icon">⋮</span>
+          </div>
+          <div class="kpi-value kpi-value-sm">{{ keyServices.lateCheckoutRequested }} requested</div>
+          <div class="delayed-list">
+            <div *ngFor="let row of contributionRows">
+              <i class="dot" [style.background]="row.color"></i>{{ row.label }} · {{ row.count }}
+            </div>
+            <div *ngIf="contributionRows.length === 0">No late checkout activity</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="middle-grid">
+        <div class="card report-card">
+          <div class="card-heading">
+            <h2>Detailed FO Service Report</h2>
+            <div class="card-heading-actions">
+              <button type="button" class="outline-btn" (click)="openReport('guest-service')">View All ›</button>
               <button type="button" class="outline-btn" (click)="toggleFilters()">☷ &nbsp;Filter</button>
             </div>
-            <div class="filters" *ngIf="filtersVisible">
-              <select [(ngModel)]="dateFilter">
-                <option value="">Date</option>
-                <option>Today</option>
-                <option>Yesterday</option>
-              </select>
-              <select [(ngModel)]="timeFilter">
-                <option value="">Time</option>
-                <option>Morning</option>
-                <option>Afternoon</option>
-              </select>
-              <select [(ngModel)]="roomFilter">
-                <option value="">Room</option>
-                <option>101</option>
-                <option>205</option>
-                <option>308</option>
-                <option>402</option>
-              </select>
-              <input [(ngModel)]="guestFilter" placeholder="Guest" />
-              <select [(ngModel)]="typeFilter">
-                <option value="">Order type</option>
-                <option>Regular Check-in</option>
-                <option>Group Check-in</option>
-                <option>Express Check-out</option>
-                <option>Late Check-out</option>
-                <option>Mobile Key Activation</option>
-                <option>General Inquiry</option>
-              </select>
-              <select [(ngModel)]="staffFilter">
-                <option value="">Staff</option>
-                <option>John Selan</option>
-                <option>John Alam</option>
-                <option>Janv Sleen</option>
-                <option>Staff Assigned</option>
-              </select>
-              <select [(ngModel)]="statusFilter">
-                <option value="">Status</option>
-                <option>Completed</option>
-                <option>Pending</option>
-                <option>Escalated</option>
-                <option>Processing</option>
-              </select>
-            </div>
-            <div class="table-scroll">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Request ID</th>
-                    <th>Room</th>
-                    <th>Guest</th>
-                    <th>Request Type</th>
-                    <th>Staff Assigned</th>
-                    <th>Status</th>
-                    <th>ETA</th>
-                    <th>Delay</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr *ngFor="let r of filteredRecords">
-                    <td class="req-id">{{ r.id }}</td>
-                    <td>{{ r.room }}</td>
-                    <td>{{ r.guest }}</td>
-                    <td>{{ r.type }}</td>
-                    <td>{{ r.staff }}</td>
-                    <td>
-                      <span class="status" [ngClass]="statusClass(r.status)">{{ r.status }}</span>
-                    </td>
-                    <td>{{ r.eta }}</td>
-                    <td [ngClass]="delayClass(r.delay)">{{ r.delay }}</td>
-                    <td>
-                      <button type="button" class="view-link" (click)="viewRequest(r)">View ›</button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <div class="kpi-foot row-count">Showing {{ filteredRecords.length }} service requests</div>
           </div>
+          <div class="filters" *ngIf="filtersVisible">
+            <select [(ngModel)]="roomFilter">
+              <option value="">Room</option>
+              <option *ngFor="let room of roomOptions" [value]="room">{{ room }}</option>
+            </select>
+            <input [(ngModel)]="guestFilter" placeholder="Guest" />
+            <select [(ngModel)]="typeFilter">
+              <option value="">Service</option>
+              <option>Checkout</option>
+              <option>Late checkout</option>
+            </select>
+            <select [(ngModel)]="staffFilter">
+              <option value="">Staff</option>
+              <option *ngFor="let staff of staffOptions" [value]="staff">{{ staff }}</option>
+            </select>
+            <select [(ngModel)]="statusFilter">
+              <option value="">Status</option>
+              <option>Requested</option>
+              <option>Price Updated</option>
+              <option>Approved</option>
+              <option>Guest Declined</option>
+              <option>Rejected</option>
+              <option>ASAP</option>
+              <option>Assigned</option>
+              <option>Processing</option>
+              <option>Escalated</option>
+              <option>Delivered</option>
+              <option>Completed</option>
+            </select>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date / Time</th>
+                  <th>Task ID</th>
+                  <th>Room</th>
+                  <th>Guest</th>
+                  <th>Request Type</th>
+                  <th>Staff Assigned</th>
+                  <th>Status</th>
+                  <th>ETA</th>
+                  <th>Delay</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngIf="loadError">
+                  <td colspan="10">{{ loadError }}</td>
+                </tr>
+                <tr *ngIf="!loadError && filteredRecords.length === 0">
+                  <td colspan="10">No Checkout / Late checkout tasks for this period</td>
+                </tr>
+                <tr *ngFor="let r of filteredRecords" class="track-row--active" (click)="viewRequest(r)">
+                  <td>{{ r.date }} {{ r.time }}</td>
+                  <td class="req-id">{{ r.id }}</td>
+                  <td>{{ r.room }}</td>
+                  <td>{{ r.guest }}</td>
+                  <td>{{ r.type }}</td>
+                  <td>{{ r.staff }}</td>
+                  <td>
+                    <span class="status" [ngClass]="statusClass(r.status)">{{ r.status }}</span>
+                  </td>
+                  <td>{{ r.eta }}</td>
+                  <td [ngClass]="delayClass(r.delay)">{{ r.delay }}</td>
+                  <td>
+                    <button type="button" class="view-link" (click)="viewRequest(r); $event.stopPropagation()">View ›</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="kpi-foot row-count">Showing {{ filteredRecords.length }} Checkout / Late checkout tasks</div>
+        </div>
 
-          <div class="right-column">
-            <div class="card right-card">
+        <div class="right-column">
+          <div class="card right-card keys-card">
+            <div class="keys-head">
               <h3>Key Services Overview</h3>
-              <div class="service-list">
-                <div class="service-item">
-                  <div class="service-icon">▣</div>
-                  <span>Mobile Keys</span><b>12</b>
-                </div>
-                <div class="service-item">
-                  <div class="service-icon service-icon-2">⇥</div>
-                  <span>App Check-outs</span><b>8</b>
-                </div>
-                <div class="service-item">
-                  <div class="service-icon service-icon-3">▤</div>
-                  <span>Late Check-out Payments</span><b>1</b>
-                </div>
-              </div>
+              <span class="muted-icon" aria-hidden="true">⋮</span>
             </div>
-            <div class="card right-card">
-              <h3>Quick Action Modules</h3>
-              <div class="quick-grid">
-                <button type="button" class="quick" (click)="quickAction('New Reservation')">
-                  New Reservation <span>＋</span>
-                </button>
-                <button type="button" class="quick" (click)="quickAction('Process Check-In')">
-                  Process Check-In <span>♙</span>
-                </button>
-                <button type="button" class="quick" (click)="quickAction('Assign Room')">
-                  Assign Room <span>♧</span>
-                </button>
-                <button type="button" class="quick" (click)="quickAction('Group Check-in')">
-                  Group Check-in <span>▤</span>
-                </button>
-                <button type="button" class="quick" (click)="quickAction('Issue Mobile Key')">
-                  Issue Mobile Key <span>▣</span>
-                </button>
-                <button type="button" class="quick" (click)="quickAction('Create Invoice')">
-                  Create Invoice <span>▤</span>
-                </button>
-              </div>
+            <div class="service-list">
+              <button type="button" class="service-item service-item--btn" *ngFor="let row of keyServiceRows"
+                (click)="openKeyService(row.key)">
+                <div class="service-icon" [ngClass]="row.iconClass">
+                  <i [class]="row.icon" aria-hidden="true"></i>
+                </div>
+                <span>{{ row.label }}</span>
+                <b>{{ row.value }}</b>
+              </button>
+              <button type="button" class="service-item service-item--btn service-item--secondary"
+                (click)="openReport('mobile-keys-unused')">
+                <div class="service-icon service-icon--keys">
+                  <i class="bi bi-key" aria-hidden="true"></i>
+                </div>
+                <span>Mobile Key Not Used</span>
+                <b>{{ unusedMobileKeyRows.length }}</b>
+              </button>
+              <button type="button" class="service-item service-item--btn service-item--secondary"
+                (click)="openReport('device-os')">
+                <div class="service-icon service-icon--checkout">
+                  <i class="bi bi-phone-flip" aria-hidden="true"></i>
+                </div>
+                <span>Guest Device &amp; OS</span>
+                <b>{{ deviceOsSummary.total }}</b>
+              </button>
             </div>
-            <div class="card right-card">
-              <h3>Front Office Escalation Summary</h3>
-              <div class="summary-grid">
-                <div>Open<b class="text-red">2</b></div>
-                <div>In Progress<b>3</b></div>
-                <div>Resolved<b class="text-green">8</b></div>
-                <div>Avg Delay<b>32 min</b></div>
-              </div>
+          </div>
+          <div class="card right-card">
+            <h3>Front Office Escalation Summary</h3>
+            <div class="summary-grid">
+              <div>Open<b class="text-red">{{ escalationSummary.open }}</b></div>
+              <div>In Progress<b>{{ escalationSummary.inProgress }}</b></div>
+              <div>Resolved<b class="text-green">{{ escalationSummary.resolved }}</b></div>
+              <div>Avg Delay<b [title]="escalationSummary.resolvedSampleCount ? ('Average of ' + escalationSummary.resolvedSampleCount + ' resolved escalations') : null">{{ escalationSummary.avgDelayLabel }}</b></div>
             </div>
-            <div class="card right-card">
-              <div class="focus-head">
-                <h3>Team Focus Areas</h3>
-                <button type="button" (click)="openTeamFocusModal()">HOD View</button>
-              </div>
-              <div class="focus-list">
-                <div>Reduce FO Escalations by 15%</div>
-                <div>Monitor Late Arrival check-ins</div>
-                <div>Review Group Check-in process</div>
-              </div>
+          </div>
+          <div class="card right-card">
+            <div class="focus-head">
+              <h3>Team Focus Areas</h3>
+              <button type="button" (click)="openTeamFocusModal()">HOD View</button>
+            </div>
+            <div class="focus-list">
+              <div>Reduce FO Escalations by 15%</div>
+              <div>Monitor Late Arrival check-ins</div>
+              <div>Review Group Check-in process</div>
             </div>
           </div>
         </div>
-      </section>
+      </div>
+    </section>
   </div>
 
   <div class="modal" [class.show]="showModal" (click)="onModalBackdropClick($event)">

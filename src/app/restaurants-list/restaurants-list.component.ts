@@ -739,7 +739,11 @@ export class RestaurantsListComponent implements OnInit, OnDestroy {
       end_time: this.offerForm.endTime,
       image_url: this.offerForm.imageUrl,
       hotel_code: this.selectedOfferOutlet?.Hotel_Code,
-      outlet_id: this.selectedOfferOutlet?.winhms_outlet_id
+      outlet_id: this.selectedOfferOutlet?.winhms_outlet_id,
+      outlet_name:
+        this.selectedOfferOutlet?.name ||
+        this.selectedOfferOutlet?.outlet_name ||
+        ''
     };
   }
 

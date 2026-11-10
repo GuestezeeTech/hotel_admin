@@ -4,7 +4,7 @@ import { Component, OnInit } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 
-import { catchError, of } from 'rxjs';
+import { catchError, finalize, of } from 'rxjs';
 
 import {
 
@@ -22,6 +22,12 @@ import {
 
 } from '../hk-dashboard.service';
 
+import { DashboardRefreshSource } from '../../shared/dashboard-refresh/dashboard-refresh-button.component';
+import { DashboardPeriodControlsComponent } from '../../shared/dashboard-period/dashboard-period-controls.component';
+import { DashboardPeriodStateService } from '../../shared/dashboard-period/dashboard-period-state.service';
+import { scrollAppToTop } from '../../shared/scroll-to-top.util';
+import { HotelOverviewDashboardService } from '../../admin-dashboard/hotel-overview-dashboard/hotel-overview-dashboard.service';
+
 
 
 export type HkModuleName =
@@ -38,7 +44,7 @@ export type HkModuleName =
 
   | 'Staff & Assignments'
 
-  | 'Service Delivery'
+  | 'Service Wise Delivery'
 
   | 'Delayed Tasks'
 
@@ -46,7 +52,9 @@ export type HkModuleName =
 
   | 'Delivery Report'
 
-  | 'Cancellation Report';
+  | 'Cancellation Report'
+
+  | 'Guest Services Availed';
 
 
 
@@ -60,7 +68,7 @@ type SummaryTile = { label: string; value: string | number };
 
   standalone: true,
 
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, DashboardPeriodControlsComponent],
 
   templateUrl: './hk-operations-dashboard.component.html',
 
@@ -75,6 +83,22 @@ export class HkOperationsDashboardComponent implements OnInit {
   activeModule: HkModuleName = 'Tasks';
 
   moduleStatusFilter = '';
+
+  refreshing = false;
+
+  selectedPeriod = 'Today';
+
+  customFrom = '';
+
+  customTo = '';
+
+  private hasLoadedOnce = false;
+
+  private sourceApiTasks: any[] = [];
+
+  private sourceServices: any[] = [];
+
+  private sourceStaff: any[] = [];
 
 
 
@@ -97,6 +121,8 @@ export class HkOperationsDashboardComponent implements OnInit {
     { label: 'Laundry', count: 0, widthPct: 0, barClass: 'barrow-blue' }
 
   ];
+
+  hoveredCategoryLabel: string | null = null;
 
 
 
@@ -130,6 +156,19 @@ export class HkOperationsDashboardComponent implements OnInit {
   guestFilter = '';
 
   moduleSearch = '';
+
+  /** Service Wise Delivery drill-down: empty = service list, set = guests for that service. */
+  selectedServiceName = '';
+
+  serviceWiseList: Array<{
+    service: string;
+    category: string;
+    count: number;
+    targetLabel: string;
+    avgLabel: string;
+    within: number;
+    onTimeRate: string;
+  }> = [];
 
 
 
@@ -175,7 +214,13 @@ export class HkOperationsDashboardComponent implements OnInit {
 
 
 
-  constructor(private hkDashboardService: HkDashboardService) {}
+  constructor(
+    private hkDashboardService: HkDashboardService,
+    private overviewService: HotelOverviewDashboardService,
+    private periodState: DashboardPeriodStateService
+  ) {
+    this.periodState.hydrate(this);
+  }
 
 
 
@@ -189,15 +234,100 @@ export class HkOperationsDashboardComponent implements OnInit {
 
   refreshPerformance(): void {
 
-    this.loadTasksFromApi();
+    this.onDashboardRefresh('manual');
+
+  }
+
+  onDashboardRefresh(_source: DashboardRefreshSource): void {
+
+    if (this.refreshing) {
+
+      return;
+
+    }
+
+    this.loadTasksFromApi(true);
+
+  }
+
+  onPeriodChange(): void {
+    this.syncPeriodDateInputs();
+    this.periodState.apply(this.selectedPeriod, this.customFrom, this.customTo);
+    this.selectedPeriod = this.periodState.selectedPeriod;
+    this.customFrom = this.periodState.customFrom;
+    this.customTo = this.periodState.customTo;
+    if (this.isIncompleteDateRange()) {
+      return;
+    }
+    this.applyPeriodFilter();
+  }
+
+  onCustomRangeChange(): void {
+    this.periodState.setCustomRange(this.customFrom, this.customTo);
+    this.customFrom = this.periodState.customFrom;
+    this.customTo = this.periodState.customTo;
+    if (this.selectedPeriod === 'For Date' && this.customFrom) {
+      this.applyPeriodFilter();
+      return;
+    }
+    if (
+      (this.selectedPeriod === 'Date Range' || this.selectedPeriod === 'Custom Range') &&
+      this.customFrom &&
+      this.customTo
+    ) {
+      this.applyPeriodFilter();
+    }
+  }
+
+  private isIncompleteDateRange(): boolean {
+    return (
+      (this.selectedPeriod === 'Date Range' || this.selectedPeriod === 'Custom Range') &&
+      (!this.customFrom || !this.customTo)
+    );
+  }
+
+  private syncPeriodDateInputs(): void {
+    const now = new Date();
+    if (this.selectedPeriod === 'For Date') {
+      if (!this.customFrom) {
+        this.customFrom = this.toInputDate(now);
+      }
+      this.customTo = this.customFrom;
+      return;
+    }
+    if (this.selectedPeriod === 'Date Range' || this.selectedPeriod === 'Custom Range') {
+      // From/To stay empty until the user picks both.
+      return;
+    }
+    this.customFrom = '';
+    this.customTo = '';
+  }
+
+  private toInputDate(d: Date): string {
+
+    const yyyy = d.getFullYear();
+
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+
+    const dd = String(d.getDate()).padStart(2, '0');
+
+    return `${yyyy}-${mm}-${dd}`;
 
   }
 
 
 
-  private loadTasksFromApi(): void {
+  private loadTasksFromApi(soft = false): void {
 
-    this.loadingPerformance = true;
+    if (soft) {
+
+      this.refreshing = true;
+
+    } else {
+
+      this.loadingPerformance = true;
+
+    }
 
     this.performanceLoadError = '';
 
@@ -207,36 +337,26 @@ export class HkOperationsDashboardComponent implements OnInit {
 
       .fetchHousekeepingBoardData()
 
-      .pipe(catchError(() => of({ tasks: [], services: [], staff: [] })))
+      .pipe(
+        catchError(() => of({ tasks: [], services: [], staff: [] })),
+        finalize(() => {
+          this.loadingPerformance = false;
+          this.refreshing = false;
+          this.hasLoadedOnce = true;
+        })
+      )
 
       .subscribe({
 
         next: ({ tasks: apiTasks, services, staff }) => {
 
-          this.apiTasks = apiTasks;
+          this.sourceApiTasks = apiTasks;
 
-          this.housekeepingServices = services;
+          this.sourceServices = services;
 
-          this.categoryOptions = this.hkDashboardService.distinctServiceNames(services);
+          this.sourceStaff = staff;
 
-          this.tasks = this.hkDashboardService.mapTasks(apiTasks, services);
-
-          this.performanceCounts = this.hkDashboardService.buildPerformanceCounts(apiTasks);
-
-          this.categoryOverview = this.hkDashboardService.buildCategoryOverview(services, apiTasks);
-
-          this.escalationSummary = this.hkDashboardService.buildEscalationSummary(apiTasks);
-
-          this.staffOptions = this.hkDashboardService.distinctStaffDisplayNames(staff);
-          this.statusFilterOptions = this.hkDashboardService.buildStatusFilterOptions(apiTasks);
-
-          this.loadingPerformance = false;
-
-          if (this.activeView === 'module') {
-
-            this.buildModuleView(this.activeModule, this.moduleStatusFilter);
-
-          }
+          this.applyPeriodFilter();
 
         },
 
@@ -256,7 +376,6 @@ export class HkOperationsDashboardComponent implements OnInit {
 
           this.tasksLoadError = 'Could not load housekeeping tasks.';
 
-          this.loadingPerformance = false;
 
         }
 
@@ -266,9 +385,60 @@ export class HkOperationsDashboardComponent implements OnInit {
 
 
 
-  get liveClock(): string {
+  private applyPeriodFilter(): void {
+    if (this.isIncompleteDateRange()) {
+      return;
+    }
 
-    return new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    const range = this.overviewService.resolvePeriodRange(
+
+      this.selectedPeriod,
+
+      this.customFrom,
+
+      this.customTo
+
+    );
+
+    const apiTasks = this.overviewService.filterTasksByDateRange(
+
+      this.sourceApiTasks,
+
+      range.start,
+
+      range.end,
+
+      !!range.unbounded
+
+    );
+
+    const services = this.sourceServices;
+
+    const staff = this.sourceStaff;
+
+    this.apiTasks = apiTasks;
+
+    this.housekeepingServices = services;
+
+    this.categoryOptions = this.hkDashboardService.distinctServiceNames(services);
+
+    this.tasks = this.hkDashboardService.mapTasks(apiTasks, services);
+
+    this.performanceCounts = this.hkDashboardService.buildPerformanceCounts(apiTasks);
+
+    this.categoryOverview = this.hkDashboardService.buildCategoryOverview(services, apiTasks);
+
+    this.escalationSummary = this.hkDashboardService.buildEscalationSummary(apiTasks);
+
+    this.staffOptions = this.hkDashboardService.distinctStaffDisplayNames(staff);
+
+    this.statusFilterOptions = this.hkDashboardService.buildStatusFilterOptions(apiTasks);
+
+    if (this.activeView === 'module') {
+
+      this.buildModuleView(this.activeModule, this.moduleStatusFilter);
+
+    }
 
   }
 
@@ -338,6 +508,96 @@ export class HkOperationsDashboardComponent implements OnInit {
 
   }
 
+  get filteredServiceWiseList(): typeof this.serviceWiseList {
+
+    const q = this.moduleSearch.trim().toLowerCase();
+
+    if (!q) {
+
+      return this.serviceWiseList;
+
+    }
+
+    return this.serviceWiseList.filter(
+
+      (row) =>
+
+        row.service.toLowerCase().includes(q) || row.category.toLowerCase().includes(q)
+
+    );
+
+  }
+
+  get serviceGuestTasks(): HkTask[] {
+
+    if (!this.selectedServiceName) {
+
+      return [];
+
+    }
+
+    const q = this.moduleSearch.trim().toLowerCase();
+
+    return this.tasks.filter((t) => {
+
+      if (t.service !== this.selectedServiceName) {
+
+        return false;
+
+      }
+
+      if (!q) {
+
+        return true;
+
+      }
+
+      return (
+
+        t.guest.toLowerCase().includes(q) ||
+
+        t.room.toLowerCase().includes(q) ||
+
+        t.id.toLowerCase().includes(q) ||
+
+        t.staff.toLowerCase().includes(q) ||
+
+        t.apiStatus.toLowerCase().includes(q)
+
+      );
+
+    });
+
+  }
+
+  get moduleHeading(): string {
+
+    if (this.activeModule === 'Service Wise Delivery' && this.selectedServiceName) {
+
+      return `${this.selectedServiceName} · Guests`;
+
+    }
+
+    return this.activeModule;
+
+  }
+
+  get moduleRecordCount(): number {
+
+    if (this.activeModule === 'Service Wise Delivery') {
+
+      return this.selectedServiceName
+
+        ? this.serviceGuestTasks.length
+
+        : this.filteredServiceWiseList.length;
+
+    }
+
+    return this.filteredModuleRows.length;
+
+  }
+
 
 
   applyHomeFilters(): void {
@@ -353,6 +613,12 @@ export class HkOperationsDashboardComponent implements OnInit {
     this.activeView = 'overview';
 
     this.moduleStatusFilter = '';
+
+    this.selectedServiceName = '';
+
+    this.moduleSearch = '';
+
+    scrollAppToTop();
 
   }
 
@@ -374,9 +640,94 @@ export class HkOperationsDashboardComponent implements OnInit {
 
     this.moduleSearch = '';
 
+    this.selectedServiceName = '';
+
     this.activeView = 'module';
 
     this.buildModuleView(name, statusFilter);
+
+    scrollAppToTop();
+
+  }
+
+  /** Services Overview bar or View All → Service Wise Delivery (optional service drill). */
+  openServiceWiseDelivery(serviceName = ''): void {
+
+    this.goModule('Service Wise Delivery');
+
+    if (serviceName) {
+
+      this.openServiceGuests(serviceName);
+
+    }
+
+  }
+
+  openServiceGuests(serviceName: string): void {
+
+    this.selectedServiceName = serviceName;
+
+    this.moduleSearch = '';
+
+    const subset = this.tasks.filter((t) => t.service === serviceName);
+
+    const completed = subset.filter(
+
+      (t) => t.apiStatus === 'Completed' || t.apiStatus === 'Delivered'
+
+    ).length;
+
+    this.moduleSummary = [
+
+      { label: 'Guests / Requests', value: subset.length },
+
+      { label: 'Completed', value: completed },
+
+      {
+
+        label: 'Pending',
+
+        value: subset.filter(
+
+          (t) =>
+
+            t.apiStatus !== 'Completed' &&
+
+            t.apiStatus !== 'Delivered' &&
+
+            t.apiStatus !== 'Cancelled' &&
+
+            t.apiStatus !== 'Rejected'
+
+        ).length
+
+      }
+
+    ];
+
+  }
+
+  backFromServiceGuests(): void {
+
+    this.selectedServiceName = '';
+
+    this.moduleSearch = '';
+
+    this.buildModuleView('Service Wise Delivery', '');
+
+  }
+
+  onModuleBack(): void {
+
+    if (this.activeModule === 'Service Wise Delivery' && this.selectedServiceName) {
+
+      this.backFromServiceGuests();
+
+      return;
+
+    }
+
+    this.goOverview();
 
   }
 
@@ -542,7 +893,7 @@ export class HkOperationsDashboardComponent implements OnInit {
 
       this.moduleHeads = [
 
-        'Request ID',
+        'Task ID',
 
         'Guest',
 
@@ -694,7 +1045,7 @@ export class HkOperationsDashboardComponent implements OnInit {
 
 
 
-    if (name === 'Service Delivery') {
+    if (name === 'Service Wise Delivery') {
 
       this.moduleHeads = [
 
@@ -708,15 +1059,15 @@ export class HkOperationsDashboardComponent implements OnInit {
 
         'Avg. Actual Time',
 
-        'Within SLA',
+        'Completed On Time',
 
-        'On-time Rate'
+        'On-Time %'
 
       ];
 
-      const serviceNames = [...new Set(this.tasks.map((t) => t.service))].sort();
+      const serviceNames = [...new Set(this.tasks.map((t) => t.service).filter(Boolean))].sort();
 
-      this.moduleRows = serviceNames.map((serviceName) => {
+      this.serviceWiseList = serviceNames.map((serviceName) => {
 
         const subset = this.tasks.filter((t) => t.service === serviceName);
 
@@ -730,25 +1081,43 @@ export class HkOperationsDashboardComponent implements OnInit {
 
         const within = done.filter((t) => t.target > 0 && t.actual <= t.target).length;
 
-        return [
+        return {
 
-          serviceName,
+          service: serviceName,
 
-          subset[0]?.cat || '—',
+          category: subset[0]?.cat || '—',
 
-          String(subset.length),
+          count: subset.length,
 
-          subset[0]?.target ? `${subset[0].target} min` : '—',
+          targetLabel: subset[0]?.target ? `${subset[0].target} min` : '—',
 
-          avg ? `${avg} min` : '—',
+          avgLabel: avg ? `${avg} min` : '—',
 
-          String(within),
+          within,
 
-          done.length ? `${Math.round((within / done.length) * 100)}%` : '—'
+          onTimeRate: done.length ? `${Math.round((within / done.length) * 100)}%` : '—'
 
-        ];
+        };
 
       });
+
+      this.moduleRows = this.serviceWiseList.map((row) => [
+
+        row.service,
+
+        row.category,
+
+        String(row.count),
+
+        row.targetLabel,
+
+        row.avgLabel,
+
+        String(row.within),
+
+        row.onTimeRate
+
+      ]);
 
       const onTime = this.tasks.filter(
 
@@ -756,17 +1125,43 @@ export class HkOperationsDashboardComponent implements OnInit {
 
       ).length;
 
-      const withActual = this.tasks.filter((t) => t.actual > 0).length;
+      const withActual = this.tasks.filter((t) => t.actual > 0);
+
+      const avgFulfill =
+
+        withActual.length > 0
+
+          ? Math.round(
+
+              withActual.reduce((sum, t) => sum + t.actual, 0) / withActual.length
+
+            )
+
+          : null;
 
       this.moduleSummary = [
 
         { label: 'Total Requests', value: this.tasks.length },
 
+        { label: 'Services / Departments', value: this.serviceWiseList.length },
+
         {
 
-          label: 'On-time Delivery Rate',
+          label: 'Avg. Fulfillment Time',
 
-          value: withActual ? `${Math.round((onTime / withActual) * 100)}%` : '—'
+          value: avgFulfill != null ? `${avgFulfill} min` : '—'
+
+        },
+
+        {
+
+          label: 'On-Time %',
+
+          value: withActual.length
+
+            ? `${Math.round((onTime / withActual.length) * 100)}%`
+
+            : '—'
 
         }
 
@@ -780,27 +1175,30 @@ export class HkOperationsDashboardComponent implements OnInit {
 
     if (name === 'Delayed Tasks') {
 
+      // Word doc: Delay Report
       const list = this.tasks.filter((t) => this.hkDashboardService.isDelayedTask(t.source));
 
       this.moduleHeads = [
 
-        'Guest',
+        'Guest Name',
 
         'Room',
 
         'Date / Time',
 
-        'Service',
+        'Service Requested',
 
-        'Target',
+        'Promised / Standard',
 
-        'Actual',
+        'Actual Time',
+
+        'Delay Variance',
 
         'Delay Reason',
 
         'Assigned Staff',
 
-        'Delay'
+        'Resolution'
 
       ];
 
@@ -818,15 +1216,49 @@ export class HkOperationsDashboardComponent implements OnInit {
 
         t.actual ? `${t.actual} min` : '—',
 
-        t.reason,
+        this.hkDashboardService.delayVarianceLabel(t.source),
+
+        t.reason || '—',
 
         t.staff,
 
-        t.eta
+        this.hkDashboardService.hasStatus(t.source, 'Completed', 'Delivered')
+
+          ? `${t.actual || 0} min`
+
+          : 'Open'
 
       ]);
 
-      this.moduleSummary = [{ label: 'Delayed Tickets', value: list.length }];
+      const variances = list
+
+        .map((t) => this.hkDashboardService.delayVarianceMinutes(t.source))
+
+        .filter((n): n is number => n != null && n >= 0);
+
+      const avgDelay =
+
+        variances.length > 0
+
+          ? Math.round(variances.reduce((a, b) => a + b, 0) / variances.length)
+
+          : null;
+
+      const delayRate = this.tasks.length
+
+        ? `${Math.round((list.length / this.tasks.length) * 100)}%`
+
+        : '—';
+
+      this.moduleSummary = [
+
+        { label: 'Total Delayed Tickets', value: list.length },
+
+        { label: 'Average Delay Duration', value: avgDelay != null ? `${avgDelay} min` : '—' },
+
+        { label: 'Delay Rate', value: delayRate }
+
+      ];
 
       return;
 
@@ -836,6 +1268,7 @@ export class HkOperationsDashboardComponent implements OnInit {
 
     if (name === 'Escalations') {
 
+      // Word doc: Escalation Report
       const list = this.tasks.filter(
 
         (t) => t.apiStatus === 'Escalated' || t.level !== '—'
@@ -844,13 +1277,15 @@ export class HkOperationsDashboardComponent implements OnInit {
 
       this.moduleHeads = [
 
-        'Guest',
+        'Guest Name',
 
         'Room',
 
-        'Request Time',
+        'Date / Time',
 
         'Service',
+
+        'Category',
 
         'Escalation Level',
 
@@ -858,7 +1293,11 @@ export class HkOperationsDashboardComponent implements OnInit {
 
         'Assigned Staff',
 
-        'Status'
+        'Escalation Time',
+
+        'Resolution Time',
+
+        'Satisfaction'
 
       ];
 
@@ -872,21 +1311,43 @@ export class HkOperationsDashboardComponent implements OnInit {
 
         t.service,
 
-        t.level,
+        t.cat,
 
-        t.reason,
+        this.hkDashboardService.escalationLevelDocLabel(t.source),
+
+        this.hkDashboardService.escalationTriggerReason(t.source),
 
         t.staff,
 
-        t.status
+        this.hkDashboardService.timelineStatusLabel(t.source, 'Escalated'),
+
+        this.hkDashboardService.escalationResolutionLabel(t.source),
+
+        '—'
 
       ]);
 
+      const totalEsc = list.length;
+
+      const resolved = list.filter((t) =>
+
+        this.hkDashboardService.hasStatus(t.source, 'Completed', 'Delivered')
+
+      ).length;
+
       this.moduleSummary = [
 
-        { label: 'Total Escalations', value: list.filter((t) => t.apiStatus === 'Escalated').length },
+        { label: 'Total Escalations', value: totalEsc },
 
-        { label: 'Avg. Resolution Time', value: this.escalationSummary.avgResolutionMin }
+        {
+
+          label: 'Resolution Rate',
+
+          value: totalEsc ? `${Math.round((resolved / totalEsc) * 100)}%` : '—'
+
+        },
+
+        { label: 'Avg. Escalation Resolution', value: this.escalationSummary.avgResolutionMin }
 
       ];
 
@@ -898,6 +1359,7 @@ export class HkOperationsDashboardComponent implements OnInit {
 
     if (name === 'Delivery Report') {
 
+      // Word doc: Delivery Report
       const list = this.tasks.filter(
 
         (t) => t.apiStatus === 'Completed' || t.apiStatus === 'Delivered'
@@ -906,23 +1368,25 @@ export class HkOperationsDashboardComponent implements OnInit {
 
       this.moduleHeads = [
 
-        'Guest',
+        'Guest Name',
 
         'Room',
 
-        'Request Time',
+        'Date / Time',
 
         'Service',
 
+        'Category',
+
         'Assigned Staff',
 
-        'Target Time',
+        'Requested',
 
-        'Actual Time',
+        'Assigned',
 
-        'Guest Acknowledgement',
+        'Started',
 
-        'Status'
+        'Completed'
 
       ];
 
@@ -936,17 +1400,25 @@ export class HkOperationsDashboardComponent implements OnInit {
 
         t.service,
 
+        t.cat,
+
         t.staff,
 
-        t.target ? `${t.target} min` : '—',
+        t.time,
 
-        t.actual ? `${t.actual} min` : '—',
+        this.hkDashboardService.timelineStatusLabel(t.source, 'Assigned'),
 
-        '—',
+        this.hkDashboardService.timelineStatusLabel(t.source, 'Processing'),
 
-        t.status
+        this.hkDashboardService.hasStatus(t.source, 'Completed')
+
+          ? this.hkDashboardService.timelineStatusLabel(t.source, 'Completed')
+
+          : this.hkDashboardService.timelineStatusLabel(t.source, 'Delivered')
 
       ]);
+
+      const firstTime = list.filter((t) => t.level === '—' || t.level === '').length;
 
       this.moduleSummary = [
 
@@ -962,6 +1434,14 @@ export class HkOperationsDashboardComponent implements OnInit {
 
             : '—'
 
+        },
+
+        {
+
+          label: 'First-Time Resolution Rate',
+
+          value: list.length ? `${Math.round((firstTime / list.length) * 100)}%` : '—'
+
         }
 
       ];
@@ -974,17 +1454,16 @@ export class HkOperationsDashboardComponent implements OnInit {
 
     if (name === 'Cancellation Report') {
 
+      // Word doc: Cancellation Report
       const list = this.tasks.filter((t) => t.apiStatus === 'Cancelled' || t.apiStatus === 'Rejected');
 
       this.moduleHeads = [
 
-        'Request ID',
-
-        'Guest',
+        'Guest Name',
 
         'Room',
 
-        'Request Time',
+        'Date / Time',
 
         'Service',
 
@@ -992,15 +1471,13 @@ export class HkOperationsDashboardComponent implements OnInit {
 
         'Initiator',
 
-        'Time Before Cancellation',
+        'Time Elapsed',
 
         'Reason'
 
       ];
 
       this.moduleRows = list.map((t) => [
-
-        t.id,
 
         t.guest,
 
@@ -1012,15 +1489,107 @@ export class HkOperationsDashboardComponent implements OnInit {
 
         t.staff,
 
-        '—',
+        this.hkDashboardService.cancellationInitiator(t.source),
 
-        '—',
+        this.hkDashboardService.cancellationElapsedLabel(t.source),
 
-        t.reason
+        t.reason || '—'
 
       ]);
 
       this.moduleSummary = [{ label: 'Cancelled Requests', value: list.length }];
+
+      return;
+
+    }
+
+    if (name === 'Guest Services Availed') {
+
+      const list = [...this.tasks];
+
+      this.moduleHeads = [
+
+        'Date / Time',
+
+        'Guest Name',
+
+        'Room',
+
+        'Service Name',
+
+        'Service Type',
+
+        'Service Charge',
+
+        'Status',
+
+        'Assigned Staff'
+
+      ];
+
+      this.moduleRows = list.map((t) => {
+
+        const charge = this.hkDashboardService.resolveServiceCharge(t.source);
+
+        return [
+
+          t.time,
+
+          t.guest,
+
+          t.room,
+
+          t.service,
+
+          charge.type,
+
+          charge.label,
+
+          t.apiStatus || t.status,
+
+          t.staff
+
+        ];
+
+      });
+
+      const completed = list.filter(
+
+        (t) => t.apiStatus === 'Completed' || t.apiStatus === 'Delivered'
+
+      ).length;
+
+      const paidCount = list.filter(
+
+        (t) => this.hkDashboardService.resolveServiceCharge(t.source).type === 'Paid'
+
+      ).length;
+
+      const revenue = list.reduce(
+
+        (sum, t) => sum + (this.hkDashboardService.resolveServiceCharge(t.source).amount || 0),
+
+        0
+
+      );
+
+      this.moduleSummary = [
+
+        { label: 'Total Services Requested', value: list.length },
+
+        { label: 'Total Completed Services', value: completed },
+
+        { label: 'Paid Services', value: paidCount },
+
+        {
+
+          label: 'Revenue Generated',
+
+          value: revenue > 0 ? this.hkDashboardService.formatInr(revenue) : '—'
+
+        }
+
+      ];
 
     }
 
