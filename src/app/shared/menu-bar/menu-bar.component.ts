@@ -624,7 +624,7 @@ export class MenuBarComponent implements OnInit {
 
   private setSubmenuFlyoutTop(event?: Event): void {
     const el = event?.currentTarget as HTMLElement | undefined;
-    if (!el || typeof window === 'undefined' || window.innerWidth > 1280) {
+    if (!el || typeof window === 'undefined' || window.innerWidth > 768) {
       return;
     }
     const rectTop = Math.round(el.getBoundingClientRect().top);

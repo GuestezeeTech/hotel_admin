@@ -5,7 +5,7 @@
 @import './assets/scss/dashboard-tables';
 
 :root {
-  --sidebar-width: 19%;
+  --sidebar-width: clamp(252px, 19%, 290px);
   --app-font: 'Urbanist', Roboto, sans-serif;
 }
 
@@ -32,8 +32,15 @@ body,
   font-family: var(--app-font) !important;
 }
 
-/* Split / mid screens: icon-only drawer so labels don't crush */
-@media (max-width: 1280px) {
+/* Small laptops / zoomed browsers: keep the full labelled menu, a little narrower */
+@media (max-width: 1024px) {
+  :root {
+    --sidebar-width: 220px;
+  }
+}
+
+/* Tablets and phones: icon-only drawer so labels don't crush the page */
+@media (max-width: 768px) {
   :root {
     --sidebar-width: 72px;
   }
