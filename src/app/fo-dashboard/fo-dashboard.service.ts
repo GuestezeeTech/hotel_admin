@@ -33,6 +33,8 @@ export type FoMobileKeyRow = {
   guestEmail: string;
   keyCount: number;
   totalGuests: number;
+  /** When the key record was created (created_on), shown as Date / Time */
+  createdOn: string;
   checkIn: string;
   checkOut: string;
   checkInRaw: string;
@@ -96,6 +98,8 @@ export type FoDeviceOsRow = {
   guestEmail: string;
   roomNo: string;
   roomType: string;
+  /** When the key record was created (created_on), shown as Date / Time */
+  createdOn: string;
   checkIn: string;
   checkOut: string;
   nights: string;
@@ -250,7 +254,7 @@ export class FoDashboardService {
     return this.fetchOrdersByPurpose('checkout');
   }
 
-  /** Mobile key analytics rows for the hotel (`1001/key/getall`). */
+  /** Mobile key analytics rows for the hotel (`5411/keycount/getall`). */
   fetchMobileKeyReports(): Observable<any[]> {
     const memberId = (this.localStorage.get('MemberId') || '').trim();
     if (FoDashboardService.USE_MOBILE_KEY_FIXTURE) {
@@ -633,6 +637,7 @@ export class FoDashboardService {
         guestEmail: row.guestEmail,
         roomNo: row.roomNo,
         roomType: row.roomType,
+        createdOn: row.createdOn,
         checkIn: row.checkIn,
         checkOut: row.checkOut,
         nights,
@@ -1019,6 +1024,7 @@ export class FoDashboardService {
 
     const keyCount = Number(guest?.key_count ?? guest?.keyCount ?? 1);
     const totalGuests = Number(reservation?.total_guests ?? reservation?.totalGuests ?? 1);
+    const createdOnDate = this.mobileKeyCreatedOn(row);
 
     return {
       guestName: String(guest?.guest_name ?? guest?.guestName ?? '—').trim() || '—',
@@ -1026,6 +1032,7 @@ export class FoDashboardService {
       guestEmail: String(guest?.guest_email ?? guest?.guestEmail ?? '').trim() || '—',
       keyCount: Number.isFinite(keyCount) ? keyCount : 1,
       totalGuests: Number.isFinite(totalGuests) ? totalGuests : 1,
+      createdOn: createdOnDate ? this.formatDisplayDateTime(createdOnDate) : '—',
       checkIn: checkInDate ? this.formatDisplayDateTime(checkInDate) : checkInRaw || '—',
       checkOut: checkOutDate ? this.formatDisplayDateTime(checkOutDate) : checkOutRaw || '—',
       checkInRaw,
@@ -1051,12 +1058,22 @@ export class FoDashboardService {
     };
   }
 
+  /** created_on of the key record (top level, else inside the report payload) */
+  private mobileKeyCreatedOn(row: any): Date | null {
+    const report = this.unwrapMobileKeyReport(row);
+    return (
+      this.parseLooseDate(row?.created_on) ||
+      this.parseLooseDate(report?.created_on) ||
+      this.parseLooseDate(row?.created_at)
+    );
+  }
+
+  /** Date used for sorting and the date-range filter: created_on first */
   private mobileKeySortDate(row: any): Date | null {
     const report = this.unwrapMobileKeyReport(row);
     const reservation = report?.reservation || {};
     return (
-      this.parseLooseDate(row?.created_on) ||
-      this.parseLooseDate(row?.created_at) ||
+      this.mobileKeyCreatedOn(row) ||
       this.parseLooseDate(row?.modified_on) ||
       this.parseLooseDate(reservation?.check_in || reservation?.checkIn)
     );

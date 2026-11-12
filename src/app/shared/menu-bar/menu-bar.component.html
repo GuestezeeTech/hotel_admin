@@ -84,46 +84,6 @@
           (click)="selectHotelTab('hotel-4', 2, $event)">Technical Info</span>
       </div>
     </li>
-    <!-- Bookings -->
-    <li class="list_container" [class.active]="isActive('bookings')" [routerLink]="['/bookings']"
-      (click)="setActiveMenu('bookings'); sendValue('Bookings')"
-      *ngIf="canShowMenu('BOOKINGS')" title="Bookings">
-      <i class="bi bi-calendar-check menu-icon" aria-hidden="true"></i>
-      <span>Bookings</span>
-    </li>
-    <li class="list_container" [class.active]="isActive('guests')" [routerLink]="['/guests-list']"
-      (click)="setActiveMenu('guests'); sendValue('Guests')"
-      *ngIf="canShowMenu('GUESTS')" title="Guests">
-      <div class="list-content">
-        <div class="left-content">
-          <i class="bi bi-people menu-icon" aria-hidden="true"></i>
-          <span>Guests</span>
-        </div>
-      </div>
-    </li>
-    <!-- User Access -->
-    <li class="list_container" [class.active]="isUserAccessMenuActive()" (click)="toggleSubmenu('User Access', $event)"
-      *ngIf="canShowMenu('USER ACCESS')" title="User Access">
-      <div class="list-content">
-        <div class="left-content">
-          <i class="bi bi-shield-lock menu-icon" aria-hidden="true"></i>
-          <a>User Access</a>
-        </div>
-        <i class="fas fa-chevron-down dropdown-icon" [ngClass]="{ 'rotate': isUserAccessSubmenuOpen }"></i>
-      </div>
-    </li>
-    <!-- User Access submenu -->
-    <li class="sub-menu"
-      *ngIf="isUserAccessSubmenuOpen && canShowMenu('USER ACCESS')">
-      <div class="submenu">
-        <a class="submenu-item" routerLink="/role-list" [class.active]="isActive('role')"
-          (click)="selectLeafMenu('role', 'Roles', $event)">Roles</a>
-        <a class="submenu-item" routerLink="/user-list" [class.active]="isActive('user')"
-          (click)="selectLeafMenu('user', 'Users', $event)">Users</a>
-        <a class="submenu-item" routerLink="/staff-list" [class.active]="isActive('staff')"
-          (click)="selectLeafMenu('staff', 'Staff', $event)">Staff</a>
-      </div>
-    </li>
     <!-- Settings -->
     <li class="list_container" [class.active]="isSettingsMenuActive()" (click)="toggleSubmenu('Settings', $event)"
       *ngIf="canShowMenu('SYSTEM SETTINGS')" title="System Settings">
@@ -155,19 +115,28 @@
           *ngIf="customerType === 'Customer' && hasMenuAccess()">Hierarchy</a>
       </div>
     </li>
-    <!-- Features -->
-    <li class="list_container" [class.active]="isActive('features')" [routerLink]="['/features']"
-      (click)="setActiveMenu('features'); sendValue('Features')"
-      *ngIf="canShowMenu('FEATURES')" title="Features (Upselling)">
-      <i class="bi bi-stars menu-icon" aria-hidden="true"></i>
-      <span>Features (Upselling)</span>
+    <!-- User Access -->
+    <li class="list_container" [class.active]="isUserAccessMenuActive()" (click)="toggleSubmenu('User Access', $event)"
+      *ngIf="canShowMenu('USER ACCESS')" title="User Access">
+      <div class="list-content">
+        <div class="left-content">
+          <i class="bi bi-shield-lock menu-icon" aria-hidden="true"></i>
+          <a>User Access</a>
+        </div>
+        <i class="fas fa-chevron-down dropdown-icon" [ngClass]="{ 'rotate': isUserAccessSubmenuOpen }"></i>
+      </div>
     </li>
-    <!-- Payment -->
-    <li class="list_container" [class.active]="isActive('payment')" [routerLink]="['/payment-details']"
-      (click)="setActiveMenu('payment'); sendValue('Payment')"
-      *ngIf="canShowMenu('PAYMENT')" title="Payment">
-      <i class="bi bi-credit-card menu-icon" aria-hidden="true"></i>
-      <span>Payment</span>
+    <!-- User Access submenu -->
+    <li class="sub-menu"
+      *ngIf="isUserAccessSubmenuOpen && canShowMenu('USER ACCESS')">
+      <div class="submenu">
+        <a class="submenu-item" routerLink="/role-list" [class.active]="isActive('role')"
+          (click)="selectLeafMenu('role', 'Roles', $event)">Roles</a>
+        <a class="submenu-item" routerLink="/user-list" [class.active]="isActive('user')"
+          (click)="selectLeafMenu('user', 'Users', $event)">Users</a>
+        <a class="submenu-item" routerLink="/staff-list" [class.active]="isActive('staff')"
+          (click)="selectLeafMenu('staff', 'Staff', $event)">Staff</a>
+      </div>
     </li>
     <!-- Outlet -->
     <li class="list_container" [class.active]="isActive('outlet')" [routerLink]="['/outlet-list']"
@@ -179,6 +148,38 @@
           <span>Outlets</span>
         </div>
       </div>
+    </li>
+    <!-- Features -->
+    <li class="list_container" [class.active]="isActive('features')" [routerLink]="['/features']"
+      (click)="setActiveMenu('features'); sendValue('Features')"
+      *ngIf="canShowMenu('FEATURES')" title="Features (Upselling)">
+      <i class="bi bi-stars menu-icon" aria-hidden="true"></i>
+      <span>Features (Upselling)</span>
+    </li>
+    <!-- Bookings -->
+    <li class="list_container" [class.active]="isActive('bookings')" [routerLink]="['/bookings']"
+      (click)="setActiveMenu('bookings'); sendValue('Bookings')"
+      *ngIf="canShowMenu('BOOKINGS')" title="Bookings">
+      <i class="bi bi-calendar-check menu-icon" aria-hidden="true"></i>
+      <span>Bookings</span>
+    </li>
+    <!-- Guests -->
+    <li class="list_container" [class.active]="isActive('guests')" [routerLink]="['/guests-list']"
+      (click)="setActiveMenu('guests'); sendValue('Guests')"
+      *ngIf="canShowMenu('GUESTS')" title="Guests">
+      <div class="list-content">
+        <div class="left-content">
+          <i class="bi bi-people menu-icon" aria-hidden="true"></i>
+          <span>Guests</span>
+        </div>
+      </div>
+    </li>
+    <!-- Payment -->
+    <li class="list_container" [class.active]="isActive('payment')" [routerLink]="['/payment-details']"
+      (click)="setActiveMenu('payment'); sendValue('Payment')"
+      *ngIf="canShowMenu('PAYMENT')" title="Payment">
+      <i class="bi bi-credit-card menu-icon" aria-hidden="true"></i>
+      <span>Payment</span>
     </li>
   </ul>
 </div>

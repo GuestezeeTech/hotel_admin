@@ -1,12 +1,14 @@
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { billingCurrencyOf, currencySymbolFor, defaultGatewayFor, gatewayCharge } from '../../shared/plan-pricing.util';
 import {
   CustomCoverage,
   PaymentHelperService,
   PaymentPlan,
   PlanKey
 } from '../../services/payment-helper.service';
+import { CheckoutApiService, GatewayKey, PaymentGatewayOption } from '../checkout.service';
 
 /**
  * Shown after registration approval (register_status = true) when the customer
@@ -41,11 +43,15 @@ export class SubscriptionPaymentPopupComponent implements OnChanges {
   installments: any[] = [];
   startDate = new Date();
 
+  /** India -> CCAvenue, Others -> Razorpay (from ecomintegrationsettings) */
+  gatewayOptions: PaymentGatewayOption[] = [];
+  selectedGateway: GatewayKey | null = null;
+
   customAmount: number | null = null;
   customError = '';
   coverage: CustomCoverage | null = null;
 
-  constructor(private paymentHelper: PaymentHelperService) {}
+  constructor(private paymentHelper: PaymentHelperService, private checkoutApi: CheckoutApiService) {}
 
   ngOnChanges(changes: SimpleChanges): void {
     if ((changes['visible'] || changes['customerdata']) && this.visible && this.customerdata) {
@@ -58,6 +64,7 @@ export class SubscriptionPaymentPopupComponent implements OnChanges {
     this.loadError = '';
     try {
       this.plan = await this.paymentHelper.calculatePaymentPlan(this.customerdata);
+      await this.loadGateways();
       this.startDate = this.paymentHelper.getPlanStartDate(this.customerdata);
       if (!this.plan.annual_amount) {
         this.loadError = 'Subscription pricing is not available for this property. Please contact support.';
@@ -72,11 +79,43 @@ export class SubscriptionPaymentPopupComponent implements OnChanges {
     }
   }
 
+  /** CCAvenue is listed for hotels in India only (and preferred there); Razorpay for everyone. */
+  private async loadGateways(): Promise<void> {
+    this.gatewayOptions = await this.checkoutApi.getPaymentGatewayOptions(this.customerdata);
+    const preferred: GatewayKey = defaultGatewayFor(this.customerdata);
+    const keep = this.gatewayOptions.some((o) => o.key === this.selectedGateway);
+    if (!keep) {
+      this.selectedGateway = this.gatewayOptions.some((o) => o.key === preferred)
+        ? preferred
+        : (this.gatewayOptions[0]?.key ?? null);
+    }
+  }
+
+  selectGateway(key: GatewayKey): void {
+    if (!this.paying) {
+      this.selectedGateway = key;
+    }
+  }
+
   selectPlan(key: PlanKey): void {
     this.selectedPlan = key;
     this.installments = this.plan
       ? this.paymentHelper.getPlanInstallments(this.plan, key, this.startDate)
       : [];
+  }
+
+  /** All amounts are shown in USD */
+  get currencyCode(): string {
+    return this.plan?.currency_code || billingCurrencyOf(this.customerdata);
+  }
+
+  /** CCAvenue charges in INR: the converted amount for a USD amount, or null for Razorpay */
+  inrCharge(amount: number | null | undefined): number | null {
+    if (this.selectedGateway !== 'ccavenue' || !this.plan || !amount || amount <= 0) {
+      return null;
+    }
+    const charge = gatewayCharge('ccavenue', Number(amount), this.currencyCode, this.plan.inr_per_usd);
+    return charge.currency === 'INR' ? charge.amount : null;
   }
 
   get nextDue(): number {
@@ -108,7 +147,7 @@ export class SubscriptionPaymentPopupComponent implements OnChanges {
       return;
     }
     if (amount < this.plan.per_day_cost) {
-      this.customError = `Minimum amount is ₹${Math.ceil(this.plan.per_day_cost)} (one day).`;
+      this.customError = `Minimum amount is ${currencySymbolFor(this.currencyCode)}${Math.ceil(this.plan.per_day_cost)} (one day).`;
       return;
     }
     this.coverage = this.paymentHelper.getCustomCoverage(this.plan, amount, this.startDate);
@@ -143,9 +182,15 @@ export class SubscriptionPaymentPopupComponent implements OnChanges {
     this.paying = true;
     this.payError = '';
     try {
-      const redirected = await this.paymentHelper.payForPlan(this.customerdata, this.plan!, selection);
+      if (!this.selectedGateway) {
+        this.payError = 'Choose how you want to pay.';
+        this.paying = false;
+        return;
+      }
+      const redirected = await this.paymentHelper.payForPlan(this.customerdata, this.plan!, selection, this.selectedGateway);
       if (!redirected) {
-        this.payError = 'Unable to start the payment. Please try again.';
+        // Show the gateway's own reason (e.g. "Razorpay is not configured for this client") when there is one
+        this.payError = this.checkoutApi.lastPaymentError || 'Unable to start the payment. Please try again.';
         this.paying = false;
       }
       // On success the browser is redirected to the payment gateway.

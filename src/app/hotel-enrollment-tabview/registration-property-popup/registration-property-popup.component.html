@@ -53,7 +53,7 @@
         </div>
         <div class="form-group">
           <label>State <span class="req">*</span></label>
-          <select formControlName="property_state">
+          <select formControlName="property_state" (change)="onStateChange()">
             <option value="" disabled>Select state</option>
             <option *ngFor="let s of statesDropdownList" [value]="s">{{ s }}</option>
           </select>
@@ -71,8 +71,19 @@
         </div>
       </div>
 
-      <h4>{{ isIndia ? 'PAN &amp; GST Details' : 'Property Size' }}</h4>
+      <!-- India: PAN & GST; other countries: VAT & TIN, labelled per country (same as Property Details) -->
+      <h4>{{ taxLabels.title }}</h4>
       <div class="reg-grid">
+        <div class="form-group" *ngIf="!isIndia">
+          <label>{{ taxLabels.field1Label }} <span class="req">*</span></label>
+          <input type="text" formControlName="property_vat" />
+          <span class="err" *ngIf="form.get('property_vat')?.touched && form.get('property_vat')?.invalid">{{ taxError('property_vat', taxLabels.field1Label) }}</span>
+        </div>
+        <div class="form-group" *ngIf="!isIndia">
+          <label>{{ taxLabels.field2Label }} <span class="req">*</span></label>
+          <input type="text" formControlName="property_tin" />
+          <span class="err" *ngIf="form.get('property_tin')?.touched && form.get('property_tin')?.invalid">{{ taxError('property_tin', taxLabels.field2Label) }}</span>
+        </div>
         <div class="form-group" *ngIf="isIndia">
           <label>PAN Number <span class="req">*</span></label>
           <input type="text" formControlName="property_pan" style="text-transform: uppercase" />

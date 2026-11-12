@@ -482,7 +482,7 @@ export class MenuBarComponent implements OnInit {
     return status === 'approved';
   }
 
-  /** Approved by the superadmin, or running an activated Free plan. */
+  /** Approved by the superadmin, or on a free account (free period running). */
   hasMenuAccess(): boolean {
     return this.isApproved() || this.paymentHelperService.hasFreePlanAccess();
   }

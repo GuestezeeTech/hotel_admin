@@ -30,6 +30,7 @@ import { PermissionService } from '../../services/permission.service';
 declare var bootstrap: any;
 import { ElementRef, ViewChild, HostListener } from '@angular/core';
 import { ChangeDetectorRef } from '@angular/core';
+import { billingCurrencyOf, billingFor, defaultGatewayFor } from '../plan-pricing.util';
 
 @Component({
   selector: 'app-header',
@@ -606,7 +607,10 @@ export class HeaderComponent implements OnInit {
         discountedCost = perRoomCost - discountValue;
       }
       discountedCost = Number(discountedCost.toFixed(2));
-      const gstPerRoom = Number((discountedCost * 0.18).toFixed(2));
+      // India pays in INR, other countries in USD; GST at the plan's rate
+      const billing = billingFor(this.customerdata, this.customerdata?.subscription_detail, this.activeSubscription);
+      discountedCost = Number((discountedCost * billing.rate).toFixed(2));
+      const gstPerRoom = Number((discountedCost * billing.gst_percent / 100).toFixed(2));
       const yearlyCost = Number((discountedCost * numberOfRooms * 12).toFixed(2));
       const yearlyGst = Number((gstPerRoom * numberOfRooms * 12).toFixed(2));
       const totalYearlyAmount = Number((yearlyCost + yearlyGst).toFixed(2));
@@ -667,6 +671,7 @@ export class HeaderComponent implements OnInit {
       : { vat_number: this.customerdata?.property_details?.property_address?.property_vat || "" };
 
     const orderData = {
+      currency: billingCurrencyOf(this.customerdata),
       customer_id: this.customerdata?.id,
       status: "Awaiting Payment",
       status_id: "1",
@@ -889,23 +894,16 @@ export class HeaderComponent implements OnInit {
         customer_id: this.customerdata?.id,
         amount: nextUnpaid.order_total_amount
       };
-      this.checkoutApiService.getHDFClink(hdfcData).then(responseData3 => {
-        let respData3: any = responseData3;
-        if (!respData3) return console.error("Payment link generation failed");
-        const form = document.createElement("form");
-        form.method = "POST";
-        form.action = respData3.payment_url;
-        form.target = "_self";
-        const input1 = document.createElement("input");
-        input1.name = "encRequest";
-        input1.value = respData3.enc_request;
-        form.appendChild(input1);
-        const input2 = document.createElement("input");
-        input2.name = "access_code";
-        input2.value = respData3.access_code;
-        form.appendChild(input2);
-        document.body.appendChild(form);
-        form.submit();
+      // India -> CCAvenue (charged in INR), others -> Razorpay (USD)
+      const gateway = defaultGatewayFor(this.customerdata);
+      this.checkoutApiService.startGatewayPayment({
+        oid: hdfcData.oid,
+        customer_id: hdfcData.customer_id,
+        amount: hdfcData.amount,
+        currency: billingCurrencyOf(this.customerdata),
+        inrPerUsd: billingFor(this.customerdata, this.customerdata?.subscription_detail, this.activeSubscription).inr_per_usd
+      }, gateway, this.customerdata).then((started) => {
+        if (!started) console.error("Payment could not be started");
       });
     });
   }

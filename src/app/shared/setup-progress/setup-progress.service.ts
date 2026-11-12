@@ -5,6 +5,7 @@ import { catchError, map } from 'rxjs/operators';
 import { DOMAIN_NAME, ENDPOINTS, USER_ID } from '../../app.config';
 import { AuthTokenService } from '../../auth-services/auth-token.service';
 import { PaymentHelperService } from '../../services/payment-helper.service';
+import { OnboardingEmailService } from '../../services/onboarding-email.service';
 
 export type SetupStepKey = 'onboarding' | 'departments' | 'serviceTabs' | 'services' | 'hierarchy' | 'roles';
 
@@ -27,7 +28,8 @@ export class SetupProgressService {
   constructor(
     private http: HttpClient,
     private authTokenService: AuthTokenService,
-    private paymentHelper: PaymentHelperService
+    private paymentHelper: PaymentHelperService,
+    private onboardingEmail: OnboardingEmailService
   ) {}
 
   private count(url: string, memberId: string): Observable<any[] | null> {
@@ -62,9 +64,12 @@ export class SetupProgressService {
     if (paid === null && missing.length === 1) {
       return { done: null, detail: 'Could not check payment' };
     }
-    return missing.length
-      ? { done: false, detail: `Pending: ${missing.join(', ')}` }
-      : { done: true, detail: 'Office, property, technical info and payment' };
+    if (missing.length) {
+      return { done: false, detail: `Pending: ${missing.join(', ')}` };
+    }
+    // Onboarding finished: "Awaiting Final Approval" to the hotel, "Final Approval Verification" to support (once)
+    this.onboardingEmail.onboardingCompleted(customer);
+    return { done: true, detail: 'Office, property, technical info and payment' };
   }
 
   async load(memberId: string): Promise<SetupStep[]> {

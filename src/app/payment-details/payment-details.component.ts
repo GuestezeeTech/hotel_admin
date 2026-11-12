@@ -4,6 +4,9 @@ import { CommonModule } from '@angular/common';
 import { LocalStorageService } from '../auth-services/local-storage.service';
 import { PaymentHelperService, PaymentPlan } from '../services/payment-helper.service';
 import { PaymentDetailsService } from './payment-details.service';
+import { AlertsService } from '../shared/alerts/alerts.service';
+import { downloadPaymentWorkbook, PaymentExportData } from './payment-details-export';
+import { billingCurrencyOf } from '../shared/plan-pricing.util';
 import { SubscriptionPaymentPopupComponent } from '../hotel-enrollment-tabview/subscription-payment-popup/subscription-payment-popup.component';
 
 type PaymentTab = 'subscription' | 'app';
@@ -33,6 +36,7 @@ export class PaymentDetailsComponent implements OnInit {
   appRows: any[] = [];
 
   showSubscriptionPopup = false;
+  isDownloading = false;
   /** Amounts worked out from the plan the superadmin saved on the customer */
   planAmounts: PaymentPlan | null = null;
 
@@ -46,7 +50,8 @@ export class PaymentDetailsComponent implements OnInit {
   constructor(
     private paymentDetailsService: PaymentDetailsService,
     private localStorageService: LocalStorageService,
-    private paymentHelperService: PaymentHelperService
+    private paymentHelperService: PaymentHelperService,
+    private alertService: AlertsService
   ) { }
 
   ngOnInit(): void {
@@ -90,6 +95,11 @@ export class PaymentDetailsComponent implements OnInit {
   get payButtonLabel(): string {
     if (!this.validUntil) return 'Pay Now';
     return this.isSubscriptionExpired ? 'Renew Now' : 'Pay in Advance';
+  }
+
+  /** INR for hotels in India, USD otherwise */
+  get currencyCode(): string {
+    return this.planAmounts?.currency_code || billingCurrencyOf(this.customerData);
   }
 
   get appTotalPaid(): number {
@@ -195,6 +205,59 @@ export class PaymentDetailsComponent implements OnInit {
   }
 
   downloadInvoice(id: number) {
-    window.open(`https://www.guestezee.com:8010/attachments/invoice?domain_name=https://www.guestezee.com&order_id=${id}`, '_blank');
+    window.open(this.invoiceUrl(id), '_blank');
+  }
+
+  private invoiceUrl(id: number | string): string {
+    return `https://www.guestezee.com:8010/attachments/invoice?domain_name=https://www.guestezee.com&order_id=${id}`;
+  }
+
+  /** Both tabs plus the plan summary in one .xlsx file. */
+  async downloadExcel(): Promise<void> {
+    if (this.isDownloading || this.loading) {
+      return;
+    }
+    this.isDownloading = true;
+    try {
+      const toExport = (rows: any[]) => rows.map((r) => ({
+        ...r,
+        plan: this.planLabel(r.plan),
+        invoiceUrl: this.invoiceUrl(r.orderId)
+      }));
+      const summary: PaymentExportData['summary'] = [];
+      const add = (label: string, value: any, money = false) => {
+        if (value !== null && value !== undefined && value !== '') {
+          summary.push({ label, value, money });
+        }
+      };
+      add('Subscription plan', this.subscriptionName);
+      add('Current plan', this.paymentPlan?.selected_plan ? this.currentPlanLabel : '');
+      add('Last paid', this.paymentPlan?.paid_amount != null ? Number(this.paymentPlan.paid_amount) : null, true);
+      add('Remaining for the year', this.paymentPlan?.remaining_amount != null ? Number(this.paymentPlan.remaining_amount) : null, true);
+      add('Valid until', this.validUntil);
+      add('Subscription status', this.isFreePeriodActive ? `Free until ${this.freePeriodEndDate}`
+        : this.isSubscriptionExpired ? 'Expired' : (this.validUntil ? 'Active' : ''));
+      if (this.planAmounts && this.planAmounts.annual_amount > 0) {
+        add('Annual amount', Number(this.planAmounts.plans.annual.amount), true);
+        add('Half-yearly amount (every 6 months)', Number(this.planAmounts.plans.half_yearly.amount), true);
+        add('Quarterly amount (every 3 months)', Number(this.planAmounts.plans.quarterly.amount), true);
+      }
+      add('Subscription payments', this.subscriptionRows.length);
+      add('Subscription total paid', Number(this.subscriptionRows.reduce((s, r) => s + Number(r.order_total_amount || 0), 0).toFixed(2)), true);
+      add('App payments', this.appRows.length);
+      add('App total paid', this.appTotalPaid, true);
+
+      await downloadPaymentWorkbook({
+        currencyCode: this.currencyCode,
+        summary,
+        subscription: toExport(this.subscriptionRows),
+        app: toExport(this.appRows)
+      });
+    } catch (err) {
+      console.error('Payment Excel download failed', err);
+      this.alertService.error('Unable to download the Excel file. Please try again.', { autoClose: true, keepAfterRouteChange: false });
+    } finally {
+      this.isDownloading = false;
+    }
   }
 }

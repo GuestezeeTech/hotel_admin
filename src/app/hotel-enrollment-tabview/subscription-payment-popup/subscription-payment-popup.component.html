@@ -20,8 +20,8 @@
           Subscription plan: <strong>{{ plan.subscription_name }}</strong>
         </p>
         <p class="pricing-basis">
-          {{ plan.number_of_rooms }} rooms × {{ plan.per_room_final_price | currency:'INR' }} per room / month × 12 months
-          (incl. {{ plan.gst_percent }}% GST) = <strong>{{ plan.annual_amount | currency:'INR' }}</strong> per year
+          {{ plan.number_of_rooms }} rooms × {{ plan.per_room_final_price | currency:currencyCode }} per room / month × 12 months
+          (incl. {{ plan.gst_percent }}% GST) = <strong>{{ plan.annual_amount | currency:currencyCode }}</strong> per year
         </p>
 
         <div class="plan-cards" role="radiogroup" aria-label="Subscription plan">
@@ -29,14 +29,35 @@
             role="radio" [attr.aria-checked]="selectedPlan === key"
             [class.selected]="selectedPlan === key" [disabled]="paying" (click)="selectPlan(key)">
             <span class="plan-name">{{ plan.plans[key].label }}</span>
-            <span class="plan-amount">{{ plan.plans[key].amount | currency:'INR' }}</span>
+            <span class="plan-amount">{{ plan.plans[key].amount | currency:currencyCode }}</span>
             <span class="plan-sub">
               {{ plan.plans[key].installments > 1 ? 'every ' + plan.plans[key].months + ' months' : 'once a year' }}
             </span>
           </button>
         </div>
 
-        <p class="payable-text">Next due: <strong>{{ nextDue | currency:'INR' }}</strong></p>
+        <p class="payable-text">Next due: <strong>{{ nextDue | currency:currencyCode }}</strong></p>
+
+        <!-- CCAvenue (Indian hotels only, charged in INR) or Razorpay (USD); one choice for both payments -->
+        <div class="gateway-section" *ngIf="gatewayOptions.length">
+          <h3>Pay with</h3>
+          <p class="muted gateway-note">Used for both the plan payment and a custom amount.</p>
+          <div class="gateway-options" role="radiogroup" aria-label="Pay with">
+            <label class="gateway-option" *ngFor="let option of gatewayOptions"
+              [class.selected]="selectedGateway === option.key">
+              <input type="radio" name="paymentGateway" [value]="option.key" [checked]="selectedGateway === option.key"
+                [disabled]="paying" (change)="selectGateway(option.key)" />
+              <span class="gateway-text">
+                <strong>{{ option.label }}</strong>
+                <small>{{ option.title }} · {{ option.description }}</small>
+              </span>
+            </label>
+          </div>
+          <p class="inr-note" *ngIf="inrCharge(nextDue) as inr">
+            CCAvenue charges in INR: {{ nextDue | currency:currencyCode }} = <strong>{{ inr | currency:'INR' }}</strong>
+            (1 USD = {{ plan.inr_per_usd | currency:'INR' }})
+          </p>
+        </div>
 
         <table class="split-table">
           <thead>
@@ -51,7 +72,7 @@
             <tr *ngFor="let row of installments; let first = first" [class.split-next]="first">
               <td>{{ row.installmentNo }}</td>
               <td>{{ row.status }}</td>
-              <td>{{ row.order_total_amount | currency:'INR' }}</td>
+              <td>{{ row.order_total_amount | currency:currencyCode }}</td>
               <td>{{ row.subscription_end_date }}</td>
             </tr>
           </tbody>
@@ -61,7 +82,7 @@
           <h3>Custom payment</h3>
           <p class="muted">
             Enter any amount you want to pay. Coverage is worked out at the per-day rate
-            (≈ {{ plan.per_day_cost | currency:'INR' }}/day) from {{ startDate | date:'dd-MM-yyyy' }}.
+            (≈ {{ plan.per_day_cost | currency:currencyCode }}/day) from {{ startDate | date:'dd-MM-yyyy' }}.
           </p>
           <label for="subCustomAmount">Amount</label>
           <input id="subCustomAmount" type="number" min="0" step="0.01" placeholder="Enter amount"
@@ -76,10 +97,11 @@
               <span>Matches plan</span>
               <strong>{{ coverage.matched_plan ? planLabel(coverage.matched_plan) : 'Less than Quarterly' }}</strong>
             </div>
-            <div><span>Remaining for the year</span><strong>{{ coverage.remaining_amount | currency:'INR' }}</strong></div>
+            <div><span>Remaining for the year</span><strong>{{ coverage.remaining_amount | currency:currencyCode }}</strong></div>
+            <div *ngIf="inrCharge(coverage.amount) as inr"><span>CCAvenue charges</span><strong>{{ inr | currency:'INR' }}</strong></div>
           </div>
 
-          <button type="button" class="btn-custom" [disabled]="paying || !canPayCustom" (click)="payCustom()">
+          <button type="button" class="btn-custom" [disabled]="paying || !canPayCustom || !selectedGateway" (click)="payCustom()">
             {{ paying ? 'Processing…' : 'Pay Custom Amount' }}
           </button>
         </div>
@@ -91,7 +113,7 @@
     <div class="sub-modal-footer">
       <button type="button" class="btn-close-footer" *ngIf="closable" [disabled]="paying" (click)="close()">Close</button>
       <button type="button" class="btn-pay" (click)="payPlan()"
-        [disabled]="paying || loading || !plan || !!loadError || hasCustomAmount || nextDue <= 0">
+        [disabled]="paying || loading || !plan || !!loadError || hasCustomAmount || nextDue <= 0 || !selectedGateway">
         {{ paying ? 'Processing…' : 'Pay Now' }}
       </button>
     </div>

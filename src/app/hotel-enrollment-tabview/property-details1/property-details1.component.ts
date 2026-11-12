@@ -20,6 +20,8 @@ import { HierarchyService } from '../../hierarchy/hierarchy.service';
 import { COUNTRY_CODES, COUNTRY_STATES, CountryState } from '../../shared/constants/countries';
 import { CountryListService } from '../../shared/constants/country-list.service';
 import { SharedDataService } from '../../shared/shared-data.service';
+import { currencyCodeOf, currencySymbolFor } from '../../shared/plan-pricing.util';
+import { taxLabelsFor } from '../../shared/tax-labels.util';
 
 @Component({
   selector: 'app-property-details1',
@@ -172,6 +174,11 @@ export class PropertyDetails1Component {
   // Tracks which specific doc the user clicked upload for
   selectedApiDocName: string | null = null;
   selectedUploadDoc: string | null = null;
+
+  /** Symbol of the plan's currency (USD by default) for a flat discount */
+  get discountSymbol(): string {
+    return currencySymbolFor(currencyCodeOf(this.customerdata?.subscription_detail));
+  }
 
   constructor(
     private authTokenService: AuthTokenService,
@@ -1127,58 +1134,13 @@ export class PropertyDetails1Component {
 
     this.showTaxSection = true;
     const isIndia = country === 'India';
-    const newField1Key = isIndia ? 'property_pan' : 'property_vat';
-    const newField2Key = isIndia ? 'property_gst' : 'property_tin';
-
-    // Calculate new title and labels first
-    let newTaxSectionTitle = '';
-    let newTaxField1Label = '';
-    let newTaxField2Label = '';
-
-    if (isIndia) {
-      newTaxSectionTitle = 'PAN & GST Details';
-      newTaxField1Label = 'PAN Number';
-      newTaxField2Label = 'GST';
-    } else {
-      newTaxSectionTitle = 'VAT & TIN Details';
-      newTaxField1Label = 'VAT Number';
-      newTaxField2Label = 'Tax Identification Number (TIN)';
-
-      if (country === 'Spain') {
-        newTaxField2Label = 'Tax ID (NIF / NIE)';
-        if (state === 'Canary Islands') {
-          newTaxSectionTitle = 'IGIC & Tax ID Details';
-          newTaxField1Label = 'IGIC Number';
-        } else {
-          newTaxSectionTitle = 'VAT & Tax ID Details';
-          newTaxField1Label = 'VAT Number (IVA)';
-        }
-      } else if (country === 'Switzerland') {
-        newTaxSectionTitle = 'VAT & Business ID Details';
-        newTaxField1Label = 'VAT Number (MWST/TVA/IVA)';
-        newTaxField2Label = 'Business ID (UID)';
-      } else if (country === 'Germany') {
-        newTaxSectionTitle = 'VAT & Tax Number Details';
-        newTaxField1Label = 'VAT Number (USt-IdNr.)';
-        newTaxField2Label = 'Tax Number (Steuernummer)';
-      } else if (country === 'Austria') {
-        newTaxSectionTitle = 'VAT & Tax Number Details';
-        newTaxField1Label = 'VAT Number (UID)';
-        newTaxField2Label = 'Tax Number (Steuernummer)';
-      } else if (country === 'Poland') {
-        newTaxSectionTitle = 'VAT & Tax ID Details';
-        newTaxField1Label = 'VAT Number (NIP)';
-        newTaxField2Label = 'Tax ID (NIP / PESEL)';
-      } else if (country === 'Romania') {
-        newTaxSectionTitle = 'VAT & Tax ID Details';
-        newTaxField1Label = 'VAT Number (CIF)';
-        newTaxField2Label = 'Tax ID (CIF / CNP)';
-      } else if (country === 'United Kingdom') {
-        newTaxSectionTitle = 'VAT & Tax Reference Details';
-        newTaxField1Label = 'VAT Number';
-        newTaxField2Label = 'Unique Taxpayer Reference (UTR)';
-      }
-    }
+    // Same labels as the registration popup (shared/tax-labels.util.ts)
+    const labels = taxLabelsFor(country, state);
+    const newField1Key = labels.field1Key;
+    const newField2Key = labels.field2Key;
+    const newTaxSectionTitle = labels.title;
+    const newTaxField1Label = labels.field1Label;
+    const newTaxField2Label = labels.field2Label;
 
     // Determine if the tax system configuration actually changed
     const taxSystemChanged =

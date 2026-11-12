@@ -4,6 +4,8 @@ import { HotelEnrollmentTabviewService } from '../hotel-enrollment-tabview/hotel
 import { CheckoutApiService } from '../hotel-enrollment-tabview/checkout.service';
 import { LocalStorageService } from '../auth-services/local-storage.service';
 import { LoaderService } from '../shared/loader/loader.service';
+import { billingCurrencyOf, billingFor, defaultGatewayFor, gatewayCharge, gstPercentageOf } from '../shared/plan-pricing.util';
+import { GatewayKey } from '../hotel-enrollment-tabview/checkout.service';
 
 export type PlanKey = 'quarterly' | 'half_yearly' | 'annual';
 
@@ -25,6 +27,10 @@ export interface PaymentPlan {
   discount_type: string;
   discount_value: number;
   gst_percent: number;
+  /** ISO code from the plan's currency_type (USD for "dollar" / "$") */
+  currency_code: string;
+  /** Rupees per US dollar: CCAvenue charges amount × inr_per_usd in INR */
+  inr_per_usd: number;
   per_room_final_price: number;
   annual_sub_total: number;
   annual_tax: number;
@@ -41,6 +47,10 @@ interface OrderOptions {
   subscriptionEndDate: string;
   payableTotal: number;
   extra?: any;
+  /** ccavenue (India only) or razorpay; defaults from the hotel's country */
+  gateway?: GatewayKey;
+  /** Rate for converting the USD amount to INR for CCAvenue */
+  inrPerUsd?: number;
 }
 
 export interface CustomCoverage {
@@ -128,8 +138,9 @@ export class PaymentHelperService {
       try {
         const propertySize = customerData?.property_details?.property_address?.property_size;
         const customerSub = customerData?.subscription_detail;
-        // Free has no paid price: once it ends, charge the plan for the property size
-        if (customerSub && customerSub.name !== 'Free') {
+        // The superadmin's price (plan_type cost or free) applies; a free plan's price is charged
+        // once the free period ends. Older "Free" plans had no paid price: use the general plan.
+        if (customerSub && (customerSub.plan_type || customerSub.name !== 'Free')) {
           return resolve(customerSub);
         }
         const reqBody = {
@@ -208,7 +219,7 @@ export class PaymentHelperService {
   }
 
   /**
-   * Yearly hotel cost (with 18% GST) / 365 = per-day rate from RoomPricing.
+   * Yearly hotel cost (with the plan's GST, 18% by default) / 365 = per-day rate from RoomPricing.
    */
   getPerDayCost(customerData: any, roomPricing: any): number {
     const perRoomCost = Number(
@@ -230,7 +241,10 @@ export class PaymentHelperService {
     }
     discountedCost = Math.max(0, Number(discountedCost.toFixed(2)));
 
-    const yearlyWithGst = Number((discountedCost * Math.max(numberOfRooms, 1) * 12 * 1.18).toFixed(2));
+    // India pays in INR, other countries in USD; GST at the plan's rate
+    const billing = billingFor(customerData, customerData?.subscription_detail, roomPricing);
+    const gstRate = billing.gst_percent / 100;
+    const yearlyWithGst = Number((discountedCost * billing.rate * Math.max(numberOfRooms, 1) * 12 * (1 + gstRate)).toFixed(2));
     if (yearlyWithGst <= 0) {
       return 0;
     }
@@ -308,7 +322,10 @@ export class PaymentHelperService {
       }
       discountedCost = Number(discountedCost.toFixed(2));
 
-      const gstPerRoom = Number((discountedCost * 0.18).toFixed(2));
+      // India pays in INR, other countries in USD; GST at the plan's rate
+      const billing = billingFor(customerData, customerData?.subscription_detail, activeSub);
+      discountedCost = Number((discountedCost * billing.rate).toFixed(2));
+      const gstPerRoom = Number((discountedCost * billing.gst_percent / 100).toFixed(2));
       const yearlyCost = Number((discountedCost * numberOfRooms * 12).toFixed(2));
       const yearlyGst = Number((gstPerRoom * numberOfRooms * 12).toFixed(2));
       const totalYearlyAmount = Number((yearlyCost + yearlyGst).toFixed(2));
@@ -455,18 +472,19 @@ export class PaymentHelperService {
   }
 
   /**
-   * Remembers the end date of an activated Free plan, next to the stored Status, for the
-   * sidebar and route checks. Call it wherever the customer is loaded.
+   * Remembers the end date of a running free period (superadmin set the plan to Free), next to
+   * the stored Status, for the sidebar and route checks: a free account sees every menu its role
+   * allows, without approval or activation. Call it wherever the customer is loaded.
    */
   syncFreePlanAccess(customerData: any): void {
-    if (customerData?.payment_plan?.selected_plan === 'free' && this.isFreePeriodActive(customerData)) {
+    if (this.isFreePeriodActive(customerData)) {
       this.localService.set('FreePlanEnd', customerData.payment_plan.free_period.end_date);
     } else {
       this.localService.remove('FreePlanEnd');
     }
   }
 
-  /** True while an activated Free plan is running: the full menu opens without approval. */
+  /** True while a free period is running: the full role-based menu opens without approval. */
   hasFreePlanAccess(): boolean {
     const end = this.parseSubscriptionDate(this.localService.get('FreePlanEnd'));
     if (!end) {
@@ -513,7 +531,10 @@ export class PaymentHelperService {
   async calculatePaymentPlan(customerData: any): Promise<PaymentPlan> {
     const sub = await this.getActiveSubscription(customerData);
     const rooms = Math.max(Number(customerData?.property_details?.property_address?.number_of_rooms || 0), 1);
-    const gstPercent = 18;
+    // Plan prices are in the plan's currency; India pays in INR, others in USD; GST at the plan's rate
+    const billing = billingFor(customerData, customerData?.subscription_detail, sub);
+    const planGst = gstPercentageOf(customerData?.subscription_detail, sub);
+    const gstPercent = billing.gst_percent;
 
     const perRoomCost = Number(sub?.perRoomCost ?? sub?.price ?? 0);
     const discountType = String(sub?.discountType || '').toLowerCase();
@@ -529,9 +550,9 @@ export class PaymentHelperService {
       }
     } else {
       // Only finalPrice (incl. GST) is known
-      discountedPerRoom = Number(sub?.finalPrice || 0) / (1 + gstPercent / 100);
+      discountedPerRoom = Number(sub?.finalPrice || 0) / (1 + planGst / 100);
     }
-    discountedPerRoom = Math.max(0, this.round2(discountedPerRoom));
+    discountedPerRoom = Math.max(0, this.round2(discountedPerRoom * billing.rate));
     const perRoomGst = this.round2(discountedPerRoom * gstPercent / 100);
     const perRoomFinal = this.round2(discountedPerRoom + perRoomGst);
 
@@ -554,10 +575,12 @@ export class PaymentHelperService {
       plan_basis: 'monthly_per_room',
       subscription_name: sub?.name || '',
       number_of_rooms: rooms,
-      per_room_cost: perRoomCost,
+      per_room_cost: this.round2(perRoomCost * billing.rate),
       discount_type: discountType,
       discount_value: discountValue,
       gst_percent: gstPercent,
+      currency_code: billing.currency_code,
+      inr_per_usd: billing.inr_per_usd,
       per_room_final_price: perRoomFinal,
       annual_sub_total: annualSubTotal,
       annual_tax: annualTax,
@@ -618,7 +641,7 @@ export class PaymentHelperService {
    * and redirects to the payment gateway. The confirmation page promotes the
    * pending values once payment succeeds.
    */
-  async payForPlan(customerData: any, plan: PaymentPlan, selection: { plan: PlanKey } | { customAmount: number }): Promise<boolean> {
+  async payForPlan(customerData: any, plan: PaymentPlan, selection: { plan: PlanKey } | { customAmount: number }, gateway?: GatewayKey): Promise<boolean> {
     if (this.isFreePeriodActive(customerData)) {
       return false;
     }
@@ -700,7 +723,9 @@ export class PaymentHelperService {
       subscriptionEndDate: endDate,
       payableTotal: paidAmount,
       // choosen_plan_type: quarterly | half_yearly | annual | custom
-      extra: { payment_plan: paymentPlan, choosen_plan_type: paymentType, order_type: 'subscription' }
+      extra: { payment_plan: paymentPlan, choosen_plan_type: paymentType, order_type: 'subscription' },
+      gateway,
+      inrPerUsd: plan.inr_per_usd
     });
   }
 
@@ -800,6 +825,8 @@ export class PaymentHelperService {
 
     return {
       customer_id: customerData?.id,
+      // Orders are always in USD; CCAvenue is charged the INR equivalent (see gateway_charge)
+      currency: billingCurrencyOf(customerData),
       status: "Awaiting Payment",
       status_id: "1",
       system_label: "Pending",
@@ -1008,10 +1035,19 @@ export class PaymentHelperService {
     };
   }
 
-  /** Creates the order and posts the HDFC/CCAvenue form. Shared by payNow and payForPlan. */
+  /** Creates the order and hands it to CCAvenue or Razorpay. Shared by payNow and payForPlan. */
   private createOrderAndRedirect(customerData: any, opts: OrderOptions): Promise<boolean> {
     const { payableTotal } = opts;
-    const orderData = this.buildOrderData(customerData, opts);
+    // CCAvenue for Indian hotels, Razorpay otherwise (unless chosen in the popup)
+    const gateway: GatewayKey = opts.gateway || defaultGatewayFor(customerData);
+    const inrPerUsd = opts.inrPerUsd || billingFor(customerData, customerData?.subscription_detail).inr_per_usd;
+    const orderData = {
+      ...this.buildOrderData(customerData, opts),
+      // What the gateway is actually charged (CCAvenue: INR at inr_per_usd)
+      gateway_charge: gatewayCharge(gateway, payableTotal, billingCurrencyOf(customerData), inrPerUsd),
+      payment_gateway: gateway,
+      inr_per_usd: inrPerUsd
+    };
 
     const requestData = {
       domain_name: DOMAIN_NAME,
@@ -1031,40 +1067,18 @@ export class PaymentHelperService {
           }
           const upsertData = resp.result.data;
           const orderId = String(upsertData?.[0]?.id ?? '').split('-')[0];
-          const hdfcData = {
-            domain_name: DOMAIN_NAME,
-            user_id: USER_ID,
+          this.checkoutApiService.startGatewayPayment({
             oid: orderId,
             customer_id: customerData?.id,
-            amount: payableTotal
-          };
-          console.log('Order Id:', orderId);
-          this.checkoutApiService.getHDFClink(hdfcData).then(responseData3 => {
+            amount: payableTotal,
+            currency: billingCurrencyOf(customerData),
+            inrPerUsd
+          }, gateway, customerData).then((started) => {
             this.loaderService.emitComplete();
-            const respData3: any = responseData3;
-            console.log('Access Code:', respData3?.access_code);
-            console.log('Working Key:', respData3?.working_key || respData3?.workingKey);
-            console.log('Order Id:', orderId);
-            if (!respData3) {
-              console.error("Payment link generation failed");
-              resolve(false);
-              return;
+            if (!started) {
+              console.error('Payment could not be started');
             }
-            const form = document.createElement("form");
-            form.method = "POST";
-            form.action = respData3.payment_url;
-            form.target = "_self";
-            const input1 = document.createElement("input");
-            input1.name = "encRequest";
-            input1.value = respData3.enc_request;
-            form.appendChild(input1);
-            const input2 = document.createElement("input");
-            input2.name = "access_code";
-            input2.value = respData3.access_code;
-            form.appendChild(input2);
-            document.body.appendChild(form);
-            form.submit();
-            resolve(true);
+            resolve(started);
           });
         },
         error: (err: any) => {

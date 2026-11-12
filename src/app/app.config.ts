@@ -482,6 +482,10 @@ export const ENDPOINTS = {
   // HDFC_PAYMENT: API_URL + ":5621/api/payment/generateHDFCLink",
   // HDFC_PAYMENT: API_URL + ":5622/api/payment/generateHDFCLink",
   HDFC_PAYMENT: API_URL + ":3355/payment/create-order",
+  /** Razorpay: checks the Checkout signature on the server and marks the order paid */
+  VERIFY_PAYMENT: API_URL + ":3355/payment/verify",
+  /** Onboarding stage emails: { templateName, to, variables: { hotelName } } */
+  ONBOARDING_EMAIL: API_URL + ":9430/onboardingemail",
   GETBYID_ORDERS: API_URL + ':9475/order/getbyid',
   DELETE_CUSTOMER: API_URL + ":5430/customer/delete",
 
@@ -512,8 +516,10 @@ export const ENDPOINTS = {
   CREATE_TECHNICAL_INFO: API_URL + ':3567/ecomintegrationsettings/create',
   UPDATE_TECHNICAL_INFO: API_URL + ':3567/ecomintegrationsettings/update',
   GET_ALL_TASK: API_URL + ':3411/task/getall',
-  /** Guest app mobile key analytics (create:1000 / getall:1001). */
-  MOBILE_KEY_GETALL: API_URL + ':1001/key/getall',
+  /** Mobile key report for front-desk analytics (keyrecord create/update :5410, keycount getall :5411). */
+  MOBILE_KEY_CREATE: API_URL + ':5410/keyrecord/create',
+  MOBILE_KEY_UPDATE: API_URL + ':5410/keyrecord/update',
+  MOBILE_KEY_GETALL: API_URL + ':5411/keycount/getall',
   CREATE_TASK: API_URL + ':3410/task/create',
   UPDATE_TASK: API_URL + ':3410/task/update',
   GET_ALL_BOOKINGS: API_URL + ':4676/reservation/getall',

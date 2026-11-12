@@ -354,7 +354,7 @@
         <strong style="color: #8b0000; font-size: 16px; margin-left: 4px;">
           <span *ngIf="customerdata.subscription_detail.discountType === 'percentage'">{{
             customerdata.subscription_detail.discountValue }}%</span>
-          <span *ngIf="customerdata.subscription_detail.discountType !== 'percentage'">₹{{
+          <span *ngIf="customerdata.subscription_detail.discountType !== 'percentage'">{{ discountSymbol }}{{
             customerdata.subscription_detail.discountValue }}</span>
           OFF
         </strong>

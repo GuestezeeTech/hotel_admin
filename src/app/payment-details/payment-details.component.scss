@@ -284,3 +284,34 @@ body {
   margin-top: 12px;
   width: 100%;
 }
+.nav-tabs {
+  align-items: center;
+}
+
+.export-item {
+  padding: 6px 8px;
+}
+
+.download-excel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #800020;
+  border-radius: 8px;
+  background: #800020;
+  color: #fff;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: #66001a;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}

@@ -8,6 +8,7 @@ import { ProfileService } from '../../profile/profile.service';
 import { COUNTRY_CODES, COUNTRY_STATES } from '../../shared/constants/countries';
 import { CountryListService } from '../../shared/constants/country-list.service';
 import { CustomValidators } from '../validators';
+import { TaxLabels, taxLabelsFor } from '../../shared/tax-labels.util';
 
 @Component({
   selector: 'app-registration-property-popup',
@@ -52,6 +53,9 @@ export class RegistrationPropertyPopupComponent implements OnChanges, OnDestroy 
       Validators.required,
       Validators.pattern(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/)
     ]),
+    // Outside India (same fields as the Property Details tab)
+    property_vat: new FormControl(''),
+    property_tin: new FormControl(''),
     number_of_rooms: new FormControl('', [Validators.required, Validators.min(1)]),
     register_pms_type: new FormControl('', [Validators.required, CustomValidators.noWhitespaceValidator]),
     register_door_lock_type: new FormControl('', [Validators.required, CustomValidators.noWhitespaceValidator]),
@@ -125,26 +129,47 @@ export class RegistrationPropertyPopupComponent implements OnChanges, OnDestroy 
     });
   }
 
-  /** PAN and GST are Indian registrations: shown, required and saved only for India. */
+  /** India: PAN & GST. Other countries: VAT & TIN, labelled per country like the Property Details tab. */
   get isIndia(): boolean {
     return this.form.get('property_country')?.value === 'India';
+  }
+
+  get taxLabels(): TaxLabels {
+    return taxLabelsFor(this.form.get('property_country')?.value || '', this.form.get('property_state')?.value);
   }
 
   private applyTaxValidators(country: string): void {
     const pan = this.form.get('property_pan');
     const gst = this.form.get('property_gst');
+    const vat = this.form.get('property_vat');
+    const tin = this.form.get('property_tin');
     if (country === 'India') {
       pan?.setValidators([Validators.required, Validators.pattern(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/)]);
       gst?.setValidators([
         Validators.required,
         Validators.pattern(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/)
       ]);
+      vat?.clearValidators();
+      tin?.clearValidators();
     } else {
       pan?.clearValidators();
       gst?.clearValidators();
+      // Same rules as the Property Details tab (format checked per country)
+      vat?.setValidators([Validators.required, CustomValidators.noWhitespaceValidator, CustomValidators.dynamicTaxValidator('VAT')]);
+      tin?.setValidators([Validators.required, CustomValidators.noWhitespaceValidator, CustomValidators.dynamicTaxValidator('TIN')]);
     }
-    pan?.updateValueAndValidity({ emitEvent: false });
-    gst?.updateValueAndValidity({ emitEvent: false });
+    [pan, gst, vat, tin].forEach(c => c?.updateValueAndValidity({ emitEvent: false }));
+  }
+
+  /** Error text for the VAT / TIN fields (country format message when there is one) */
+  taxError(key: 'property_vat' | 'property_tin', label: string): string {
+    const errors = this.form.get(key)?.errors;
+    return errors?.['invalidTaxId']?.message || `Valid ${label} is required.`;
+  }
+
+  /** Spain's Canary Islands use IGIC instead of VAT: recheck the format when the state changes */
+  onStateChange(): void {
+    ['property_vat', 'property_tin'].forEach(k => this.form.get(k)?.updateValueAndValidity({ emitEvent: false }));
   }
 
   ngOnDestroy(): void {
@@ -276,6 +301,8 @@ export class RegistrationPropertyPopupComponent implements OnChanges, OnDestroy 
       property_pincode: address.property_pincode || '',
       property_pan: address.property_pan || '',
       property_gst: address.property_gst || '',
+      property_vat: address.property_vat || '',
+      property_tin: address.property_tin || '',
       number_of_rooms: address.number_of_rooms || '',
       register_pms_type: this.customerdata?.register_pms_type || '',
       register_door_lock_type: this.customerdata?.register_door_lock_type || '',
@@ -286,8 +313,10 @@ export class RegistrationPropertyPopupComponent implements OnChanges, OnDestroy 
   onCountryChange(): void {
     const country = this.form.get('property_country')?.value || '';
     this.updateStatesForCountry(country);
-    this.applyTaxValidators(country);
     this.form.get('property_state')?.setValue('');
+    // A different tax system: start the tax numbers empty, as in the Property Details tab
+    this.form.patchValue({ property_pan: '', property_gst: '', property_vat: '', property_tin: '' });
+    this.applyTaxValidators(country);
   }
 
   private updateStatesForCountry(countryName: string): void {
@@ -341,7 +370,10 @@ export class RegistrationPropertyPopupComponent implements OnChanges, OnDestroy 
               property_pan: String(v.property_pan || '').trim().toUpperCase(),
               property_gst: String(v.property_gst || '').trim().toUpperCase()
             }
-          : {})
+          : {
+              property_vat: String(v.property_vat || '').trim(),
+              property_tin: String(v.property_tin || '').trim()
+            })
       },
       kyc_documents: {
         company_status: v.company_status,

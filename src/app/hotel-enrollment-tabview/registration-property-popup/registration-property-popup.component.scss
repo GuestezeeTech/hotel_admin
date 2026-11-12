@@ -82,13 +82,31 @@
 
 .kyc-options {
   display: grid;
-  gap: 0.55rem;
+  gap: 0.6rem;
 
   label {
     display: flex;
-    gap: 0.5rem;
-    align-items: flex-start;
+    align-items: center;
+    gap: 0.6rem;
+    margin: 0;
     font-size: 0.9rem;
+    line-height: 1.35;
+    cursor: pointer;
+  }
+
+  input[type='radio'] {
+    flex: 0 0 auto;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    vertical-align: middle;
+    accent-color: #800020;
+    cursor: pointer;
+  }
+
+  span {
+    flex: 1 1 auto;
+    min-width: 0;
   }
 }
 

@@ -462,7 +462,7 @@ export class FoOperationsDashboardComponent implements OnInit {
   viewMobileKey(row: FoMobileKeyRow): void {
     this.openModal(
       `Mobile Key · ${row.guestName}`,
-      `Guest: ${row.guestName}<br>Room: ${row.roomNo}<br>Check-in: ${row.checkIn}<br>Check-out: ${row.checkOut}<br>Key count: ${row.keyCount}<br>Lock: ${row.lockName}<br>Opened status: ${row.openedStatus}<br>Key used: ${row.keyUsedCount}<br>Device: ${row.deviceBrand} · ${row.deviceName}<br>In-house: ${row.inHouseStatus}`
+      `Created on: ${row.createdOn}<br>Guest: ${row.guestName}<br>Room: ${row.roomNo}<br>Check-in: ${row.checkIn}<br>Check-out: ${row.checkOut}<br>Key count: ${row.keyCount}<br>Lock: ${row.lockName}<br>Opened status: ${row.openedStatus}<br>Key used: ${row.keyUsedCount}<br>Device: ${row.deviceBrand} · ${row.deviceName}<br>In-house: ${row.inHouseStatus}`
     );
   }
 
@@ -483,7 +483,7 @@ export class FoOperationsDashboardComponent implements OnInit {
   viewDeviceOs(row: FoDeviceOsRow): void {
     this.openModal(
       `Guest Device · ${row.guestName}`,
-      `Guest: ${row.guestName}<br>Room: ${row.roomNo}<br>Check-in: ${row.checkIn}<br>Check-out: ${row.checkOut}<br>Nights: ${row.nights}<br>Device: ${row.deviceBrand} · ${row.deviceName}<br>Status: ${row.guestStatus}`
+      `Created on: ${row.createdOn}<br>Guest: ${row.guestName}<br>Room: ${row.roomNo}<br>Check-in: ${row.checkIn}<br>Check-out: ${row.checkOut}<br>Nights: ${row.nights}<br>Device: ${row.deviceBrand} · ${row.deviceName}<br>Status: ${row.guestStatus}`
     );
   }
 

@@ -1,7 +1,8 @@
 import { LoginService } from './../login/login.service';
 import { USER_ID } from './../app.config';
 import { LocalStorageService } from './../auth-services/local-storage.service';
-import { Component, OnInit, ChangeDetectorRef, HostListener, Input, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, HostListener, Input, ViewChild } from '@angular/core';
+import { billingCurrencyOf, currencySymbolFor } from '../shared/plan-pricing.util';
 import { HeaderComponent } from '../shared/header/header.component';
 import { MenuBarComponent } from '../shared/menu-bar/menu-bar.component';
 import { OfficeDetailsComponent } from './office-details/office-details.component';
@@ -26,6 +27,7 @@ import { Subscription } from 'rxjs';
 import { NavigationStart } from '@angular/router';
 import { SharedDataService } from '../shared/shared-data.service';
 import { PaymentHelperService } from '../services/payment-helper.service';
+import { OnboardingEmailService } from '../services/onboarding-email.service';
 import { RegistrationPropertyPopupComponent } from './registration-property-popup/registration-property-popup.component';
 import { SubscriptionPaymentPopupComponent } from './subscription-payment-popup/subscription-payment-popup.component';
 import { SetupProgressComponent } from '../shared/setup-progress/setup-progress.component';
@@ -40,7 +42,7 @@ export let browserRefresh = false;
   styleUrl: './hotel-enrollment-tabview.component.scss'
 })
 
-export class HotelEnrollmentTabviewComponent implements OnInit {
+export class HotelEnrollmentTabviewComponent implements OnInit, OnDestroy {
   @ViewChild(OfficeDetailsComponent) officeDetailsComp!: OfficeDetailsComponent;
   @ViewChild(PropertyDetails1Component) propertyDetailsComp!: PropertyDetails1Component;
   @ViewChild(TechnicalInfoComponent) technicalInfoComp!: TechnicalInfoComponent;
@@ -121,6 +123,9 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
   /** Subscription payment popup (after approval with no confirmed order, or after payment_plan expiry) */
   showSubscriptionPopup = false;
   subscriptionRenewal = false;
+  /** While waiting for approval, re-checks register_status so the payment popup opens on its own */
+  private approvalPollTimer: ReturnType<typeof setInterval> | null = null;
+  private readonly approvalPollMs = 30_000;
   /** True once the order check has finished, so tabs never flash before the popup decision */
   subscriptionGateResolved = false;
   private subscriptionCheckInFlight = false;
@@ -334,7 +339,8 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
     private serviceDetails: ServiceDetailService,
     private loginService: LoginService,
     private sharedDataService: SharedDataService,
-    private paymentHelperService: PaymentHelperService
+    private paymentHelperService: PaymentHelperService,
+    private onboardingEmail: OnboardingEmailService
   ) {
     this.router.events.subscribe(event => {
       if (event instanceof NavigationEnd) {
@@ -500,6 +506,10 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
     if (customer.register_status === true || customer.register_status === 'true' || customer.register_status === 1) {
       return true;
     }
+    // Verified by the superadmin (Verify also sets register_status; covers hotels verified earlier)
+    if (customer.verify_status === true || customer.verify_status === 'true' || customer.verify_status === 1) {
+      return true;
+    }
     // Legacy only: already completed Registered Office (started enrollment before this gate)
     if (customer.is_office_details_exists === true) {
       return true;
@@ -534,7 +544,10 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
     if (this.subscriptionCheckInFlight) {
       return;
     }
-    if (this.isPaymentRoute() || !customer?.id || !this.hasRegisterStatus(customer)) {
+    // Confirmation page: just paid, no popup. Cancellation page: check again so a cancelled
+    // or failed payment brings the pay-again popup back (expired, or never paid).
+    const onConfirmation = this.router.url.toLowerCase().includes('confirmation');
+    if (onConfirmation || !customer?.id || !this.hasRegisterStatus(customer)) {
       this.showSubscriptionPopup = false;
       this.subscriptionGateResolved = true;
       return;
@@ -587,7 +600,37 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
     this.showRegistrationPopup = !registered && !formSubmitted;
     this.awaitingRegistrationApproval = !registered && formSubmitted;
     this.isReadyToRender = true;
+    this.syncApprovalPolling();
     this.cdr.detectChanges();
+  }
+
+  /**
+   * Polls the customer while the "Registration pending approval" card is shown. As soon as
+   * the superadmin sets register_status = true, refreshRegistrationStatus() unlocks the page
+   * and checkSubscriptionPayment() opens the payment popup without a manual refresh.
+   */
+  private syncApprovalPolling(): void {
+    if (this.awaitingRegistrationApproval && !this.approvalPollTimer) {
+      this.approvalPollTimer = setInterval(() => {
+        if (typeof document !== 'undefined' && document.hidden) {
+          return;
+        }
+        this.refreshRegistrationStatus();
+      }, this.approvalPollMs);
+    } else if (!this.awaitingRegistrationApproval && this.approvalPollTimer) {
+      this.stopApprovalPolling();
+    }
+  }
+
+  private stopApprovalPolling(): void {
+    if (this.approvalPollTimer) {
+      clearInterval(this.approvalPollTimer);
+      this.approvalPollTimer = null;
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.stopApprovalPolling();
   }
 
   onRegistrationPopupSubmit(payload: {
@@ -639,6 +682,8 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
             ...updatePayload
           };
           this.getCustomerData = this.customerdata;
+          // "Awaiting Approval" to the hotel, "New Registration Approval" to support
+          this.onboardingEmail.registrationSubmitted(this.customerdata);
           this.evaluateRegistrationGate();
           this.alertService.success(
             resp.message || 'Details submitted. Please wait for approval to continue registration.',
@@ -1058,6 +1103,8 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
           if (shouldUpdateOrder) {
             //  const orderPayload = { ...this.orderdata };
             const orderPayload = JSON.parse(JSON.stringify(this.orderdata));
+            // Older orders were saved without a currency
+            orderPayload.currency = orderPayload.currency || billingCurrencyOf(this.customerdata);
             delete orderPayload._id;
             delete orderPayload.id;
 
@@ -1399,6 +1446,10 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
               );
               if (paidOrder) {
                 this.orderdata = paidOrder;
+                if (paidOrder.status === 'Order Confirmed' || paidOrder.status === 'Confirmed') {
+                  // "Subscription Approval" to the hotel, "Subscription Verification" to support (once per order)
+                  this.onboardingEmail.paymentConfirmed(this.customerdata, paidOrder.id);
+                }
               }
 
               const coveredInstallment = this.applyPaidAmountToSplit(this.orderdata);
@@ -1437,6 +1488,8 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
           // Execute a single Upsert if any changes were made
           if (shouldUpdateOrder) {
             const orderPayload = JSON.parse(JSON.stringify(this.orderdata));
+            // Older orders were saved without a currency
+            orderPayload.currency = orderPayload.currency || billingCurrencyOf(this.customerdata);
             delete orderPayload._id;
             delete orderPayload.id;
 
@@ -2155,7 +2208,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit {
       const nextUnpaid = allCycles[nextUnpaidCycleIndex].installments[nextUnpaidIndex];
       const nextAmount = Number(nextUnpaid?.order_total_amount || 0);
       installmentText = overdue
-        ? `Pay Now - Next ₹${nextAmount.toFixed(2)}`
+        ? `Pay Now - Next ${currencySymbolFor(billingCurrencyOf(this.customerdata))}${nextAmount.toFixed(2)}`
         : `${this.capitalizeFirstLetter(cycleName)} - Installment ${nextUnpaidIndex + 1} of ${totalInstallments}`;
     } else if (overdue) {
       installmentText = 'Pay Now - Subscription Expired';
