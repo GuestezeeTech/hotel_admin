@@ -486,6 +486,8 @@ export const ENDPOINTS = {
   VERIFY_PAYMENT: API_URL + ":3355/payment/verify",
   /** Onboarding stage emails: { templateName, to, variables: { hotelName } } */
   ONBOARDING_EMAIL: API_URL + ":9430/onboardingemail",
+  /** Sent as the x-api-key header to ONBOARDING_EMAIL */
+  ONBOARDING_EMAIL_API_KEY: "505e1ba70a5b1e95ae3af6ac90ece2d91d461b4208653cc6624f76a6ca92951c",
   GETBYID_ORDERS: API_URL + ':9475/order/getbyid',
   DELETE_CUSTOMER: API_URL + ":5430/customer/delete",
 

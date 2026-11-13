@@ -38,7 +38,9 @@ export class OnboardingEmailService {
       console.warn(`Onboarding email "${templateName}" skipped: no recipient`);
       return;
     }
-    const headers = new HttpHeaders().set('Content-Type', 'application/json');
+    const headers = new HttpHeaders()
+      .set('Content-Type', 'application/json')
+      .set('x-api-key', ENDPOINTS.ONBOARDING_EMAIL_API_KEY);
     this.http.post(ENDPOINTS.ONBOARDING_EMAIL, {
       templateName,
       to: email,
