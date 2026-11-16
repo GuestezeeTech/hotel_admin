@@ -3,6 +3,16 @@
 
 <head>
   <meta charset="utf-8">
+  <!--
+    One address for the admin. The browser keeps the login separately for guestezee.com and
+    www.guestezee.com, so a hotel that logged in on one and came back from the payment page on
+    the other looked logged out. Move guestezee.com to www (same page and query) before anything loads.
+  -->
+  <script>
+    if (location.hostname === 'guestezee.com') {
+      location.replace('https://www.guestezee.com' + location.pathname + location.search + location.hash);
+    }
+  </script>
   <!-- <title>GUESTEZEE HOTEL REGISTRATION</title> -->
   <title>GUESTEZEE ADMIN</title>
   <base href="/">

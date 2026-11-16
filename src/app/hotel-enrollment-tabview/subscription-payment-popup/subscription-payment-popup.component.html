@@ -21,7 +21,7 @@
         </p>
         <p class="pricing-basis">
           {{ plan.number_of_rooms }} rooms × {{ plan.per_room_final_price | currency:currencyCode }} per room / month × 12 months
-          (incl. {{ plan.gst_percent }}% GST) = <strong>{{ plan.annual_amount | currency:currencyCode }}</strong> per year
+          (incl. {{ plan.gst_percent }}% tax) = <strong>{{ plan.annual_amount | currency:currencyCode }}</strong> per year
         </p>
 
         <div class="plan-cards" role="radiogroup" aria-label="Subscription plan">
@@ -55,7 +55,7 @@
           </div>
           <p class="inr-note" *ngIf="inrCharge(nextDue) as inr">
             CCAvenue charges in INR: {{ nextDue | currency:currencyCode }} = <strong>{{ inr | currency:'INR' }}</strong>
-            (1 USD = {{ plan.inr_per_usd | currency:'INR' }})
+            (1 USD = {{ plan.inr_per_usd | currency:'INR' }}<ng-container *ngIf="liveInrRate">, today’s rate</ng-container>)
           </p>
         </div>
 

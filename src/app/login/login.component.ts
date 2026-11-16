@@ -885,6 +885,10 @@ export class LoginComponent implements OnInit {
                       ? 'true' : 'false'
                   );
                   this.paymentHelperService.syncFreePlanAccess(userData);
+                  // Paying hotels get the full menu only when paid AND approved
+                  if (userData.staff_employee_number === undefined) {
+                    await this.paymentHelperService.syncPaidAccess(userData);
+                  }
                   this.dbSchema = userData.db_schema;
                   this.localService.set('domainName', DOMAIN_NAME);
                   // console.log('Domain name:', this.localService.get('domainName'));

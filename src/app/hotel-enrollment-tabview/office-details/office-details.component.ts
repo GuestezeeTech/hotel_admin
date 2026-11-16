@@ -22,6 +22,7 @@ import { NgForm } from '@angular/forms';
 import { OnChanges, SimpleChanges } from '@angular/core';
 import { COUNTRY_CODES, COUNTRY_STATES, CountryState } from '../../shared/constants/countries';
 import { CountryListService } from '../../shared/constants/country-list.service';
+import { registrationLockStatus } from '../../shared/registration-lock.util';
 
 @Component({
   selector: 'app-office-details',
@@ -816,7 +817,8 @@ export class OfficeDetailsComponent implements OnInit, OnChanges {
           if (resp?.result?.data?.[0]) {
             this.customerdata = resp.result.data[0];
             // Newly added for disabling form on payment done to approving the customer
-            this.customerStatus = this.customerdata.status;
+            // Approved or live (go_live): read-only
+            this.customerStatus = registrationLockStatus(this.customerdata);
             // console.log('Customer status:', this.customerStatus);
             if (this.customerStatus == 'approved') {
               this.customerForm.disable({ emitEvent: false });

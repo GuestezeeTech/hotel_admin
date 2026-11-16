@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HotelEnrollmentTabviewService } from './hotel-enrollment-tabview.service';
 import { DOMAIN_NAME, ENDPOINTS } from '../app.config';
 import { canUseCcavenue, gatewayCharge, inrPerUsdOf } from '../shared/plan-pricing.util';
+import { ExchangeRateService } from '../services/exchange-rate.service';
 
 export type GatewayKey = 'ccavenue' | 'razorpay';
 
@@ -43,6 +44,7 @@ export class CheckoutApiService {
 
   constructor(
     public hotelenrollmenttabviewservice: HotelEnrollmentTabviewService,
+    private exchangeRate: ExchangeRateService,
   ) { }
 
   checkoutAPICall(endPoint: string, reqData?: any) {
@@ -250,7 +252,9 @@ export class CheckoutApiService {
       return false;
     }
     // Amounts are in USD; CCAvenue is charged the INR equivalent
-    const rate = order.inrPerUsd || inrPerUsdOf(customer?.payment_plan, customer?.subscription_detail);
+    // CCAvenue: today's market rate; the plan's saved rate only when the live rate is unavailable
+    const savedRate = order.inrPerUsd || inrPerUsdOf(customer?.payment_plan, customer?.subscription_detail);
+    const rate = gateway === 'ccavenue' ? (await this.exchangeRate.getInrPerUsd(savedRate)).rate : savedRate;
     const charge = gatewayCharge(gateway, order.amount, order.currency, rate);
     order = { ...order, amount: charge.amount, currency: charge.currency };
     const result: any = await this.getHDFClink({

@@ -57,7 +57,7 @@ export function currencySymbolFor(code: string): string {
 }
 
 /** Used when a plan has no inr_per_usd saved yet (set by the superadmin on the plans page). */
-export const DEFAULT_INR_PER_USD = 83;
+export const DEFAULT_INR_PER_USD = 94.17;
 
 /** Rupees per US dollar from the customer's saved plan or the plan itself. */
 export function inrPerUsdOf(...sources: any[]): number {

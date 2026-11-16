@@ -3,6 +3,7 @@ import { USER_ID } from './../app.config';
 import { LocalStorageService } from './../auth-services/local-storage.service';
 import { Component, OnInit, OnDestroy, ChangeDetectorRef, HostListener, Input, ViewChild } from '@angular/core';
 import { billingCurrencyOf, currencySymbolFor } from '../shared/plan-pricing.util';
+import { registrationLockStatus } from '../shared/registration-lock.util';
 import { HeaderComponent } from '../shared/header/header.component';
 import { MenuBarComponent } from '../shared/menu-bar/menu-bar.component';
 import { OfficeDetailsComponent } from './office-details/office-details.component';
@@ -567,6 +568,8 @@ export class HotelEnrollmentTabviewComponent implements OnInit, OnDestroy {
       if (!expired) {
         const orders = await this.paymentHelperService.getConfirmedOrders(customer.id);
         noConfirmedOrder = orders.length === 0;
+        // Read by the sidebar: paying hotels get the full menu only when paid and approved
+        this.localService.set('HasPaidSubscription', noConfirmedOrder ? 'false' : 'true');
       }
       this.subscriptionRenewal = expired;
       this.showSubscriptionPopup = expired || noConfirmedOrder;
@@ -1449,6 +1452,8 @@ export class HotelEnrollmentTabviewComponent implements OnInit, OnDestroy {
                 if (paidOrder.status === 'Order Confirmed' || paidOrder.status === 'Confirmed') {
                   // "Subscription Approval" to the hotel, "Subscription Verification" to support (once per order)
                   this.onboardingEmail.paymentConfirmed(this.customerdata, paidOrder.id);
+                  // Paid: once the superadmin approves, the full menu opens
+                  this.localService.set('HasPaidSubscription', 'true');
                 }
               }
 
@@ -2654,7 +2659,8 @@ export class HotelEnrollmentTabviewComponent implements OnInit, OnDestroy {
       this.localService.set('CustomerType', 'Customer');
     }
     this.localService.remove('loggedOut');
-    this.customerStatus = this.customerdata.status;
+    // Approved or live (go_live): the "save your changes" hint is hidden, the tabs are read-only
+    this.customerStatus = registrationLockStatus(this.customerdata);
     if (this.customerdata.customer_member_id) {
       this.memberId = this.customerdata.customer_member_id;
       this.localService.set('MemberId', this.memberId);

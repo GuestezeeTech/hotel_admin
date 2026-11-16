@@ -22,6 +22,7 @@ declare var $: any;
 declare var bootstrap: any;
 import { ElementRef, ViewChild } from '@angular/core';
 import { billingCurrencyOf, billingFor, defaultGatewayFor } from '../../shared/plan-pricing.util';
+import { registrationLockStatus } from '../../shared/registration-lock.util';
 
 @Component({
   selector: 'app-technical-info',
@@ -615,8 +616,8 @@ export class TechnicalInfoComponent implements OnInit {
             // console.log(this.memberId, "Member id(In technical info)");
             // console.log('Member ID:', this.Memberid);
             // Newly added for disabling form on payment done to approving the customer
-            this.customerStatus = this.customerdata.status;
-            // console.log('Customer status:', this.customerStatus);
+            // Approved or live (go_live): read-only
+            this.customerStatus = registrationLockStatus(this.customerdata);
             // Newly added & commented 
             // Step 1: Check for customer-specific subscription
             // if (this.customerdata?.subscription_detail) {

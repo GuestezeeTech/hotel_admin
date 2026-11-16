@@ -363,6 +363,7 @@ export class MenuBarComponent implements OnInit {
             this.customerdata = resp.result.data[0];
             this.localService.set('Status', this.customerdata?.status);
             this.paymentHelperService.syncFreePlanAccess(this.customerdata);
+            this.syncPaidAccess();
             resolve();
           } else {
             reject('No customer data found');
@@ -459,6 +460,7 @@ export class MenuBarComponent implements OnInit {
             this.localService.set('CustomerType', this.customerType);
             this.localService.set('Status', this.customerdata?.status);
             this.paymentHelperService.syncFreePlanAccess(this.customerdata);
+            this.syncPaidAccess();
             resolve(); //newly added
           } else {
             resolve();//newly added
@@ -482,9 +484,18 @@ export class MenuBarComponent implements OnInit {
     return status === 'approved';
   }
 
-  /** Approved by the superadmin, or on a free account (free period running). */
+  /** Re-checks the hotel's confirmed payment and redraws the menu (customers only) */
+  private syncPaidAccess(): void {
+    if (this.customerdata?.staff_employee_number !== undefined) {
+      return;
+    }
+    this.paymentHelperService.syncPaidAccess(this.customerdata).then(() => this.cdr.detectChanges());
+  }
+
+  /** Paid and approved by the superadmin, or on a free account (free period running). */
   hasMenuAccess(): boolean {
-    return this.isApproved() || this.paymentHelperService.hasFreePlanAccess();
+    const status = this.customerdata?.status || this.localService.get('Status');
+    return this.paymentHelperService.hasFullAccess(status);
   }
 
   /**

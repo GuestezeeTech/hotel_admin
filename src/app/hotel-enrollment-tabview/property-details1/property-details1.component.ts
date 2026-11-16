@@ -22,6 +22,7 @@ import { CountryListService } from '../../shared/constants/country-list.service'
 import { SharedDataService } from '../../shared/shared-data.service';
 import { currencyCodeOf, currencySymbolFor } from '../../shared/plan-pricing.util';
 import { taxLabelsFor } from '../../shared/tax-labels.util';
+import { registrationLockStatus } from '../../shared/registration-lock.util';
 
 @Component({
   selector: 'app-property-details1',
@@ -1282,8 +1283,9 @@ export class PropertyDetails1Component {
                 this.hotelLogoUrl = null;
                 this.sharedDataService.setHotelLogo(null);
               }
-              this.status = this.customerdata.status;
-              this.customerStatus = this.customerdata.status;
+              // Approved or live (go_live): read-only
+              this.status = registrationLockStatus(this.customerdata);
+              this.customerStatus = this.status;
               // console.log('Customer status:', this.status);
               if (this.paymentDone) {
                 this.customerProprtyDetailsForm.get('property_size')?.disable();

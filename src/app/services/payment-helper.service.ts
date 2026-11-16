@@ -6,6 +6,7 @@ import { LocalStorageService } from '../auth-services/local-storage.service';
 import { LoaderService } from '../shared/loader/loader.service';
 import { billingCurrencyOf, billingFor, defaultGatewayFor, gatewayCharge, gstPercentageOf } from '../shared/plan-pricing.util';
 import { GatewayKey } from '../hotel-enrollment-tabview/checkout.service';
+import { ExchangeRateService } from './exchange-rate.service';
 
 export type PlanKey = 'quarterly' | 'half_yearly' | 'annual';
 
@@ -70,7 +71,8 @@ export class PaymentHelperService {
     private hotelenrollmenttabviewService: HotelEnrollmentTabviewService,
     private checkoutApiService: CheckoutApiService,
     private localService: LocalStorageService,
-    private loaderService: LoaderService
+    private loaderService: LoaderService,
+    private exchangeRate: ExchangeRateService
   ) {}
 
   getCustomerByMemberId(memberId: string): Promise<any> {
@@ -493,6 +495,40 @@ export class PaymentHelperService {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return end >= today;
+  }
+
+  /**
+   * Remembers whether the hotel has a confirmed (paid) subscription order, for the sidebar
+   * and route checks. Call it wherever the customer is loaded. Keeps the last known value
+   * when the order check fails.
+   */
+  async syncPaidAccess(customerData: any): Promise<boolean> {
+    if (!customerData?.id || customerData?.staff_employee_number !== undefined) {
+      return this.hasPaidAccess();
+    }
+    try {
+      const paid = (await this.getConfirmedOrders(customerData.id)).length > 0;
+      this.localService.set('HasPaidSubscription', paid ? 'true' : 'false');
+      return paid;
+    } catch {
+      return this.hasPaidAccess();
+    }
+  }
+
+  /** Last known paid state. Not checked yet (e.g. right after an update) counts as paid until synced. */
+  hasPaidAccess(): boolean {
+    const value = String(this.localService.get('HasPaidSubscription') ?? '');
+    return value !== 'false';
+  }
+
+  /**
+   * Full menu and all pages for a hotel:
+   *  - paying hotels: approved by the superadmin (status Approved) AND paid
+   *  - free hotels: while the free period runs
+   */
+  hasFullAccess(status: string | null | undefined): boolean {
+    const approved = String(status || '').toLowerCase() === 'approved';
+    return (approved && this.hasPaidAccess()) || this.hasFreePlanAccess();
   }
 
   /** True when payment_plan.payment_subscription_end_date is before today. */
@@ -1036,11 +1072,13 @@ export class PaymentHelperService {
   }
 
   /** Creates the order and hands it to CCAvenue or Razorpay. Shared by payNow and payForPlan. */
-  private createOrderAndRedirect(customerData: any, opts: OrderOptions): Promise<boolean> {
+  private async createOrderAndRedirect(customerData: any, opts: OrderOptions): Promise<boolean> {
     const { payableTotal } = opts;
     // CCAvenue for Indian hotels, Razorpay otherwise (unless chosen in the popup)
     const gateway: GatewayKey = opts.gateway || defaultGatewayFor(customerData);
-    const inrPerUsd = opts.inrPerUsd || billingFor(customerData, customerData?.subscription_detail).inr_per_usd;
+    // Today's market rate (same cached value the gateway charge uses); the plan's rate as fallback
+    const savedRate = opts.inrPerUsd || billingFor(customerData, customerData?.subscription_detail).inr_per_usd;
+    const inrPerUsd = gateway === 'ccavenue' ? (await this.exchangeRate.getInrPerUsd(savedRate)).rate : savedRate;
     const orderData = {
       ...this.buildOrderData(customerData, opts),
       // What the gateway is actually charged (CCAvenue: INR at inr_per_usd)

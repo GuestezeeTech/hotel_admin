@@ -9,6 +9,7 @@ import { AlertsComponent } from '../../shared/alerts/alerts.component';
 import { HotelEnrollmentTabviewService } from '../hotel-enrollment-tabview.service';
 import { Router } from '@angular/router';
 import { HierarchyDetailService } from './hierarchy-details.service';
+import { registrationLockStatus } from '../../shared/registration-lock.util';
 
 
 @Component({
@@ -94,7 +95,8 @@ export class HierarchyDetailsComponent {
             ////console.log(this.customerdata, "RESPDATA");
             ////console.log(Array.isArray(this.customerdata));
             // Newly added for disabling form on payment done to approving the customer
-            this.customerStatus = this.customerdata.status;
+            // Approved or live (go_live): read-only
+            this.customerStatus = registrationLockStatus(this.customerdata);
             // console.log('Customer status:', this.customerStatus);
             resolve();
           }

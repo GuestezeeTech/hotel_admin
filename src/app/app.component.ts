@@ -1933,8 +1933,8 @@ export class AppComponent implements OnInit, OnDestroy {
 
     if (customerType === 'Customer') {
       if (this.doesPathRequireApproval(cleanUrl)) {
-        const status = (this.localservice.get('Status') || '').toLowerCase();
-        if (status !== 'approved' && !this.paymentHelperService.hasFreePlanAccess()) {
+        // Paid and approved, or a running free period
+        if (!this.paymentHelperService.hasFullAccess(this.localservice.get('Status'))) {
           this.isRouteAuthorized = false;
           this.isPendingApproval = true;
           // console.log('[AuthCheck] Customer is not approved. Denied access to:', cleanUrl);
@@ -2083,8 +2083,7 @@ export class AppComponent implements OnInit, OnDestroy {
           this.router.navigate(['/profile']);
         }
       } else if (customerType === 'Customer') {
-        const status = (localStorage.getItem('Status') || '').toLowerCase();
-        if (status === 'approved' || this.paymentHelperService.hasFreePlanAccess()) {
+        if (this.paymentHelperService.hasFullAccess(this.localservice.get('Status'))) {
           this.router.navigate(['/dashboard']);
         } else {
           this.router.navigate(['/profile']);

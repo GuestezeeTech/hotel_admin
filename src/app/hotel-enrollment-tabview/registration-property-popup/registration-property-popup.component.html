@@ -86,12 +86,14 @@
         </div>
         <div class="form-group" *ngIf="isIndia">
           <label>PAN Number <span class="req">*</span></label>
-          <input type="text" formControlName="property_pan" style="text-transform: uppercase" />
+          <input type="text" formControlName="property_pan" autocomplete="off"
+            style="text-transform: uppercase" (input)="toUpperCaseValue('property_pan', $event)" />
           <span class="err" *ngIf="form.get('property_pan')?.touched && form.get('property_pan')?.invalid">Valid PAN is required.</span>
         </div>
         <div class="form-group" *ngIf="isIndia">
           <label>GST <span class="req">*</span></label>
-          <input type="text" formControlName="property_gst" style="text-transform: uppercase" />
+          <input type="text" formControlName="property_gst" autocomplete="off"
+            style="text-transform: uppercase" (input)="toUpperCaseValue('property_gst', $event)" />
           <span class="err" *ngIf="form.get('property_gst')?.touched && form.get('property_gst')?.invalid">Valid GST is required.</span>
         </div>
         <div class="form-group">

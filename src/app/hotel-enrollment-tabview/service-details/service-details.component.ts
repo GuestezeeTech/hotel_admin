@@ -12,6 +12,7 @@ import { AlertsComponent } from '../../shared/alerts/alerts.component';
 import { LocalStorageService } from '../../auth-services/local-storage.service';
 import { DOMAIN_NAME } from '../../app.config';
 import { ServiceDetailService } from './service-details.service';
+import { registrationLockStatus } from '../../shared/registration-lock.util';
 
 @Component({
   selector: 'app-service-details',
@@ -92,7 +93,8 @@ export class ServiceDetailsComponent implements OnInit {
             this.member_id = this.customerdata.customer_member_id;
             this.hotelName = this.customerdata.property_details?.contact_details?.hotel_name;
              // Newly added for disabling form on payment done to approving the customer
-            this.customerStatus = this.customerdata.status;
+            // Approved or live (go_live): read-only
+            this.customerStatus = registrationLockStatus(this.customerdata);
             // console.log('Customer status:', this.customerStatus);
             resolve();  // Resolve promise when data is set
           }

@@ -167,6 +167,26 @@ export class RegistrationPropertyPopupComponent implements OnChanges, OnDestroy 
     return errors?.['invalidTaxId']?.message || `Valid ${label} is required.`;
   }
 
+  /**
+   * PAN and GST must be capital letters. CSS text-transform only changes how they look,
+   * so store the typed value in capitals (and without spaces), keeping the cursor in place.
+   */
+  toUpperCaseValue(controlName: 'property_pan' | 'property_gst', event: Event): void {
+    const input = event.target as HTMLInputElement;
+    // PAN is 10 characters, GST 15 (limited after spaces are removed, so a pasted "ABCDE 1234F" fits)
+    const maxLength = controlName === 'property_pan' ? 10 : 15;
+    const cleaned = input.value.toUpperCase().replace(/\s+/g, '').slice(0, maxLength);
+    if (cleaned === input.value) {
+      return;
+    }
+    const cursor = input.selectionStart ?? cleaned.length;
+    const removed = input.value.length - cleaned.length;
+    this.form.get(controlName)?.setValue(cleaned);
+    input.value = cleaned;
+    const pos = Math.max(0, cursor - removed);
+    input.setSelectionRange(pos, pos);
+  }
+
   /** Spain's Canary Islands use IGIC instead of VAT: recheck the format when the state changes */
   onStateChange(): void {
     ['property_vat', 'property_tin'].forEach(k => this.form.get(k)?.updateValueAndValidity({ emitEvent: false }));

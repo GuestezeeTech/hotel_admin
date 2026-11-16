@@ -9,6 +9,7 @@ import {
   PlanKey
 } from '../../services/payment-helper.service';
 import { CheckoutApiService, GatewayKey, PaymentGatewayOption } from '../checkout.service';
+import { ExchangeRateService } from '../../services/exchange-rate.service';
 
 /**
  * Shown after registration approval (register_status = true) when the customer
@@ -51,7 +52,11 @@ export class SubscriptionPaymentPopupComponent implements OnChanges {
   customError = '';
   coverage: CustomCoverage | null = null;
 
-  constructor(private paymentHelper: PaymentHelperService, private checkoutApi: CheckoutApiService) {}
+  constructor(
+    private paymentHelper: PaymentHelperService,
+    private checkoutApi: CheckoutApiService,
+    private exchangeRate: ExchangeRateService
+  ) {}
 
   ngOnChanges(changes: SimpleChanges): void {
     if ((changes['visible'] || changes['customerdata']) && this.visible && this.customerdata) {
@@ -65,6 +70,7 @@ export class SubscriptionPaymentPopupComponent implements OnChanges {
     try {
       this.plan = await this.paymentHelper.calculatePaymentPlan(this.customerdata);
       await this.loadGateways();
+      await this.loadInrRate();
       this.startDate = this.paymentHelper.getPlanStartDate(this.customerdata);
       if (!this.plan.annual_amount) {
         this.loadError = 'Subscription pricing is not available for this property. Please contact support.';
@@ -89,6 +95,20 @@ export class SubscriptionPaymentPopupComponent implements OnChanges {
         ? preferred
         : (this.gatewayOptions[0]?.key ?? null);
     }
+  }
+
+  /** true when the INR line uses today's market rate (false: the plan's saved rate) */
+  liveInrRate = false;
+
+  /** CCAvenue hotels: today's USD -> INR rate, so the INR shown matches what is charged */
+  private async loadInrRate(): Promise<void> {
+    this.liveInrRate = false;
+    if (!this.plan || !this.gatewayOptions.some((o) => o.key === 'ccavenue')) {
+      return;
+    }
+    const { rate, live } = await this.exchangeRate.getInrPerUsd(this.plan.inr_per_usd);
+    this.plan.inr_per_usd = rate;
+    this.liveInrRate = live;
   }
 
   selectGateway(key: GatewayKey): void {
