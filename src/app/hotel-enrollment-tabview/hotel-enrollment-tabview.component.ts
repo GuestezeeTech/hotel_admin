@@ -115,6 +115,8 @@ export class HotelEnrollmentTabviewComponent implements OnInit, OnDestroy {
 
   // Newly added for payment verification
   paymentDone: boolean = false;
+  /** Subscription paid or free plan active (set by checkSubscriptionPayment) */
+  subscriptionPaid = false;
   // Newly added for back navigation
   // Newly added for skip auto tab check
   // skipAutoTabCheck !: boolean;
@@ -615,6 +617,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit, OnDestroy {
       this.setAwaitingPaymentApproval(false);
       this.showSubscriptionPopup = false;
       this.localService.set('SubscriptionExpired', 'false');
+      this.markSubscriptionPaid();
       this.subscriptionGateResolved = true;
       this.cdr.detectChanges();
       return;
@@ -631,6 +634,9 @@ export class HotelEnrollmentTabviewComponent implements OnInit, OnDestroy {
       }
       this.subscriptionRenewal = expired;
       this.showSubscriptionPopup = expired || noConfirmedOrder;
+      if (!this.showSubscriptionPopup) {
+        this.markSubscriptionPaid();
+      }
       // Paid but not approved yet: pending approval page only
       this.setAwaitingPaymentApproval(!expired && !noConfirmedOrder && !this.isApprovedStatus(customer));
       // Read by the sidebar to hide other modules until the customer pays again
@@ -642,6 +648,21 @@ export class HotelEnrollmentTabviewComponent implements OnInit, OnDestroy {
       this.subscriptionCheckInFlight = false;
       this.subscriptionGateResolved = true;
       this.cdr.detectChanges();
+    }
+  }
+
+  /**
+   * The subscription is paid (or on the free plan) before the tabs open, so Technical Info's
+   * save goes straight to the Status tab instead of the old "Configure PMS / Proceed to Pay" step.
+   */
+  private markSubscriptionPaid(): void {
+    this.subscriptionPaid = true;
+    this.paymentDone = true;
+    this.localService.set('paymentDone', true);
+    const c = this.customerdata || this.getCustomerData;
+    if (this.currentTab === 2 && c?.is_office_details_exists === true &&
+      c?.is_property_details_exists === true && c?.is_technical_info_exists === true) {
+      this.currentTab = 3;
     }
   }
 
@@ -955,7 +976,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit, OnDestroy {
               //console.log("errr", this.getCustomerData.customer_member_id)
               // }
               // Newly added for member id check - removed member id logic bcos member id will be generated at initiailly
-              // else if (this.getCustomerData.is_technical_info_exists == true && this.getCustomerData.is_hierarchy_exists == true && this.getCustomerData.is_service_exists == true && this.getCustomerData.is_property_details_exists == true && this.getCustomerData.is_office_details_exists == true && !this.paymentDone) {
+              // else if (this.getCustomerData.is_technical_info_exists == true && this.getCustomerData.is_hierarchy_exists == true && this.getCustomerData.is_service_exists == true && this.getCustomerData.is_property_details_exists == true && this.getCustomerData.is_office_details_exists == true && !this.paymentDone && !this.subscriptionPaid) {
               //   this.currentTab = 4;
               //   this.alertService.error('Please click "Save and Continue" to proceed with payment', this.options);
               //   console.log("errr");
@@ -965,7 +986,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit, OnDestroy {
               //   console.log("errr", this.getCustomerData.customer_member_id)
               // }
 
-              else if (this.getCustomerData.is_technical_info_exists == true && this.getCustomerData.is_property_details_exists == true && this.getCustomerData.is_office_details_exists == true && !this.paymentDone) {
+              else if (this.getCustomerData.is_technical_info_exists == true && this.getCustomerData.is_property_details_exists == true && this.getCustomerData.is_office_details_exists == true && !this.paymentDone && !this.subscriptionPaid) {
                 this.currentTab = 2;
                 this.alertService.error('Please click "Save and Continue" to proceed with payment', this.options);
               }
@@ -1079,7 +1100,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit, OnDestroy {
           // Flag for order existence
           this.isOrderExist = confirmedOrders.length > 0;
           // Payment done flag
-          this.paymentDone = this.isOrderExist;
+          this.paymentDone = this.isOrderExist || this.subscriptionPaid;
           this.localService.set('paymentDone', this.paymentDone);
           // console.log('Payment done:', this.paymentDone);
           // Consolidated Update Logic
@@ -1320,8 +1341,8 @@ export class HotelEnrollmentTabviewComponent implements OnInit, OnDestroy {
         } else {
           this.orderdata = null;
           this.isOrderExist = false;
-          this.paymentDone = false;
-          this.localService.set('paymentDone', false);
+          this.paymentDone = this.subscriptionPaid;
+          this.localService.set('paymentDone', this.paymentDone);
         }
         this.updatePaymentStatusInfo();
         this.checkNavigationAndActivateTab();
@@ -1330,8 +1351,8 @@ export class HotelEnrollmentTabviewComponent implements OnInit, OnDestroy {
         this.loaderService.emitComplete();
         this.orderdata = null;
         this.isOrderExist = false;
-        this.paymentDone = false;
-        this.localService.set('paymentDone', false);
+        this.paymentDone = this.subscriptionPaid;
+        this.localService.set('paymentDone', this.paymentDone);
         if (err.error?.statusCode === 403 && !this.isPaymentRoute()) {
           this.router.navigate([`/login`], { skipLocationChange: false });
         }
@@ -1406,7 +1427,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit, OnDestroy {
           // Flag for order existence
           this.isOrderExist = confirmedOrders.length > 0;
           // Payment done flag
-          this.paymentDone = this.isOrderExist;
+          this.paymentDone = this.isOrderExist || this.subscriptionPaid;
           this.localService.set('paymentDone', this.paymentDone);
           // console.log('Payment done:', this.paymentDone);
           // Consolidated Update Logic
@@ -1711,8 +1732,8 @@ export class HotelEnrollmentTabviewComponent implements OnInit, OnDestroy {
         } else {
           this.orderdata = null;
           this.isOrderExist = false;
-          this.paymentDone = false;
-          this.localService.set('paymentDone', false);
+          this.paymentDone = this.subscriptionPaid;
+          this.localService.set('paymentDone', this.paymentDone);
         }
         this.updatePaymentStatusInfo();
         this.checkNavigationAndActivateTab();
@@ -1721,8 +1742,8 @@ export class HotelEnrollmentTabviewComponent implements OnInit, OnDestroy {
         this.loaderService.emitComplete();
         this.orderdata = null;
         this.isOrderExist = false;
-        this.paymentDone = false;
-        this.localService.set('paymentDone', false);
+        this.paymentDone = this.subscriptionPaid;
+        this.localService.set('paymentDone', this.paymentDone);
         if (err.error.statusCode === 403) {
           // this.alertsService.error('Session Time Ot! Please login Again', this.options);
           this.router.navigate([`/login`], { skipLocationChange: false });
