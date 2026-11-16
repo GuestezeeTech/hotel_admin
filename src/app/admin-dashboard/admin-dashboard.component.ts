@@ -210,6 +210,13 @@ export class AdminDashboardComponent implements OnInit {
    */
 
   async ngOnInit(): Promise<void> {
+    // /dashboard now shows only the hotel setup progress card, so none of the old
+    // dashboard data (guest activity, bookings, reviews, tasks) is loaded.
+    this.pageLoading = false;
+  }
+
+  /** Previous dashboard start-up (kept for reference; no longer called). */
+  private async loadRetiredDashboard(): Promise<void> {
     const currentYear = new Date().getFullYear();
     const today = new Date();
 

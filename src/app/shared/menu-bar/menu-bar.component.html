@@ -22,13 +22,6 @@
 
   <hr style="width: 80%;" class="center-hr" />
   <ul class="sidenav-menu">
-    <!-- Dashboard -->
-    <li class="list_container" [class.active]="isActive('dashboard')"
-      (click)="setActiveMenu('dashboard'); sendValue('Dashboard')" routerLink="/dashboard"
-      *ngIf="canShowMenu('DASHBOARD')" title="Dashboard">
-      <i class="bi bi-speedometer2 menu-icon" aria-hidden="true"></i>
-      <span>Dashboard</span>
-    </li>
     <li class="list_container" [class.active]="isActive('overview-dashboard')"
       (click)="setActiveMenu('overview-dashboard'); sendValue('Hotel Overview')" routerLink="/overview-dashboard"
       *ngIf="canShowMenu('OVERVIEW')" title="Hotel Overview">

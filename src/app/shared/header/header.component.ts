@@ -259,7 +259,9 @@ export class HeaderComponent implements OnInit {
       return (this.selectedMenu = "Users");
     }
     else if (currentRoute.includes('dashboard')) {
-      return (this.selectedMenu = "Dashboard");
+      // /dashboard now shows only the hotel setup (onboarding) progress
+      const path = String(currentRoute).split(/[?#]/)[0];
+      return (this.selectedMenu = path === '/dashboard' ? 'Onboarding Process' : 'Dashboard');
     }
     else if (currentRoute.includes('task-management')) {
       return (this.selectedMenu = "Task Management");

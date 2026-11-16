@@ -416,7 +416,8 @@ export class AppComponent implements OnInit, OnDestroy {
         } else if (url.includes('/overview-dashboard') || url.includes('/kot-dashboard')) {
           this.selectedMenuItem = "Hotel Overview";
         } else if (url.includes('/dashboard')) {
-          this.selectedMenuItem = "Dashboard";
+          // /dashboard now shows only the hotel setup (onboarding) progress
+          this.selectedMenuItem = url.split(/[?#]/)[0] === '/dashboard' ? 'Onboarding Process' : 'Dashboard';
         } else if (url.includes('report')) {
           this.selectedMenuItem = "Report";
         } else if (url.includes('/profile')) {
