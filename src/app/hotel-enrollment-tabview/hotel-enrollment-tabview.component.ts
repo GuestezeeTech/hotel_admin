@@ -132,6 +132,9 @@ export class HotelEnrollmentTabviewComponent implements OnInit, OnDestroy {
   showRegistrationPopup = false;
   /** Popup submitted; waiting for admin approval (register_status) */
   awaitingRegistrationApproval = false;
+  /** "Refresh status" button: checking state and last result */
+  statusRefreshing = false;
+  statusRefreshMessage = '';
   registrationPopupSubmitting = false;
   /** True when register_status is true (or legacy approved / office already filled) */
   canAccessRegistrationTabs = false;
@@ -549,13 +552,43 @@ export class HotelEnrollmentTabviewComponent implements OnInit, OnDestroy {
     return false;
   }
 
-  refreshRegistrationStatus(): void {
+  /**
+   * Re-reads the customer so a verification / approval made in the superadmin shows here.
+   * manual = the "Refresh status" button: shows a checking state and the result.
+   */
+  refreshRegistrationStatus(manual = false): void {
+    if (manual) {
+      if (this.statusRefreshing) {
+        return;
+      }
+      this.statusRefreshing = true;
+      this.statusRefreshMessage = '';
+    }
+    const wasAwaitingRegistration = this.awaitingRegistrationApproval;
     this.getCustomerById()
-      .then(() => {
+      .then(async () => {
         this.evaluateRegistrationGate();
-        this.checkSubscriptionPayment();
+        if (wasAwaitingRegistration && !this.awaitingRegistrationApproval && this.canAccessRegistrationTabs) {
+          this.alertService.success('Your registration has been verified. You can now continue.', this.options);
+        }
+        await this.checkSubscriptionPayment();
+        if (manual && (this.awaitingRegistrationApproval || this.awaitingPaymentApproval)) {
+          const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          this.statusRefreshMessage = `Still waiting for approval. Last checked at ${time}.`;
+        }
       })
-      .catch(() => this.evaluateRegistrationGate());
+      .catch(() => {
+        this.evaluateRegistrationGate();
+        if (manual) {
+          this.statusRefreshMessage = 'Could not check the status. Please try again.';
+        }
+      })
+      .finally(() => {
+        if (manual) {
+          this.statusRefreshing = false;
+          this.cdr.detectChanges();
+        }
+      });
   }
 
   /**

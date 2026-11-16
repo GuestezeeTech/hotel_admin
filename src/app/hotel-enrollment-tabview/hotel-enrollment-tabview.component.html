@@ -37,9 +37,11 @@
           the form you just submitted.
         </p>
         <p class="status-line">Account status: <strong>{{ customerdata?.status || 'pending' }}</strong></p>
-        <button type="button" class="btn btn-outline-secondary" (click)="refreshRegistrationStatus()">
-          Refresh status
+        <button type="button" class="btn btn-outline-secondary" [disabled]="statusRefreshing" (click)="refreshRegistrationStatus(true)">
+          <span *ngIf="statusRefreshing" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+          {{ statusRefreshing ? 'Checking...' : 'Refresh status' }}
         </button>
+        <p *ngIf="statusRefreshMessage && !statusRefreshing" class="status-line mt-2 mb-0">{{ statusRefreshMessage }}</p>
       </div>
     </div>
 
@@ -54,9 +56,11 @@
           Property and Technical details.
         </p>
         <p class="status-line">Account status: <strong>{{ customerdata?.status || 'pending' }}</strong></p>
-        <button type="button" class="btn btn-outline-secondary" (click)="refreshRegistrationStatus()">
-          Refresh status
+        <button type="button" class="btn btn-outline-secondary" [disabled]="statusRefreshing" (click)="refreshRegistrationStatus(true)">
+          <span *ngIf="statusRefreshing" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+          {{ statusRefreshing ? 'Checking...' : 'Refresh status' }}
         </button>
+        <p *ngIf="statusRefreshMessage && !statusRefreshing" class="status-line mt-2 mb-0">{{ statusRefreshMessage }}</p>
       </div>
     </div>
 
