@@ -69,6 +69,20 @@ export class HotelEnrollmentTabviewComponent implements OnInit, OnDestroy {
   isReadyToRender = false;
   /** True after the full-page Hotels loader overlay is hidden; used so Technical Info doesn't show its loader at the same time. */
   parentLoaderDone = false;
+  private initialLoaderTimer?: ReturnType<typeof setTimeout>;
+
+  /** Hide the page-load overlay once the hotel details have loaded (or failed to load) */
+  private finishInitialLoader(): void {
+    if (this.initialLoaderTimer) {
+      clearTimeout(this.initialLoaderTimer);
+      this.initialLoaderTimer = undefined;
+    }
+    document.getElementById('loader-overlay')?.classList.add('d-none', 'hide');
+    if (!this.parentLoaderDone) {
+      this.parentLoaderDone = true;
+      this.cdr.detectChanges();
+    }
+  }
   // Newly added
   tabTitles = [
     'Registered Office Details',
@@ -227,12 +241,9 @@ export class HotelEnrollmentTabviewComponent implements OnInit, OnDestroy {
       //  Show loader
       if (loader) {
         loader.classList.remove('d-none', 'hide');
-        //  Wait for 2 seconds (2000 ms), then hide the loader
-        setTimeout(() => {
-          loader.classList.add('d-none', 'hide');
-          this.parentLoaderDone = true;
-          this.cdr.detectChanges();
-        }, 2000);
+        // Hidden as soon as the hotel details load (see finishInitialLoader), so the
+        // registration popup is not covered by the overlay. The timer is only a safety net.
+        this.initialLoaderTimer = setTimeout(() => this.finishInitialLoader(), 8000);
       } else {
         this.parentLoaderDone = true;
       }
@@ -298,6 +309,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit, OnDestroy {
     // }
     this.getCustomerById()
       .then(() => {
+        this.finishInitialLoader();
         this.evaluateRegistrationGate();
         this.checkSubscriptionPayment();
         // First function succeeded
@@ -305,6 +317,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit, OnDestroy {
       })
 
       .catch(err => {
+        this.finishInitialLoader();
         // Handle any error from getCustomerById
         //console.error('Failed to get customer by ID:', err);
       });
@@ -634,6 +647,9 @@ export class HotelEnrollmentTabviewComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.stopApprovalPolling();
+    if (this.initialLoaderTimer) {
+      clearTimeout(this.initialLoaderTimer);
+    }
   }
 
   onRegistrationPopupSubmit(payload: {
