@@ -53,10 +53,15 @@ export class SetupProgressService {
       customer?.is_technical_info_exists !== true && 'Technical Info'
     ].filter(Boolean) as string[];
     let paid: boolean | null = null;
-    try {
-      paid = (await this.paymentHelper.getConfirmedOrders(customer.id)).length > 0;
-    } catch {
-      paid = null;
+    if (this.paymentHelper.isFreePeriodActive(customer)) {
+      // Free plan: nothing to pay during the free period
+      paid = true;
+    } else {
+      try {
+        paid = (await this.paymentHelper.getConfirmedOrders(customer.id)).length > 0;
+      } catch {
+        paid = null;
+      }
     }
     if (!paid) {
       missing.push('Payment');

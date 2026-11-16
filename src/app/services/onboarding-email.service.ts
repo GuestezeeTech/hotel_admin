@@ -87,8 +87,10 @@ export class OnboardingEmailService {
     if (!customer?.id || customer.onboarding_complete_email_sent === true) {
       return;
     }
-    // Already approved or live (e.g. hotels onboarded before these emails existed): nothing to await
-    if (String(customer.status || '').toLowerCase() === 'approved' || customer.go_live === true) {
+    // Final approval is Go Live. Paying hotels are approved before they fill the onboarding
+    // tabs, so "Approved" must not stop these emails; only a hotel that is already live has
+    // nothing left to wait for.
+    if (customer.go_live === true || customer.go_live === 'true' || customer.go_live === 1) {
       return;
     }
     customer.onboarding_complete_email_sent = true;

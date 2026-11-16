@@ -23,6 +23,7 @@ declare var bootstrap: any;
 import { ElementRef, ViewChild } from '@angular/core';
 import { billingCurrencyOf, billingFor, defaultGatewayFor } from '../../shared/plan-pricing.util';
 import { registrationLockStatus } from '../../shared/registration-lock.util';
+import { OnboardingEmailService } from '../../services/onboarding-email.service';
 
 @Component({
   selector: 'app-technical-info',
@@ -109,6 +110,7 @@ export class TechnicalInfoComponent implements OnInit {
     private authTokenService: AuthTokenService,
     private router: Router,
     private alertsService: AlertsService,
+    private onboardingEmail: OnboardingEmailService,
     private hotelenrollmentservice: HotelEnrollmentTabviewService,
     private loaderService: LoaderService,
     private profileSrvice: ProfileService,
@@ -918,6 +920,11 @@ export class TechnicalInfoComponent implements OnInit {
             this.alertsService.success(resp.message, this.options);
             if (this.customerdata) {
               this.customerdata.is_technical_info_exists = true;
+              // Last onboarding tab: once office and property are done too, send
+              // "Awaiting Final Approval" (hotel) and "Final Approval Verification" (support), once
+              if (this.customerdata.is_office_details_exists === true && this.customerdata.is_property_details_exists === true) {
+                this.onboardingEmail.onboardingCompleted(this.customerdata);
+              }
             }
           }
           else if (resp.success === 0) {
