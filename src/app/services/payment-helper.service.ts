@@ -531,6 +531,16 @@ export class PaymentHelperService {
     return (approved && this.hasPaidAccess()) || this.hasFreePlanAccess();
   }
 
+  /**
+   * A paying hotel (not on a free period) whose payment is confirmed but that the
+   * superadmin has not approved yet: it sees only the pending approval page.
+   */
+  isAwaitingPaidApproval(status: string | null | undefined): boolean {
+    const paid = String(this.localService.get('HasPaidSubscription') ?? '') === 'true';
+    const approved = String(status || '').toLowerCase() === 'approved';
+    return paid && !approved && !this.hasFreePlanAccess();
+  }
+
   /** True when payment_plan.payment_subscription_end_date is before today. */
   isSubscriptionExpired(customerData: any): boolean {
     if (this.isFreePeriodActive(customerData)) {

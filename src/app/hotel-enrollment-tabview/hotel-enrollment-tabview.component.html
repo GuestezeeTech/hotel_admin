@@ -43,6 +43,23 @@
       </div>
     </div>
 
+    <!-- Paying hotel: paid, waiting for the superadmin's approval (no tabs, no menu) -->
+    <div class="container"
+      *ngIf="isReadyToRender && awaitingPaymentApproval && !awaitingRegistrationApproval && !showRegistrationPopup && !showSubscriptionPopup && !isPaymentRoute()">
+      <div class="registration-pending-card">
+        <h3>Pending approval</h3>
+        <p>
+          Thank you, your subscription payment has been received. Our team is reviewing your account.
+          Once it is approved, the full menu opens and you can complete your Registered Office,
+          Property and Technical details.
+        </p>
+        <p class="status-line">Account status: <strong>{{ customerdata?.status || 'pending' }}</strong></p>
+        <button type="button" class="btn btn-outline-secondary" (click)="refreshRegistrationStatus()">
+          Refresh status
+        </button>
+      </div>
+    </div>
+
     <!-- Tabs unlock after approval + subscription payment; then filled one by one -->
     <div class="container" *ngIf="isReadyToRender && canFillRegistrationTabs">
       <app-setup-progress></app-setup-progress>

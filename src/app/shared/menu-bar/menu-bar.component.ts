@@ -498,6 +498,12 @@ export class MenuBarComponent implements OnInit {
     return this.paymentHelperService.hasFullAccess(status);
   }
 
+  /** A paying hotel that has paid but is not approved yet sees no menu at all */
+  private isAwaitingPaidApproval(): boolean {
+    const status = this.customerdata?.status || this.localService.get('Status');
+    return this.paymentHelperService.isAwaitingPaidApproval(status);
+  }
+
   /**
    * Show a sidebar item when the role has any permission for that module.
    * Staff: permission alone is enough.
@@ -518,6 +524,10 @@ export class MenuBarComponent implements OnInit {
       return true;
     }
     if (type === 'Customer') {
+      // Paid and waiting for the superadmin's approval: only the pending approval page, no menu
+      if (this.isAwaitingPaidApproval()) {
+        return false;
+      }
       if ((moduleName || '').toUpperCase() === 'HOTELS') {
         return true;
       }

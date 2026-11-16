@@ -6,9 +6,15 @@ export function isGoLive(customer: any): boolean {
 
 /**
  * Status the registration screens (Office, Property, Technical Info, Services, Hierarchy)
- * use to lock themselves. They already become read-only for 'approved'; a hotel that is live
- * is locked the same way, even if its status changes later.
+ * use to lock themselves: they become read-only for 'approved'.
+ *
+ * Paying hotels are approved right after payment and only then fill these screens, so
+ * approval alone must not lock them. They lock once the superadmin switches the hotel live.
  */
 export function registrationLockStatus(customer: any): string {
-  return isGoLive(customer) ? 'approved' : customer?.status;
+  if (isGoLive(customer)) {
+    return 'approved';
+  }
+  const status = String(customer?.status || '');
+  return status.toLowerCase() === 'approved' ? 'approved-not-live' : status;
 }

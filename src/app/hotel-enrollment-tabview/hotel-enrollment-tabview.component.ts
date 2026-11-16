@@ -152,7 +152,17 @@ export class HotelEnrollmentTabviewComponent implements OnInit, OnDestroy {
   get canFillRegistrationTabs(): boolean {
     if (!this.canAccessRegistrationTabs) return false;
     if (this.isPaymentRoute()) return true;
-    return this.subscriptionGateResolved && !this.showSubscriptionPopup;
+    return this.subscriptionGateResolved && !this.showSubscriptionPopup && !this.awaitingPaymentApproval;
+  }
+
+  /**
+   * Paying hotel (not free): paid, but the superadmin has not approved it yet. Only the
+   * pending approval card is shown (no tabs, no menu) until the status becomes Approved.
+   */
+  awaitingPaymentApproval = false;
+
+  private isApprovedStatus(customer: any): boolean {
+    return String(customer?.status || '').toLowerCase() === 'approved';
   }
 
 
@@ -563,11 +573,13 @@ export class HotelEnrollmentTabviewComponent implements OnInit, OnDestroy {
     const onConfirmation = this.router.url.toLowerCase().includes('confirmation');
     if (onConfirmation || !customer?.id || !this.hasRegisterStatus(customer)) {
       this.showSubscriptionPopup = false;
+      this.setAwaitingPaymentApproval(false);
       this.subscriptionGateResolved = true;
       return;
     }
     // Free plan: nothing to pay until the free period ends
     if (this.paymentHelperService.isFreePeriodActive(customer)) {
+      this.setAwaitingPaymentApproval(false);
       this.showSubscriptionPopup = false;
       this.localService.set('SubscriptionExpired', 'false');
       this.subscriptionGateResolved = true;
@@ -586,6 +598,8 @@ export class HotelEnrollmentTabviewComponent implements OnInit, OnDestroy {
       }
       this.subscriptionRenewal = expired;
       this.showSubscriptionPopup = expired || noConfirmedOrder;
+      // Paid but not approved yet: pending approval page only
+      this.setAwaitingPaymentApproval(!expired && !noConfirmedOrder && !this.isApprovedStatus(customer));
       // Read by the sidebar to hide other modules until the customer pays again
       this.localService.set('SubscriptionExpired', expired ? 'true' : 'false');
       this.cdr.detectChanges();
@@ -625,15 +639,32 @@ export class HotelEnrollmentTabviewComponent implements OnInit, OnDestroy {
    * the superadmin sets register_status = true, refreshRegistrationStatus() unlocks the page
    * and checkSubscriptionPayment() opens the payment popup without a manual refresh.
    */
+  /**
+   * Sets the "paid, waiting for approval" state. When the superadmin approves while the
+   * page is open, the stored status is updated and the page reloads so the menu appears.
+   */
+  private setAwaitingPaymentApproval(value: boolean): void {
+    const wasAwaiting = this.awaitingPaymentApproval;
+    this.awaitingPaymentApproval = value;
+    const customer = this.customerdata || this.getCustomerData;
+    if (wasAwaiting && !value && this.isApprovedStatus(customer)) {
+      this.localService.set('Status', customer.status);
+      window.location.reload();
+      return;
+    }
+    this.syncApprovalPolling();
+  }
+
   private syncApprovalPolling(): void {
-    if (this.awaitingRegistrationApproval && !this.approvalPollTimer) {
+    const waiting = this.awaitingRegistrationApproval || this.awaitingPaymentApproval;
+    if (waiting && !this.approvalPollTimer) {
       this.approvalPollTimer = setInterval(() => {
         if (typeof document !== 'undefined' && document.hidden) {
           return;
         }
         this.refreshRegistrationStatus();
       }, this.approvalPollMs);
-    } else if (!this.awaitingRegistrationApproval && this.approvalPollTimer) {
+    } else if (!waiting && this.approvalPollTimer) {
       this.stopApprovalPolling();
     }
   }
