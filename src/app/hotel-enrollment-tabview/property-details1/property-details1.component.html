@@ -526,6 +526,28 @@
     </div>
   </div> -->
 
+  <!-- PMS and door lock, entered in the first onboarding popup (read-only here) -->
+  <div class="section">
+    <h3 style="font-size: 20px;font-weight: 600;">PMS &amp; Door Lock</h3>
+    <div style="display: grid;grid-template-columns: repeat(3, minmax(0, 1fr));column-gap: 3%;row-gap: 3%;">
+      <div class="form-group form1_div">
+        <label for="viewPmsType">PMS Type</label>
+        <input id="viewPmsType" class="input_box" type="text" readonly placeholder="Not provided"
+          [value]="customerdata?.register_pms_type || ''" />
+      </div>
+      <div class="form-group form1_div">
+        <label for="viewDoorLockName">Door Lock Name</label>
+        <input id="viewDoorLockName" class="input_box" type="text" readonly placeholder="Not provided"
+          [value]="customerdata?.register_door_lock_type || ''" />
+      </div>
+      <div class="form-group form1_div">
+        <label for="viewDoorLockModel">Door Lock Model</label>
+        <input id="viewDoorLockModel" class="input_box" type="text" readonly placeholder="Not provided"
+          [value]="customerdata?.door_lock_model || ''" />
+      </div>
+    </div>
+  </div>
+
   <div class="section">
     <h3 style="font-size: 20px;font-weight: 600;">Company Status (KYC)<a style="font-size: 13px;color: #A0A0A0;"> - All
         fields are required </a></h3>

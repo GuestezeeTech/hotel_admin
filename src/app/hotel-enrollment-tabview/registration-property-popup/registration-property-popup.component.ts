@@ -59,6 +59,7 @@ export class RegistrationPropertyPopupComponent implements OnChanges, OnDestroy 
     number_of_rooms: new FormControl('', [Validators.required, Validators.min(1)]),
     register_pms_type: new FormControl('', [Validators.required, CustomValidators.noWhitespaceValidator]),
     register_door_lock_type: new FormControl('', [Validators.required, CustomValidators.noWhitespaceValidator]),
+    door_lock_model: new FormControl('', [Validators.required, CustomValidators.noWhitespaceValidator]),
     company_status: new FormControl('Individual', Validators.required)
   });
 
@@ -326,6 +327,7 @@ export class RegistrationPropertyPopupComponent implements OnChanges, OnDestroy 
       number_of_rooms: address.number_of_rooms || '',
       register_pms_type: this.customerdata?.register_pms_type || '',
       register_door_lock_type: this.customerdata?.register_door_lock_type || '',
+      door_lock_model: this.customerdata?.door_lock_model || '',
       company_status: kyc.company_status || 'Individual'
     });
   }
@@ -409,7 +411,8 @@ export class RegistrationPropertyPopupComponent implements OnChanges, OnDestroy 
       property_details,
       name: property_details.contact_details.hotel_name,
       register_pms_type: (v.register_pms_type || '').trim(),
-      register_door_lock_type: (v.register_door_lock_type || '').trim()
+      register_door_lock_type: (v.register_door_lock_type || '').trim(),
+      door_lock_model: (v.door_lock_model || '').trim()
     });
   }
 }

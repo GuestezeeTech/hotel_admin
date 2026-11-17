@@ -112,10 +112,16 @@
           <span class="err" *ngIf="form.get('register_pms_type')?.touched && form.get('register_pms_type')?.invalid">PMS type is required.</span>
         </div>
         <div class="form-group">
-          <label for="registerDoorLockType">Door Lock Type <span class="req">*</span></label>
+          <label for="registerDoorLockType">Door Lock Name <span class="req">*</span></label>
           <input id="registerDoorLockType" type="text" formControlName="register_door_lock_type" maxlength="100"
             placeholder="e.g. ASSA ABLOY, Salto" autocomplete="off" />
-          <span class="err" *ngIf="form.get('register_door_lock_type')?.touched && form.get('register_door_lock_type')?.invalid">Door lock type is required.</span>
+          <span class="err" *ngIf="form.get('register_door_lock_type')?.touched && form.get('register_door_lock_type')?.invalid">Door lock name is required.</span>
+        </div>
+        <div class="form-group">
+          <label for="doorLockModel">Door Lock Model <span class="req">*</span></label>
+          <input id="doorLockModel" type="text" formControlName="door_lock_model" maxlength="100"
+            placeholder="e.g. VingCard Allure, Salto XS4" autocomplete="off" />
+          <span class="err" *ngIf="form.get('door_lock_model')?.touched && form.get('door_lock_model')?.invalid">Door lock model is required.</span>
         </div>
       </div>
 

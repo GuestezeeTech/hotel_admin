@@ -742,6 +742,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit, OnDestroy {
     name: string;
     register_pms_type: string;
     register_door_lock_type: string;
+    door_lock_model: string;
   }): void {
     if (!this.customerdata) {
       this.customerdata = {};
@@ -755,6 +756,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit, OnDestroy {
       property_details: payload.property_details,
       register_pms_type: payload.register_pms_type,
       register_door_lock_type: payload.register_door_lock_type,
+      door_lock_model: payload.door_lock_model,
       is_registration_form_submitted: true,
       register_status: false,
       // Do not mark property tab complete — logo/docs still collected there after approval
