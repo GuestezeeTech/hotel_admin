@@ -79,6 +79,11 @@ export class PaymentDetailsComponent implements OnInit {
     return this.paymentHelperService.isFreePeriodActive(this.customerData);
   }
 
+  /** Paid but not live: the period starts at Go Live, and paying in advance waits until then */
+  get isWaitingForGoLive(): boolean {
+    return this.paymentHelperService.isWaitingForGoLive(this.customerData);
+  }
+
   get freePeriodEndDate(): string {
     return this.paymentPlan?.free_period?.end_date || '';
   }
@@ -146,9 +151,26 @@ export class PaymentDetailsComponent implements OnInit {
       sub_total: Number(summary.sub_total || 0),
       tax: Number(summary.tax || 0),
       order_total_amount: Number(summary.order_total_amount || 0),
-      subscription_end_date: order.subscription_end_date || '',
+      subscription_end_date: this.rowEndDate(order),
       paid_date_time: this.getPaidDate(order)
     };
+  }
+
+  /**
+   * The order keeps the end date worked out on the payment day. For the payment that the
+   * Go Live start applies to, show the plan's dates instead: "At Go Live" until the hotel
+   * is live, then the end date set when Go Live was approved.
+   */
+  private rowEndDate(order: any): string {
+    const plan = this.paymentPlan;
+    const isPlanOrder = plan?.last_order_id != null && String(plan.last_order_id) === String(order?.id);
+    if (isPlanOrder && this.isWaitingForGoLive) {
+      return 'At Go Live';
+    }
+    if (isPlanOrder && plan?.started_on_go_live && plan?.payment_subscription_end_date) {
+      return plan.payment_subscription_end_date;
+    }
+    return order?.subscription_end_date || '';
   }
 
   async loadData(): Promise<void> {

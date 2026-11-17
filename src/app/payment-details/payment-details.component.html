@@ -33,7 +33,8 @@
           <span *ngIf="paymentPlan?.selected_plan">Current plan: {{ currentPlanLabel }}</span>
           <span *ngIf="paymentPlan.paid_amount != null">Last paid: {{ paymentPlan.paid_amount | currency:currencyCode }}</span>
           <span *ngIf="paymentPlan.remaining_amount != null">Remaining for the year: {{ paymentPlan.remaining_amount | currency:currencyCode }}</span>
-          <span *ngIf="validUntil">Valid until: {{ validUntil }}</span>
+          <span *ngIf="validUntil && !isWaitingForGoLive">Valid until: {{ validUntil }}</span>
+          <span *ngIf="isWaitingForGoLive">Subscription starts when Go Live is approved</span>
           <span *ngIf="isFreePeriodActive">No payment needed until {{ freePeriodEndDate }}</span>
         </div>
         <div class="payment-summary" *ngIf="planAmounts && planAmounts.annual_amount > 0">
@@ -80,7 +81,12 @@
           </tbody>
         </table>
 
-        <div class="custom-action" *ngIf="!isFreePeriodActive">
+        <!-- Paid hotels pay in advance only after Go Live (their period starts at Go Live) -->
+        <p class="text-muted small mt-3 mb-0" *ngIf="isWaitingForGoLive">
+          Your subscription period starts on the day the GuestEzee team approves Go Live, and its end date is
+          set then. You can pay in advance after your hotel is live.
+        </p>
+        <div class="custom-action" *ngIf="!isFreePeriodActive && !isWaitingForGoLive">
           <button type="button" class="pay-button" [class.pay-button-overdue]="isSubscriptionExpired"
             [disabled]="!customerData" (click)="openSubscriptionPopup()">
             {{ payButtonLabel }}

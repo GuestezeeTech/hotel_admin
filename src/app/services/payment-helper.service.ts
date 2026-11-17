@@ -541,9 +541,20 @@ export class PaymentHelperService {
     return paid && !approved && !this.hasFreePlanAccess();
   }
 
+  /**
+   * Paid, but the hotel is not live yet. The subscription period starts when the
+   * superadmin turns Go Live on (which moves the end date), so it cannot run out before then.
+   */
+  isWaitingForGoLive(customerData: any): boolean {
+    const plan = customerData?.payment_plan;
+    const goLive = customerData?.go_live;
+    const live = goLive === true || goLive === 'true' || goLive === 1;
+    return plan?.status === 'Paid' && !plan?.started_on_go_live && !live;
+  }
+
   /** True when payment_plan.payment_subscription_end_date is before today. */
   isSubscriptionExpired(customerData: any): boolean {
-    if (this.isFreePeriodActive(customerData)) {
+    if (this.isFreePeriodActive(customerData) || this.isWaitingForGoLive(customerData)) {
       return false;
     }
     const end = this.parseSubscriptionDate(customerData?.payment_plan?.payment_subscription_end_date);
