@@ -17,7 +17,7 @@
         <button type="button" class="sp-link-btn" (click)="refresh()">Try again</button>
       </p>
       <p *ngIf="!loading && !failed">
-        {{ complete ? 'Everything is in place. Your hotel is ready to go.' : doneCount + ' of ' + steps.length + ' steps done' }}
+        {{ complete ? 'All ' + steps.length + ' steps done' : doneCount + ' of ' + steps.length + ' steps done' }}
       </p>
     </div>
 
@@ -37,6 +37,29 @@
     <ng-template #emptyBar><span class="sp-seg sp-seg-loading"></span></ng-template>
   </div>
 
+  <!-- All steps done: congratulations and what happens next (Go Live) -->
+  <div class="sp-congrats" *ngIf="complete && !loading && !failed" role="status">
+    <div class="sp-congrats-icon" aria-hidden="true"><i class="fa fa-trophy"></i></div>
+    <div class="sp-congrats-body">
+      <h4>Congratulations! You have successfully completed the onboarding process.</h4>
+      <p>
+        Your hotel details, systems, departments, services, hierarchy and user roles are all set up.
+        Thank you for taking the time to get everything ready.
+      </p>
+      <div class="sp-next" *ngIf="!isLive">
+        <i class="fa fa-hourglass-half" aria-hidden="true"></i>
+        <span><strong>What's next: Go Live.</strong> Go Live is approved by the GuestEzee team (superadmin).
+          We will review your setup, and once Go Live is approved your hotel will be live for guests.
+          You will receive an email when it happens.</span>
+      </div>
+      <div class="sp-next is-live" *ngIf="isLive">
+        <i class="fa fa-circle-check" aria-hidden="true"></i>
+        <span><strong>Your hotel is live.</strong> Go Live has been approved by the GuestEzee team, and guests can
+          now use GuestEzee at your property.</span>
+      </div>
+    </div>
+  </div>
+
   <ul class="sp-steps" *ngIf="expanded && !loading && !failed">
     <li *ngFor="let step of steps; let i = index" class="sp-step" [class.done]="step.done === true"
       [class.unknown]="step.done === null">
@@ -49,7 +72,12 @@
         <span class="sp-label">{{ step.label }}</span>
         <span class="sp-detail">{{ step.detail }}</span>
       </span>
-      <a class="sp-action" *ngIf="step.done !== true" [routerLink]="step.route">
+      <!-- Onboarding: go to the registration page and scroll down to its tabs -->
+      <a class="sp-action" *ngIf="step.done !== true && step.key === 'onboarding'" [href]="step.route"
+        (click)="openOnboarding(step, $event)">
+        Set up <i class="fa fa-arrow-right" aria-hidden="true"></i>
+      </a>
+      <a class="sp-action" *ngIf="step.done !== true && step.key !== 'onboarding'" [routerLink]="step.route">
         Set up <i class="fa fa-arrow-right" aria-hidden="true"></i>
       </a>
     </li>

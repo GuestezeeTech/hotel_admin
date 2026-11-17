@@ -283,3 +283,77 @@
     margin-left: auto;
   }
 }
+
+// Shown when every step is done
+.sp-congrats {
+  display: flex;
+  gap: 16px;
+  margin-top: 16px;
+  padding: 18px 20px;
+  border-radius: 12px;
+  background: var(--done-soft);
+  border: 1px solid #cdebd8;
+}
+
+.sp-congrats-icon {
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #fff;
+  color: var(--done);
+  font-size: 22px;
+  box-shadow: 0 2px 8px rgba(46, 158, 91, 0.18);
+}
+
+.sp-congrats-body {
+  flex: 1 1 auto;
+  min-width: 0;
+
+  h4 {
+    margin: 0 0 6px;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1.35;
+  }
+
+  p {
+    margin: 0 0 12px;
+    font-size: 14px;
+    color: #374151;
+    line-height: 1.5;
+  }
+}
+
+.sp-next {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid #eef0f3;
+  font-size: 13.5px;
+  color: #374151;
+  line-height: 1.5;
+
+  i {
+    margin-top: 3px;
+    color: #800020;
+  }
+
+  &.is-live i {
+    color: var(--done);
+  }
+}
+
+@media (max-width: 576px) {
+  .sp-congrats {
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px;
+  }
+}

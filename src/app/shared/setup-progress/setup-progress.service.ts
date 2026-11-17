@@ -77,8 +77,13 @@ export class SetupProgressService {
     return { done: true, detail: 'Office, property, technical info and payment' };
   }
 
+  /** Whether the hotel was live (go_live) at the last load(); read by the completion message */
+  lastLoadWasLive = false;
+
   async load(memberId: string): Promise<SetupStep[]> {
     const customer = await this.paymentHelper.getCustomerByMemberId(memberId);
+    const goLive = customer?.go_live;
+    this.lastLoadWasLive = goLive === true || goLive === 'true' || goLive === 1;
     const onboarding = await this.isOnboarded(customer);
 
     const lists = await new Promise<any>((resolve) => {
