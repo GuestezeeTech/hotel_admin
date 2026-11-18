@@ -384,7 +384,7 @@ export class AppComponent implements OnInit, OnDestroy {
         } else if (url.includes('/service-list') || url.includes('/service') || url.includes('/add-new-service') || url.includes('/edit-service') || url.includes('/view-service')) {
           this.selectedMenuItem = "Service";
         } else if (url.includes('/role-list') || url.includes('/role')) {
-          this.selectedMenuItem = "Roles";
+          this.selectedMenuItem = "Role Permission";
         } else if (url.includes('/user-list') || url.includes('/user')) {
           this.selectedMenuItem = "Users";
         } else if (url.includes('/staff-list') || url.includes('/staff')) {

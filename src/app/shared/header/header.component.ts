@@ -253,7 +253,7 @@ export class HeaderComponent implements OnInit {
       return (this.selectedMenu = "Hotels");
     }
     else if (currentRoute.includes('role')) {
-      return (this.selectedMenu = "Roles");
+      return (this.selectedMenu = "Role Permission");
     }
     else if (currentRoute.includes('user')) {
       return (this.selectedMenu = "Users");

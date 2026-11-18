@@ -124,7 +124,7 @@
       *ngIf="isUserAccessSubmenuOpen && canShowMenu('USER ACCESS')">
       <div class="submenu">
         <a class="submenu-item" routerLink="/role-list" [class.active]="isActive('role')"
-          (click)="selectLeafMenu('role', 'Roles', $event)">Roles</a>
+          (click)="selectLeafMenu('role', 'Role Permission', $event)">Role Permission</a>
         <a class="submenu-item" routerLink="/user-list" [class.active]="isActive('user')"
           (click)="selectLeafMenu('user', 'Users', $event)">Users</a>
         <a class="submenu-item" routerLink="/staff-list" [class.active]="isActive('staff')"
