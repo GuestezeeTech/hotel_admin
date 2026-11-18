@@ -262,3 +262,18 @@ body {
     margin-top: 1rem;
   }
 }
+// "Registration submitted" screen (shown before the automatic logout)
+.submitted-card {
+  text-align: center;
+
+  .submitted-icon {
+    font-size: 44px;
+    color: #2e9e5b;
+    margin-bottom: 0.5rem;
+  }
+
+  .btn-primary {
+    background: #800020;
+    border-color: #800020;
+  }
+}

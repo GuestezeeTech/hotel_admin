@@ -335,73 +335,8 @@ export class HeaderComponent implements OnInit {
   }
 
   async logout() {
-    try {
-      const userId = Number(this.localService.get('UserId'));
-      const customerType = this.localService.get('CustomerType');
-      if (userId) {
-        // Run FCM removal with a strict timeout (e.g. 1000ms) so it never blocks the logout.
-        // Delegates to LogoutService.removeFcmToken (same fetch/filter/update logic this
-        // used to duplicate inline) so this logout path shares LogoutService's cleanup
-        // queue with auto-logout, inactive-logout, and permission-toggle cleanup instead
-        // of racing them uncoordinated.
-        await Promise.race([
-          this.logoutService.removeFcmToken(userId, customerType),
-          new Promise<void>((resolve) => setTimeout(resolve, 4000))
-        ]);
-      }
-    } catch (err) {
-      console.error('Error removing FCM token on logout:', err);
-    }
-    this.localService.remove('accessToken');
-    this.localService.remove('refreshToken');
-    this.localService.remove('expireTime');
-    this.localService.remove('UserName');
-    this.localService.remove('UserEmail');
-    this.localService.remove('UserId');
-    this.localService.remove('domainName');
-    this.localService.remove('rexpireTime');
-    this.localService.remove('MemberId');
-    this.localService.remove('CustomerType');
-    this.localService.remove('guestData');
-    this.localService.remove('maxTabReached');
-    this.localService.remove('currentTab');
-    this.localService.remove('StaffData');
-    this.localService.remove('hierarchy');
-    this.localService.remove('roleName');
-    this.localService.remove('role_id');
-    this.localService.remove('Password');
-    this.localService.remove('db_schema');
-    this.localService.remove('selectedSlots');
-    this.localService.remove('baseStaffIds');
-    this.localService.remove('allLowerStaffIds');
-    this.localService.remove('roomRange');
-    this.localService.remove('USERACCESS');
-    this.localService.remove('payNowButtonState');
-    this.localService.remove('isFirstStaff');
-    this.localService.remove('defaultHierarchy');
-    // Newly commented because no need of fo desk 
-    // this.localService.remove('frontOfficeDeskStaff');
-    // End of newly commented code
-    // Newly added for role
-    this.localService.remove('Role');
-    this.localService.remove('roleId');
-    this.localService.remove('roleName');
-    this.localService.remove('roleModules');
-    this.localService.remove('outlet_id');
-    this.localService.remove('profile_name');
-    this.localService.remove('profile_image');
-    this.localService.remove('Name');
-    this.localService.remove('paymentDone');
-    this.localService.remove('lastValidUrl');
-    this.localService.remove('UserFcmTokens');
-    this.localService.remove('isFcmUnavailable');
-    this.localService.remove('isUserInactive');
-    sessionStorage.removeItem('CurrentTabFcmToken');
-    sessionStorage.removeItem('dismissedNotificationAlert');
-    sessionStorage.removeItem('CurrentSessionId');
-    this.localService.set('loggedOut', 'true');
-    this.router.navigate([''], { skipLocationChange: false, replaceUrl: true });
-    this.userAccessService.removeUserAccess();
+    // Shared with the onboarding screens that log the hotel out (LogoutService.logout)
+    await this.logoutService.logout();
   }
 
   toggleLogout(event?: Event) {

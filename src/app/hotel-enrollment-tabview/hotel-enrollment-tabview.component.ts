@@ -29,6 +29,7 @@ import { NavigationStart } from '@angular/router';
 import { SharedDataService } from '../shared/shared-data.service';
 import { PaymentHelperService } from '../services/payment-helper.service';
 import { OnboardingEmailService } from '../services/onboarding-email.service';
+import { LogoutService } from '../services/logout.service';
 import { RegistrationPropertyPopupComponent } from './registration-property-popup/registration-property-popup.component';
 import { SubscriptionPaymentPopupComponent } from './subscription-payment-popup/subscription-payment-popup.component';
 import { SetupProgressComponent } from '../shared/setup-progress/setup-progress.component';
@@ -369,7 +370,8 @@ export class HotelEnrollmentTabviewComponent implements OnInit, OnDestroy {
     private loginService: LoginService,
     private sharedDataService: SharedDataService,
     private paymentHelperService: PaymentHelperService,
-    private onboardingEmail: OnboardingEmailService
+    private onboardingEmail: OnboardingEmailService,
+    private logoutService: LogoutService
   ) {
     this.router.events.subscribe(event => {
       if (event instanceof NavigationEnd) {
@@ -730,7 +732,73 @@ export class HotelEnrollmentTabviewComponent implements OnInit, OnDestroy {
     }
   }
 
+  // ---- Screens that end the session during onboarding ----
+
+  /** Seconds before the automatic logout on the "submitted" / "payment done" screens */
+  private readonly autoLogoutSeconds = 10;
+  /** Registration popup just submitted: thank-you screen, then logout */
+  registrationJustSubmitted = false;
+  /** Countdown shown on those screens; null when no logout is pending */
+  logoutCountdown: number | null = null;
+  private logoutTimer: any = null;
+  private loggingOut = false;
+
+  /** Starts the countdown; logs out when it reaches 0 (or at once from the button) */
+  private startLogoutCountdown(): void {
+    if (this.logoutTimer || this.loggingOut) {
+      return;
+    }
+    this.logoutCountdown = this.autoLogoutSeconds;
+    this.logoutTimer = setInterval(() => {
+      this.logoutCountdown = Math.max(0, (this.logoutCountdown ?? 1) - 1);
+      this.cdr.detectChanges();
+      if (this.logoutCountdown === 0) {
+        this.logoutNow();
+      }
+    }, 1000);
+  }
+
+  private stopLogoutCountdown(): void {
+    if (this.logoutTimer) {
+      clearInterval(this.logoutTimer);
+      this.logoutTimer = null;
+    }
+  }
+
+  logoutNow(): void {
+    if (this.loggingOut) {
+      return;
+    }
+    this.loggingOut = true;
+    this.stopLogoutCountdown();
+    this.logoutService.logout();
+  }
+
+  /**
+   * Payment confirmation screen: once the order has loaded, a paid (not free) payment made
+   * during onboarding (hotel not approved yet) logs the hotel out after the countdown.
+   * Free plan, and payments by hotels already approved (renewals), stay logged in.
+   */
+  private startPaymentLogoutIfNeeded(): void {
+    if (!this.isVisible || !this.router.url.toLowerCase().includes('confirmation')) {
+      return;
+    }
+    const customer = this.customerdata || this.getCustomerData;
+    const free = String(this.orderdata?.payment_type || '').toLowerCase() === 'free'
+      || customer?.payment_plan?.status === 'Free';
+    if (free || this.isApprovedStatus(customer)) {
+      return;
+    }
+    this.startLogoutCountdown();
+  }
+
+  /** Whether the confirmation popup ends the session (button reads "Log out") */
+  get paymentEndsSession(): boolean {
+    return this.logoutCountdown !== null && !this.registrationJustSubmitted;
+  }
+
   ngOnDestroy(): void {
+    this.stopLogoutCountdown();
     this.stopApprovalPolling();
     if (this.initialLoaderTimer) {
       clearTimeout(this.initialLoaderTimer);
@@ -791,10 +859,10 @@ export class HotelEnrollmentTabviewComponent implements OnInit, OnDestroy {
           // "Awaiting Approval" to the hotel, "New Registration Approval" to support
           this.onboardingEmail.registrationSubmitted(this.customerdata);
           this.evaluateRegistrationGate();
-          this.alertService.success(
-            resp.message || 'Details submitted. Please wait for approval to continue registration.',
-            this.options
-          );
+          // Thank-you screen, then the hotel is logged out until it is verified
+          this.registrationJustSubmitted = true;
+          this.stopApprovalPolling();
+          this.startLogoutCountdown();
           setTimeout(() => this.propertyDetailsComp?.refreshData?.(), 150);
         } else {
           this.alertService.error(resp?.message || 'Unable to save registration details.', this.options);
@@ -1738,6 +1806,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit, OnDestroy {
           this.localService.set('paymentDone', this.paymentDone);
         }
         this.updatePaymentStatusInfo();
+        this.startPaymentLogoutIfNeeded();
         this.checkNavigationAndActivateTab();
       },
       err => {
@@ -1755,6 +1824,7 @@ export class HotelEnrollmentTabviewComponent implements OnInit, OnDestroy {
           // this.alertsService.error('Something  happened. Please try again!', this.options);
         }
         this.updatePaymentStatusInfo();
+        this.startPaymentLogoutIfNeeded();
         this.checkNavigationAndActivateTab();
       }
     );

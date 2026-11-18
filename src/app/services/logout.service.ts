@@ -7,6 +7,7 @@ import { HotelListService } from '../hotel-list/hotel-list.service';
 import { HotelEnrollmentTabviewService } from '../hotel-enrollment-tabview/hotel-enrollment-tabview.service';
 import { TaskManagementService } from '../task-management/task-management.service';
 import { StaffService } from '../user-access/staff/staff.service';
+import { UserAccessService } from '../user-access/user-access.service';
 
 @Injectable({
   providedIn: 'root'
@@ -26,8 +27,43 @@ export class LogoutService {
     private hotelenrollmenttabviewService: HotelEnrollmentTabviewService,
     private taskManagementService: TaskManagementService,
     private staffService: StaffService,
-    private router: Router
+    private router: Router,
+    private userAccessService: UserAccessService
   ) { }
+
+  /**
+   * Full logout (header "Log out", and the onboarding screens that end the session):
+   * removes this device's FCM token (max 4s), clears the stored session and goes to login.
+   */
+  async logout(): Promise<void> {
+    try {
+      const userId = Number(this.localService.get('UserId'));
+      const customerType = this.localService.get('CustomerType');
+      if (userId) {
+        // Strict timeout so FCM removal never blocks the logout
+        await Promise.race([
+          this.removeFcmToken(userId, customerType),
+          new Promise<void>((resolve) => setTimeout(resolve, 4000))
+        ]);
+      }
+    } catch (err) {
+      console.error('Error removing FCM token on logout:', err);
+    }
+    [
+      'accessToken', 'refreshToken', 'expireTime', 'UserName', 'UserEmail', 'UserId', 'domainName',
+      'rexpireTime', 'MemberId', 'CustomerType', 'guestData', 'maxTabReached', 'currentTab', 'StaffData',
+      'hierarchy', 'roleName', 'role_id', 'Password', 'db_schema', 'selectedSlots', 'baseStaffIds',
+      'allLowerStaffIds', 'roomRange', 'USERACCESS', 'payNowButtonState', 'isFirstStaff', 'defaultHierarchy',
+      'Role', 'roleId', 'roleModules', 'outlet_id', 'profile_name', 'profile_image', 'Name', 'paymentDone',
+      'lastValidUrl', 'UserFcmTokens', 'isFcmUnavailable', 'isUserInactive'
+    ].forEach((key) => this.localService.remove(key));
+    sessionStorage.removeItem('CurrentTabFcmToken');
+    sessionStorage.removeItem('dismissedNotificationAlert');
+    sessionStorage.removeItem('CurrentSessionId');
+    this.localService.set('loggedOut', 'true');
+    this.router.navigate([''], { skipLocationChange: false, replaceUrl: true });
+    this.userAccessService.removeUserAccess();
+  }
 
   /**
    * Removes the current device's FCM token from the DB for the logged-in user/staff.

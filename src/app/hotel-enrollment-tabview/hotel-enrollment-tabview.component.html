@@ -28,7 +28,24 @@
       [isRenewal]="subscriptionRenewal">
     </app-subscription-payment-popup>
 
-    <div class="container" *ngIf="isReadyToRender && awaitingRegistrationApproval && !showRegistrationPopup">
+    <!-- Registration popup just submitted: thank-you screen, then automatic logout -->
+    <div class="container" *ngIf="registrationJustSubmitted">
+      <div class="registration-pending-card submitted-card">
+        <div class="submitted-icon" aria-hidden="true"><i class="fas fa-circle-check"></i></div>
+        <h3>Registration submitted</h3>
+        <p>
+          Thank you! Your property details have been submitted successfully. Our team will verify them, and we
+          will email you as soon as your account is verified.
+        </p>
+        <p>After that, log in again to continue with your subscription and the rest of the onboarding.</p>
+        <p class="status-line" *ngIf="logoutCountdown !== null">
+          You will be logged out in <strong>{{ logoutCountdown }}</strong> second{{ logoutCountdown === 1 ? '' : 's' }}.
+        </p>
+        <button type="button" class="btn btn-primary" (click)="logoutNow()">Log out now</button>
+      </div>
+    </div>
+
+    <div class="container" *ngIf="isReadyToRender && awaitingRegistrationApproval && !showRegistrationPopup && !registrationJustSubmitted">
       <div class="registration-pending-card">
         <h3>Registration pending approval</h3>
         <p>
@@ -170,9 +187,15 @@
                     patience!' : 'Your payment has been processed successfully. Thank you!' }}
                   </p>
                   <h3 class="membership-id">{{this.customerdata?.customer_member_id}}</h3>
+                  <!-- Paid during onboarding: the session ends here until the account is approved -->
+                  <p class="mt-2 mb-0" *ngIf="paymentEndsSession">
+                    Please note your Membership ID. You will be logged out in
+                    <strong>{{ logoutCountdown }}</strong> second{{ logoutCountdown === 1 ? '' : 's' }}; log in again
+                    once your account is approved.
+                  </p>
                   <div class="d-flex justify-content-center gap-3 mt-3">
-
-                    <button class="btn btn-primary" (click)="onContinue()">Ok</button>
+                    <button *ngIf="!paymentEndsSession" class="btn btn-primary" (click)="onContinue()">Ok</button>
+                    <button *ngIf="paymentEndsSession" class="btn btn-primary" (click)="logoutNow()">Log out now</button>
                   </div>
                 </div>
               </div>
