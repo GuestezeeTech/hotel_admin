@@ -7,6 +7,7 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, FormsModule } from '@angular/forms';
 import { HttpHeaders } from '@angular/common/http';
 import { UpsellService } from './upsell.service';
+import { UpsellTypeService } from './upsell-type.service';
 import { AuthTokenService } from '../auth-services/auth-token.service';
 import { AlertsService } from '../shared/alerts/alerts.service';
 import { Alert } from '../shared/alerts/alerts.model';
@@ -60,31 +61,24 @@ export class FeaturesComponent implements OnInit {
     keepAfterRouteChange: false
   };
 
-  upsellingFeaturesList: string[] = [
-    'Restaurant',
-    'Spa',
-    'Gym',
-    'Bar',
-    'Coffee Shop',
-    'Bakery',
-    'Swimming Pool',
-    'Conference Hall',
-    'Banquet Hall',
-    'Game Zone',
-    // 'Laundry',
-    // 'Room Service',
-    // 'Travel Desk',
-    // 'Activities',
-    'Business Center',
-    'Salon',
-    'Kids Play Area',
-    'Sports Arena'
-  ];
+  /** Active upsell names from the upselltype API (managed on Upsell Names) */
+  upsellingFeaturesList: string[] = [];
+  upsellNamesLoaded = false;
+
+  /** Names for the dropdown; keeps the saved name of the feature being edited even if it was removed */
+  get nameOptions(): string[] {
+    const current = String(this.restaurantData?.name || '').trim();
+    if (current && !this.upsellingFeaturesList.some(n => n.toLowerCase() === current.toLowerCase())) {
+      return [current, ...this.upsellingFeaturesList];
+    }
+    return this.upsellingFeaturesList;
+  }
 
   constructor(
     private routerUrl: Router,
     private localService: LocalStorageService,
     private upsellService: UpsellService,
+    private upsellTypeService: UpsellTypeService,
     private authTokenService: AuthTokenService,
     private alertService: AlertsService,
     private serviceSettingsService: ServiceSettingsService,
@@ -124,6 +118,31 @@ export class FeaturesComponent implements OnInit {
     this.customerType = this.localService.get('CustomerType');
     this.member_id = this.localService.get('MemberId');
     this.getAllUpsells();
+    this.getUpsellNames();
+  }
+
+  /** Dropdown names come from upselltype/getall, never from the code */
+  getUpsellNames() {
+    this.upsellTypeService.getAll(this.member_id).subscribe({
+      next: (resp: any) => {
+        const data = resp?.success && Array.isArray(resp?.result?.data) ? resp.result.data : [];
+        const names: string[] = data
+          .filter((t: any) => t?.is_active !== false)
+          .map((t: any) => UpsellTypeService.nameOf(t))
+          .filter((n: string) => !!n);
+        this.upsellingFeaturesList = Array.from(new Set(names)).sort((a, b) => a.localeCompare(b));
+        this.upsellNamesLoaded = true;
+      },
+      error: () => {
+        this.upsellingFeaturesList = [];
+        this.upsellNamesLoaded = true;
+      }
+    });
+  }
+
+  goToUpsellNames() {
+    this.isModalOpen = false;
+    this.routerUrl.navigate(['/features/upsell-names']);
   }
   getAllUpsells() {
     const payload = {

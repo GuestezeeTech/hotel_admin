@@ -160,5 +160,20 @@ input[type="checkbox"] {
     }
 }
 
+.manage-names-btn {
+    background: #fff;
+    color: #800020;
+    border: 1px solid #800020;
+    padding: 9px 18px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+
+    &:hover {
+        background: #fbf2f4;
+    }
+}
+
 // Remove old hint style if no longer needed in this component
 // .tech-single-select-hint { ... }

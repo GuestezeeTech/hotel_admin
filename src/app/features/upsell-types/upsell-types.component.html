@@ -1,0 +1,105 @@
+<div class="main">
+    <app-alerts></app-alerts>
+    <div class="ut-page">
+        <div class="ut-head">
+            <button type="button" class="ut-back" (click)="backToUpselling()">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i> Back to Upselling
+            </button>
+            <div class="ut-head-row">
+                <div>
+                    <h2>Upsell Names</h2>
+                    <p>These names appear in the "Name" list when you add or edit an upselling feature.</p>
+                </div>
+                <button type="button" class="ut-btn-primary" (click)="openAdd()" [disabled]="!canAdd">
+                    + Add Name
+                </button>
+            </div>
+        </div>
+
+        <div class="ut-card">
+            <div class="ut-toolbar">
+                <input type="search" class="form-control shadow-none" placeholder="Search names" [(ngModel)]="search">
+                <span class="ut-count">{{ types.length }} {{ types.length === 1 ? 'name' : 'names' }}</span>
+            </div>
+
+            <table class="table ut-table mb-0">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Description</th>
+                        <th>Status</th>
+                        <th class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let item of filteredTypes">
+                        <td class="fw-semibold">{{ item.name }}</td>
+                        <td class="ut-desc">{{ item.description || '-' }}</td>
+                        <td>
+                            <span class="ut-status" [class.is-off]="item.is_active === false">
+                                {{ item.is_active === false ? 'Inactive' : 'Active' }}
+                            </span>
+                        </td>
+                        <td class="text-end">
+                            <i class="fa-solid fa-pen ut-icon" title="Edit" (click)="openEdit(item)"
+                                [class.is-disabled]="!canEdit"></i>
+                            <i class="fa-solid fa-trash-can ut-icon" title="Delete" (click)="askDelete(item)"
+                                [class.is-disabled]="!canDelete"></i>
+                        </td>
+                    </tr>
+                    <tr *ngIf="loaded && filteredTypes.length === 0">
+                        <td colspan="4" class="ut-empty">
+                            {{ types.length ? 'No names match your search.' : 'No upsell names yet. Add one to use it in Upselling.' }}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add / Edit -->
+<div class="ut-overlay" *ngIf="isFormOpen">
+    <div class="ut-modal">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold mb-0">{{ editingId ? 'Edit' : 'Add' }} Upsell Name</h5>
+            <button type="button" class="ut-close" (click)="closeForm()" title="Close">&times;</button>
+        </div>
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control shadow-none" maxlength="60" [(ngModel)]="formName"
+                (input)="formError = ''" placeholder="e.g. Spa">
+        </div>
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Description</label>
+            <textarea class="form-control shadow-none" rows="2" maxlength="250" [(ngModel)]="formDescription"
+                placeholder="Optional"></textarea>
+        </div>
+        <div class="form-check form-switch mb-2">
+            <input class="form-check-input" type="checkbox" id="utActive" [(ngModel)]="formActive">
+            <label class="form-check-label" for="utActive">Active (shown in the Upselling list)</label>
+        </div>
+        <p class="ut-error" *ngIf="formError">{{ formError }}</p>
+        <div class="d-flex justify-content-end gap-2 mt-3">
+            <button type="button" class="ut-btn-light" (click)="closeForm()">Cancel</button>
+            <button type="button" class="ut-btn-primary" (click)="save()" [disabled]="saving">
+                {{ saving ? 'Saving...' : 'Save' }}
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete -->
+<div class="ut-overlay" *ngIf="deleteTarget">
+    <div class="ut-modal">
+        <h5 class="fw-bold mb-2">Delete "{{ deleteTarget.name }}"?</h5>
+        <p class="mb-3">It will no longer appear in the Upselling "Name" list. Upselling features already using this
+            name keep it.</p>
+        <div class="d-flex justify-content-end gap-2">
+            <button type="button" class="ut-btn-light" (click)="cancelDelete()">Cancel</button>
+            <button type="button" class="ut-btn-primary" (click)="confirmDelete()" [disabled]="deleting">
+                {{ deleting ? 'Deleting...' : 'Yes, Delete' }}
+            </button>
+        </div>
+    </div>
+</div>

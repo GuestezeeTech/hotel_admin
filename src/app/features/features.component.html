@@ -10,11 +10,17 @@
                         feature.</span>
                 </div>
 
-                <button class="add-upsell-btn" (click)="canAddFeatures ? openModal() : null"
-                    [disabled]="!canAddFeatures" [style.opacity]="canAddFeatures ? 1 : 0.6"
-                    [style.cursor]="canAddFeatures ? 'pointer' : 'not-allowed'">
-                    + Add New Upselling
-                </button>
+                <div class="d-flex align-items-center gap-2">
+                    <button class="manage-names-btn" type="button" (click)="goToUpsellNames()"
+                        title="Add, edit or delete the names in the Upselling Name list">
+                        <i class="fa-solid fa-list-ul" aria-hidden="true"></i> Upsell Names
+                    </button>
+                    <button class="add-upsell-btn" (click)="canAddFeatures ? openModal() : null"
+                        [disabled]="!canAddFeatures" [style.opacity]="canAddFeatures ? 1 : 0.6"
+                        [style.cursor]="canAddFeatures ? 'pointer' : 'not-allowed'">
+                        + Add New Upselling
+                    </button>
+                </div>
             </div>
 
             <!-- Static Restaurant Card (acting as a basic shell) -->
@@ -123,8 +129,20 @@
                 [disabled]="isModalViewOnly"
                 style="border-radius: 8px; color: #1a1a1a; background-color: #fff; border: 1px solid #ced4da;">
                 <option value="" disabled selected>Select a feature</option>
-                <option *ngFor="let feature of upsellingFeaturesList" [value]="feature">{{ feature }}</option>
+                <option *ngFor="let feature of nameOptions" [value]="feature">{{ feature }}</option>
             </select>
+            <p *ngIf="upsellNamesLoaded && upsellingFeaturesList.length === 0 && !isModalViewOnly"
+                style="font-size: 12px; color: #6b6b6b; margin: 4px 0 0;">
+                No upsell names yet.
+                <a href="javascript:void(0)" (click)="goToUpsellNames()" style="color: #800020; font-weight: 600;">Add
+                    names</a>
+            </p>
+            <p *ngIf="upsellingFeaturesList.length > 0 && !isModalViewOnly"
+                style="font-size: 12px; color: #6b6b6b; margin: 4px 0 0;">
+                Missing a name?
+                <a href="javascript:void(0)" (click)="goToUpsellNames()" style="color: #800020; font-weight: 600;">Manage
+                    upsell names</a>
+            </p>
             <p *ngIf="submitted && nameError"
                 style="font-size: 12px; color: #dc3545; margin-bottom: 0; margin-top: 4px;">
                 {{ nameError }}
