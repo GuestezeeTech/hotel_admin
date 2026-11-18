@@ -182,10 +182,10 @@ export class UserListingComponent {
     return permission?.has_delete_permission ?? false;
   }
 
-  // To navigate to role page with id
+  // Add User opens the Add Staff form (staff are listed on this page too)
   toggleAddUser() {
     if (!this.canAddUserAccess) return;
-    this.routeUrl.navigate(['/user']);
+    this.routeUrl.navigate(['/staff']);
   }
 
   // To navigate to role page with id
