@@ -384,8 +384,8 @@
                       <input class="ecom-input-box" type="text" formControlName="key" placeholder="label name" />
                     </div>
                     <div class="ecom-form-group ecom-key-group-no-label">
-                      <input class="ecom-input-box" type="text" formControlName="value"
-                        placeholder="enter the key value" />
+                      <input class="ecom-input-box" type="text" formControlName="value" readonly
+                        placeholder="Not set yet" />
                       <span class="ecom-error"
                         *ngIf="field.get('value')?.hasError('requiredWhenKey') && field.get('value')?.touched">
                         Value is required.
@@ -397,14 +397,13 @@
             </form>
           </div>
         </div>
+        <!-- View only: integration values are managed by the GuestEzee team (superadmin) -->
         <div class="ecom-modal-footer">
-          <button type="button" class="ecom-cancel-btn" (click)="closeEcomIntegrationModal()">
-            {{this.customerStatus === 'approved' ? 'Close' : 'Cancel'}}
-          </button>
-          <button type="button" class="ecom-save-btn" (click)="saveEcomIntegration()"
-            *ngIf="((selectedTab === 'pos') || (selectedTab === 'lock' && getEcomTechnicalInfoControls().controls.length > 0)) && this.customerStatus !== 'approved'">
-            Save
-          </button>
+          <p class="ecom-readonly-note">
+            <i class="fas fa-lock" aria-hidden="true"></i>
+            These settings are managed by the GuestEzee team. Contact support if anything needs to change.
+          </p>
+          <button type="button" class="ecom-cancel-btn" (click)="closeEcomIntegrationModal()">Close</button>
         </div>
       </div>
     </div>

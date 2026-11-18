@@ -2332,10 +2332,10 @@ export class TechnicalInfoComponent implements OnInit {
   // if key is entered, value becomes required.
   // We disable the key field for all attributes across both Lock and PMS tabs.
   createEcomAttributeGroup(key: string = '', value: string = ''): FormGroup {
-    const isValueDisabled = this.customerStatus === 'approved';
+    // Integration values are set by the GuestEzee team in the superadmin; hotels only view them
     const group = this.fb.group({
       key: [{ value: key, disabled: true }],
-      value: [{ value: value, disabled: isValueDisabled }]
+      value: [{ value: value, disabled: true }]
     });
     group.valueChanges.subscribe(() => {
       this.validateEcomAttributeGroup(group);
