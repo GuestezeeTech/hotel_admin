@@ -22,38 +22,51 @@
                         <th style="text-align: center;">
                             <input type="checkbox" disabled>
                         </th>
+                        <th>Type</th>
                         <th>Email</th>
                         <th>Name</th>
-                        <th>Role Name</th>
+                        <th>Role / Position</th>
                         <!-- <th>Last Login</th> -->
                         <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <!-- <tr *ngFor="let user of users" style="background-color: white;"> -->
-                    <tr *ngFor="let user of usersWithRoles" style="background-color: white;">
+                    <!-- Login users first, then all the hotel's staff -->
+                    <tr *ngFor="let row of pagedRows" style="background-color: white;">
                         <td>
-                            <input type="checkbox" [id]="user.fullName" [name]="user.fullName" [value]="user.fullName"
-                                (change)="toggleSelection($event, user.id)" style="cursor: pointer;"
+                            <!-- Delete Selected removes login users only; staff are deleted on the Staff page -->
+                            <input type="checkbox" *ngIf="row.kind === 'user'" [value]="row.name"
+                                [checked]="selectedUserIds.includes(row.id)"
+                                (change)="toggleSelection($event, row.id)" style="cursor: pointer;"
                                 [disabled]="!canDeleteUserAccess">
+                            <input type="checkbox" *ngIf="row.kind === 'staff'" disabled
+                                title="Delete staff from the Staff page">
                         </td>
-                        <td>{{ user.email }}</td>
-                        <td>{{ user.first_name + ' ' + user.last_name }}</td>
-                        <td>{{ user.role_name }}</td>
+                        <td>
+                            <span class="row-type" [class.is-staff]="row.kind === 'staff'">
+                                {{ row.kind === 'staff' ? 'Staff' : 'User' }}
+                            </span>
+                        </td>
+                        <td>{{ row.email || '-' }}</td>
+                        <td>
+                            {{ row.name || '-' }}
+                            <small *ngIf="row.employeeId" class="text-muted d-block">ID: {{ row.employeeId }}</small>
+                        </td>
+                        <td>{{ row.role || '-' }}</td>
                         <!-- <td>{{ user.lastLogin }}</td> -->
                         <td>
                             <!-- View icon: requires read permission -->
                             <i class="fa fa-eye me-3" style="color: #800020; cursor: pointer;"
-                                [style.opacity]="canReadUserAccess ? 1 : 0.4" (click)="viewUser(user.id)"
+                                [style.opacity]="canReadUserAccess ? 1 : 0.4" (click)="viewRow(row)"
                                 [style.cursor]="canReadUserAccess ? 'pointer' : 'not-allowed'" title="View"></i>
                             <!-- Edit icon: requires edit permission -->
                             <i class="fa fa-pen-to-square" style="color: #800020; cursor: pointer;"
-                                [style.opacity]="canEditUserAccess ? 1 : 0.4" (click)="setInitialValues(user.id)"
+                                [style.opacity]="canEditUserAccess ? 1 : 0.4" (click)="editRow(row)"
                                 [style.cursor]="canEditUserAccess ? 'pointer' : 'not-allowed'" title="Edit"></i>
                         </td>
                     </tr>
-                    <tr *ngIf="usersWithRoles.length === 0">
-                        <td colspan="6" class="text-center">No users found</td>
+                    <tr *ngIf="rows.length === 0">
+                        <td colspan="6" class="text-center">No users or staff found</td>
                     </tr>
                 </tbody>
             </table>

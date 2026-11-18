@@ -16,6 +16,18 @@ import { LocalStorageService } from '../../auth-services/local-storage.service';
 import { FormsModule } from '@angular/forms';
 import { PermissionService, ModulePermission } from '../../services/permission.service';
 import { LoaderService } from '../../shared/loader/loader.service';
+import { StaffListingService } from '../staff-listing/staff-listing.service';
+
+/** One row of the Users table: a login user (role) or a staff member */
+export interface UserRow {
+  kind: 'user' | 'staff';
+  id: any;
+  email: string;
+  name: string;
+  /** Role name for users; hierarchy (designation - department) for staff */
+  role: string;
+  employeeId?: string;
+}
 
 @Component({
   selector: 'app-usering',
@@ -44,6 +56,11 @@ export class UserListingComponent {
   totalPages: number = 0; // Total number of pages
   // Newly added
   usersWithRoles: any = [];
+  /** All the hotel's staff (same list as the Staff page), shown after the login users */
+  staves: any[] = [];
+  /** Login users then staff, one row each; pagedRows is the current page */
+  rows: UserRow[] = [];
+  pagedRows: UserRow[] = [];
 
   constructor(
     private userListingService: UserListingService,
@@ -54,12 +71,94 @@ export class UserListingComponent {
     private hotelenrollmenttabviewService: HotelEnrollmentTabviewService,
     private hotellistService: HotelListService,
     private permissionService: PermissionService,
-    private loaderService: LoaderService) {
+    private loaderService: LoaderService,
+    private staffListingService: StaffListingService) {
   }
 
   ngOnInit(): void {
-    // To initially load all user data's
+    // To initially load all user data's, and all the hotel's staff
     this.getAllUsers();
+    this.getAllStaves();
+  }
+
+  /** Same request as the Staff page */
+  getAllStaves() {
+    const requestBody = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: {
+        find: { member_id: this.localStorageService.get('MemberId') },
+        pagination: true,
+        sorting: true,
+        sortingDetails: { id: -1 }
+      }
+    };
+    this.staffListingService.getAllStaves(requestBody).subscribe({
+      next: (response: any) => {
+        this.staves = response?.success && Array.isArray(response?.result?.data) ? response.result.data : [];
+        this.buildRows();
+      },
+      error: () => {
+        this.staves = [];
+        this.buildRows();
+      }
+    });
+  }
+
+  private staffRole(staff: any): string {
+    if (staff?.role_name) {
+      return staff.role_name;
+    }
+    const h = Array.isArray(staff?.hierarchy) ? staff.hierarchy : [];
+    if (!h.length) {
+      return '';
+    }
+    const first = [h[0]?.designation, h[0]?.department].filter(Boolean).join(' - ');
+    return first + (h.length > 1 ? ', ...' : '');
+  }
+
+  /** Login users first, then staff; keeps the current page when possible */
+  private buildRows() {
+    const userRows: UserRow[] = (this.usersWithRoles || []).map((u: any) => ({
+      kind: 'user',
+      id: u.id,
+      email: u.email || '',
+      name: [u.first_name, u.last_name].filter(Boolean).join(' '),
+      role: u.role_name || ''
+    }));
+    const staffRows: UserRow[] = (this.staves || []).map((s: any) => ({
+      kind: 'staff',
+      id: s.id,
+      email: s.email || s.email_id || '',
+      name: s.full_name || [s.first_name, s.last_name].filter(Boolean).join(' '),
+      role: this.staffRole(s),
+      employeeId: s.staff_employee_number || ''
+    }));
+    this.rows = [...userRows, ...staffRows];
+    this.totalUsers = this.rows.length;
+    this.totalPages = Math.max(1, Math.ceil(this.totalUsers / this.pageSize));
+    if (this.currentPage > this.totalPages) {
+      this.currentPage = this.totalPages;
+    }
+    this.updatePaginatedUsers();
+  }
+
+  viewRow(row: UserRow) {
+    if (row.kind === 'staff') {
+      if (!this.canReadUserAccess) return;
+      this.routeUrl.navigate(['/staff', row.id], { state: { mode: 'view' } });
+    } else {
+      this.viewUser(row.id);
+    }
+  }
+
+  editRow(row: UserRow) {
+    if (row.kind === 'staff') {
+      if (!this.canEditUserAccess) return;
+      this.routeUrl.navigate(['/staff', row.id]);
+    } else {
+      this.setInitialValues(row.id);
+    }
   }
 
   // Permission helpers for USER ACCESS
@@ -177,11 +276,8 @@ export class UserListingComponent {
             }));
           // console.log("Users with role:", this.usersWithRoles);
           this.allUsers = this.usersWithRoles; //For pagination
-          this.totalUsers = this.usersWithRoles.length;
-          //console.log('Total Staves:', this.totalUsers);
-          this.totalPages = Math.ceil(this.totalUsers / this.pageSize);
-          //console.log('Total Pages:', this.totalPages);
-          this.updatePaginatedUsers();
+          // Table rows = these users + all staff (paging over both)
+          this.buildRows();
         } else {
           //console.error('No users found:', response?.message);
         }
@@ -196,7 +292,8 @@ export class UserListingComponent {
   updatePaginatedUsers() {
     const startIndex = (this.currentPage - 1) * this.pageSize;
     const endIndex = startIndex + this.pageSize;
-    this.allUsers = this.usersWithRoles.slice(startIndex, endIndex);
+    this.pagedRows = this.rows.slice(startIndex, endIndex);
+    this.allUsers = this.pagedRows.filter(r => r.kind === 'user');
   }
 
   nextPage() {
