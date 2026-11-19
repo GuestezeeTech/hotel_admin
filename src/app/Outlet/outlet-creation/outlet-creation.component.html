@@ -20,7 +20,7 @@
             <label>Outlet Type<span class="required-asterisk">*</span></label>
             <select class="input_box" formControlName="outlet_type">
               <option value="" disabled>Select Outlet Type</option>
-              <option *ngFor="let u of upsellList" [value]="u.name">{{ u.name }}</option>
+              <option *ngFor="let t of outletTypeOptions" [value]="t">{{ t }}</option>
             </select>
             <p class="error"
               *ngIf="(submitted || outletForm.controls['outlet_type'].touched) && outletForm.controls['outlet_type'].hasError('required')">
@@ -259,7 +259,12 @@
         <div class="btn_div">
           <button type="button" class="btn cancel_bt mr-2" (click)="openExitModal()">{{ isViewMode ? 'Close' : 'Cancel'
             }}</button>
-          <button type="submit" class="btn save_bt" *ngIf="!isViewMode">Save {{ upsellName }}</button>
+          <span *ngIf="!isViewMode && outlet_id === 0 && outletLimitReached"
+            style="color: #b42318; font-size: 13px; font-weight: 500; align-self: center; margin-right: 8px;">
+            Only one IRD outlet is allowed. Edit the existing one instead.
+          </span>
+          <button type="submit" class="btn save_bt" *ngIf="!isViewMode"
+            [disabled]="outlet_id === 0 && outletLimitReached">Save {{ upsellName }}</button>
         </div>
       </div>
     </form>

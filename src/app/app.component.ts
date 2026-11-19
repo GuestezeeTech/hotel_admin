@@ -404,7 +404,7 @@ export class AppComponent implements OnInit, OnDestroy {
         } else if (url.includes('/payment-details') || url.includes('/payment-subscription')) {
           this.selectedMenuItem = "Payment";
         } else if (url.includes('/outlet-list') || url.includes('/outlet-creation') || url.includes('/create-outlet') || url.includes('/product') || url.includes('/add-product')) {
-          this.selectedMenuItem = "Outlets";
+          this.selectedMenuItem = "IRD";
         } else if (url.includes('/guest-reviews')) {
           this.selectedMenuItem = "Reviews";
         } else if (url.includes('/fb/dashboard')) {
@@ -414,7 +414,7 @@ export class AppComponent implements OnInit, OnDestroy {
         } else if (url.includes('/hk/dashboard')) {
           this.selectedMenuItem = 'Housekeeping Dashboard';
         } else if (url.includes('/overview-dashboard') || url.includes('/kot-dashboard')) {
-          this.selectedMenuItem = "Hotel Overview";
+          this.selectedMenuItem = "Dashboard";
         } else if (url.includes('/dashboard')) {
           // /dashboard now shows only the hotel setup (onboarding) progress
           this.selectedMenuItem = url.split(/[?#]/)[0] === '/dashboard' ? 'Onboarding Process' : 'Dashboard';

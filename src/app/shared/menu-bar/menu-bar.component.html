@@ -23,10 +23,10 @@
   <hr style="width: 80%;" class="center-hr" />
   <ul class="sidenav-menu">
     <li class="list_container" [class.active]="isActive('overview-dashboard')"
-      (click)="setActiveMenu('overview-dashboard'); sendValue('Hotel Overview')" routerLink="/overview-dashboard"
-      *ngIf="canShowMenu('OVERVIEW')" title="Hotel Overview">
+      (click)="setActiveMenu('overview-dashboard'); sendValue('Dashboard')" routerLink="/overview-dashboard"
+      *ngIf="canShowMenu('OVERVIEW')" title="Dashboard">
       <i class="bi bi-building menu-icon" aria-hidden="true"></i>
-      <span>Hotel Overview</span>
+      <span>Dashboard</span>
     </li>
     <li class="list_container" [class.active]="isActive('fb-dashboard')"
       (click)="setActiveMenu('fb-dashboard'); sendValue('F&B Dashboard')" routerLink="/fb/dashboard"
@@ -131,14 +131,14 @@
           (click)="selectLeafMenu('staff', 'Staff', $event)">Staff</a>
       </div>
     </li>
-    <!-- Outlet -->
+    <!-- IRD (outlet) -->
     <li class="list_container" [class.active]="isActive('outlet')" [routerLink]="['/outlet-list']"
-      (click)="setActiveMenu('outlet'); sendValue('Outlet')"
-      *ngIf="canShowMenu('OUTLETS')" title="Outlets">
+      (click)="setActiveMenu('outlet'); sendValue('IRD')"
+      *ngIf="canShowMenu('OUTLETS')" title="IRD">
       <div class="list-content">
         <div class="left-content">
           <i class="bi bi-shop menu-icon" aria-hidden="true"></i>
-          <span>Outlets</span>
+          <span>IRD</span>
         </div>
       </div>
     </li>

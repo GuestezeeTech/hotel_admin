@@ -16,7 +16,7 @@
                         <i class="fas fa-info-circle"></i>
                         <div style="display: flex; flex-direction: column; gap: 4px;">
                             <span>
-                                &bull; Menus can be added only for Restaurants.
+                                &bull; Only one IRD outlet can be created, and its menus are added from it.
                                 <span *ngIf="customerdata && !customerdata.Hotel_Code" style="font-weight: 600;">
                                     Please set Hotel Code in Technical Info before adding any Outlet.
                                 </span>
@@ -28,8 +28,11 @@
                     </div>
                     <button class="add-btn submit" *ngIf="!isLoading"
                         style="font-size:14px; background: #800020; color: white; border-radius: 5px; border: 1px solid white; padding: 5px 20px;"
-                        (click)="canAddOutlets ? navigateToOutlet() : null" [disabled]="!canAddOutlets">
-                        + Add Outlet
+                        (click)="canAddOutlets && !outletLimitReached ? navigateToOutlet() : null"
+                        [disabled]="!canAddOutlets || outletLimitReached"
+                        [style.opacity]="(!canAddOutlets || outletLimitReached) ? 0.6 : 1"
+                        [title]="outletLimitReached ? 'Only one IRD outlet is allowed' : 'Add IRD'">
+                        + Add IRD
                     </button>
                 </div>
                 <!-- Loader -->

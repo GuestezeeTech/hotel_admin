@@ -184,10 +184,15 @@ export class OutletListComponent implements OnInit {
     this.router.navigate(['/product-list', outlet_id]);
   }
 
-  // Returns true if the outlet_type is a restaurant variant (or legacy empty type)
+  // Returns true if the outlet can have menus: IRD, or a legacy restaurant / empty type
   isRestaurantType(outlet_type: string): boolean {
     const type = (outlet_type || '').trim().toLowerCase();
-    return ['restaurant', 'restaruant', 'restaurants', ''].includes(type);
+    return ['ird', 'restaurant', 'restaruant', 'restaurants', ''].includes(type);
+  }
+
+  /** Only one outlet (IRD) per hotel */
+  get outletLimitReached(): boolean {
+    return (this.outletdata || []).length >= 1;
   }
 
   getCustomerById() {

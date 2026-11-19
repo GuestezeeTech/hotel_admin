@@ -418,6 +418,23 @@ export class OutletCreationComponent implements OnInit {
   ];
   // -----------------------------------------
   upsellList: any[] = []; // Outlet type dropdown — fetched from upsell API
+  /** A hotel may have only one outlet (IRD); true when one already exists */
+  outletLimitReached = false;
+
+  /** Outlet types: IRD first, then the hotel's upselling names, never Restaurant */
+  get outletTypeOptions(): string[] {
+    const isRestaurant = (n: string) => ['restaurant', 'restaruant', 'restaurants'].includes(n.toLowerCase());
+    const names = (this.upsellList || [])
+      .map((u: any) => String(u?.name || '').trim())
+      .filter((n: string) => n && !isRestaurant(n) && n.toLowerCase() !== 'ird');
+    const options = ['IRD', ...Array.from(new Set(names))];
+    // Keep an older outlet's saved type visible while editing it
+    const current = String(this.outletForm?.get('outlet_type')?.value || '').trim();
+    if (current && !options.some(o => o.toLowerCase() === current.toLowerCase())) {
+      options.push(current);
+    }
+    return options;
+  }
 
   constructor(
     private fb: FormBuilder,
@@ -479,6 +496,20 @@ export class OutletCreationComponent implements OnInit {
       this.getHotelTechnicalInfo();
       this.loadUpsellList(); // Populate outlet_type dropdown
       this.getCustomerById();
+      if (this.outlet_id === 0) {
+        this.checkOutletLimit().then(reached => {
+          this.outletLimitReached = reached;
+          if (reached) {
+            this.alertService.error('Only one IRD outlet is allowed. Edit the existing one instead.', this.options);
+          }
+        });
+      }
+    }
+
+    // New outlet: IRD by default
+    if (this.outlet_id === 0 && !this.passedOutletType && !this.outletForm.get('outlet_type')?.value) {
+      this.outletForm.patchValue({ outlet_type: 'IRD' }, { emitEvent: false });
+      this.upsellName = 'IRD';
     }
 
 
@@ -785,6 +816,24 @@ export class OutletCreationComponent implements OnInit {
     });
   }
 
+  /** True when the hotel already has an outlet (only one is allowed) */
+  private checkOutletLimit(): Promise<boolean> {
+    const body = {
+      domain_name: DOMAIN_NAME,
+      user_id: USER_ID,
+      extras: { find: { member_id: this.member_id } }
+    };
+    return new Promise(resolve => {
+      this.outletCreationService.postApiCall(body, ENDPOINTS.GET_ALL_OUTLETS).subscribe({
+        next: (resp: any) => {
+          const data = Array.isArray(resp?.result?.data) ? resp.result.data : [];
+          resolve(data.some((o: any) => o?.is_deleted !== true));
+        },
+        error: () => resolve(false)
+      });
+    });
+  }
+
   // Fetch upsell names to populate the outlet_type dropdown
   private loadUpsellList() {
     const payload = {
@@ -895,37 +944,53 @@ export class OutletCreationComponent implements OnInit {
     };
     // console.log('Request Body of outlet:', requestBody)
     if (this.outlet_id === 0) {
-      this.outletCreationService.postApiCall(requestBody, ENDPOINTS.OUTLET_CREATE).subscribe(
-        (resp: any) => {
-          if (resp.success === 1) {
-            this.alertService.success(`${this.upsellName} created successfully!`, this.options);
-            setTimeout(() => {
-              this.navigateToList();
-            }, 1000);
-          } else {
-            this.alertService.error(resp.message || 'Create failed', this.options);
-          }
+      // Only one outlet per hotel: check again right before creating
+      this.checkOutletLimit().then(reached => {
+        this.outletLimitReached = reached;
+        if (reached) {
+          this.alertService.error('Only one IRD outlet is allowed. Edit the existing one instead.', this.options);
+          return;
         }
-      );
+        this.createOutlet(requestBody);
+      });
     }
     else {
-      const req = {
-        ...requestBody,
-        extras: { find: { id: this.outlet_id } }
-      };
-      this.outletCreationService.postApiCall(req, ENDPOINTS.OUTLET_UPDATE).subscribe(
-        (resp: any) => {
-          if (resp.success === 1) {
-            this.alertService.success(`${this.upsellName} updated successfully!`, this.options);
-            setTimeout(() => {
-              this.navigateToList();
-            }, 1000);
-          } else {
-            this.alertService.error(resp.message || 'Update failed', this.options);
-          }
-        }
-      );
+      this.updateOutlet(requestBody);
     }
+  }
+
+  private createOutlet(requestBody: any) {
+    this.outletCreationService.postApiCall(requestBody, ENDPOINTS.OUTLET_CREATE).subscribe(
+      (resp: any) => {
+        if (resp.success === 1) {
+          this.alertService.success(`${this.upsellName} created successfully!`, this.options);
+          setTimeout(() => {
+            this.navigateToList();
+          }, 1000);
+        } else {
+          this.alertService.error(resp.message || 'Create failed', this.options);
+        }
+      }
+    );
+  }
+
+  private updateOutlet(requestBody: any) {
+    const req = {
+      ...requestBody,
+      extras: { find: { id: this.outlet_id } }
+    };
+    this.outletCreationService.postApiCall(req, ENDPOINTS.OUTLET_UPDATE).subscribe(
+      (resp: any) => {
+        if (resp.success === 1) {
+          this.alertService.success(`${this.upsellName} updated successfully!`, this.options);
+          setTimeout(() => {
+            this.navigateToList();
+          }, 1000);
+        } else {
+          this.alertService.error(resp.message || 'Update failed', this.options);
+        }
+      }
+    );
   }
 
   openExitModal() {

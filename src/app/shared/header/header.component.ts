@@ -321,7 +321,7 @@ export class HeaderComponent implements OnInit {
       return (this.selectedMenu = "Task Management");
     }
     else if (currentRoute.includes('outlet')) {
-      return (this.selectedMenu = "Outlets");
+      return (this.selectedMenu = "IRD");
     }
     else {
       // return "set the name here";
