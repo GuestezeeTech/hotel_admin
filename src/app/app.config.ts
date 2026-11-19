@@ -611,11 +611,11 @@ export const ENDPOINTS = {
   UPSELL_GETALL: API_URL + ':4002/upsell/getall',
   UPSELL_DELETE: API_URL + ':4001/upsell/delete',
   // Upsell names (per hotel) shown in the Upselling "Name" dropdown
-  UPSELLTYPE_CREATE: API_URL + ':5414/upselltype/create',
-  UPSELLTYPE_UPDATE: API_URL + ':5414/upselltype/update',
-  UPSELLTYPE_DELETE: API_URL + ':5414/upselltype/delete',
-  UPSELLTYPE_GETALL: API_URL + ':5413/upselltype/getall',
-  UPSELLTYPE_GETBYID: API_URL + ':5413/upselltype/getbyid',
+  UPSELLTYPE_CREATE: API_URL + ':5414/upsellname/create',
+  UPSELLTYPE_UPDATE: API_URL + ':5414/upsellname/update',
+  UPSELLTYPE_DELETE: API_URL + ':5414/upsellname/delete',
+  UPSELLTYPE_GETALL: API_URL + ':5413/upsellname/getall',
+  UPSELLTYPE_GETBYID: API_URL + ':5413/upsellname/getbyid',
 
   // Newly commanding & updating for port change
   // ADD_CUSTOMER_SIGNUP: API_URL + ':5447/customer/create',
